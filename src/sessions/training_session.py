@@ -64,7 +64,7 @@ class TrainingSession:
         # 5. Save the final model
         model_name = f"agent_{self.config['ticker']}_{int(time.time())}.pth"
         save_path = Path(f"saved_models/{model_name}")
-        agent.save(save_path)
+        agent.save(save_path, config=self.config)
         logger.info(f"Training session complete. Result: {result}. Model saved to {save_path}")
 
         return result
