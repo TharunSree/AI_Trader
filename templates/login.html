@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Log In{% endblock title %}
+{% block body_attribute %}class="auth-bg d-flex min-vh-100"{% endblock body_attribute %}
+
+{% block content %}
+<div class="row g-0 justify-content-center w-100 m-3">
+    <div class="col-xxl-3 col-lg-5 col-md-6">
+        <a href="/" class="auth-brand d-flex justify-content-center mb-2">
+            <span class="logo-dark fs-22">AI Trader</span>
+        </a>
+        <div class="card overflow-hidden text-center p-xxl-4 p-3 mb-0">
+            <h4 class="fw-semibold mb-3 fs-18">Log in to your account</h4>
+
+            {% if form.errors %}
+                <div class="alert alert-danger" role="alert">
+                    Your username and password didn't match. Please try again.
+                </div>
+            {% endif %}
+
+            <form method="post" action="{% url 'login' %}" class="text-start mb-3">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label" for="id_username">Username</label>
+                    <input type="text" name="username" class="form-control" placeholder="Enter your username" id="id_username">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="id_password">Password</label>
+                    <input type="password" name="password" class="form-control" placeholder="Enter your password" id="id_password">
+                </div>
+                <div class="d-grid">
+                    <button class="btn btn-primary fw-semibold" type="submit">Login</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}

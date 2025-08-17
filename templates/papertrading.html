@@ -1,0 +1,116 @@
+{% extends "vertical.html" %}
+{% load static %}
+{% block title %}Paper Trading{% endblock title %}
+{% block extra_css %}
+    <link href="{% static 'vendor/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}" rel="stylesheet" type="text/css" />
+{% endblock extra_css %}
+
+{% block page_content %}
+    {% include 'partials/page-title.html' with title="Paper Trading Bot" subtitle="Simulation" %}
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="header-title">Control Panel</h4>
+                    <form action="{% url 'start_trader' %}" method="POST" id="start-trader-form">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="model_file_select" class="form-label">Select Trained Model</label>
+                            <select class="form-select" id="model_file_select" name="model_file" required>
+                                {% for model in model_files %}<option value="{{ model }}">{{ model }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success" id="start-btn"><i class="ri-play-fill me-1"></i> Start Paper Trader</button>
+                        </div>
+                    </form>
+                    <hr/>
+                    <div class="d-grid">
+                        <form action="{% url 'stop_trader' %}" method="POST">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger w-100" id="stop-btn"><i class="ri-stop-fill me-1"></i> Stop Paper Trader</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="header-title">Live Status</h4>
+                    <h5>Status: <span id="trader-status-badge" class="badge"></span></h5>
+                    <h5>Account Equity: <span id="account-equity" class="text-success"></span></h5>
+                    <h5>Buying Power: <span id="buying-power" class="text-info"></span></h5>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="header-title">Current Positions</h4>
+                    <table id="positions-datatable" class="table table-striped dt-responsive nowrap w-100">
+                        <thead>
+                            <tr><th>Symbol</th><th>Quantity</th><th>Market Value</th><th>Unrealized P/L</th></tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock page_content %}
+
+{% block extra_javascript %}
+    <script src="{% static 'vendor/datatables.net/js/dataTables.min.js' %}"></script>
+    <script src="{% static 'vendor/datatables.net-bs5/js/dataTables.bootstrap5.min.js' %}"></script>
+    <script>
+        $(document).ready(function() {
+            var positionsTable = $('#positions-datatable').DataTable({"paging": false, "info": false});
+
+            function updateStatus(data) {
+                // Update Status Badge
+                const statusBadge = $('#trader-status-badge');
+                statusBadge.text(data.status);
+                statusBadge.removeClass('bg-success-subtle text-success bg-danger-subtle text-danger').addClass(
+                    data.status === 'RUNNING' ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'
+                );
+
+                // Update Start/Stop buttons
+                $('#start-btn').prop('disabled', data.status === 'RUNNING');
+                $('#stop-btn').prop('disabled', data.status !== 'RUNNING');
+
+                // Update Stats
+                $('#account-equity').text('$' + data.equity.toLocaleString());
+                $('#buying-power').text('$' + data.buying_power.toLocaleString());
+
+                // Update Positions Table
+                positionsTable.clear();
+                data.positions.forEach(pos => {
+                    positionsTable.row.add([
+                        pos.symbol,
+                        pos.qty,
+                        '$' + pos.market_value.toLocaleString(),
+                        '$' + pos.unrealized_pl.toLocaleString()
+                    ]);
+                });
+                positionsTable.draw();
+            }
+
+            function fetchTraderStatus() {
+                fetch("{% url 'trader_status_api' %}")
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status !== 'ERROR') {
+                            updateStatus(data);
+                        }
+                    });
+            }
+
+            // Fetch status immediately on page load, then every 10 seconds
+            fetchTraderStatus();
+            setInterval(fetchTraderStatus, 10000);
+        });
+    </script>
+{% endblock extra_javascript %}

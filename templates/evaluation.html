@@ -1,0 +1,101 @@
+{% extends "vertical.html" %}
+{% load static %}
+
+{% block title %}Model Evaluation{% endblock title %}
+
+{% block extra_css %}
+    <link href="{% static 'vendor/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}" rel="stylesheet" type="text/css" />
+{% endblock extra_css %}
+
+{% block page_content %}
+    {% include 'partials/page-title.html' with title="Agent Performance Evaluation" subtitle="Backtesting" %}
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="header-title">Run New Evaluation</h4>
+                    <p class="text-muted font-14">Select a trained model and a date range to run a detailed backtest.</p>
+                    <form action="{% url 'evaluation' %}" method="POST">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="model_file_select" class="form-label">Select Trained Model</label>
+                                <select class="form-select" id="model_file_select" name="model_file" required>
+                                    {% for model in model_files %}
+                                        <option value="{{ model }}">{{ model }}</option>
+                                    {% empty %}
+                                        <option value="" disabled>No trained models found in /saved_models/</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="start_date" class="form-label">Start Date</label>
+                                <input type="date" class="form-control" id="start_date" name="start_date" required>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="end_date" class="form-label">End Date</label>
+                                <input type="date" class="form-control" id="end_date" name="end_date" required>
+                            </div>
+                            <div class="col-md-2 mb-3 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary w-100"><i class="ri-play-circle-line me-1"></i> Run Evaluation</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="header-title">Evaluation Job History</h4>
+                    <table id="evaluation-jobs-table" class="table table-striped dt-responsive nowrap w-100">
+                        <thead>
+                            <tr>
+                                <th>Job ID</th>
+                                <th>Model File</th>
+                                <th>Date Range</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for job in evaluation_jobs %}
+                            <tr>
+                                <td>#{{ job.id }}</td>
+                                <td>{{ job.model_file }}</td>
+                                <td>{{ job.start_date }} to {{ job.end_date }}</td>
+                                <td>
+                                    {% if job.status == 'COMPLETED' %}<span class="badge bg-success-subtle text-success">{{ job.status }}</span>
+                                    {% elif job.status == 'RUNNING' %}<span class="badge bg-info-subtle text-info">{{ job.status }}</span>
+                                    {% elif job.status == 'FAILED' %}<span class="badge bg-danger-subtle text-danger">{{ job.status }}</span>
+                                    {% else %}<span class="badge bg-secondary-subtle text-secondary">{{ job.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if job.status == 'COMPLETED' %}
+                                        <a href="{% url 'evaluation_report' job.id %}" class="btn btn-primary btn-sm">View Report</a>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock page_content %}
+
+{% block extra_javascript %}
+    <script src="{% static 'vendor/datatables.net/js/dataTables.min.js' %}"></script>
+    <script src="{% static 'vendor/datatables.net-bs5/js/dataTables.bootstrap5.min.js' %}"></script>
+    <script>
+        $(document).ready(function() {
+            $('#evaluation-jobs-table').DataTable({"order": [[ 0, "desc" ]]});
+        });
+    </script>
+{% endblock extra_javascript %}

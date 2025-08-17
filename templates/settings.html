@@ -1,0 +1,57 @@
+{% extends "vertical.html" %}
+{% load static %}
+
+{% block title %}Settings{% endblock title %}
+
+{% block page_content %}
+    {% include 'partials/page-title.html' with title="System Settings" subtitle="Configuration" %}
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="header-title">Broker Configuration</h4>
+                    <p class="text-muted font-14">
+                        Enter your API credentials from Alpaca. These are stored securely and are required for paper and live trading.
+                    </p>
+
+                    <form action="" method="POST">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="alpaca_api_key" class="form-label">Alpaca API Key</label>
+                            <input type="text" id="alpaca_api_key" name="alpaca_api_key" class="form-control">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="alpaca_secret_key" class="form-label">Alpaca Secret Key</label>
+                            <input type="password" id="alpaca_secret_key" name="alpaca_secret_key" class="form-control">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="broker_endpoint" class="form-label">Broker Endpoint</label>
+                            <select class="form-select" id="broker_endpoint" name="broker_endpoint">
+                                <option value="paper">Paper Trading (https://paper-api.alpaca.markets)</option>
+                                <option value="live">Live Trading (https://api.alpaca.markets)</option>
+                            </select>
+                        </div>
+                        
+                        <hr/>
+
+                        <h4 class="header-title mt-3">General Settings</h4>
+
+                        <div class="mb-3">
+                            <label for="display_currency" class="form-label">Display Currency</label>
+                            <select class="form-select" id="display_currency" name="display_currency">
+                                <option value="USD">USD ($)</option>
+                                <option value="INR">INR (₹)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="d-flex justify-content-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="ri-save-line me-1"></i> Save Settings
+                            </button>
+                        </div>
+                    </form>
+
+                </div> </div> </div> </div> {% endblock page_content %}

@@ -5,27 +5,40 @@ import configparser
 import logging
 from alpaca_trade_api.rest import TimeFrame
 import pandas as pd
+from django.conf import settings
 
 logger = logging.getLogger("rl_trading_backend")
 
 
 class Broker:
     def __init__(self):
-        config = configparser.ConfigParser()
-        config.read("config.ini")
-
-        self.api = tradeapi.REST(
-            key_id=config["alpaca"]["API_KEY"],
-            secret_key=config["alpaca"]["SECRET_KEY"],
-            base_url=config["alpaca"]["BASE_URL"],
-            api_version="v2",
-        )
         try:
+            # --- UPDATED: Read credentials directly from Django settings ---
+            api_key = settings.API_KEY
+            secret_key = settings.SECRET_KEY_ALPACA
+            base_url_setting = settings.BASE_URL
+
+            # --- NEW: Handle "paper" and "live" shorthand ---
+            if base_url_setting == 'paper':
+                base_url = 'https://paper-api.alpaca.markets'
+            elif base_url_setting == 'live':
+                base_url = 'https://api.alpaca.markets'
+            else:
+                base_url = base_url_setting # Use the value directly if it's a full URL
+
+            self.api = tradeapi.REST(
+                key_id=api_key,
+                secret_key=secret_key,
+                base_url=base_url,
+                api_version='v2'
+            )
             account_status = self.api.get_account().status
-            logger.info(f"Connected to Alpaca. Account Status: {account_status}")
+            logger.info(f"Connected to Alpaca. Endpoint: {base_url}, Account Status: {account_status}")
         except Exception as e:
-            logger.error(f"Failed to connect to Alpaca: {e}")
-            raise
+            # --- NEW: Improved logging with full traceback ---
+            logger.exception("Failed to connect to Alpaca. Check API credentials and endpoint in settings.")
+            # Re-raise the exception so the calling task knows something went wrong
+            raise e
 
     def get_buying_power(self) -> float:
         try:

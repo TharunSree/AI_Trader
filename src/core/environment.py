@@ -10,13 +10,13 @@ import random
 
 class TradingEnv(gym.Env):
     def __init__(
-        self,
-        df,
-        observation_columns,
-        window_size,
-        initial_cash,
-        transaction_cost_pct,
-        slippage_pct,
+            self,
+            df,
+            observation_columns,
+            window_size,
+            initial_cash,
+            transaction_cost_pct,
+            slippage_pct,
     ):
         super(TradingEnv, self).__init__()
 
@@ -39,11 +39,17 @@ class TradingEnv(gym.Env):
 
         self.portfolio = None
         self.current_step = 0
+        self.trade_log = []
 
-    def reset(self, seed=None, options=None):
+    def reset(self, seed=None, options=None, start_at_beginning=False):
         super().reset(seed=seed)
-        self.current_step = random.randint(self.window_size, len(self.df) - 2)
+        if start_at_beginning:
+            self.current_step = self.window_size
+        else:
+            self.current_step = random.randint(self.window_size, len(self.df) - 2)
+
         self.portfolio = Portfolio(self.initial_cash, self.transaction_cost_pct)
+        self.trade_log = []
         return self._get_observation(), {}
 
     def step(self, action):
@@ -82,6 +88,7 @@ class TradingEnv(gym.Env):
     def _execute_trade(self, action):
         symbol = "SPY"
         current_price = self.df["Close"].iloc[self.current_step].item()
+        timestamp = self.df.index[self.current_step]
 
         if action == 1:  # Buy
             price_with_slippage = current_price * (1 + self.slippage_pct)
@@ -89,6 +96,8 @@ class TradingEnv(gym.Env):
             if trade_value > 10:
                 quantity = trade_value / price_with_slippage
                 self.portfolio.buy(symbol, quantity, price_with_slippage)
+                self.trade_log.append({'timestamp': timestamp, 'action': 'BUY', 'symbol': symbol, 'quantity': quantity,
+                                       'price': price_with_slippage})
             return 0
 
         elif action == 2:  # Sell
@@ -98,6 +107,8 @@ class TradingEnv(gym.Env):
                 entry_price = self.portfolio.positions[symbol]["entry_price"]
                 profit_loss = (price_with_slippage - entry_price) * quantity
                 self.portfolio.sell(symbol, quantity, price_with_slippage)
+                self.trade_log.append({'timestamp': timestamp, 'action': 'SELL', 'symbol': symbol, 'quantity': quantity,
+                                       'price': price_with_slippage})
                 return profit_loss
             return 0
 

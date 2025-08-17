@@ -15,11 +15,11 @@ import os
 import sys
 from dotenv import load_dotenv
 
-load_dotenv()
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+load_dotenv(BASE_DIR / '.env')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -164,3 +164,11 @@ CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
+
+
+API_KEY = os.environ.get('API_KEY')
+SECRET_KEY_ALPACA = os.environ.get('SECRET_KEY')
+if os.environ.get('BASE_URL') == 'paper':
+     BASE_URL = 'https://paper-api.alpaca.markets'
+else:
+        BASE_URL = 'https://api.alpaca.markets'

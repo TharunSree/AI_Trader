@@ -2,6 +2,7 @@
 
 import numpy as np
 import torch
+import pandas as pd
 from src.core.environment import TradingEnv
 from src.models.ppo_agent import PPOAgent
 

@@ -21,4 +21,9 @@ from django.urls import path, include
 urlpatterns = [
     path("admin/", admin.site.urls),
     path('', include('control_panel.urls')),
+    path('accounts/', include('django.contrib.auth.urls')),
 ]
+
+
+LOGIN_REDIRECT_URL = '/' # Redirect to dashboard after login
+LOGOUT_REDIRECT_URL = '/' # Redirect to dashboard after logout

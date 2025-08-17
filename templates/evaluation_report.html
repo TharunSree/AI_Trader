@@ -1,0 +1,125 @@
+{% extends "vertical.html" %}
+{% load static %}
+
+{% block title %}Evaluation Report #{{ job.id }}{% endblock title %}
+
+{% block extra_css %}
+    <link href="{% static 'vendor/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}" rel="stylesheet" type="text/css" />
+{% endblock extra_css %}
+
+{% block page_content %}
+    {% include 'partials/page-title.html' with title="Evaluation Report" subtitle="Job #"|add:job.id %}
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="header-title">Evaluation Summary</h4>
+                    <p class="text-muted mb-0">
+                        <strong>Model:</strong> {{ job.model_file }} |
+                        <strong>Period:</strong> {{ job.start_date }} to {{ job.end_date }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="header-title">Total Return</h4>
+                    <h3 class="fw-semibold mt-3">{{ job.results.total_return_pct }}%</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="header-title">Sharpe Ratio</h4>
+                    <h3 class="fw-semibold mt-3">{{ job.results.sharpe_ratio }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="header-title">Final Equity</h4>
+                    <h3 class="fw-semibold mt-3">${{ job.results.final_equity|floatformat:2 }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="header-title mb-4">Equity Curve</h4>
+                    <div id="equity-curve-chart" class="apex-charts" data-colors="#35b8e0"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="header-title">Trade Log</h4>
+                    <table id="trade-log-table" class="table table-striped dt-responsive nowrap w-100">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Action</th>
+                                <th>Symbol</th>
+                                <th>Quantity</th>
+                                <th>Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for trade in job.results.trade_log %}
+                            <tr>
+                                <td>{{ trade.timestamp }}</td>
+                                <td>
+                                    {% if trade.action == 'BUY' %}<span class="badge bg-success-subtle text-success">BUY</span>
+                                    {% else %}<span class="badge bg-danger-subtle text-danger">SELL</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ trade.symbol }}</td>
+                                <td>{{ trade.quantity }}</td>
+                                <td>${{ trade.price|floatformat:2 }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock page_content %}
+
+{% block extra_javascript %}
+    <script src="{% static 'vendor/apexcharts/apexcharts.min.js' %}"></script>
+    <script src="{% static 'vendor/datatables.net/js/dataTables.min.js' %}"></script>
+    <script src="{% static 'vendor/datatables.net-bs5/js/dataTables.bootstrap5.min.js' %}"></script>
+
+    <script>
+        $(document).ready(function() {
+            $('#trade-log-table').DataTable({"order": [[ 0, "asc" ]]});
+
+            var options = {
+                chart: { height: 380, type: 'area' },
+                series: [{ name: 'Equity', data: {{ equity_data|safe }} }],
+                xaxis: { type: 'datetime', categories: {{ equity_dates|safe }} },
+                yaxis: { labels: { formatter: (val) => { return "$" + val.toLocaleString() } } },
+                dataLabels: { enabled: false },
+                stroke: { curve: 'smooth', width: 2 },
+                colors: ["#35b8e0"],
+            };
+            var chart = new ApexCharts(document.querySelector("#equity-curve-chart"), options);
+            chart.render();
+        });
+    </script>
+{% endblock extra_javascript %}

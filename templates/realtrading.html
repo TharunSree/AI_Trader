@@ -1,0 +1,28 @@
+{% extends "vertical.html" %}
+{% load static %}
+{% block title %}Real Trading{% endblock title %}
+
+{% block page_content %}
+    {% include 'partials/page-title.html' with title="Real Money Trading" subtitle="Live" %}
+
+    <div class="alert alert-danger bg-danger text-white border-0" role="alert">
+        <strong>Warning!</strong> Actions on this page use REAL MONEY and will execute on the live market.
+    </div>
+
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="header-title">Live Control Panel</h4>
+                    </div>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="header-title">Live Account Status</h4>
+                    </div>
+            </div>
+        </div>
+    </div>
+{% endblock page_content %}
