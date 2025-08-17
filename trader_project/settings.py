@@ -99,7 +99,7 @@ elif 'win32' in sys.platform:
     DATABASES['default'] = {
         'ENGINE': os.environ.get('DB_ENGINE'),
         'NAME': os.environ.get('DB_NAME'),
-        'USER': os.environ.get('DB_USER'),
+        'USER': 'root',
         'PASSWORD': os.environ.get('DB_PASSWORD'),
         'HOST': os.environ.get('DB_HOST'),
         'PORT': os.environ.get('DB_PORT'),
@@ -172,3 +172,5 @@ if os.environ.get('BASE_URL') == 'paper':
      BASE_URL = 'https://paper-api.alpaca.markets'
 else:
         BASE_URL = 'https://api.alpaca.markets'
+
+LOGIN_REDIRECT_URL = '/'
