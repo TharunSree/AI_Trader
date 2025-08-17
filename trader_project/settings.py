@@ -28,7 +28,7 @@ load_dotenv(BASE_DIR / '.env')
 SECRET_KEY = "django-insecure-m5wcmhxo5-xme#vego5zj+xrzi0@!#^vr!h9@)(8la(2ko=z72"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['trading.tarunsree.live','www.trading.tarunsree.live']
 
