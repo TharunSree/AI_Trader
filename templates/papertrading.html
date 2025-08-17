@@ -1,51 +1,82 @@
 {% extends "vertical.html" %}
 {% load static %}
+
 {% block title %}Paper Trading{% endblock title %}
+
 {% block extra_css %}
     <link href="{% static 'vendor/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}" rel="stylesheet" type="text/css" />
 {% endblock extra_css %}
 
+{% block page_title %}
+    {% include 'partials/topbar.html' with topbarTitle='Paper Trading Bot' %}
+{% endblock page_title %}
+
 {% block page_content %}
-    {% include 'partials/page-title.html' with title="Paper Trading Bot" subtitle="Simulation" %}
     <div class="row">
-        <div class="col-lg-4">
+        <div class="col-lg-12">
             <div class="card">
                 <div class="card-body">
-                    <h4 class="header-title">Control Panel</h4>
-                    <form action="{% url 'start_trader' %}" method="POST" id="start-trader-form">
-                        {% csrf_token %}
-                        <div class="mb-3">
-                            <label for="model_file_select" class="form-label">Select Trained Model</label>
-                            <select class="form-select" id="model_file_select" name="model_file" required>
-                                {% for model in model_files %}<option value="{{ model }}">{{ model }}</option>{% endfor %}
-                            </select>
+                    <div class="row align-items-center">
+                        <div class="col-lg-6">
+                            <h4 class="header-title">Control Panel</h4>
+                            <p class="text-muted font-14">Select a trained model and launch the live paper trading bot.</p>
+
+                            <form action="{% url 'start_trader' %}" method="POST" class="mb-2">
+                                {% csrf_token %}
+                                <div class="input-group">
+                                    <select class="form-select" id="model_file_select" name="model_file" required>
+                                        {% for model in model_files %}
+                                            <option value="{{ model }}">{{ model }}</option>
+                                        {% empty %}
+                                            <option value="" disabled>No trained models found</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="btn btn-success" id="start-btn"><i class="ri-play-fill me-1"></i> Start Trader</button>
+                                </div>
+                            </form>
+
+                            <form action="{% url 'stop_trader' %}" method="POST">
+                                {% csrf_token %}
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-danger" id="stop-btn"><i class="ri-stop-fill me-1"></i> Stop Trader</button>
+                                </div>
+                            </form>
                         </div>
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-success" id="start-btn"><i class="ri-play-fill me-1"></i> Start Paper Trader</button>
+                        <div class="col-lg-6">
+                            <h4 class="header-title mt-3 mt-lg-0">Live Status</h4>
+                            <div class="d-flex justify-content-between border-bottom py-2">
+                                <p class="mb-0">Status:</p>
+                                <span id="trader-status-badge" class="badge bg-secondary-subtle text-secondary">-</span>
+                            </div>
+                            <div class="d-flex justify-content-between border-bottom py-2">
+                                <p class="mb-0">Account Equity:</p>
+                                <span id="account-equity" class="fw-semibold">-</span>
+                            </div>
+                            <div class="d-flex justify-content-between py-2">
+                                <p class="mb-0">Buying Power:</p>
+                                <span id="buying-power" class="fw-semibold">-</span>
+                            </div>
+                            <h5 class="mt-2">Current Activity:</h5>
+                            <div class="alert alert-info bg-info-subtle border-0 mb-0" role="alert" id="trader-activity-log">
+                                Waiting for status...
+                            </div>
                         </div>
-                    </form>
-                    <hr/>
-                    <div class="d-grid">
-                        <form action="{% url 'stop_trader' %}" method="POST">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-danger w-100" id="stop-btn"><i class="ri-stop-fill me-1"></i> Stop Paper Trader</button>
-                        </form>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-lg-8">
+    </div>
+
+    <div class="row">
+        <div class="col-lg-12">
             <div class="card">
                 <div class="card-body">
-                    <h4 class="header-title">Live Status</h4>
-                    <h5>Status: <span id="trader-status-badge" class="badge"></span></h5>
-                    <h5>Account Equity: <span id="account-equity" class="text-success"></span></h5>
-                    <h5>Buying Power: <span id="buying-power" class="text-info"></span></h5>
+                    <h4 class="header-title mb-4">Live Equity Curve</h4>
+                    <div id="live-equity-chart" class="apex-charts" data-colors="#35b8e0"></div>
                 </div>
             </div>
         </div>
-    </div>
-    <div class="row">
+
         <div class="col-lg-12">
             <div class="card">
                 <div class="card-body">
@@ -54,7 +85,8 @@
                         <thead>
                             <tr><th>Symbol</th><th>Quantity</th><th>Market Value</th><th>Unrealized P/L</th></tr>
                         </thead>
-                        <tbody></tbody>
+                        <tbody>
+                            </tbody>
                     </table>
                 </div>
             </div>
@@ -63,54 +95,66 @@
 {% endblock page_content %}
 
 {% block extra_javascript %}
+    <script src="{% static 'vendor/apexcharts/apexcharts.min.js' %}"></script>
     <script src="{% static 'vendor/datatables.net/js/dataTables.min.js' %}"></script>
     <script src="{% static 'vendor/datatables.net-bs5/js/dataTables.bootstrap5.min.js' %}"></script>
     <script>
         $(document).ready(function() {
             var positionsTable = $('#positions-datatable').DataTable({"paging": false, "info": false});
 
+            // Chart setup (will be populated by AJAX)
+            var chartOptions = {
+                chart: { height: 380, type: 'area', zoom: { enabled: false }, toolbar: { show: false } },
+                series: [{ name: 'Equity', data: [] }],
+                xaxis: { type: 'datetime', categories: [] },
+                yaxis: { labels: { formatter: (val) => { return "$" + val.toLocaleString() } } },
+                dataLabels: { enabled: false }, stroke: { curve: 'smooth', width: 2 }, colors: ["#35b8e0"],
+            };
+            var equityChart = new ApexCharts(document.querySelector("#live-equity-chart"), chartOptions);
+            equityChart.render();
+
             function updateStatus(data) {
-                // Update Status Badge
                 const statusBadge = $('#trader-status-badge');
                 statusBadge.text(data.status);
                 statusBadge.removeClass('bg-success-subtle text-success bg-danger-subtle text-danger').addClass(
                     data.status === 'RUNNING' ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'
                 );
-
-                // Update Start/Stop buttons
                 $('#start-btn').prop('disabled', data.status === 'RUNNING');
                 $('#stop-btn').prop('disabled', data.status !== 'RUNNING');
 
-                // Update Stats
                 $('#account-equity').text('$' + data.equity.toLocaleString());
                 $('#buying-power').text('$' + data.buying_power.toLocaleString());
 
-                // Update Positions Table
                 positionsTable.clear();
-                data.positions.forEach(pos => {
-                    positionsTable.row.add([
-                        pos.symbol,
-                        pos.qty,
-                        '$' + pos.market_value.toLocaleString(),
-                        '$' + pos.unrealized_pl.toLocaleString()
-                    ]);
-                });
+                if (data.positions && data.positions.length > 0) {
+                    data.positions.forEach(pos => {
+                        positionsTable.row.add([
+                            pos.symbol, pos.qty,
+                            '$' + pos.market_value.toLocaleString(),
+                            '$' + pos.unrealized_pl.toLocaleString()
+                        ]);
+                    });
+                }
                 positionsTable.draw();
             }
 
             function fetchTraderStatus() {
                 fetch("{% url 'trader_status_api' %}")
                     .then(response => response.json())
-                    .then(data => {
-                        if (data.status !== 'ERROR') {
-                            updateStatus(data);
-                        }
-                    });
+                    .then(data => { if (data.status !== 'ERROR') { updateStatus(data); } });
             }
 
-            // Fetch status immediately on page load, then every 10 seconds
+            function fetchTraderActivity() {
+                fetch("{% url 'trader_activity_api' %}")
+                    .then(response => response.json())
+                    .then(data => { $('#trader-activity-log').text(data.activity || 'Waiting...'); });
+            }
+
+            // Fetch data on page load, then set intervals
             fetchTraderStatus();
-            setInterval(fetchTraderStatus, 10000);
+            fetchTraderActivity();
+            setInterval(fetchTraderStatus, 10000); // Check equity every 10s
+            setInterval(fetchTraderActivity, 2000);  // Check activity every 2s
         });
     </script>
 {% endblock extra_javascript %}

@@ -7,9 +7,11 @@
     <link href="{% static 'vendor/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}" rel="stylesheet" type="text/css" />
 {% endblock extra_css %}
 
-{% block page_content %}
-    {% include 'partials/page-title.html' with title="Agent Performance Evaluation" subtitle="Backtesting" %}
+{% block page_title %}
+{% include 'partials/topbar.html' with topbarTitle='Agent Performance Evaluation' %}
+{% endblock page_title %}
 
+{% block page_content %}
     <div class="row">
         <div class="col-12">
             <div class="card">
@@ -67,10 +69,12 @@
                                 <td>{{ job.model_file }}</td>
                                 <td>{{ job.start_date }} to {{ job.end_date }}</td>
                                 <td>
-                                    {% if job.status == 'COMPLETED' %}<span class="badge bg-success-subtle text-success">{{ job.status }}</span>
-                                    {% elif job.status == 'RUNNING' %}<span class="badge bg-info-subtle text-info">{{ job.status }}</span>
-                                    {% elif job.status == 'FAILED' %}<span class="badge bg-danger-subtle text-danger">{{ job.status }}</span>
-                                    {% else %}<span class="badge bg-secondary-subtle text-secondary">{{ job.status }}</span>
+                                    {% include "partials/status_badge.html" with status=job.status %}
+
+                                    {% if job.status == 'FAILED' and job.error_message %}
+                                        <span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ job.error_message }}">
+                                            <i class="ri-information-line text-danger"></i>
+                                        </span>
                                     {% endif %}
                                 </td>
                                 <td>

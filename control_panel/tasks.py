@@ -74,6 +74,7 @@ def run_training_job_task(self, job_id):
     except Exception as e:
         logger.error(f"An error occurred during training: {e}")
         job.status = 'FAILED'
+        job.error_message = str(e)
 
     job.end_time = timezone.now()
     job.progress = 100
@@ -88,6 +89,8 @@ def stop_celery_task(task_id):
     current_app.control.revoke(task_id, terminate=True)
 
 
+# In control_panel/tasks.py
+
 @shared_task(bind=True, base=AbortableTask)
 def run_meta_trainer_task(self, meta_job_id):
     meta_job = MetaTrainingJob.objects.get(id=meta_job_id)
@@ -97,78 +100,77 @@ def run_meta_trainer_task(self, meta_job_id):
     meta_job.save()
 
     try:
-        TICKER = ['SPY']
-        TRAIN_START = '2015-01-01'
+        # 1. --- Load and Prepare Data ---
+        TICKER = ['SPY'];
+        TRAIN_START = '2015-01-01';
         TRAIN_END = '2021-12-31'
-        VALIDATION_START = '2022-01-01'
+        VALIDATION_START = '2022-01-01';
         VALIDATION_END = '2023-12-31'
 
-        save_path = settings.BASE_DIR / "saved_models" / "best_agent.pth"
-
-        logger.info(f"Loading training data for {TICKER[0]} from {TRAIN_START} to {TRAIN_END}")
+        logger.info("META-TRAINER: Loading and preparing data...")
         train_df = calculate_features(YFinanceLoader(TICKER, TRAIN_START, TRAIN_END).load_data())
-
-        logger.info(f"Loading validation data for {TICKER[0]} from {VALIDATION_START} to {VALIDATION_END}")
         validation_df = calculate_features(YFinanceLoader(TICKER, VALIDATION_START, VALIDATION_END).load_data())
-
-        if train_df.empty or validation_df.empty:
-            raise Exception("Failed to load data - empty DataFrame returned")
 
         best_sharpe = -float('inf')
         best_strategy_info = {}
 
+        # 2. --- Generate All Strategy Combinations ---
         all_combinations = list(product(
             STRATEGY_PLAYBOOK["feature_sets"].keys(),
             STRATEGY_PLAYBOOK["hyperparameters"].keys(),
             STRATEGY_PLAYBOOK["window_sizes"]
         ))
 
-        logger.info(f"Starting meta-training with {len(all_combinations)} combinations")
-
+        # 3. --- Loop Through Each Strategy ---
         for i, (feat_key, param_key, window) in enumerate(all_combinations):
-            logger.info(f"META-TRAINER: Running experiment {i + 1}/{len(all_combinations)}")
+            logger.info(
+                f"META-TRAINER: Running experiment {i + 1}/{len(all_combinations)}: {feat_key}, {param_key}, w={window}")
 
             features = STRATEGY_PLAYBOOK["feature_sets"][feat_key]
             params = STRATEGY_PLAYBOOK["hyperparameters"][param_key]
 
+            # 4. --- Train a Candidate Agent ---
             train_env = TradingEnv(train_df, features, window, meta_job.initial_cash, 0.001, 0.0005)
             state_dim, action_dim = train_env.observation_space.shape[0], train_env.action_space.n
             agent = PPOAgent(state_dim, action_dim, lr=params['lr'])
 
             trainer_config = {
-                "num_episodes": 50,
-                "gamma": params['gamma'],
-                "target_equity": meta_job.target_equity,
-                "patience_episodes": 20,
-                "min_reward_improvement": 100.0
+                "num_episodes": 50, "gamma": params['gamma'], "target_equity": meta_job.target_equity,
+                "patience_episodes": 20, "min_reward_improvement": 100.0
             }
             trainer = Trainer(agent, train_env, trainer_config)
             trainer.train()
 
+            # 5. --- Evaluate the Agent on Unseen Data ---
             validator_env_config = {'features': features, 'window': window}
             validator = Validator(validation_df, validator_env_config)
             performance_metrics = validator.evaluate(agent)
 
             current_sharpe = performance_metrics['sharpe_ratio']
 
+            # 6. --- Check for New Champion ---
             if current_sharpe > best_sharpe:
                 best_sharpe = current_sharpe
                 best_strategy_info = {
-                    "features": feat_key,
-                    "params": param_key,
-                    "window": window,
-                    "sharpe": best_sharpe,  # Changed from sharpe_ratio to sharpe
-                    "return_pct": performance_metrics['total_return_pct']
+                    "features": feat_key, "params": param_key, "window": window,
+                    "sharpe_ratio": best_sharpe, "return_pct": performance_metrics['total_return_pct']
                 }
+                save_path = settings.BASE_DIR / "saved_models" / "best_agent.pth"
                 agent.save(save_path)
-                logger.info(f"!!! New best agent found! Sharpe: {best_sharpe:.2f} !!!")
+                logger.info(f"!!! New best agent found! Sharpe: {best_sharpe:.2f}. Model saved. !!!")
+
+            # 7. --- Update Progress in Database ---
+            progress = int(((i + 1) / len(all_combinations)) * 100)
+            meta_job.progress = progress
+            meta_job.results = best_strategy_info
+            meta_job.save(update_fields=['progress', 'results'])
 
         meta_job.status = 'COMPLETED'
-        meta_job.best_strategy_details = best_strategy_info  # Changed from results to best_strategy_details
 
     except Exception as e:
-        logger.error(f"Meta-Training job {meta_job.id} failed: {e}", exc_info=True)
+        logger.error(f"Meta-Training job {meta_job.id} failed: {e}")
         meta_job.status = 'FAILED'
+        meta_job.error_message = str(e)
 
     meta_job.end_time = timezone.now()
     meta_job.save()
@@ -182,25 +184,22 @@ def run_paper_trader_task(self, trader_id, model_file):
     logger.info(f"Starting paper trader with model: {model_file}")
 
     def should_abort():
-        # This callback allows the session to check if Django/Celery has told it to stop.
-        # We also need to refresh the trader object from the DB to get the latest status.
         trader.refresh_from_db()
         return self.is_aborted() or trader.status == 'STOPPED'
 
     try:
         config = {
             "model_file": model_file,
-            "interval_minutes": 60,  # How often to scan the market
+            "interval_minutes": 60,
         }
-        # This session contains the main while True loop for trading
         session = TradingSession(config, abort_flag_callback=should_abort)
+        session.task = self  # Pass the task instance to the session
         session.run()
 
     except Exception as e:
         logger.error(f"Paper trader task failed: {e}")
-        trader.status = 'FAILED'  # You could add a FAILED status to your model
+        trader.status = 'FAILED'
 
-    # When the loop is broken by an abort, mark as stopped.
     if trader.status != 'FAILED':
         trader.status = 'STOPPED'
     trader.save()
@@ -231,6 +230,7 @@ def run_evaluation_task(self, job_id):
     except Exception as e:
         logger.error(f"Evaluation job {job.id} failed: {e}")
         job.status = 'FAILED'
+        job.error_message = str(e)
 
     job.save()
     return f"Evaluation finished with status: {job.status}"

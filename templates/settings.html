@@ -3,9 +3,11 @@
 
 {% block title %}Settings{% endblock title %}
 
-{% block page_content %}
-    {% include 'partials/page-title.html' with title="System Settings" subtitle="Configuration" %}
+{% block page_title %}
+{% include 'partials/topbar.html' with topbarTitle='System Settings' %}
+{% endblock page_title %}
 
+{% block page_content %}
     <div class="row">
         <div class="col-lg-8">
             <div class="card">

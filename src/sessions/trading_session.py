@@ -1,9 +1,8 @@
-# src/sessions/trading_session.py
-
 import logging
 import time
 from pathlib import Path
 import torch
+from datetime import datetime, timedelta
 
 from src.execution.scanner import Scanner
 from src.execution.broker import Broker
@@ -11,7 +10,6 @@ from src.execution.risk_manager import RiskManager
 from src.models.ppo_agent import PPOAgent
 from src.data.preprocessor import calculate_features
 from src.data.yfinance_loader import YFinanceLoader
-from datetime import datetime, timedelta
 
 logger = logging.getLogger('rl_trading_backend')
 
@@ -41,6 +39,7 @@ class TradingSession:
     def __init__(self, config: dict, abort_flag_callback):
         self.config = config
         self.abort_flag_callback = abort_flag_callback
+        self.task = None  # Will be set by the Celery task
 
     def run(self):
         logger.info(f"Launching trading session with model: {self.config['model_file']}")
@@ -55,11 +54,12 @@ class TradingSession:
         scanner = Scanner()
 
         while not self.abort_flag_callback():
-            logger.info("--- Starting new market scan cycle ---")
+            if self.task: self.task.update_state(state='PROGRESS', meta={'activity': 'Scanning for opportunities...'})
             hot_list = scanner.scan_for_opportunities()
 
             for ticker in hot_list:
                 if self.abort_flag_callback(): break
+                if self.task: self.task.update_state(state='PROGRESS', meta={'activity': f'Analyzing {ticker}...'})
 
                 state, price = create_state(ticker)
                 if state is None: continue
@@ -69,16 +69,22 @@ class TradingSession:
                     confidence, action = torch.max(action_probs, 0)
                     action, confidence = action.item(), confidence.item()
 
-                logger.info(f"Analysis for {ticker}: Action={action}, Conf={confidence:.2f}")
+                logger.info(f"Analysis for {ticker}: Action={['HOLD', 'BUY', 'SELL'][action]}, Conf={confidence:.2f}")
 
                 is_approved, notional_value = risk_manager.check_trade(ticker, action, confidence)
                 if is_approved:
                     side = 'buy' if action == 1 else 'sell'
                     broker.place_market_order(symbol=ticker, side=side, notional_value=notional_value)
 
-                time.sleep(5)  # Pause between analyzing stocks
+                time.sleep(5)
 
-            logger.info(f"Scan cycle complete. Sleeping for {self.config['interval_minutes']} minutes...")
-            for _ in range(self.config['interval_minutes'] * 60):
+            interval_minutes = self.config.get('interval_minutes', 60)
+            logger.info(f"Scan cycle complete. Sleeping for {interval_minutes} minutes...")
+
+            for i in range(interval_minutes * 60, 0, -1):
                 if self.abort_flag_callback(): break
+                if self.task:
+                    minutes, seconds = divmod(i, 60)
+                    self.task.update_state(state='PROGRESS',
+                                           meta={'activity': f'Sleeping... ({minutes:02d}:{seconds:02d} remaining)'})
                 time.sleep(1)

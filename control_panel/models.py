@@ -26,6 +26,8 @@ class TrainingJob(models.Model):
     progress = models.IntegerField(default=0)
     celery_task_id = models.CharField(max_length=255, null=True, blank=True, editable=False)
 
+    error_message = models.TextField(null=True, blank=True)
+
     def __str__(self): return f"Training Job #{self.id} - {self.status}"
 
 
@@ -34,22 +36,30 @@ class MetaTrainingJob(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
     start_time = models.DateTimeField(null=True, blank=True)
     end_time = models.DateTimeField(null=True, blank=True)
+
     initial_cash = models.FloatField(default=100000.0)
     target_equity = models.FloatField(default=200000.0)
-    results = models.JSONField(null=True, blank=True)
+
+    # --- NEW: Add progress field ---
+    progress = models.IntegerField(default=0)
+
+    results = models.JSONField(null=True, blank=True)  # This will store the best strategy info
     celery_task_id = models.CharField(max_length=255, null=True, blank=True, editable=False)
 
-    def __str__(self): return f"Meta-Training Job #{self.id} - {self.status}"
+    error_message = models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Meta-Training Job #{self.id} - {self.status}"
 
 
 class PaperTrader(models.Model):
     STATUS_CHOICES = [
         ('STOPPED', 'Stopped'),
         ('RUNNING', 'Running'),
+        ('FAILED', 'Failed'),
     ]
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='STOPPED')
-    # --- NEW: Field to store the selected model file ---
-    model_file = models.CharField(max_length=255, null=True, blank=True, help_text="e.g., ppo_agent_advanced.pth")
+    model_file = models.CharField(max_length=255, null=True, blank=True, help_text="e.g., best_agent.pth")
     celery_task_id = models.CharField(max_length=255, null=True, blank=True, editable=False)
 
     def __str__(self):
@@ -72,6 +82,8 @@ class EvaluationJob(models.Model):
 
     # Results
     results = models.JSONField(null=True, blank=True)  # Store metrics like Sharpe, return, etc.
+
+    error_message = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return f"Evaluation Job #{self.id} for {self.model_file}"
