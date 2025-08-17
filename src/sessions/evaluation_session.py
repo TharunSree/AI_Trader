@@ -1,5 +1,3 @@
-# src/sessions/evaluation_session.py
-
 import logging
 import pandas as pd
 import numpy as np
@@ -24,6 +22,19 @@ class EvaluationSession:
     def run(self):
         logger.info(f"Starting evaluation for model {self.config['model_file']}...")
 
+        # 1. Load the agent and its configuration ("blueprint") from the file
+        model_path = Path(f"saved_models/{self.config['model_file']}")
+        if not model_path.exists():
+            raise FileNotFoundError(f"Model file not found at {model_path}")
+
+        agent, model_config = PPOAgent.load_with_config(model_path)
+        agent.actor.eval()
+
+        # 2. Use the loaded config to set up the evaluation
+        observation_columns = model_config['features']
+        window_size = model_config['window']
+
+        # 3. Load data with an extra "warm-up" period for indicators
         user_start_date = datetime.strptime(self.config['start_date'], '%Y-%m-%d')
         warmup_start_date = user_start_date - timedelta(days=100)
 
@@ -34,23 +45,20 @@ class EvaluationSession:
         )
         raw_df = loader.load_data()
         if raw_df.empty:
-            raise ValueError("Evaluation data loading failed.")
+            raise ValueError("Evaluation data loading failed, DataFrame is empty.")
 
         featured_df = calculate_features(raw_df)
+
+        # Slice the DataFrame to the user's requested start date for the backtest
         backtest_df = featured_df.loc[self.config['start_date']:]
 
-        observation_columns = [
-            'returns', 'SMA_50', 'RSI_14', 'STOCHk_14_3_3', 'MACDh_12_26_9',
-            'ADX_14', 'BBP_20_2', 'ATR_14', 'OBV'
-        ]
-        window_size = 10
-
         if len(backtest_df) < window_size + 1:
-            raise ValueError(f"Not enough data. Need at least {window_size + 1} days, but got {len(backtest_df)}.")
+            raise ValueError(
+                f"Not enough data for evaluation in the selected range. Need at least {window_size + 1} days, but got {len(backtest_df)}.")
 
-        # --- FIX #1: Removed the incorrect .reset_index() call ---
+        # 4. Set up the Environment
         env = TradingEnv(
-            df=backtest_df,  # Pass the DataFrame with its original DatetimeIndex
+            df=backtest_df,
             observation_columns=observation_columns,
             window_size=window_size,
             initial_cash=100_000,
@@ -58,24 +66,17 @@ class EvaluationSession:
             slippage_pct=0.0005
         )
 
-        state_dim = env.observation_space.shape[0]
-        action_dim = env.action_space.n
-        agent = PPOAgent(state_dim=state_dim, action_dim=action_dim)
-        agent.load(Path(f"saved_models/{self.config['model_file']}"))
-        agent.actor.eval()
-
+        # 5. Run the backtest
         obs, _ = env.reset(start_at_beginning=True)
         done = False
         equity_curve = [env.initial_cash]
-
-        # --- FIX #2: Read dates from the DataFrame's index, not a column ---
         dates = [env.df.index[env.current_step - 1]]
 
         while not done:
             state = torch.FloatTensor(obs).to(agent.device)
             with torch.no_grad():
                 action_probs = agent.actor(state)
-                action = torch.argmax(action_probs).item()
+                action = torch.argmax(action_probs).item()  # Use the best action
             obs, reward, terminated, truncated, _ = env.step(action)
 
             equity_curve.append(env.portfolio.equity)
@@ -83,7 +84,7 @@ class EvaluationSession:
 
             done = terminated or truncated
 
-        # ... (rest of the metric calculation is the same)
+        # 6. Calculate and return performance metrics
         daily_returns = pd.Series(equity_curve).pct_change().dropna()
         total_return_pct = (equity_curve[-1] / equity_curve[0] - 1) * 100
 

@@ -151,12 +151,14 @@ def run_meta_trainer_task(self, meta_job_id):
             # 6. --- Check for New Champion ---
             if current_sharpe > best_sharpe:
                 best_sharpe = current_sharpe
+                # --- UPDATED: Create a full config dict to save ---
                 best_strategy_info = {
-                    "features": feat_key, "params": param_key, "window": window,
+                    "features": features, "params": params, "window": window,
                     "sharpe_ratio": best_sharpe, "return_pct": performance_metrics['total_return_pct']
                 }
                 save_path = settings.BASE_DIR / "saved_models" / "best_agent.pth"
-                agent.save(save_path)
+                # --- UPDATED: Pass the config to the save method ---
+                agent.save(save_path, config=best_strategy_info)
                 logger.info(f"!!! New best agent found! Sharpe: {best_sharpe:.2f}. Model saved. !!!")
 
             # 7. --- Update Progress in Database ---
