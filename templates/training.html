@@ -1,0 +1,167 @@
+{% extends "vertical.html" %}
+{% load static %}
+
+{% block title %}Training Control{% endblock title %}
+
+{% block extra_css %}
+    <link href="{% static 'vendor/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}" rel="stylesheet" type="text/css" />
+{% endblock extra_css %}
+
+{% block page_title %}
+{% include 'partials/topbar.html' with topbarTitle='AI Model Training' %}
+{% endblock page_title %}
+
+{% block page_content %}
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card border-primary border">
+                <div class="card-body">
+                    <h4 class="header-title text-primary">Master Coach: Find the Best Agent</h4>
+                    <p class="text-muted font-14">
+                        Launch a full meta-training experiment. This will test multiple strategies and save the best-performing agent. This is a very long and computationally intensive process.
+                    </p>
+                    <form action="{% url 'start_meta_job' %}" method="POST" class="d-flex justify-content-end">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary">
+                            <i class="ri-instance-line me-1"></i> Launch Meta-Training Experiment
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="header-title">Start New Training Job</h4>
+                    <p class="text-muted font-14">
+                        Configure and launch a single training session for the AI agent.
+                    </p>
+
+                    <form action="{% url 'training' %}" method="POST">
+                        {% csrf_token %}
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Training Mode</label>
+                                <div>
+                                    <div class="form-check form-check-inline">
+                                        <input type="radio" id="mode_episodes" name="training_mode" value="EPISODES" class="form-check-input" checked>
+                                        <label class="form-check-label" for="mode_episodes">Train for N Episodes</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input type="radio" id="mode_target" name="training_mode" value="TARGET" class="form-check-input">
+                                        <label class="form-check-label" for="mode_target">Train until Target Equity is Reached</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="initial_cash" class="form-label">Initial Cash ($)</label>
+                                <input type="number" id="initial_cash" name="initial_cash" class="form-control" value="100000" step="1000" required>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-5" id="episodes_input_div">
+                                <label for="num_episodes" class="form-label">Number of Episodes</label>
+                                <input type="number" id="num_episodes" name="num_episodes" class="form-control" value="200">
+                            </div>
+                            <div class="col-md-5" id="target_input_div" style="display: none;">
+                                <label for="target_equity" class="form-label">Target Equity ($)</label>
+                                <input type="number" id="target_equity" name="target_equity" class="form-control" value="200000" step="1000">
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="ri-play-line me-1"></i> Start Training
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div> </div> </div>
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="header-title">Training Job History</h4>
+                    <p class="text-muted font-14">
+                        Status and progress of all individual training jobs.
+                    </p>
+
+                    <table id="training-jobs-table" class="table table-striped dt-responsive nowrap w-100">
+                        <thead>
+                            <tr>
+                                <th>Job ID</th>
+                                <th>Status</th>
+                                <th>Progress</th>
+                                <th>Mode</th>
+                                <th>Config</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for job in training_jobs %}
+                            <tr>
+                                <td>#{{ job.id }}</td>
+                                <td>
+                                    {% if job.status == 'COMPLETED' %}<span class="badge bg-success-subtle text-success">{{ job.status }}</span>
+                                    {% elif job.status == 'RUNNING' %}<span class="badge bg-info-subtle text-info">{{ job.status }}</span>
+                                    {% elif job.status == 'FAILED' or job.status == 'STOPPED' %}<span class="badge bg-danger-subtle text-danger">{{ job.status }}</span>
+                                    {% else %}<span class="badge bg-secondary-subtle text-secondary">{{ job.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="progress progress-sm">
+                                        <div class="progress-bar {% if job.status == 'RUNNING' %}progress-bar-animated{% endif %} bg-success" role="progressbar" style="width: {{ job.progress }}%;"></div>
+                                    </div>
+                                </td>
+                                <td>{{ job.get_training_mode_display }}</td>
+                                <td>
+                                    {% if job.training_mode == 'EPISODES' %}
+                                        Episodes: {{ job.num_episodes }}
+                                    {% else %}
+                                        Target: ${{ job.target_equity|floatformat:0 }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <form action="{% url 'stop_job' job.id %}" method="POST" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger btn-sm" {% if job.status != 'RUNNING' %}disabled{% endif %}>
+                                            <i class="ri-stop-circle-line"></i> Stop
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="6" class="text-center">No training jobs found.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
+                </div> </div> </div>
+        </div>
+{% endblock page_content %}
+
+
+{% block extra_javascript %}
+    <script src="{% static 'vendor/datatables.net/js/dataTables.min.js' %}"></script>
+    <script src="{% static 'vendor/datatables.net-bs5/js/dataTables.bootstrap5.min.js' %}"></script>
+
+    <script>
+        $(document).ready(function() {
+            $('#training-jobs-table').DataTable({
+                "order": [[ 0, "desc" ]] // Order by Job ID descending by default
+            });
+
+            // JavaScript to toggle form inputs based on radio button selection
+            $('input[type=radio][name=training_mode]').change(function() {
+                if (this.value == 'EPISODES') {
+                    $('#episodes_input_div').show();
+                    $('#target_input_div').hide();
+                }
+                else if (this.value == 'TARGET') {
+                    $('#episodes_input_div').hide();
+                    $('#target_input_div').show();
+                }
+            });
+        });
+    </script>
+{% endblock extra_javascript %}

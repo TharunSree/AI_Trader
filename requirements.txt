@@ -1,0 +1,16 @@
+torch
+pandas
+numpy
+scikit-learn
+tqdm
+alpaca-trade-api
+yfinance
+gymnasium
+websockets<11
+django
+celery
+redis
+
+mysqlclient
+psycopg2-binary
+python-dotenv

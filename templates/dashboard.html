@@ -1,0 +1,187 @@
+{% extends "vertical.html" %}
+{% load static %}
+
+{% block title %}Dashboard{% endblock title %}
+
+{% block extra_css %}
+    <link href="{% static 'vendor/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}" rel="stylesheet" type="text/css" />
+    <link href="{% static 'vendor/datatables.net-responsive-bs5/css/responsive.bootstrap5.min.css' %}" rel="stylesheet" type="text/css" />
+{% endblock extra_css %}
+
+{% block page_title %}
+{% include 'partials/topbar.html' with topbarTitle='AI Trader Dashboard' %}
+{% endblock page_title %}
+
+{% block page_content %}
+
+    <div class="row row-cols-xxl-4 row-cols-md-2 row-cols-1">
+
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="header-title">Paper Account Equity</h4>
+                    <div class="d-flex align-items-center gap-2 justify-content-between mt-3">
+                        <span class="badge bg-success rounded-pill fs-13">{{ equity_change_pct }}% <i class="ti ti-trending-up"></i> </span>
+                        <div class="text-end">
+                            <h3 class="fw-semibold">${{ account_equity }}</h3>
+                            <p class="text-muted mb-0">Current Value</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="header-title">Paper Trader Status</h4>
+                    <div class="d-flex align-items-center gap-2 justify-content-between mt-3">
+                        {% if trader_status == "RUNNING" %}
+                            <span class="badge badge-soft-success rounded-pill fs-13">ACTIVE</span>
+                        {% else %}
+                            <span class="badge badge-soft-danger rounded-pill fs-13">INACTIVE</span>
+                        {% endif %}
+                        <div class="text-end">
+                            <h3 class="fw-semibold">{{ trader_status }}</h3>
+                            <p class="text-muted mb-0">Live Bot Status</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="header-title">Active Training Job</h4>
+                     <div class="d-flex align-items-center gap-2 justify-content-between mt-3">
+                        <span class="badge badge-soft-info rounded-pill fs-13">{{ training_job_progress }}%</span>
+                        <div class="text-end">
+                            <h3 class="fw-semibold">{{ training_job_status }}</h3>
+                            <p class="text-muted mb-0">Job #{{ training_job_id }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <div class="row">
+        <div class="col-xl-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="header-title mb-4">Portfolio Equity Over Time</h4>
+                    <div dir="ltr">
+                        <div id="portfolio-equity-chart" class="apex-charts" data-colors="#10c469"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="header-title">Current Positions</h4>
+                    <table id="positions-datatable" class="table table-striped dt-responsive nowrap w-100">
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Quantity</th>
+                                <th>Market Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for position in positions %}
+                            <tr>
+                                <td>{{ position.symbol }}</td>
+                                <td>{{ position.qty }}</td>
+                                <td>${{ position.market_value }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="header-title">Recent Training Jobs</h4>
+                    <table id="training-datatable" class="table table-striped dt-responsive nowrap w-100">
+                        <thead>
+                            <tr>
+                                <th>Job ID</th>
+                                <th>Status</th>
+                                <th>Performance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for job in recent_jobs %}
+                            <tr>
+                                <td>#{{ job.id }}</td>
+                                <td><span class="badge bg-success-subtle text-success">{{ job.status }}</span></td>
+                                <td>{{ job.performance }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endblock page_content %}
+
+
+{% block extra_javascript %}
+    <script src="{% static 'vendor/apexcharts/apexcharts.min.js' %}"></script>
+
+    <script src="{% static 'vendor/datatables.net/js/dataTables.min.js' %}"></script>
+    <script src="{% static 'vendor/datatables.net-bs5/js/dataTables.bootstrap5.min.js' %}"></script>
+    <script src="{% static 'vendor/datatables.net-responsive/js/dataTables.responsive.min.js' %}"></script>
+
+    <script>
+        $(document).ready(function () {
+            // Initialize DataTables
+            $('#positions-datatable').DataTable();
+            $('#training-datatable').DataTable();
+
+            // --- Apex Line Chart for Portfolio Equity ---
+            var options = {
+                chart: {
+                    height: 380,
+                    type: 'line',
+                    zoom: { enabled: true },
+                    toolbar: { show: false }
+                },
+                colors: ["#10c469"],
+                dataLabels: { enabled: false },
+                stroke: { width: [3], curve: 'straight' },
+                series: [{
+                    name: 'Equity',
+                    data: {{ equity_chart_data.data|safe }} // Data from Django view
+                }],
+                title: { text: 'Value ($)', align: 'left' },
+                xaxis: {
+                    type: 'datetime',
+                    categories: {{ equity_chart_data.categories|safe }}, // Timestamps from Django view
+                },
+                yaxis: {
+                    labels: {
+                        formatter: function (val) {
+                            return "$" + val.toFixed(2);
+                        }
+                    },
+                },
+                grid: {
+                    row: { colors: ['#f1f2f3', 'transparent'], opacity: 0.5 },
+                    borderColor: '#f1f2f3'
+                }
+            };
+
+            var chart = new ApexCharts(document.querySelector("#portfolio-equity-chart"), options);
+            chart.render();
+        });
+    </script>
+{% endblock extra_javascript %}

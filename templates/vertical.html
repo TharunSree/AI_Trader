@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% load static i18n %}
+
+{% block html_attribute %}{% endblock html_attribute %}
+
+{% block title %}{% endblock title %}
+
+{% block extra_css %}{% endblock extra_css %}
+
+{% block body_attribute %}{% endblock body_attribute %}
+
+{% block content %}
+
+<div class="wrapper">
+
+    {% include 'partials/sidenav.html' %}
+
+    {% block page_title %}{% endblock page_title %}
+
+    <div class="page-content">
+
+        <div class="page-container">
+
+            {% block page_content %}{% endblock page_content %}
+
+        </div>
+
+        {% include 'partials/footer.html' %}
+    </div>
+</div>
+
+{% block modal %}{% endblock modal %}
+
+{% endblock content %}
+
+{% block extra_javascript %}{% endblock extra_javascript %}

@@ -1,0 +1,111 @@
+{% load static %}
+<!-- Sidenav Menu Start -->
+<div class="sidenav-menu">
+
+    <!-- Brand Logo -->
+    <a href="/" class="logo">
+        <span class="logo-light">
+            <span class="logo-lg"><img src="{% static '/images/logo.png' %}" alt="logo"></span>
+            <span class="logo-sm"><img src="{% static '/images/logo-sm.png' %}" alt="small logo"></span>
+        </span>
+
+        <span class="logo-dark">
+            <span class="logo-lg"><img src="{% static '/images/logo-dark.png' %}" alt="dark logo"></span>
+            <span class="logo-sm"><img src="{% static '/images/logo-sm.png' %}" alt="small logo"></span>
+        </span>
+    </a>
+
+    <!-- Sidebar Hover Menu Toggle Button -->
+    <button class="button-sm-hover">
+        <i class="ri-circle-line align-middle"></i>
+    </button>
+
+    <!-- Sidebar Menu Toggle Button -->
+    <button class="sidenav-toggle-button">
+        <i class="ri-menu-5-line fs-20"></i>
+    </button>
+
+    <!-- Full Sidebar Menu Close Button -->
+    <button class="button-close-fullsidebar">
+        <i class="ti ti-x align-middle"></i>
+    </button>
+
+    <div data-simplebar>
+
+        <!-- User -->
+
+        <!--- Sidenav Menu -->
+        <ul class="side-nav">
+
+            <li class="side-nav-title mt-2">
+                Main
+            </li>
+
+            <li class="side-nav-item">
+                <a href="{% url 'dashboard' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-dashboard"></i></span>
+                    <span class="menu-text"> Dashboard </span>
+                </a>
+            </li>
+
+            <li class="side-nav-title mt-2">
+                AI Engine
+            </li>
+
+            <li class="side-nav-item">
+                <a href="{% url 'training' %}" class="side-nav-link">  <span class="menu-icon"><i class="ti ti-brain"></i></span>
+                    <span class="menu-text"> Training </span>
+                </a>
+            </li>
+
+            <li class="side-nav-item">
+                <a href="#" class="side-nav-link">  <span class="menu-icon"><i class="ti ti-search"></i></span>
+                    <span class="menu-text"> Evaluation </span>
+                </a>
+            </li>
+
+            <li class="side-nav-title mt-2">
+                Trading
+            </li>
+
+            <li class="side-nav-item">
+                <a href="#" class="side-nav-link">  <span class="menu-icon"><i class="ti ti-chart-infographic"></i></span>
+                    <span class="menu-text"> Paper Trading </span>
+                </a>
+            </li>
+
+            <li class="side-nav-item">
+                <a href="#" class="side-nav-link">  <span class="menu-icon"><i class="ti ti-rocket text-danger"></i></span>
+                    <span class="menu-text text-danger"> Real Trading </span>
+                </a>
+            </li>
+
+            <li class="side-nav-title mt-2">
+                System
+            </li>
+
+            <li class="side-nav-item">
+                <a href="#" class="side-nav-link">  <span class="menu-icon"><i class="ti ti-file-report"></i></span>
+                    <span class="menu-text"> Reports </span>
+                </a>
+            </li>
+
+            <li class="side-nav-item">
+                <a href="#" class="side-nav-link">  <span class="menu-icon"><i class="ti ti-settings"></i></span>
+                    <span class="menu-text"> Settings </span>
+                </a>
+            </li>
+
+        </ul>
+
+        <!-- Help Box -->
+        <div class="help-box text-center">
+            <h5 class="fw-semibold fs-16">Unlimited Access</h5>
+            <p class="mb-3 text-muted">Upgrade to plan to get access to unlimited reports</p>
+            <a href="javascript: void(0);" class="btn btn-danger btn-sm">Upgrade</a>
+        </div>
+
+        <div class="clearfix"></div>
+    </div>
+</div>
+<!-- Sidenav Menu End -->

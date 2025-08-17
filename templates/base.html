@@ -1,0 +1,56 @@
+{% load static i18n %}
+<!DOCTYPE html>
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}" {% block html_attribute %}{% endblock html_attribute %}>
+
+<head>
+
+  <meta charset="utf-8" />
+  <title>{% block title %}{% endblock title %} | Adminto - Responsive Bootstrap 5 Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta content="A fully featured admin theme which can be used to build CRM, CMS, etc." name="description" />
+  <meta content="Coderthemes" name="author" />
+
+  <!-- App favicon -->
+  <link rel="shortcut icon" href="{% static 'images/favicon.ico' %}">
+  {% block css %}
+  <!-- Your stuff: Third-party CSS libraries go here -->
+  <!-- This file stores project-specific CSS -->
+
+  {% block extra_css %}{% endblock extra_css %}
+
+  <link href="{% static 'css/app.css' %}" rel="stylesheet" />
+
+  <link href="{% static 'css/icons.css' %}" rel="stylesheet" />
+
+  <link href="{% static 'css/vendor.min.css' %}" rel="stylesheet" />
+
+  <script src="{% static 'js/config.js' %}"></script>
+
+  {% endblock css %}
+
+</head>
+
+<body {% block body_attribute %}{% endblock body_attribute %}>
+
+  {% block content %} {% endblock content %}
+
+  {% block modal %}{% endblock modal %}
+
+  {% block javascript %}
+
+
+  <!-- Vendor dependencies bundled as one file -->
+  <script src="{% static 'js/vendors.min.js' %}"></script>
+
+  <!-- place project specific Javascript in this file -->
+
+  <script src="{% static 'js/app.js' %}"></script>
+
+  {% block extra_javascript %}{% endblock extra_javascript %}
+
+  {% endblock javascript %}
+
+</body>
+
+</html>
