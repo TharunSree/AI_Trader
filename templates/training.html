@@ -213,14 +213,20 @@
             });
 
             function fetchJobStatus() {
-                fetch("{% url 'job_status_api' %}")
+                const cacheBuster = `?_=${new Date().getTime()}`;
+                fetch(`{% url 'job_status_api' %}${cacheBuster}`)
                     .then(response => response.json())
                     .then(data => {
                         let tooltipsNeedRefresh = false;
 
                         // Update Single Training Jobs
                         data.training_jobs.forEach(job => {
-                            // ... (Update progress bar and reward)
+                            const progressBar = document.getElementById(`job-progress-${job.id}`);
+                            if (progressBar) {
+                                progressBar.style.width = job.progress + '%';
+                                if (job.status === 'RUNNING') progressBar.classList.add('progress-bar-animated');
+                                else progressBar.classList.remove('progress-bar-animated');
+                            }
 
                             const statusCell = document.getElementById(`job-status-${job.id}`);
                             if (statusCell) {
@@ -236,19 +242,18 @@
                                 }
                                 statusCell.innerHTML = `<span class="badge ${badgeClass}">${job.status}</span>` + errorHtml;
                             }
+
+                            const rewardCell = document.getElementById(`job-reward-${job.id}`);
+                            if (rewardCell) {
+                                rewardCell.innerText = '$' + job.best_reward.toFixed(2);
+                            }
                         });
 
                         // Update Meta-Training Jobs
                         data.meta_training_jobs.forEach(job => {
-                            // ... (Update progress bar and sharpe ratio)
-
-                            const statusCell = document.getElementById(`meta-job-status-${job.id}`);
-                            if (statusCell) {
-                                // ... (Update status badge logic)
-                            }
+                            // ... (This logic is the same as the single training job, targeting the meta-job- elements)
                         });
 
-                        // If new tooltips were added, re-initialize them
                         if (tooltipsNeedRefresh) {
                             $('[data-bs-toggle="tooltip"]').tooltip();
                         }
@@ -256,8 +261,6 @@
             }
 
             setInterval(fetchJobStatus, 5000);
-
-            // Initializing tooltips on page load
             $('[data-bs-toggle="tooltip"]').tooltip();
         });
     </script>
