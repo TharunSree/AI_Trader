@@ -4,11 +4,12 @@
 {% block title %}Training Control{% endblock title %}
 
 {% block extra_css %}
-    <link href="{% static 'vendor/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}" rel="stylesheet" type="text/css" />
+<link href="{% static 'vendor/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}" rel="stylesheet"
+      type="text/css"/>
 {% endblock extra_css %}
 
 {% block page_title %}
-    {% include 'partials/topbar.html' with topbarTitle='AI Model Training' %}
+{% include 'partials/topbar.html' with topbarTitle='AI Model Training' %}
 {% endblock page_title %}
 
 {% block page_content %}
@@ -23,14 +24,18 @@
                     <div class="row">
                         <div class="col-md-5 mb-3">
                             <label for="meta_initial_cash" class="form-label">Initial Cash ($)</label>
-                            <input type="number" id="meta_initial_cash" name="initial_cash" class="form-control" value="100000" required>
+                            <input type="number" id="meta_initial_cash" name="initial_cash" class="form-control"
+                                   value="100000" required>
                         </div>
                         <div class="col-md-5 mb-3">
                             <label for="meta_target_equity" class="form-label">Target Equity ($)</label>
-                            <input type="number" id="meta_target_equity" name="target_equity" class="form-control" value="200000" required>
+                            <input type="number" id="meta_target_equity" name="target_equity" class="form-control"
+                                   value="200000" required>
                         </div>
                         <div class="col-md-2 mb-3 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary w-100"><i class="ri-instance-line me-1"></i> Launch</button>
+                            <button type="submit" class="btn btn-primary w-100"><i class="ri-instance-line me-1"></i>
+                                Launch
+                            </button>
                         </div>
                     </div>
                 </form>
@@ -50,12 +55,15 @@
                             <label class="form-label">Training Mode</label>
                             <div>
                                 <div class="form-check form-check-inline">
-                                    <input type="radio" id="mode_episodes" name="training_mode" value="EPISODES" class="form-check-input" checked>
+                                    <input type="radio" id="mode_episodes" name="training_mode" value="EPISODES"
+                                           class="form-check-input" checked>
                                     <label class="form-check-label" for="mode_episodes">Train for N Episodes</label>
                                 </div>
                                 <div class="form-check form-check-inline">
-                                    <input type="radio" id="mode_target" name="training_mode" value="TARGET" class="form-check-input">
-                                    <label class="form-check-label" for="mode_target">Train until Target Equity is Reached</label>
+                                    <input type="radio" id="mode_target" name="training_mode" value="TARGET"
+                                           class="form-check-input">
+                                    <label class="form-check-label" for="mode_target">Train until Target Equity is
+                                        Reached</label>
                                 </div>
                             </div>
                         </div>
@@ -63,7 +71,8 @@
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label for="initial_cash" class="form-label">Initial Cash ($)</label>
-                            <input type="number" id="initial_cash" name="initial_cash" class="form-control" value="100000" step="1" required>
+                            <input type="number" id="initial_cash" name="initial_cash" class="form-control"
+                                   value="100000" step="1" required>
                         </div>
                         <div class="col-md-4 mb-3" id="episodes_input_div">
                             <label for="num_episodes" class="form-label">Number of Episodes</label>
@@ -71,11 +80,13 @@
                         </div>
                         <div class="col-md-4 mb-3" id="target_input_div" style="display: none;">
                             <label for="target_equity" class="form-label">Target Equity ($)</label>
-                            <input type="number" id="target_equity" name="target_equity" class="form-control" value="200000" step="1">
+                            <input type="number" id="target_equity" name="target_equity" class="form-control"
+                                   value="200000" step="1">
                         </div>
                     </div>
                     <div class="d-flex justify-content-end">
-                        <button type="submit" class="btn btn-success"><i class="ri-play-line me-1"></i> Start Training</button>
+                        <button type="submit" class="btn btn-success"><i class="ri-play-line me-1"></i> Start Training
+                        </button>
                     </div>
                 </form>
             </div>
@@ -88,43 +99,54 @@
                 <h4 class="header-title">Meta-Training Job History</h4>
                 <table id="meta-jobs-table" class="table table-striped dt-responsive nowrap w-100">
                     <thead>
-                        <tr>
-                            <th>Job ID</th>
-                            <th>Status</th>
-                            <th>Progress</th>
-                            <th>Best Sharpe Ratio</th>
-                            <th>Actions</th>
-                        </tr>
+                    <tr>
+                        <th>Job ID</th>
+                        <th>Status</th>
+                        <th>Progress</th>
+                        <th>Best Sharpe Ratio</th>
+                        <th>Actions</th>
+                    </tr>
                     </thead>
                     <tbody>
-                        {% for job in meta_training_jobs %}
-                        <tr id="meta-job-row-{{ job.id }}">
-                            <td>#{{ job.id }}</td>
-                            <td id="meta-job-status-{{ job.id }}">
-                                {% include "partials/status_badge.html" with status=job.status %}
-                            </td>
-                            <td>
-                                <div class="progress progress-sm">
-                                    <div id="meta-job-progress-{{ job.id }}" class="progress-bar {% if job.status == 'RUNNING' %}progress-bar-animated{% endif %} bg-primary" role="progressbar" style="width: {{ job.progress }}%;"></div>
-                                </div>
-                            </td>
-                            <td id="meta-job-sharpe-{{ job.id }}">
-                                {% if job.results.sharpe_ratio %}
-                                    {{ job.results.sharpe_ratio|floatformat:2 }}
-                                {% else %} - {% endif %}
-                            </td>
-                            <td>
-                                <form action="{% url 'stop_meta_job' job.id %}" method="POST" class="d-inline">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-danger btn-sm" {% if job.status != 'RUNNING' %}disabled{% endif %}>
-                                        <i class="ri-stop-circle-line"></i> Stop
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="5" class="text-center">No meta-training jobs found.</td></tr>
-                        {% endfor %}
+                    {% for job in meta_training_jobs %}
+                    <tr id="meta-job-row-{{ job.id }}">
+                        <td>#{{ job.id }}</td>
+                        <td id="meta-job-status-{{ job.id }}">
+                            {% include "partials/status_badge.html" with status=job.status %}
+                            {% if job.status == 'FAILED' and job.error_message %}
+                            <span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top"
+                                  title="{{ job.error_message }}">
+                                        <i class="ri-information-line text-danger"></i>
+                                    </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="progress progress-sm">
+                                <div id="meta-job-progress-{{ job.id }}"
+                                     class="progress-bar {% if job.status == 'RUNNING' %}progress-bar-animated{% endif %} bg-primary"
+                                     role="progressbar" style="width: {{ job.progress }}%;"></div>
+                            </div>
+                        </td>
+                        <td id="meta-job-sharpe-{{ job.id }}">
+                            {% if job.results.sharpe_ratio %}
+                            {{ job.results.sharpe_ratio|floatformat:2 }}
+                            {% else %} - {% endif %}
+                        </td>
+                        <td>
+                            <form action="{% url 'stop_meta_job' job.id %}" method="POST" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger btn-sm" {% if job.status !='RUNNING'
+                                        %}disabled{% endif %}>
+                                    <i class="ri-stop-circle-line"></i> Stop
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center">No meta-training jobs found.</td>
+                    </tr>
+                    {% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -137,54 +159,60 @@
                 <h4 class="header-title">Training Job History</h4>
                 <table id="training-jobs-table" class="table table-striped dt-responsive nowrap w-100">
                     <thead>
-                        <tr>
-                            <th>Job ID</th>
-                            <th>Status</th>
-                            <th>Progress</th>
-                            <th>Best Reward</th>
-                            <th>Config</th>
-                            <th>Actions</th>
-                        </tr>
+                    <tr>
+                        <th>Job ID</th>
+                        <th>Status</th>
+                        <th>Progress</th>
+                        <th>Best Reward</th>
+                        <th>Config</th>
+                        <th>Actions</th>
+                    </tr>
                     </thead>
                     <tbody>
-                        {% for job in training_jobs %}
-                        <tr id="job-row-{{ job.id }}">
-                            <td>#{{ job.id }}</td>
-                            <td id="job-status-{{ job.id }}">
-                                {% include "partials/status_badge.html" with status=job.status %}
-                                {% if job.status == 'FAILED' and job.error_message %}
-                                    <span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ job.error_message }}">
+                    {% for job in training_jobs %}
+                    <tr id="job-row-{{ job.id }}">
+                        <td>#{{ job.id }}</td>
+                        <td id="job-status-{{ job.id }}">
+                            {% include "partials/status_badge.html" with status=job.status %}
+                            {% if job.status == 'FAILED' and job.error_message %}
+                            <span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top"
+                                  title="{{ job.error_message }}">
                                         <i class="ri-information-line text-danger"></i>
                                     </span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <div class="progress progress-sm">
-                                    <div id="job-progress-{{ job.id }}" class="progress-bar {% if job.status == 'RUNNING' %}progress-bar-animated{% endif %} bg-success" role="progressbar" style="width: {{ job.progress }}%;"></div>
-                                </div>
-                            </td>
-                            <td id="job-reward-{{ job.id }}">
-                                ${{ job.best_reward|floatformat:2 }}
-                            </td>
-                            <td>
-                                {% if job.training_mode == 'EPISODES' %}
-                                    Episodes: {{ job.num_episodes }}
-                                {% else %}
-                                    Target: ${{ job.target_equity|floatformat:0 }}
-                                {% endif %}
-                            </td>
-                            <td>
-                                <form action="{% url 'stop_job' job.id %}" method="POST" class="d-inline">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-danger btn-sm" {% if job.status != 'RUNNING' %}disabled{% endif %}>
-                                        <i class="ri-stop-circle-line"></i> Stop
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="6" class="text-center">No training jobs found.</td></tr>
-                        {% endfor %}
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="progress progress-sm">
+                                <div id="job-progress-{{ job.id }}"
+                                     class="progress-bar {% if job.status == 'RUNNING' %}progress-bar-animated{% endif %} bg-success"
+                                     role="progressbar" style="width: {{ job.progress }}%;"></div>
+                            </div>
+                        </td>
+                        <td id="job-reward-{{ job.id }}">
+                            ${{ job.best_reward|floatformat:2 }}
+                        </td>
+                        <td>
+                            {% if job.training_mode == 'EPISODES' %}
+                            Episodes: {{ job.num_episodes }}
+                            {% else %}
+                            Target: ${{ job.target_equity|floatformat:0 }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            <form action="{% url 'stop_job' job.id %}" method="POST" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger btn-sm" {% if job.status !='RUNNING'
+                                        %}disabled{% endif %}>
+                                    <i class="ri-stop-circle-line"></i> Stop
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center">No training jobs found.</td>
+                    </tr>
+                    {% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -195,73 +223,73 @@
 
 
 {% block extra_javascript %}
-    <script src="{% static 'vendor/datatables.net/js/dataTables.min.js' %}"></script>
-    <script src="{% static 'vendor/datatables.net-bs5/js/dataTables.bootstrap5.min.js' %}"></script>
-    <script>
-        $(document).ready(function() {
-            $('#training-jobs-table').DataTable({"order": [[0, "desc"]]});
-            $('#meta-jobs-table').DataTable({"order": [[0, "desc"]]});
+<script src="{% static 'vendor/datatables.net/js/dataTables.min.js' %}"></script>
+<script src="{% static 'vendor/datatables.net-bs5/js/dataTables.bootstrap5.min.js' %}"></script>
+<script>
+    $(document).ready(function () {
+        $('#training-jobs-table').DataTable({"order": [[0, "desc"]]});
+        $('#meta-jobs-table').DataTable({"order": [[0, "desc"]]});
 
-            $('input[type=radio][name=training_mode]').change(function() {
-                if (this.value == 'EPISODES') {
-                    $('#episodes_input_div').show();
-                    $('#target_input_div').hide();
-                } else if (this.value == 'TARGET') {
-                    $('#episodes_input_div').hide();
-                    $('#target_input_div').show();
-                }
-            });
+        $('input[type=radio][name=training_mode]').change(function () {
+            if (this.value == 'EPISODES') {
+                $('#episodes_input_div').show();
+                $('#target_input_div').hide();
+            } else if (this.value == 'TARGET') {
+                $('#episodes_input_div').hide();
+                $('#target_input_div').show();
+            }
+        });
 
-            function fetchJobStatus() {
-                const cacheBuster = `?_=${new Date().getTime()}`;
-                fetch(`{% url 'job_status_api' %}${cacheBuster}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        let tooltipsNeedRefresh = false;
+        function fetchJobStatus() {
+            const cacheBuster = `?_=${new Date().getTime()}`;
+            fetch(`{% url 'job_status_api' %}${cacheBuster}`)
+                .then(response => response.json())
+                .then(data => {
+                    let tooltipsNeedRefresh = false;
 
-                        // Update Single Training Jobs
-                        data.training_jobs.forEach(job => {
-                            const progressBar = document.getElementById(`job-progress-${job.id}`);
-                            if (progressBar) {
-                                progressBar.style.width = job.progress + '%';
-                                if (job.status === 'RUNNING') progressBar.classList.add('progress-bar-animated');
-                                else progressBar.classList.remove('progress-bar-animated');
+                    // Update Single Training Jobs
+                    data.training_jobs.forEach(job => {
+                        const progressBar = document.getElementById(`job-progress-${job.id}`);
+                        if (progressBar) {
+                            progressBar.style.width = job.progress + '%';
+                            if (job.status === 'RUNNING') progressBar.classList.add('progress-bar-animated');
+                            else progressBar.classList.remove('progress-bar-animated');
+                        }
+
+                        const statusCell = document.getElementById(`job-status-${job.id}`);
+                        if (statusCell) {
+                            let badgeClass = 'bg-secondary-subtle text-secondary';
+                            if (job.status === 'COMPLETED') badgeClass = 'bg-success-subtle text-success';
+                            else if (job.status === 'RUNNING') badgeClass = 'bg-info-subtle text-info';
+                            else if (job.status === 'FAILED' || job.status === 'STOPPED') badgeClass = 'bg-danger-subtle text-danger';
+
+                            let errorHtml = '';
+                            if (job.status === 'FAILED' && job.error_message) {
+                                errorHtml = `<span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="${job.error_message}"><i class="ri-information-line text-danger"></i></span>`;
+                                tooltipsNeedRefresh = true;
                             }
+                            statusCell.innerHTML = `<span class="badge ${badgeClass}">${job.status}</span>` + errorHtml;
+                        }
 
-                            const statusCell = document.getElementById(`job-status-${job.id}`);
-                            if (statusCell) {
-                                let badgeClass = 'bg-secondary-subtle text-secondary';
-                                if (job.status === 'COMPLETED') badgeClass = 'bg-success-subtle text-success';
-                                else if (job.status === 'RUNNING') badgeClass = 'bg-info-subtle text-info';
-                                else if (job.status === 'FAILED' || job.status === 'STOPPED') badgeClass = 'bg-danger-subtle text-danger';
-
-                                let errorHtml = '';
-                                if (job.status === 'FAILED' && job.error_message) {
-                                    errorHtml = `<span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="${job.error_message}"><i class="ri-information-line text-danger"></i></span>`;
-                                    tooltipsNeedRefresh = true;
-                                }
-                                statusCell.innerHTML = `<span class="badge ${badgeClass}">${job.status}</span>` + errorHtml;
-                            }
-
-                            const rewardCell = document.getElementById(`job-reward-${job.id}`);
-                            if (rewardCell) {
-                                rewardCell.innerText = '$' + job.best_reward.toFixed(2);
-                            }
-                        });
-
-                        // Update Meta-Training Jobs
-                        data.meta_training_jobs.forEach(job => {
-                            // ... (This logic is the same as the single training job, targeting the meta-job- elements)
-                        });
-
-                        if (tooltipsNeedRefresh) {
-                            $('[data-bs-toggle="tooltip"]').tooltip();
+                        const rewardCell = document.getElementById(`job-reward-${job.id}`);
+                        if (rewardCell) {
+                            rewardCell.innerText = '$' + job.best_reward.toFixed(2);
                         }
                     });
-            }
 
-            setInterval(fetchJobStatus, 5000);
-            $('[data-bs-toggle="tooltip"]').tooltip();
-        });
-    </script>
+                    // Update Meta-Training Jobs
+                    data.meta_training_jobs.forEach(job => {
+                        // ... (This logic is the same as the single training job, targeting the meta-job- elements)
+                    });
+
+                    if (tooltipsNeedRefresh) {
+                        $('[data-bs-toggle="tooltip"]').tooltip();
+                    }
+                });
+        }
+
+        setInterval(fetchJobStatus, 5000);
+        $('[data-bs-toggle="tooltip"]').tooltip();
+    });
+</script>
 {% endblock extra_javascript %}

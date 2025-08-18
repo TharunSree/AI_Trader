@@ -246,6 +246,7 @@ def trader_status_api(request):
 
         data = {
             "status": trader_model.status,
+            "error_message": trader_model.error_message,
             "equity": float(account_info.equity),
             "buying_power": float(account_info.buying_power),
             "positions": [
