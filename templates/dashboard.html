@@ -1,179 +1,240 @@
 {% extends "vertical.html" %}
 {% load static %}
-
 {% block title %}Dashboard{% endblock title %}
-
 {% block extra_css %}
-    <link href="{% static 'vendor/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}" rel="stylesheet" type="text/css" />
+<link href="{% static 'vendor/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}" rel="stylesheet"
+      type="text/css"/>
 {% endblock extra_css %}
 
 {% block page_title %}
-    {% include 'partials/topbar.html' with topbarTitle='Dashboard' %}
+{% include 'partials/topbar.html' with topbarTitle='Dashboard' %}
 {% endblock page_title %}
 
 {% block page_content %}
-    <div class="row">
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-body">
-                    <h4 class="header-title">Account Equity</h4>
-                    <div class="d-flex align-items-center gap-2 justify-content-between mt-3">
-                        <span id="equity-change-badge" class="badge rounded-pill fs-13">-</span>
-                        <div class="text-end">
-                            <h3 class="fw-semibold" id="account-equity-card">$0.00</h3>
-                            <p class="text-muted mb-0">Current Value</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-body">
-                    <h4 class="header-title">Paper Trader Status</h4>
-                    <div class="d-flex align-items-center gap-2 justify-content-between mt-3">
-                        <span id="trader-status-badge" class="badge badge-soft-danger rounded-pill fs-13">INACTIVE</span>
-                        <div class="text-end">
-                            <h3 class="fw-semibold" id="trader-status-text">STOPPED</h3>
-                            <p class="text-muted mb-0">Live Bot Status</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-body">
-                    <h4 class="header-title">Active Training Job</h4>
-                     <div class="d-flex align-items-center gap-2 justify-content-between mt-3">
-                        <span id="training-job-progress-badge" class="badge badge-soft-info rounded-pill fs-13">0%</span>
-                        <div class="text-end">
-                            <h3 class="fw-semibold" id="training-job-status-text">NONE</h3>
-                            <p class="text-muted mb-0" id="training-job-id-text">No active job</p>
-                        </div>
+<div class="row">
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="header-title">Account Equity</h4>
+                <div class="d-flex align-items-center gap-2 justify-content-between mt-3">
+                    <span id="equity-change-badge" class="badge rounded-pill fs-13">-</span>
+                    <div class="text-end">
+                        <h3 class="fw-semibold" id="account-equity-card">$0.00</h3>
+                        <p class="text-muted mb-0">Current Value</p>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="row">
-        <div class="col-lg-12">
-            <div class="card">
-                <div class="card-body">
-                    <h4 class="header-title mb-4">Portfolio Equity Over Time</h4>
-                    <div id="portfolio-equity-chart" class="apex-charts" data-colors="#10c469"></div>
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="header-title">Paper Trader Status</h4>
+                <div class="d-flex align-items-center gap-2 justify-content-between mt-3">
+                    <span id="trader-status-badge" class="badge bg-danger-subtle text-danger rounded-pill fs-13">INACTIVE</span>
+                    <div class="text-end">
+                        <h3 class="fw-semibold" id="trader-status-text">STOPPED</h3>
+                        <p class="text-muted mb-0">Live Bot Status</p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="row">
-        <div class="col-lg-6">
-            <div class="card">
-                <div class="card-body">
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="header-title">Active Training Job</h4>
+                <div class="d-flex align-items-center gap-2 justify-content-between mt-3">
+                    <span id="training-job-progress-badge"
+                          class="badge bg-info-subtle text-info rounded-pill fs-13">0%</span>
+                    <div class="text-end">
+                        <h3 class="fw-semibold" id="training-job-status-text">NONE</h3>
+                        <p class="text-muted mb-0" id="training-job-id-text">No active job</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="header-title mb-4">Portfolio Equity Over Time</h4>
+                <div id="portfolio-equity-chart" class="apex-charts" data-colors="#10c469"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
                     <h4 class="header-title">Current Positions</h4>
-                    <table id="positions-datatable" class="table table-striped dt-responsive nowrap w-100">
-                        <thead>
-                            <tr><th>Symbol</th><th>Qty</th><th>Value</th></tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
+                    <small class="text-muted">Sorted by value</small>
                 </div>
-            </div>
-        </div>
-        <div class="col-lg-6">
-            <div class="card">
-                <div class="card-body">
-                    <h4 class="header-title">Recent Training Jobs</h4>
-                    <table id="training-datatable" class="table table-striped dt-responsive nowrap w-100">
-                        <thead>
-                            <tr><th>Job ID</th><th>Status</th><th>Performance</th></tr>
-                        </thead>
-                        <tbody>
-                            {% for job in recent_jobs %}
-                            <tr>
-                                <td>#{{ job.id }}</td>
-                                <td>{% include "partials/status_badge.html" with status=job.status %}</td>
-                                <td>{{ job.performance }}%</td> {# Assuming you pass performance #}
-                            </tr>
-                            {% empty %}
-                            <tr><td colspan="3" class="text-center">No completed jobs found.</td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                <table id="positions-datatable" class="table table-striped dt-responsive nowrap w-100">
+                    <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Qty</th>
+                        <th>Value</th>
+                    </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </div>
     </div>
-    {% endblock page_content %}
-
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="header-title">Recent Training Jobs</h4>
+                <table id="training-datatable" class="table table-striped dt-responsive nowrap w-100">
+                    <thead>
+                    <tr>
+                        <th>Job ID</th>
+                        <th>Status</th>
+                        <th>Performance</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for job in recent_jobs %}
+                    <tr>
+                        <td>#{{ job.id }}</td>
+                        <td>{% include "partials/status_badge.html" with status=job.status %}</td>
+                        <td>{{ job.performance }}%</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="text-center">No completed jobs found.</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock page_content %}
 
 {% block extra_javascript %}
-    <script src="{% static 'vendor/apexcharts/apexcharts.min.js' %}"></script>
-    <script src="{% static 'vendor/datatables.net/js/dataTables.min.js' %}"></script>
-    <script src="{% static 'vendor/datatables.net-bs5/js/dataTables.bootstrap5.min.js' %}"></script>
+<script src="{% static 'vendor/apexcharts/apexcharts.min.js' %}"></script>
+<script src="{% static 'vendor/datatables.net/js/dataTables.min.js' %}"></script>
+<script src="{% static 'vendor/datatables.net-bs5/js/dataTables.bootstrap5.min.js' %}"></script>
+<script>
+    (function () {
+        let positionsTable, trainingTable, equityChart;
+        const equityHistory = [];
+        const MAX_POINTS = 500;
+        let lastEquity = null;
 
-    <script>
-        $(document).ready(function () {
-            var positionsTable = $('#positions-datatable').DataTable({ "paging": false, "info": false, "searching": false });
-            var trainingTable = $('#training-datatable').DataTable({ "paging": false, "info": false, "searching": false });
+        function initTables() {
+            positionsTable = $('#positions-datatable').DataTable({
+                paging: false,
+                info: false,
+                searching: false,
+                order: [[2, 'desc']]
+            });
+            trainingTable = $('#training-datatable').DataTable({paging: false, info: false, searching: false});
+        }
 
-            var chartOptions = {
-                chart: { height: 350, type: 'area', toolbar: { show: false } },
-                series: [{ name: 'Equity', data: [] }],
-                xaxis: { type: 'datetime', categories: [] },
-                yaxis: { labels: { formatter: (val) => { return "$" + val.toLocaleString() } } },
-                dataLabels: { enabled: false }, stroke: { curve: 'smooth', width: 2 }, colors: ["#10c469"],
+        function initChart() {
+            const opts = {
+                chart: {height: 350, type: 'area', toolbar: {show: false}},
+                series: [{name: 'Equity', data: []}],
+                xaxis: {type: 'datetime'},
+                yaxis: {labels: {formatter: v => "$" + Number(v).toLocaleString()}},
+                dataLabels: {enabled: false},
+                stroke: {curve: 'smooth', width: 2},
+                colors: ["#10c469"],
+                fill: {
+                    type: 'gradient',
+                    gradient: {shadeIntensity: 0.4, opacityFrom: 0.6, opacityTo: 0.15, stops: [0, 90, 100]}
+                }
             };
-            var equityChart = new ApexCharts(document.querySelector("#portfolio-equity-chart"), chartOptions);
+            equityChart = new ApexCharts(document.querySelector("#portfolio-equity-chart"), opts);
             equityChart.render();
+        }
 
-            function fetchLiveStatus() {
-                // Fetch Trader and Account Status
-                fetch("{% url 'trader_status_api' %}")
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'ERROR') return;
-
-                        $('#trader-status-text').text(data.status);
-                        const statusBadge = $('#trader-status-badge');
-                        statusBadge.text(data.status === 'RUNNING' ? 'ACTIVE' : 'INACTIVE');
-                        statusBadge.removeClass('bg-success-subtle text-success bg-danger-subtle text-danger').addClass(
-                            data.status === 'RUNNING' ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'
-                        );
-
-                        $('#account-equity-card').text('$' + data.equity.toLocaleString());
-
-                        positionsTable.clear();
-                        if (data.positions && data.positions.length > 0) {
-                            data.positions.forEach(pos => {
-                                positionsTable.row.add([pos.symbol, pos.qty, '$' + pos.market_value.toLocaleString()]);
-                            });
-                        }
-                        positionsTable.draw();
-                    });
-
-                // Fetch Training Job Status
-                fetch("{% url 'job_status_api' %}")
-                    .then(response => response.json())
-                    .then(data => {
-                        const runningJob = data.training_jobs.find(job => job.status === 'RUNNING');
-                        if (runningJob) {
-                            $('#training-job-status-text').text('RUNNING');
-                            $('#training-job-id-text').text('Job #' + runningJob.id);
-                            $('#training-job-progress-badge').text(runningJob.progress + '%');
-                        } else {
-                            $('#training-job-status-text').text('NONE');
-                            $('#training-job-id-text').text('No active job');
-                            $('#training-job-progress-badge').text('0%');
-                        }
-                    });
+        function appendEquityPoint(val) {
+            const now = Date.now();
+            const last = equityHistory[equityHistory.length - 1];
+            if (!last || last.y !== val) {
+                equityHistory.push({x: now, y: val});
+                if (equityHistory.length > MAX_POINTS) {
+                    equityHistory.splice(0, equityHistory.length - MAX_POINTS);
+                }
+                equityChart.updateSeries([{name: 'Equity', data: equityHistory}]);
             }
+        }
 
-            // Fetch status immediately on page load, then every 10 seconds
+        function updateTraderStatus(data) {
+            $('#trader-status-text').text(data.status);
+            const badge = $('#trader-status-badge');
+            const running = data.status === 'RUNNING';
+            badge.text(running ? 'ACTIVE' : 'INACTIVE')
+                .removeClass('bg-success-subtle text-success bg-danger-subtle text-danger')
+                .addClass(running ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger');
+
+            const eq = Number(data.equity || 0);
+            $('#account-equity-card').text('$' + eq.toLocaleString());
+            if (lastEquity !== null) {
+                const changePct = ((eq - lastEquity) / Math.max(lastEquity, 1)) * 100;
+                const badge2 = $('#equity-change-badge');
+                badge2.text((changePct >= 0 ? '+' : '') + changePct.toFixed(2) + '%')
+                    .removeClass('bg-success-subtle text-success bg-danger-subtle text-danger bg-secondary-subtle text-secondary')
+                    .addClass(changePct > 0 ? 'bg-success-subtle text-success' : (changePct < 0 ? 'bg-danger-subtle text-danger' : 'bg-secondary-subtle text-secondary'));
+            }
+            lastEquity = eq;
+            appendEquityPoint(eq);
+
+            // Sort positions by market value desc before rendering
+            const sorted = (data.positions || []).slice().sort((a, b) => Number(b.market_value || 0) - Number(a.market_value || 0));
+            positionsTable.clear();
+            sorted.forEach(p => {
+                positionsTable.row.add([
+                    p.symbol,
+                    Number(p.qty).toLocaleString(),
+                    '$' + Number(p.market_value || 0).toLocaleString()
+                ]);
+            });
+            positionsTable.draw();
+        }
+
+        function updateTrainingStatus(payload) {
+            const running = payload.training_jobs.find(j => j.status === 'RUNNING');
+            if (running) {
+                $('#training-job-status-text').text('RUNNING');
+                $('#training-job-id-text').text('Job #' + running.id);
+                $('#training-job-progress-badge').text(running.progress + '%');
+            } else {
+                $('#training-job-status-text').text('NONE');
+                $('#training-job-id-text').text('No active job');
+                $('#training-job-progress-badge').text('0%');
+            }
+        }
+
+        function fetchLiveStatus() {
+            fetch("{% url 'trader_status_api' %}?_=" + Date.now())
+                .then(r => r.json())
+                .then(updateTraderStatus)
+                .catch(() => {
+                });
+            fetch("{% url 'job_status_api' %}?_=" + Date.now())
+                .then(r => r.json())
+                .then(updateTrainingStatus)
+                .catch(() => {
+                });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            initTables();
+            initChart();
             fetchLiveStatus();
             setInterval(fetchLiveStatus, 10000);
         });
-    </script>
+    })();
+</script>
 {% endblock extra_javascript %}

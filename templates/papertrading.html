@@ -8,18 +8,15 @@
     <link rel="shortcut icon" href="{% static 'images/favicon.ico' %}">
     <meta name="description" content="Paper trading control panel">
     <meta name="author" content="AI Trader">
-
-    <link href="{% static 'vendor/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}" rel="stylesheet" type="text/css"/>
+    <link href="{% static 'vendor/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}" rel="stylesheet"
+          type="text/css"/>
     <link href="{% static 'css/vendor.min.css' %}" rel="stylesheet"/>
     <link href="{% static 'css/app.css' %}" rel="stylesheet"/>
     <link href="{% static 'css/icons.css' %}" rel="stylesheet"/>
-
     <script src="{% static 'js/config.js' %}"></script>
 </head>
 <body>
 <div class="wrapper">
-
-    <!-- Sidenav Menu Start -->
     <div class="sidenav-menu">
         <a href="{% url 'dashboard' %}" class="logo">
             <span class="logo-light">
@@ -31,17 +28,9 @@
                 <span class="logo-sm"><img src="{% static 'images/logo-sm.png' %}" alt="small logo"></span>
             </span>
         </a>
-
-        <button class="button-sm-hover">
-            <i class="ri-circle-line align-middle"></i>
-        </button>
-        <button class="sidenav-toggle-button">
-            <i class="ri-menu-5-line fs-20"></i>
-        </button>
-        <button class="button-close-fullsidebar">
-            <i class="ti ti-x align-middle"></i>
-        </button>
-
+        <button class="button-sm-hover"><i class="ri-circle-line align-middle"></i></button>
+        <button class="sidenav-toggle-button"><i class="ri-menu-5-line fs-20"></i></button>
+        <button class="button-close-fullsidebar"><i class="ti ti-x align-middle"></i></button>
         <div data-simplebar>
             <ul class="side-nav">
                 <li class="side-nav-title mt-2">Main</li>
@@ -51,7 +40,6 @@
                         <span class="menu-text">Dashboard</span>
                     </a>
                 </li>
-
                 <li class="side-nav-title mt-2">AI Engine</li>
                 <li class="side-nav-item">
                     <a href="{% url 'training' %}" class="side-nav-link">
@@ -65,7 +53,6 @@
                         <span class="menu-text">Evaluation</span>
                     </a>
                 </li>
-
                 <li class="side-nav-title mt-2">Trading</li>
                 <li class="side-nav-item">
                     <a href="{% url 'papertrading' %}" class="side-nav-link active">
@@ -79,7 +66,6 @@
                         <span class="menu-text text-danger">Real Trading</span>
                     </a>
                 </li>
-
                 <li class="side-nav-title mt-2">System</li>
                 <li class="side-nav-item">
                     <a href="{% url 'settings' %}" class="side-nav-link">
@@ -90,15 +76,11 @@
             </ul>
         </div>
     </div>
-    <!-- Sidenav Menu End -->
 
-    <!-- Topbar Start -->
     <header class="app-topbar" id="header">
         <div class="page-container topbar-menu">
             <div class="d-flex align-items-center gap-2">
-                <button class="sidenav-toggle-button px-2">
-                    <i class="ri-menu-5-line fs-24"></i>
-                </button>
+                <button class="sidenav-toggle-button px-2"><i class="ri-menu-5-line fs-24"></i></button>
                 <div class="topbar-item d-none d-md-flex px-2">
                     <h4 class="page-title fs-20 fw-semibold mb-0">Paper Trading Bot</h4>
                 </div>
@@ -114,60 +96,42 @@
                     <div class="dropdown">
                         <a class="topbar-link dropdown-toggle drop-arrow-none px-2" data-bs-toggle="dropdown"
                            data-bs-offset="0,25" type="button">
-                            <img src="{% static 'images/users/avatar-1.jpg' %}" width="32"
-                                 class="rounded-circle me-lg-2 d-flex" alt="user">
-                            <span class="d-lg-flex flex-column gap-1 d-none">
-                                <h5 class="my-0">{{ request.user.username|default:'Admin' }}</h5>
+                            <span class="d-flex align-items-center">
+                                <span class="me-2">
+                                    <span class="d-block fw-semibold lh-1">User</span>
+                                    <small class="text-muted">Trader</small>
+                                </span>
+                                <span class="avatar-sm">
+                                    <span class="avatar-title bg-primary-subtle text-primary rounded fs-20">
+                                        <i class="ri-user-line"></i>
+                                    </span>
+                                </span>
                             </span>
-                            <i class="ri-arrow-down-s-line d-none d-lg-block align-middle ms-1"></i>
                         </a>
                         <div class="dropdown-menu dropdown-menu-end">
                             <div class="dropdown-header noti-title">
-                                <h6 class="text-overflow m-0">Welcome!</h6>
+                                <h6 class="text-overflow m-0">Welcome</h6>
                             </div>
                             <a href="{% url 'settings' %}" class="dropdown-item">
-                                <i class="ri-settings-2-line me-1 fs-16 align-middle"></i>
-                                <span class="align-middle">Settings</span>
+                                <i class="ri-settings-3-line me-2"></i> Settings
                             </a>
                             <div class="dropdown-divider"></div>
                             <a href="/accounts/logout/"
-                               onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
-                               class="dropdown-item active fw-semibold text-danger">
-                                <i class="ri-logout-box-line me-1 fs-16 align-middle"></i>
-                                <span class="align-middle">Sign Out</span>
+                               onclick="event.preventDefault();document.getElementById('logout-form').submit();"
+                               class="dropdown-item">
+                                <i class="ri-logout-box-r-line me-2"></i> Logout
                             </a>
                         </div>
                     </div>
                 </div>
-                <form id="logout-form" action="/accounts/logout/" method="POST" style="display:none;">
-                    {% csrf_token %}
+                <form id="logout-form" action="/accounts/logout/" method="POST" style="display:none;">{% csrf_token %}
                 </form>
             </div>
         </div>
     </header>
-    <!-- Topbar End -->
 
-    <div class="modal fade" id="searchModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content bg-transparent">
-                <form>
-                    <div class="card mb-1">
-                        <div class="px-3 py-2 d-flex flex-row align-items-center" id="top-search">
-                            <i class="ri-search-line fs-22"></i>
-                            <input type="search" class="form-control border-0" placeholder="Search...">
-                            <button type="button" class="btn p-0" data-bs-dismiss="modal">[esc]</button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Page Content -->
     <div class="page-content">
         <div class="page-container">
-
-            <!-- Control & Status -->
             <div class="row">
                 <div class="col-lg-12">
                     <div class="card border border-primary-subtle">
@@ -175,31 +139,34 @@
                             <div class="row align-items-start">
                                 <div class="col-lg-6">
                                     <h4 class="header-title">Control Panel</h4>
-                                    <p class="text-muted font-14">
-                                        Select a trained model and launch the live paper trading bot.
-                                    </p>
+                                    <p class="text-muted font-14">Select a trained model and start / stop the paper
+                                        trading bot.</p>
                                     <form action="{% url 'start_trader' %}" method="POST" class="mb-2">
                                         {% csrf_token %}
-                                        <div class="input-group">
-                                            <select class="form-select" id="model_file_select" name="model_file" required>
-                                                {% for mf in model_files %}
-                                                    <option value="{{ mf }}">{{ mf }}</option>
-                                                {% empty %}
-                                                    <option value="" disabled>No models found</option>
-                                                {% endfor %}
-                                            </select>
-                                            <button type="submit" class="btn btn-success" id="start-btn">
-                                                <i class="ri-play-fill me-1"></i> Start Trader
-                                            </button>
+                                        <div class="row g-2">
+                                            <div class="col-8">
+                                                <select name="model_file" class="form-select" id="model-file-select"
+                                                        required>
+                                                    <option value="">Select model file</option>
+                                                    {% for f in model_files %}
+                                                    <option value="{{ f }}">{{ f }}</option>
+                                                    {% empty %}
+                                                    <option value="">No models found</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="col-4 d-grid">
+                                                <button id="start-btn" type="submit" class="btn btn-success">
+                                                    <i class="ri-play-line me-1"></i> Start
+                                                </button>
+                                            </div>
                                         </div>
                                     </form>
                                     <form action="{% url 'stop_trader' %}" method="POST">
                                         {% csrf_token %}
-                                        <div class="d-grid">
-                                            <button type="submit" class="btn btn-danger" id="stop-btn" disabled>
-                                                <i class="ri-stop-fill me-1"></i> Stop Trader
-                                            </button>
-                                        </div>
+                                        <button id="stop-btn" type="submit" class="btn btn-danger">
+                                            <i class="ri-stop-line me-1"></i> Stop
+                                        </button>
                                     </form>
                                 </div>
                                 <div class="col-lg-6">
@@ -207,7 +174,8 @@
                                     <div class="d-flex justify-content-between align-items-center border-bottom py-2">
                                         <p class="mb-0">Status:</p>
                                         <div>
-                                            <span id="trader-status-badge" class="badge bg-secondary-subtle text-secondary">-</span>
+                                            <span id="trader-status-badge"
+                                                  class="badge bg-secondary-subtle text-secondary">UNKNOWN</span>
                                             <span id="trader-error-tooltip-container"></span>
                                         </div>
                                     </div>
@@ -219,10 +187,14 @@
                                         <p class="mb-0">Buying Power:</p>
                                         <span id="buying-power" class="fw-semibold">-</span>
                                     </div>
-                                    <h5 class="mt-2">Current Activity:</h5>
-                                    <div class="alert alert-info bg-info-subtle border-0 mb-0" role="alert"
+                                    <h5 class="mt-3 mb-2">Recent Activity</h5>
+                                    <ul class="list-group small mb-2" id="trader-activity-list"
+                                        style="max-height:180px;overflow:auto;">
+                                        <li class="list-group-item">Waiting for status...</li>
+                                    </ul>
+                                    <div class="alert alert-info bg-info-subtle border-0 mb-0 py-2 px-3"
                                          id="trader-activity-log">
-                                        Waiting for status...
+                                        Idle
                                     </div>
                                 </div>
                             </div>
@@ -230,22 +202,22 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Equity & Positions -->
             <div class="row">
                 <div class="col-lg-12">
                     <div class="card border">
                         <div class="card-body">
-                            <h4 class="header-title mb-4">Live Equity Curve</h4>
-                            <div id="live-equity-chart" class="apex-charts" data-colors="#35b8e0"></div>
+                            <h4 class="header-title mb-3">Live Equity Curve</h4>
+                            <div id="live-equity-chart" class="apex-charts" style="min-height:380px;"></div>
                         </div>
                     </div>
                 </div>
-
                 <div class="col-lg-12">
                     <div class="card border">
                         <div class="card-body">
-                            <h4 class="header-title">Current Positions</h4>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h4 class="header-title mb-0">Top Positions</h4>
+                                <small class="text-muted">Sorted by market value</small>
+                            </div>
                             <table id="positions-datatable" class="table table-striped dt-responsive nowrap w-100">
                                 <thead>
                                 <tr>
@@ -261,14 +233,14 @@
                     </div>
                 </div>
             </div>
-
         </div>
 
         <footer class="footer">
             <div class="page-container">
                 <div class="row">
                     <div class="col-md-12 text-center">
-                        <script>document.write(new Date().getFullYear())</script> © AI Trader Control Panel
+                        <script>document.write(new Date().getFullYear())</script>
+                        © AI Trader Control Panel
                     </div>
                 </div>
             </div>
@@ -276,138 +248,185 @@
     </div>
 </div>
 
-<!-- Vendor JS -->
 <script src="{% static 'js/vendors.min.js' %}"></script>
 <script src="{% static 'js/app.js' %}"></script>
 <script src="{% static 'vendor/apexcharts/apexcharts.min.js' %}"></script>
 <script src="{% static 'vendor/datatables.net/js/dataTables.min.js' %}"></script>
 <script src="{% static 'vendor/datatables.net-bs5/js/dataTables.bootstrap5.min.js' %}"></script>
-
 <script>
-(function(){
-    function escapeHtml(str){
-        return (str||'').replace(/[&<>"'`]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c]));
-    }
-
-    let positionsTable;
-    let equityChart;
-
-    function initPositionsTable(){
-        positionsTable = $('#positions-datatable').DataTable({paging:false, info:false, searching:false});
-    }
-
-    function initEquityChart(){
-        const options = {
-            chart:{height:380,type:'area',zoom:{enabled:false},toolbar:{show:false}},
-            series:[{name:'Equity',data:[]}],
-            xaxis:{type:'datetime',categories:[]},
-            yaxis:{labels:{formatter:v=>"$"+Number(v).toLocaleString()}},
-            dataLabels:{enabled:false},
-            stroke:{curve:'smooth',width:2},
-            colors:["#35b8e0"]
-        };
-        equityChart = new ApexCharts(document.querySelector("#live-equity-chart"), options);
-        equityChart.render();
-    }
-
-    function setActivity(text,isError){
-        $('#trader-activity-log')
-            .text(text)
-            .toggleClass('alert-danger', !!isError)
-            .toggleClass('alert-info', !isError);
-    }
-
-    function statusBadgeClass(status){
-        if (status === 'RUNNING') return 'bg-success-subtle text-success';
-        if (status === 'FAILED') return 'bg-danger-subtle text-danger';
-        return 'bg-secondary-subtle text-secondary';
-    }
-
-    function updateStatusUI(data){
-        const badge = $('#trader-status-badge');
-        badge
-            .text(data.status)
-            .removeClass('bg-success-subtle text-success bg-danger-subtle text-danger bg-secondary-subtle text-secondary')
-            .addClass(statusBadgeClass(data.status));
-
-        const errC = $('#trader-error-tooltip-container');
-        if (data.status === 'FAILED'){
-            const msg = escapeHtml(data.error_message || 'Trader failed. No error details were captured. Check worker logs.');
-            errC.html(`<span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="${msg}">
-                <i class="ri-information-line text-danger"></i></span>`);
-            $('[data-bs-toggle="tooltip"]').tooltip();
-        } else {
-            errC.empty();
+    (function () {
+        function escapeHtml(str) {
+            return (str || '').replace(/[&<>"'`]/g, c => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;',
+                '`': '&#96;'
+            }[c]));
         }
 
-        $('#start-btn').prop('disabled', data.status === 'RUNNING');
-        $('#stop-btn').prop('disabled', data.status !== 'RUNNING');
+        let positionsTable;
+        let equityChart;
+        const equityHistory = [];
+        const MAX_POINTS = 500;
+        const activityMessages = [];
+        const MAX_ACTIVITY = 50;
+        let lastActivity = '';
 
-        $('#account-equity').text('$' + Number(data.equity||0).toLocaleString());
-        $('#buying-power').text('$' + Number(data.buying_power||0).toLocaleString());
-
-        positionsTable.clear();
-        (data.positions||[]).forEach(p=>{
-            const pl = Number(p.unrealized_pl||0);
-            positionsTable.row.add([
-                escapeHtml(p.symbol),
-                Number(p.qty).toLocaleString(),
-                '$' + Number(p.market_value||0).toLocaleString(),
-                `<span class="${pl>=0?'text-success':'text-danger'}">$${pl.toLocaleString()}</span>`
-            ]);
-        });
-        positionsTable.draw();
-
-        if (data.status === 'FAILED'){
-            setActivity(data.error_message || 'Trader failed. No error details.', true);
-        } else if (data.status === 'RUNNING'){
-            if (!$('#trader-activity-log').hasClass('alert-danger')){
-                setActivity('Running...', false);
-            }
-        } else {
-            if (!$('#trader-activity-log').hasClass('alert-danger')){
-                setActivity('Idle (not running)', false);
-            }
-        }
-    }
-
-    function fetchTraderStatus(){
-        fetch("{% url 'trader_status_api' %}?_=" + Date.now(), {cache:'no-store'})
-            .then(r=> r.ok ? r.json() : Promise.reject('HTTP '+r.status))
-            .then(data=>{
-                updateStatusUI(data);
-            })
-            .catch(err=>{
-                console.error('Status fetch error', err);
-                setActivity('Network / API error fetching status.', true);
+        function initPositionsTable() {
+            positionsTable = $('#positions-datatable').DataTable({
+                paging: false, info: false, searching: false, order: [[2, 'desc']], columnDefs: [
+                    {targets: 2, type: 'num'},
+                    {targets: 3, orderable: false}
+                ]
             });
-    }
+        }
 
-    function fetchTraderActivity(){
-        if ($('#trader-status-badge').text() === 'FAILED') return;
-        fetch("{% url 'trader_activity_api' %}?_=" + Date.now(), {cache:'no-store'})
-            .then(r=> r.ok ? r.json() : Promise.reject())
-            .then(data=>{
-                if ($('#trader-status-badge').text() === 'RUNNING' && data.activity){
-                    if (!$('#trader-activity-log').hasClass('alert-danger')){
-                        setActivity(data.activity, false);
-                    }
+        function initEquityChart() {
+            const options = {
+                chart: {height: 380, type: 'area', toolbar: {show: false}, zoom: {enabled: false}},
+                series: [{name: 'Equity', data: []}],
+                xaxis: {type: 'datetime'},
+                yaxis: {labels: {formatter: v => "$" + Number(v).toLocaleString()}},
+                dataLabels: {enabled: false},
+                stroke: {curve: 'smooth', width: 2},
+                colors: ["#35b8e0"],
+                fill: {
+                    type: 'gradient',
+                    gradient: {shadeIntensity: 0.4, opacityFrom: 0.6, opacityTo: 0.1, stops: [0, 90, 100]}
                 }
-            })
-            .catch(()=>{ /* silent */ });
-    }
+            };
+            equityChart = new ApexCharts(document.querySelector("#live-equity-chart"), options);
+            equityChart.render();
+        }
 
-    function init(){
-        initPositionsTable();
-        initEquityChart();
-        fetchTraderStatus();
-        fetchTraderActivity();
-        setInterval(fetchTraderStatus, 8000);
-        setInterval(fetchTraderActivity, 2000);
-    }
+        function appendEquityPoint(equity) {
+            const now = Date.now();
+            const last = equityHistory[equityHistory.length - 1];
+            if (!last || last.y !== equity) {
+                equityHistory.push({x: now, y: equity});
+                if (equityHistory.length > MAX_POINTS) {
+                    equityHistory.splice(0, equityHistory.length - MAX_POINTS);
+                }
+                equityChart.updateSeries([{name: 'Equity', data: equityHistory}]);
+            }
+        }
 
-    document.addEventListener('DOMContentLoaded', init);
-})();
+        function addActivity(msg, isError) {
+            if (!msg || msg === lastActivity) return;
+            lastActivity = msg;
+            const ts = new Date().toLocaleTimeString();
+            activityMessages.unshift({msg, ts, isError});
+            if (activityMessages.length > MAX_ACTIVITY) activityMessages.pop();
+            const list = $("#trader-activity-list");
+            list.empty();
+            activityMessages.forEach(item => {
+                list.append(`<li class="list-group-item py-1 d-flex justify-content-between ${item.isError ? 'text-danger' : ''}">
+                <span class="text-truncate" style="max-width:75%">${escapeHtml(item.msg)}</span>
+                <code class="small mb-0">${item.ts}</code>
+            </li>`);
+            });
+        }
+
+        function setSummaryActivity(text, isError) {
+            $('#trader-activity-log')
+                .text(text)
+                .toggleClass('alert-danger', !!isError)
+                .toggleClass('alert-info', !isError);
+        }
+
+        function statusBadgeClass(status) {
+            if (status === 'RUNNING') return 'bg-success-subtle text-success';
+            if (status === 'FAILED') return 'bg-danger-subtle text-danger';
+            if (status === 'STOPPED') return 'bg-secondary-subtle text-secondary';
+            return 'bg-secondary-subtle text-secondary';
+        }
+
+        function updateStatusUI(data) {
+            const badge = $('#trader-status-badge');
+            badge.text(data.status)
+                .removeClass('bg-success-subtle text-success bg-danger-subtle text-danger bg-secondary-subtle text-secondary')
+                .addClass(statusBadgeClass(data.status));
+
+            const errC = $('#trader-error-tooltip-container');
+            if (data.status === 'FAILED') {
+                const msg = escapeHtml(data.error_message || 'Trader failed (no details).');
+                errC.html(`<span class="ms-1" data-bs-toggle="tooltip" title="${msg}">
+                <i class="ri-information-line text-danger"></i></span>`);
+                $('[data-bs-toggle="tooltip"]').tooltip();
+                addActivity(data.error_message || 'Trader failed', true);
+                setSummaryActivity(data.error_message || 'Trader failed', true);
+            } else {
+                errC.empty();
+            }
+
+            $('#start-btn').prop('disabled', data.status === 'RUNNING');
+            $('#stop-btn').prop('disabled', data.status !== 'RUNNING');
+
+            const eq = Number(data.equity || 0);
+            $('#account-equity').text('$' + eq.toLocaleString());
+            $('#buying-power').text('$' + Number(data.buying_power || 0).toLocaleString());
+
+            if (data.status === 'RUNNING') appendEquityPoint(eq);
+
+            // Positions: sort descending by market_value
+            const sorted = (data.positions || []).slice().sort((a, b) => Number(b.market_value || 0) - Number(a.market_value || 0));
+            positionsTable.clear();
+            sorted.forEach(p => {
+                const pl = Number(p.unrealized_pl || 0);
+                positionsTable.row.add([
+                    escapeHtml(p.symbol),
+                    Number(p.qty).toLocaleString(),
+                    '$' + Number(p.market_value || 0).toLocaleString(),
+                    `<span class="${pl >= 0 ? 'text-success' : 'text-danger'}">$${pl.toLocaleString()}</span>`
+                ]);
+            });
+            positionsTable.draw();
+
+            if (data.status === 'RUNNING' && !$('#trader-activity-log').hasClass('alert-danger')) {
+                setSummaryActivity('Running...', false);
+            }
+            if (data.status === 'STOPPED') {
+                setSummaryActivity('Idle (stopped)', false);
+            }
+        }
+
+        function fetchTraderStatus() {
+            fetch("{% url 'trader_status_api' %}?_=" + Date.now(), {cache: 'no-store'})
+                .then(r => r.ok ? r.json() : Promise.reject('HTTP ' + r.status))
+                .then(updateStatusUI)
+                .catch(err => {
+                    console.error('Status fetch error', err);
+                    addActivity('Status fetch error', true);
+                    setSummaryActivity('Network / API error fetching status.', true);
+                });
+        }
+
+        function fetchTraderActivity() {
+            if ($('#trader-status-badge').text() === 'FAILED') return;
+            fetch("{% url 'trader_activity_api' %}?_=" + Date.now(), {cache: 'no-store'})
+                .then(r => r.ok ? r.json() : Promise.reject())
+                .then(data => {
+                    if ($('#trader-status-badge').text() === 'RUNNING' && data.activity) {
+                        addActivity(data.activity, false);
+                    }
+                })
+                .catch(() => { /* silent */
+                });
+        }
+
+        function init() {
+            initPositionsTable();
+            initEquityChart();
+            fetchTraderStatus();
+            fetchTraderActivity();
+            setInterval(fetchTraderStatus, 8000);
+            setInterval(fetchTraderActivity, 2000);
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    })();
 </script>
 </body>
 </html>
