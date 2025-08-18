@@ -90,6 +90,7 @@
     <div class="col-lg-6">
         <div class="card">
             <div class="card-body">
+                <!-- Replace the Recent Training Jobs table in `templates/dashboard.html` with this block -->
                 <h4 class="header-title">Recent Training Jobs</h4>
                 <table id="training-datatable" class="table table-striped dt-responsive nowrap w-100">
                     <thead>
@@ -104,7 +105,15 @@
                     <tr>
                         <td>#{{ job.id }}</td>
                         <td>{% include "partials/status_badge.html" with status=job.status %}</td>
-                        <td>{{ job.performance }}%</td>
+                        <td>
+                            {% if job.performance %}
+                            {{ job.performance }}%
+                            {% elif job.best_reward %}
+                            {{ job.best_reward|floatformat:2 }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
                     </tr>
                     {% empty %}
                     <tr>

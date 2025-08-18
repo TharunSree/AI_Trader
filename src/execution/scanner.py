@@ -54,11 +54,11 @@ class Scanner:
                 "UNH",
             ]
 
-    def scan_for_opportunities(self) -> list:
+    def scan_for_opportunities(self, buying_power: float) -> list:
         hot_list = []
         logger.info(f"Starting scan on {len(self.universe)} tickers...")
 
-        universe_subset = self.universe[:50]
+        universe_subset = self.universe
 
         for ticker in universe_subset:
             try:
@@ -71,11 +71,9 @@ class Scanner:
                 if df.empty or len(df) < 30:
                     continue
 
-                if self._apply_filters(df, ticker):
+                if self._apply_filters(df, ticker, buying_power):
                     hot_list.append(ticker)
-                    logger.info(
-                        f"Ticker {ticker} passed filters and was added to the hot list."
-                    )
+                    logger.info(f"Ticker {ticker} passed filters and was added to the hot list.")
             except Exception as e:
                 logger.warning(f"Could not process ticker {ticker}: {e}")
                 continue
@@ -83,9 +81,13 @@ class Scanner:
         logger.info(f"Scan complete. Found {len(hot_list)} opportunities: {hot_list}")
         return hot_list
 
-    def _apply_filters(self, df: pd.DataFrame, ticker: str) -> bool:
+    def _apply_filters(self, df: pd.DataFrame, ticker: str, buying_power: float) -> bool:
         try:
             last_price = df["Close"].iloc[-1].item()
+
+            if last_price > (buying_power * 0.5):
+                return False
+
             if not (self.config["min_price"] < last_price < self.config["max_price"]):
                 return False
 

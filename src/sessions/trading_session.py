@@ -45,7 +45,9 @@ class TradingSession:
 
         while not self.abort_flag_callback():
             if self.task: self.task.update_state(state='PROGRESS', meta={'activity': 'Scanning for opportunities...'})
-            hot_list = scanner.scan_for_opportunities()
+            buying_power = broker.get_buying_power()
+            logger.info(f"Current buying power: ${buying_power:,.2f}")
+            hot_list = scanner.scan_for_opportunities(buying_power=buying_power)
 
             for ticker in hot_list:
                 if self.abort_flag_callback(): break
