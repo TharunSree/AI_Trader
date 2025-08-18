@@ -1,307 +1,196 @@
-<!DOCTYPE html>
-<html lang="en-us">
-<head>
-    <meta charset="utf-8"/>
-    <title>Paper Trading | AI Trader Control Panel</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    {% load static %}
-    <link rel="shortcut icon" href="{% static 'images/favicon.ico' %}">
-    <meta name="description" content="Paper trading control panel">
-    <meta name="author" content="AI Trader">
-    <link href="{% static 'vendor/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}" rel="stylesheet"
-          type="text/css"/>
-    <link href="{% static 'css/vendor.min.css' %}" rel="stylesheet"/>
-    <link href="{% static 'css/app.css' %}" rel="stylesheet"/>
-    <link href="{% static 'css/icons.css' %}" rel="stylesheet"/>
-    <script src="{% static 'js/config.js' %}"></script>
-    <style>
-        .control-card .form-select,
-        .control-card button {
-            height: 48px;
-        }
+<!-- language: html -->
+{% extends "vertical.html" %}
+{% load static %}
+{% block title %}Paper Trading{% endblock title %}
 
-        .btn-wide {
-            width: 100%;
-        }
+{% block extra_css %}
+<link href="{% static 'vendor/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}" rel="stylesheet"
+      type="text/css"/>
+<style>
+    .mini-badge {
+        font-size: 11px;
+        letter-spacing: .5px;
+    }
 
-        .uptime-badge {
-            font-variant-numeric: tabular-nums;
-        }
+    .activity-log {
+        max-height: 220px;
+        overflow-y: auto;
+    }
 
-        #positions-wrapper {
-            max-height: 420px;
-            overflow: auto;
-        }
+    .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    }
+</style>
+{% endblock extra_css %}
 
-        #trader-activity-list {
-            max-height: 180px;
-            overflow: auto;
-        }
+{% block page_title %}
+{% include 'partials/topbar.html' with topbarTitle='Paper Trading Bot' %}
+{% endblock page_title %}
 
-        .equity-card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        @media (max-width: 991.98px) {
-            .stack-sm {
-                flex-direction: column !important;
-            }
-        }
-    </style>
-</head>
-<body>
-<div class="wrapper">
-    <div class="sidenav-menu">
-        <a href="{% url 'dashboard' %}" class="logo">
-            <span class="logo-light">
-                <span class="logo-lg"><img src="{% static 'images/logo.png' %}" alt="logo"></span>
-                <span class="logo-sm"><img src="{% static 'images/logo-sm.png' %}" alt="small logo"></span>
-            </span>
-            <span class="logo-dark">
-                <span class="logo-lg"><img src="{% static 'images/logo-dark.png' %}" alt="dark logo"></span>
-                <span class="logo-sm"><img src="{% static 'images/logo-sm.png' %}" alt="small logo"></span>
-            </span>
-        </a>
-        <button class="button-sm-hover"><i class="ri-circle-line align-middle"></i></button>
-        <button class="sidenav-toggle-button"><i class="ri-menu-5-line fs-20"></i></button>
-        <button class="button-close-fullsidebar"><i class="ti ti-x align-middle"></i></button>
-        <div data-simplebar>
-            <ul class="side-nav">
-                <li class="side-nav-title mt-2">Main</li>
-                <li class="side-nav-item"><a href="{% url 'dashboard' %}" class="side-nav-link"><span class="menu-icon"><i
-                        class="ti ti-dashboard"></i></span><span class="menu-text">Dashboard</span></a></li>
-                <li class="side-nav-title mt-2">AI Engine</li>
-                <li class="side-nav-item"><a href="{% url 'training' %}" class="side-nav-link"><span
-                        class="menu-icon"><i class="ti ti-brain"></i></span><span class="menu-text">Training</span></a>
-                </li>
-                <li class="side-nav-item"><a href="{% url 'evaluation' %}" class="side-nav-link"><span
-                        class="menu-icon"><i class="ti ti-search"></i></span><span
-                        class="menu-text">Evaluation</span></a></li>
-                <li class="side-nav-title mt-2">Trading</li>
-                <li class="side-nav-item"><a href="{% url 'papertrading' %}" class="side-nav-link active"><span
-                        class="menu-icon"><i class="ti ti-chart-infographic"></i></span><span class="menu-text">Paper Trading</span></a>
-                </li>
-                <li class="side-nav-item"><a href="{% url 'realtrading' %}" class="side-nav-link"><span
-                        class="menu-icon"><i class="ti ti-rocket text-danger"></i></span><span
-                        class="menu-text text-danger">Real Trading</span></a></li>
-                <li class="side-nav-title mt-2">System</li>
-                <li class="side-nav-item"><a href="{% url 'settings' %}" class="side-nav-link"><span
-                        class="menu-icon"><i class="ti ti-settings"></i></span><span
-                        class="menu-text">Settings</span></a></li>
-            </ul>
-        </div>
-    </div>
-
-    <header class="app-topbar" id="header">
-        <div class="page-container topbar-menu">
-            <div class="d-flex align-items-center gap-2">
-                <button class="sidenav-toggle-button px-2"><i class="ri-menu-5-line fs-24"></i></button>
-                <div class="topbar-item d-none d-md-flex px-2">
-                    <h4 class="page-title fs-20 fw-semibold mb-0">Paper Trading Bot</h4>
-                </div>
-            </div>
-            <div class="d-flex align-items-center gap-2">
-                <div class="topbar-item d-none d-sm-flex">
-                    <button class="topbar-link" id="light-dark-mode" type="button">
-                        <i class="ri-moon-line light-mode-icon fs-22"></i>
-                        <i class="ri-sun-line dark-mode-icon fs-22"></i>
-                    </button>
-                </div>
-                <div class="topbar-item nav-user">
-                    <div class="dropdown">
-                        <a class="topbar-link dropdown-toggle drop-arrow-none px-2" data-bs-toggle="dropdown"
-                           data-bs-offset="0,25">
-                            <span class="d-flex align-items-center">
-                                <span class="me-2"><span class="d-block fw-semibold lh-1">User</span><small
-                                        class="text-muted">Trader</small></span>
-                                <span class="avatar-sm"><span
-                                        class="avatar-title bg-primary-subtle text-primary rounded fs-20"><i
-                                        class="ri-user-line"></i></span></span>
-                            </span>
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-end">
-                            <div class="dropdown-header noti-title"><h6 class="m-0">Welcome</h6></div>
-                            <a href="{% url 'settings' %}" class="dropdown-item"><i class="ri-settings-3-line me-2"></i>
-                                Settings</a>
-                            <div class="dropdown-divider"></div>
-                            <a href="/accounts/logout/"
-                               onclick="event.preventDefault();document.getElementById('logout-form').submit();"
-                               class="dropdown-item">
-                                <i class="ri-logout-box-r-line me-2"></i> Logout
-                            </a>
-                        </div>
+{% block page_content %}
+<div class="row">
+    <div class="col-xl-5">
+        <div class="card border border-primary-subtle">
+            <div class="card-body">
+                <h4 class="header-title mb-3">Control Panel</h4>
+                <form action="{% url 'start_trader' %}" method="POST" id="start-form" class="mb-3">
+                    {% csrf_token %}
+                    <div class="mb-2">
+                        <label class="form-label small text-uppercase fw-semibold" for="model-file-select">Model
+                            File</label>
+                        <select name="model_file" id="model-file-select" class="form-select" required>
+                            <option value="">Select model file</option>
+                            {% for f in model_files %}
+                            <option value="{{ f }}">{{ f }}</option>
+                            {% empty %}
+                            <option value="">No models found</option>
+                            {% endfor %}
+                        </select>
                     </div>
+                    <div class="d-flex gap-2">
+                        <button id="start-btn" type="submit" class="btn btn-success fw-semibold">
+                            <i class="ri-play-line me-1"></i>Start
+                        </button>
+                        <button id="stop-btn" type="button" class="btn btn-danger fw-semibold" disabled>
+                            <i class="ri-stop-line me-1"></i>Stop
+                        </button>
+                    </div>
+                </form>
+                <div class="small text-muted">
+                    <i class="ri-information-line me-1"></i>Starts the session and enables periodic scans & decisions.
                 </div>
-                <form id="logout-form" action="/accounts/logout/" method="POST" style="display:none;">{% csrf_token %}
+                <form id="stop-form" action="{% url 'stop_trader' %}" method="POST" class="d-none">
+                    {% csrf_token %}
                 </form>
             </div>
         </div>
-    </header>
-
-    <div class="page-content">
-        <div class="page-container">
-            <!-- Control + Status -->
-            <div class="row">
-                <div class="col-lg-12">
-                    <div class="card border border-primary-subtle control-card">
-                        <div class="card-body">
-                            <div class="row g-4 align-items-start stack-sm">
-                                <!-- Controls -->
-                                <div class="col-lg-5">
-                                    <h4 class="header-title mb-3">Control Panel</h4>
-                                    <form action="{% url 'start_trader' %}" method="POST" class="mb-3">
-                                        {% csrf_token %}
-                                        <div class="mb-2">
-                                            <label for="model-file-select"
-                                                   class="form-label small text-uppercase fw-semibold">Model
-                                                File</label>
-                                            <select name="model_file" class="form-select" id="model-file-select"
-                                                    required>
-                                                <option value="">Select model file</option>
-                                                {% for f in model_files %}
-                                                <option value="{{ f }}">{{ f }}</option>
-                                                {% empty %}
-                                                <option value="">No models found</option>
-                                                {% endfor %}
-                                            </select>
-                                        </div>
-                                        <div class="d-flex gap-2">
-                                            <button id="start-btn" type="submit"
-                                                    class="btn btn-success btn-wide fw-semibold">
-                                                <i class="ri-play-line me-1"></i> Start
-                                            </button>
-                                            <button id="stop-btn" type="button"
-                                                    class="btn btn-danger btn-wide fw-semibold">
-                                                <i class="ri-stop-line me-1"></i> Stop
-                                            </button>
-                                        </div>
-                                    </form>
-                                    <div class="small text-muted">
-                                        <i class="ri-information-line me-1"></i>
-                                        Starting loads the model and begins placing simulated orders.
-                                    </div>
+    </div>
+    <div class="col-xl-7">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="header-title mb-3">Live Status</h4>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="p-3 rounded border h-100">
+                            <span class="text-muted small text-uppercase fw-semibold">Session</span>
+                            <div class="mt-2">
+                                <span id="trader-status-badge"
+                                      class="badge bg-secondary-subtle text-secondary px-3 py-2">UNKNOWN</span>
+                            </div>
+                            <div class="mt-3 d-flex flex-column gap-1">
+                                <div class="small text-muted">Uptime:
+                                    <span id="uptime-badge" class="badge bg-dark-subtle text-dark mono">00:00:00</span>
                                 </div>
-                                <!-- Status -->
-                                <div class="col-lg-7">
-                                    <h4 class="header-title mb-3">Live Status</h4>
-                                    <div class="row g-3">
-                                        <div class="col-sm-6">
-                                            <div class="p-3 rounded border bg-light-subtle h-100">
-                                                <div class="d-flex justify-content-between">
-                                                    <span class="text-muted small text-uppercase fw-semibold">Status</span>
-                                                    <span id="trader-error-tooltip-container"></span>
-                                                </div>
-                                                <div class="mt-1">
-                                                    <span id="trader-status-badge"
-                                                          class="badge bg-secondary-subtle text-secondary px-3 py-2 fw-medium">UNKNOWN</span>
-                                                </div>
-                                                <div class="mt-3 d-flex flex-wrap gap-2 align-items-center">
-                                                    <span class="small text-muted">Uptime:</span>
-                                                    <span id="uptime-timer"
-                                                          class="badge bg-dark-subtle text-dark uptime-badge">00:00:00</span>
-                                                    <span class="small text-muted ms-auto">Last update: <span
-                                                            id="last-update-ts">-</span></span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-sm-6">
-                                            <div class="p-3 rounded border bg-light-subtle h-100">
-                                                <div class="equity-card-header">
-                                                    <span class="text-muted small text-uppercase fw-semibold">Account</span>
-                                                </div>
-                                                <div class="mt-2">
-                                                    <div class="d-flex justify-content-between">
-                                                        <span class="small">Equity</span>
-                                                        <span id="account-equity" class="fw-semibold">-</span>
-                                                    </div>
-                                                    <div class="d-flex justify-content-between mt-1">
-                                                        <span class="small">Buying Power</span>
-                                                        <span id="buying-power" class="fw-semibold">-</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-12">
-                                            <h6 class="mb-2 mt-2">Recent Activity</h6>
-                                            <ul class="list-group small mb-2" id="trader-activity-list">
-                                                <li class="list-group-item">Waiting for status...</li>
-                                            </ul>
-                                            <div class="alert alert-info bg-info-subtle border-0 mb-0 py-2 px-3"
-                                                 id="trader-activity-log">
-                                                Idle
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div class="small text-muted">Last Update:
+                                    <span id="last-update-ts" class="mono">-</span>
                                 </div>
-                            </div> <!-- row -->
+                            </div>
+                            <div id="error-icon" class="mt-2"></div>
                         </div>
                     </div>
-                </div>
-            </div>
-            <!-- Charts + Positions -->
-            <div class="row">
-                <div class="col-lg-12">
-                    <div class="card border">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h4 class="header-title mb-0">Live Equity Curve</h4>
-                                <span class="text-muted small" id="points-count">0 pts</span>
+                    <div class="col-md-8">
+                        <div class="p-3 rounded border h-100">
+                            <span class="text-muted small text-uppercase fw-semibold">Cycle / Activity</span>
+                            <div class="mt-2 d-flex flex-wrap gap-2">
+                                <span id="cycle-badge"
+                                      class="badge mini-badge bg-secondary-subtle text-secondary">IDLE</span>
+                                <span id="analyzing-badge"
+                                      class="badge mini-badge bg-info-subtle text-info d-none"></span>
+                                <span id="sleep-badge"
+                                      class="badge mini-badge bg-warning-subtle text-warning d-none"></span>
                             </div>
-                            <div id="live-equity-chart" class="apex-charts" style="min-height:380px;"></div>
+                            <div class="mt-3">
+                                <div class="small text-muted mb-1">Recent Activity</div>
+                                <ul id="activity-list" class="list-group small activity-log mb-2">
+                                    <li class="list-group-item py-1">Waiting for data...</li>
+                                </ul>
+                                <div id="activity-summary" class="alert alert-info bg-info-subtle border-0 py-2 mb-0">
+                                    Idle
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="col-lg-12">
-                    <div class="card border">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h4 class="header-title mb-0">Top Positions</h4>
-                                <small class="text-muted">Auto‑sorted by value</small>
-                            </div>
-                            <div id="positions-wrapper">
-                                <table id="positions-datatable" class="table table-striped nowrap w-100">
-                                    <thead>
-                                    <tr>
-                                        <th>Symbol</th>
-                                        <th>Quantity</th>
-                                        <th>Market Value</th>
-                                        <th>Unrealized P/L</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody></tbody>
-                                </table>
-                            </div>
-                            <small class="text-muted d-block mt-1">Showing up to latest snapshot each poll.</small>
-                        </div>
-                    </div>
-                </div>
+                </div> <!-- row -->
             </div>
         </div>
-
-        <footer class="footer">
-            <div class="page-container">
-                <div class="row">
-                    <div class="col-md-12 text-center">
-                        <script>document.write(new Date().getFullYear())</script>
-                        © AI Trader Control Panel
-                    </div>
-                </div>
-            </div>
-        </footer>
     </div>
 </div>
 
-<script src="{% static 'js/vendors.min.js' %}"></script>
-<script src="{% static 'js/app.js' %}"></script>
+<div class="row">
+    <div class="col-xl-7">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h4 class="header-title mb-0">Live Equity Curve</h4>
+                    <span class="text-muted small" id="points-count">0 pts</span>
+                </div>
+                <div id="equity-chart" class="apex-charts" style="min-height:360px;"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-5">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="header-title mb-3">Account Snapshot</h4>
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <div class="p-3 rounded border h-100">
+                            <div class="small text-muted text-uppercase fw-semibold">Equity</div>
+                            <h4 id="equity-val" class="mb-0 mt-1">$0</h4>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="p-3 rounded border h-100">
+                            <div class="small text-muted text-uppercase fw-semibold">Buying Power</div>
+                            <h4 id="bp-val" class="mb-0 mt-1">$0</h4>
+                        </div>
+                    </div>
+                </div>
+                <hr/>
+                <h5 class="header-title mb-2">Top Positions</h5>
+                <table id="positions-dt" class="table table-sm table-striped nowrap w-100">
+                    <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Qty</th>
+                        <th>Value</th>
+                        <th>Unrl P/L</th>
+                    </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <small class="text-muted">Auto‑sorted by market value.</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock page_content %}
+
+{% block extra_javascript %}
 <script src="{% static 'vendor/apexcharts/apexcharts.min.js' %}"></script>
 <script src="{% static 'vendor/datatables.net/js/dataTables.min.js' %}"></script>
 <script src="{% static 'vendor/datatables.net-bs5/js/dataTables.bootstrap5.min.js' %}"></script>
 <script>
     (function () {
-        function escapeHtml(str) {
-            return (str || '').replace(/[&<>"'`]/g, c => ({
+        const UPTIME_KEY = 'paper_trader_uptime_start';
+        const activityPollMs = 2000;
+        const statusPoll = {RUNNING: 6000, STOPPED: 15000, FAILED: 10000, UNKNOWN: 10000};
+        let currentStatus = 'UNKNOWN';
+        let positionsTable, equityChart;
+        const equitySeries = [];
+        const MAX_POINTS = 800;
+        const activityLog = [];
+        const MAX_ACTIVITY = 80;
+        let sleepSeconds = 0, sleepTimerId = null;
+        let statusTimer = null, activityTimer = null;
+        let lastActivityText = '';
+
+        function fmt(n) {
+            return Number(n || 0).toLocaleString();
+        }
+
+        function escapeHtml(s) {
+            return (s || '').replace(/[&<>"'`]/g, c => ({
                 '&': '&amp;',
                 '<': '&lt;',
                 '>': '&gt;',
@@ -311,233 +200,248 @@
             }[c]));
         }
 
-        let positionsTable, equityChart;
-        const equityHistory = [];
-        const MAX_POINTS = 800;
-        const activityMessages = [];
-        const MAX_ACTIVITY = 60;
-        let lastActivity = '', startTimestamp = null, uptimeInterval = null;
-        let currentStatus = 'UNKNOWN';
-        let statusPollTimeout = null;
-        const pollIntervals = {RUNNING: 5000, STOPPED: 15000, FAILED: 10000, UNKNOWN: 10000};
-        const activityFast = 2000;
-
-        function initPositionsTable() {
-            positionsTable = $('#positions-datatable').DataTable({
-                paging: false, info: false, searching: false, ordering: true,
-                order: [[2, 'desc']],
-                scrollY: false,
-                columnDefs: [
-                    {targets: 2, type: 'num'},
-                    {targets: 3, orderable: false}
-                ]
+        function initPositions() {
+            positionsTable = $('#positions-dt').DataTable({
+                paging: false, searching: false, info: false, order: [[2, 'desc']],
+                columnDefs: [{targets: [1, 2, 3], className: 'text-end'}]
             });
         }
 
-        function initEquityChart() {
-            const options = {
-                chart: {height: 380, type: 'area', toolbar: {show: false}, zoom: {enabled: false}},
+        function initChart() {
+            equityChart = new ApexCharts(document.querySelector('#equity-chart'), {
+                chart: {type: 'area', height: 360, toolbar: {show: false}},
                 series: [{name: 'Equity', data: []}],
                 xaxis: {type: 'datetime'},
-                yaxis: {labels: {formatter: v => "$" + Number(v).toLocaleString()}},
+                yaxis: {labels: {formatter: v => '$' + fmt(v)}},
                 dataLabels: {enabled: false},
                 stroke: {curve: 'smooth', width: 2},
-                colors: ["#35b8e0"],
+                colors: ['#35b8e0'],
                 fill: {
                     type: 'gradient',
                     gradient: {shadeIntensity: 0.4, opacityFrom: 0.6, opacityTo: 0.1, stops: [0, 90, 100]}
                 }
-            };
-            equityChart = new ApexCharts(document.querySelector("#live-equity-chart"), options);
+            });
             equityChart.render();
         }
 
-        function appendEquityPoint(equity) {
-            const now = Date.now();
-            const last = equityHistory[equityHistory.length - 1];
-            if (!last || last.y !== equity) {
-                equityHistory.push({x: now, y: equity});
-                if (equityHistory.length > MAX_POINTS) {
-                    equityHistory.splice(0, equityHistory.length - MAX_POINTS);
-                }
-                equityChart.updateSeries([{name: 'Equity', data: equityHistory}]);
-                document.getElementById('points-count').textContent = equityHistory.length + ' pts';
+        function addEquityPoint(val) {
+            const last = equitySeries[equitySeries.length - 1];
+            if (!last || last.y !== val) {
+                equitySeries.push({x: Date.now(), y: val});
+                if (equitySeries.length > MAX_POINTS) equitySeries.splice(0, equitySeries.length - MAX_POINTS);
+                equityChart.updateSeries([{name: 'Equity', data: equitySeries}]);
+                document.getElementById('points-count').textContent = equitySeries.length + ' pts';
             }
         }
 
-        function addActivity(msg, isError) {
-            if (!msg || msg === lastActivity) return;
-            lastActivity = msg;
-            const ts = new Date().toLocaleTimeString();
-            activityMessages.unshift({msg, ts, isError});
-            if (activityMessages.length > MAX_ACTIVITY) activityMessages.pop();
-            const list = $("#trader-activity-list");
-            list.empty();
-            activityMessages.forEach(item => {
-                list.append(`<li class="list-group-item py-1 d-flex justify-content-between ${item.isError ? 'text-danger' : ''}">
-                <span class="text-truncate" style="max-width:75%">${escapeHtml(item.msg)}</span>
-                <code class="small mb-0">${item.ts}</code>
-            </li>`);
-            });
+        function setBadge(el, text, cls) {
+            el.textContent = text;
+            el.className = 'badge ' + cls;
         }
 
-        function setSummaryActivity(text, isError) {
-            $('#trader-activity-log')
-                .text(text)
-                .toggleClass('alert-danger', !!isError)
-                .toggleClass('alert-info', !isError);
+        function statusBadgeClass(s) {
+            if (s === 'RUNNING') return 'bg-success-subtle text-success px-3 py-2';
+            if (s === 'FAILED') return 'bg-danger-subtle text-danger px-3 py-2';
+            if (s === 'STOPPED') return 'bg-secondary-subtle text-secondary px-3 py-2';
+            return 'bg-secondary-subtle text-secondary px-3 py-2';
         }
 
-        function statusBadgeClass(status) {
-            if (status === 'RUNNING') return 'bg-success-subtle text-success';
-            if (status === 'FAILED') return 'bg-danger-subtle text-danger';
-            if (status === 'STOPPED') return 'bg-secondary-subtle text-secondary';
-            return 'bg-secondary-subtle text-secondary';
+        function ensureUptimeStart() {
+            if (!localStorage.getItem(UPTIME_KEY)) {
+                localStorage.setItem(UPTIME_KEY, Date.now().toString());
+            }
         }
 
-        function updateUptime() {
-            if (!startTimestamp) {
-                $('#uptime-timer').text('00:00:00');
+        function clearUptime() {
+            localStorage.removeItem(UPTIME_KEY);
+            document.getElementById('uptime-badge').textContent = '00:00:00';
+        }
+
+        function tickUptime() {
+            const start = parseInt(localStorage.getItem(UPTIME_KEY) || '0', 10);
+            if (!start) {
+                document.getElementById('uptime-badge').textContent = '00:00:00';
                 return;
             }
-            const diff = Date.now() - startTimestamp;
+            const diff = Date.now() - start;
             const h = String(Math.floor(diff / 3600000)).padStart(2, '0');
             const m = String(Math.floor(diff / 60000) % 60).padStart(2, '0');
             const s = String(Math.floor(diff / 1000) % 60).padStart(2, '0');
-            $('#uptime-timer').text(`${h}:${m}:${s}`);
+            document.getElementById('uptime-badge').textContent = `${h}:${m}:${s}`;
+            requestAnimationFrame(tickUptime);
         }
 
-        function startUptimeTimer() {
-            if (uptimeInterval) return;
-            uptimeInterval = setInterval(updateUptime, 1000);
+        function scheduleStatus() {
+            if (statusTimer) clearTimeout(statusTimer);
+            statusTimer = setTimeout(fetchStatus, statusPoll[currentStatus] || 10000);
         }
 
-        function stopUptimeTimer() {
-            if (uptimeInterval) {
-                clearInterval(uptimeInterval);
-                uptimeInterval = null;
-            }
+        function scheduleActivity() {
+            if (activityTimer) clearTimeout(activityTimer);
+            activityTimer = setTimeout(fetchActivity, activityPollMs);
         }
 
-        function scheduleNextStatusPoll() {
-            if (statusPollTimeout) clearTimeout(statusPollTimeout);
-            const delay = pollIntervals[currentStatus] || 10000;
-            statusPollTimeout = setTimeout(fetchTraderStatus, delay);
-        }
-
-        function updateStatusUI(data) {
-            const prevStatus = currentStatus;
-            currentStatus = data.status;
-            const badge = $('#trader-status-badge');
-            badge.text(data.status)
-                .removeClass('bg-success-subtle text-success bg-danger-subtle text-danger bg-secondary-subtle text-secondary')
-                .addClass(statusBadgeClass(data.status));
-
-            $('#last-update-ts').text(new Date().toLocaleTimeString());
-
-            const errC = $('#trader-error-tooltip-container');
-            if (data.status === 'FAILED') {
-                const msg = escapeHtml(data.error_message || 'Trader failed (no details).');
-                errC.html(`<span class="ms-1" data-bs-toggle="tooltip" title="${msg}">
-                <i class="ri-information-line text-danger"></i></span>`);
-                $('[data-bs-toggle="tooltip"]').tooltip();
-                addActivity(data.error_message || 'Trader failed', true);
-                setSummaryActivity(data.error_message || 'Trader failed', true);
-            } else {
-                errC.empty();
-            }
-
-            $('#start-btn').prop('disabled', data.status === 'RUNNING');
-            $('#stop-btn').prop('disabled', data.status !== 'RUNNING');
-
-            const eq = Number(data.equity || 0);
-            $('#account-equity').text('$' + eq.toLocaleString());
-            $('#buying-power').text('$' + Number(data.buying_power || 0).toLocaleString());
-
-            if (data.status === 'RUNNING') {
-                if (prevStatus !== 'RUNNING') { // transition
-                    startTimestamp = Date.now();
-                    updateUptime();
-                    startUptimeTimer();
-                    addActivity('Trader started', false);
-                    setSummaryActivity('Running...', false);
-                }
-                appendEquityPoint(eq);
-            } else {
-                if (prevStatus === 'RUNNING') { // left running
-                    addActivity('Trader stopped', false);
-                }
-                if (data.status === 'STOPPED') {
-                    setSummaryActivity('Idle (stopped)', false);
-                }
-                if (data.status !== 'RUNNING') stopUptimeTimer();
-            }
-
-            // Positions
-            const sorted = (data.positions || []).slice().sort((a, b) => Number(b.market_value || 0) - Number(a.market_value || 0));
-            positionsTable.clear();
-            sorted.forEach(p => {
-                const pl = Number(p.unrealized_pl || 0);
-                positionsTable.row.add([
-                    escapeHtml(p.symbol),
-                    Number(p.qty).toLocaleString(),
-                    '$' + Number(p.market_value || 0).toLocaleString(),
-                    `<span class="${pl >= 0 ? 'text-success' : 'text-danger'}">$${pl.toLocaleString()}</span>`
-                ]);
+        function addActivity(line, isError) {
+            if (!line || line === lastActivityText) return;
+            lastActivityText = line;
+            activityLog.unshift({t: new Date(), msg: line, err: !!isError});
+            if (activityLog.length > MAX_ACTIVITY) activityLog.pop();
+            const ul = document.getElementById('activity-list');
+            ul.innerHTML = '';
+            activityLog.forEach(a => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item py-1 d-flex justify-content-between ' + (a.err ? 'text-danger' : '');
+                li.innerHTML = `<span class="text-truncate" style="max-width:70%">${escapeHtml(a.msg)}</span><code class="small mono mb-0">${a.t.toLocaleTimeString()}</code>`;
+                ul.appendChild(li);
             });
-            positionsTable.draw();
-
-            scheduleNextStatusPoll();
+            interpretCycle(line);
         }
 
-        function fetchTraderStatus() {
+        function interpretCycle(text) {
+            const cycle = document.getElementById('cycle-badge');
+            const analyzing = document.getElementById('analyzing-badge');
+            const sleepB = document.getElementById('sleep-badge');
+
+            analyzing.classList.add('d-none');
+            sleepB.classList.add('d-none');
+
+            if (/Scanning for opportunities/i.test(text)) {
+                setBadge(cycle, 'SCANNING', 'mini-badge bg-info-subtle text-info');
+            } else if (/^Analyzing (\w+)/i.test(text)) {
+                const sym = text.split(' ')[1].replace(/[^A-Z.]/g, '');
+                setBadge(cycle, 'ANALYZING', 'mini-badge bg-primary-subtle text-primary');
+                analyzing.textContent = sym;
+                analyzing.classList.remove('d-none');
+            } else if (/Sleeping\.\.\./.test(text)) {
+                setBadge(cycle, 'SLEEPING', 'mini-badge bg-warning-subtle text-warning');
+                const m = text.match(/Sleeping\.\.\. \((\d{2}):(\d{2}) remaining\)/);
+                if (m) {
+                    sleepSeconds = parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+                    startSleepTimer();
+                }
+            } else {
+                if (currentStatus === 'RUNNING')
+                    setBadge(cycle, 'ACTIVE', 'mini-badge bg-success-subtle text-success');
+                else
+                    setBadge(cycle, 'IDLE', 'mini-badge bg-secondary-subtle text-secondary');
+            }
+        }
+
+        function startSleepTimer() {
+            const sleepB = document.getElementById('sleep-badge');
+            sleepB.classList.remove('d-none');
+            updateSleepBadge();
+            if (sleepTimerId) clearInterval(sleepTimerId);
+            sleepTimerId = setInterval(() => {
+                if (sleepSeconds > 0) {
+                    sleepSeconds--;
+                    updateSleepBadge();
+                } else {
+                    clearInterval(sleepTimerId);
+                    sleepB.classList.add('d-none');
+                }
+            }, 1000);
+        }
+
+        function updateSleepBadge() {
+            const m = String(Math.floor(sleepSeconds / 60)).padStart(2, '0');
+            const s = String(sleepSeconds % 60).padStart(2, '0');
+            document.getElementById('sleep-badge').textContent = `Sleep ${m}:${s}`;
+        }
+
+        function fetchStatus() {
             fetch("{% url 'trader_status_api' %}?_=" + Date.now(), {cache: 'no-store'})
-                .then(r => r.ok ? r.json() : Promise.reject('HTTP ' + r.status))
-                .then(updateStatusUI)
-                .catch(err => {
-                    console.error('Status fetch error', err);
-                    addActivity('Status fetch error', true);
-                    setSummaryActivity('Network / API error.', true);
-                    scheduleNextStatusPoll();
-                });
-        }
-
-        function fetchTraderActivity() {
-            if (currentStatus !== 'RUNNING') return;
-            fetch("{% url 'trader_activity_api' %}?_=" + Date.now(), {cache: 'no-store'})
-                .then(r => r.ok ? r.json() : Promise.reject())
+                .then(r => r.json())
                 .then(data => {
-                    if (currentStatus === 'RUNNING' && data.activity) {
-                        addActivity(data.activity, false);
+                    const prev = currentStatus;
+                    currentStatus = data.status;
+                    document.getElementById('trader-status-badge').className = 'badge ' + statusBadgeClass(currentStatus);
+                    document.getElementById('trader-status-badge').textContent = currentStatus;
+                    document.getElementById('last-update-ts').textContent = new Date().toLocaleTimeString();
+                    document.getElementById('equity-val').textContent = '$' + fmt(data.equity);
+                    document.getElementById('bp-val').textContent = '$' + fmt(data.buying_power);
+                    // buttons
+                    document.getElementById('start-btn').disabled = currentStatus === 'RUNNING';
+                    document.getElementById('stop-btn').disabled = currentStatus !== 'RUNNING';
+
+                    if (currentStatus === 'RUNNING') {
+                        ensureUptimeStart();
+                        addEquityPoint(Number(data.equity || 0));
+                    } else {
+                        clearUptime();
                     }
+
+                    const errIcon = document.getElementById('error-icon');
+                    if (currentStatus === 'FAILED') {
+                        const msg = escapeHtml(data.error_message || 'Failure (no details)');
+                        errIcon.innerHTML = `<span class="text-danger small" data-bs-toggle="tooltip" title="${msg}">
+                        <i class="ri-error-warning-line"></i> ${msg}</span>`;
+                        addActivity(data.error_message || 'Trader failed', true);
+                        document.getElementById('activity-summary').textContent = data.error_message || 'Trader failed';
+                        document.getElementById('activity-summary').classList.remove('alert-info');
+                        document.getElementById('activity-summary').classList.add('alert-danger');
+                    } else {
+                        errIcon.innerHTML = '';
+                    }
+
+                    // Positions
+                    const sorted = (data.positions || []).slice().sort((a, b) => Number(b.market_value || 0) - Number(a.market_value || 0));
+                    positionsTable.clear();
+                    sorted.forEach(p => {
+                        const pl = Number(p.unrealized_pl || 0);
+                        positionsTable.row.add([
+                            escapeHtml(p.symbol),
+                            fmt(p.qty),
+                            '$' + fmt(p.market_value || 0),
+                            `<span class="${pl >= 0 ? 'text-success' : 'text-danger'}">$${fmt(pl)}</span>`
+                        ]);
+                    });
+                    positionsTable.draw();
+
+                    scheduleStatus();
                 })
                 .catch(() => {
+                    scheduleStatus();
                 });
-            setTimeout(fetchTraderActivity, activityFast);
         }
 
-        function wireStopButton() {
+        function fetchActivity() {
+            if (currentStatus !== 'RUNNING') {
+                scheduleActivity();
+                return;
+            }
+            fetch("{% url 'trader_activity_api' %}?_=" + Date.now(), {cache: 'no-store'})
+                .then(r => r.json())
+                .then(d => {
+                    if (d.activity) {
+                        addActivity(d.activity, false);
+                        document.getElementById('activity-summary').textContent = d.activity;
+                        document.getElementById('activity-summary').classList.remove('alert-danger');
+                        document.getElementById('activity-summary').classList.add('alert-info');
+                    }
+                    scheduleActivity();
+                })
+                .catch(() => {
+                    scheduleActivity();
+                });
+        }
+
+        function wireControls() {
             document.getElementById('stop-btn').addEventListener('click', () => {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = "{% url 'stop_trader' %}";
-                form.innerHTML = `{% csrf_token %}`;
-                document.body.appendChild(form);
-                form.submit();
+                document.getElementById('stop-form').submit();
             });
         }
 
-        function init() {
-            initPositionsTable();
-            initEquityChart();
-            wireStopButton();
-            fetchTraderStatus();
-            fetchTraderActivity();
-            updateUptime();
+        function boot() {
+            initPositions();
+            initChart();
+            wireControls();
+            fetchStatus();
+            fetchActivity();
+            tickUptime();
         }
 
-        document.addEventListener('DOMContentLoaded', init);
+        document.addEventListener('DOMContentLoaded', boot);
     })();
 </script>
-</body>
-</html>
+{% endblock extra_javascript %}
