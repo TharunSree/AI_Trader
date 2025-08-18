@@ -116,8 +116,8 @@
                             {% if job.status == 'FAILED' and job.error_message %}
                             <span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top"
                                   title="{{ job.error_message }}">
-                                        <i class="ri-information-line text-danger"></i>
-                                    </span>
+                                <i class="ri-information-line text-danger"></i>
+                            </span>
                             {% endif %}
                         </td>
                         <td>
@@ -135,8 +135,7 @@
                         <td>
                             <form action="{% url 'stop_meta_job' job.id %}" method="POST" class="d-inline">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-danger btn-sm" {% if job.status !='RUNNING'
-                                        %}disabled{% endif %}>
+                                <button type="submit" class="btn btn-danger btn-sm" {% if job.status != 'RUNNING' %}disabled{% endif %}>
                                     <i class="ri-stop-circle-line"></i> Stop
                                 </button>
                             </form>
@@ -177,8 +176,8 @@
                             {% if job.status == 'FAILED' and job.error_message %}
                             <span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top"
                                   title="{{ job.error_message }}">
-                                        <i class="ri-information-line text-danger"></i>
-                                    </span>
+                                <i class="ri-information-line text-danger"></i>
+                            </span>
                             {% endif %}
                         </td>
                         <td>
@@ -201,8 +200,7 @@
                         <td>
                             <form action="{% url 'stop_job' job.id %}" method="POST" class="d-inline">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-danger btn-sm" {% if job.status !='RUNNING'
-                                        %}disabled{% endif %}>
+                                <button type="submit" class="btn btn-danger btn-sm" {% if job.status != 'RUNNING' %}disabled{% endif %}>
                                     <i class="ri-stop-circle-line"></i> Stop
                                 </button>
                             </form>
@@ -220,7 +218,6 @@
     </div>
 </div>
 {% endblock page_content %}
-
 
 {% block extra_javascript %}
 <script src="{% static 'vendor/datatables.net/js/dataTables.min.js' %}"></script>
@@ -279,7 +276,32 @@
 
                     // Update Meta-Training Jobs
                     data.meta_training_jobs.forEach(job => {
-                        // ... (This logic is the same as the single training job, targeting the meta-job- elements)
+                        const progressBar = document.getElementById(`meta-job-progress-${job.id}`);
+                        if (progressBar) {
+                            progressBar.style.width = job.progress + '%';
+                            if (job.status === 'RUNNING') progressBar.classList.add('progress-bar-animated');
+                            else progressBar.classList.remove('progress-bar-animated');
+                        }
+
+                        const statusCell = document.getElementById(`meta-job-status-${job.id}`);
+                        if (statusCell) {
+                            let badgeClass = 'bg-secondary-subtle text-secondary';
+                            if (job.status === 'COMPLETED') badgeClass = 'bg-success-subtle text-success';
+                            else if (job.status === 'RUNNING') badgeClass = 'bg-info-subtle text-info';
+                            else if (job.status === 'FAILED' || job.status === 'STOPPED') badgeClass = 'bg-danger-subtle text-danger';
+
+                            let errorHtml = '';
+                            if (job.status === 'FAILED' && job.error_message) {
+                                errorHtml = `<span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="${job.error_message}"><i class="ri-information-line text-danger"></i></span>`;
+                                tooltipsNeedRefresh = true;
+                            }
+                            statusCell.innerHTML = `<span class="badge ${badgeClass}">${job.status}</span>` + errorHtml;
+                        }
+
+                        const sharpeCell = document.getElementById(`meta-job-sharpe-${job.id}`);
+                        if (sharpeCell) {
+                            sharpeCell.innerText = job.best_sharpe_ratio ? job.best_sharpe_ratio.toFixed(2) : '-';
+                        }
                     });
 
                     if (tooltipsNeedRefresh) {
