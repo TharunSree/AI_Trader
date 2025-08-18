@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-us">
 <head>
     <meta charset="utf-8"/>
-    <title>Paper Trading | Control Panel</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-
+    <title>Paper Trading | AI Trader Control Panel</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
     {% load static %}
     <link rel="shortcut icon" href="{% static 'images/favicon.ico' %}">
+    <meta name="description" content="Paper trading control panel">
+    <meta name="author" content="AI Trader">
 
-    <link href="{% static 'vendor/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}" rel="stylesheet"
-          type="text/css"/>
+    <link href="{% static 'vendor/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}" rel="stylesheet" type="text/css"/>
     <link href="{% static 'css/vendor.min.css' %}" rel="stylesheet"/>
     <link href="{% static 'css/app.css' %}" rel="stylesheet"/>
     <link href="{% static 'css/icons.css' %}" rel="stylesheet"/>
@@ -18,28 +18,174 @@
 </head>
 <body>
 <div class="wrapper">
+
+    <!-- Sidenav Menu Start -->
+    <div class="sidenav-menu">
+        <a href="{% url 'dashboard' %}" class="logo">
+            <span class="logo-light">
+                <span class="logo-lg"><img src="{% static 'images/logo.png' %}" alt="logo"></span>
+                <span class="logo-sm"><img src="{% static 'images/logo-sm.png' %}" alt="small logo"></span>
+            </span>
+            <span class="logo-dark">
+                <span class="logo-lg"><img src="{% static 'images/logo-dark.png' %}" alt="dark logo"></span>
+                <span class="logo-sm"><img src="{% static 'images/logo-sm.png' %}" alt="small logo"></span>
+            </span>
+        </a>
+
+        <button class="button-sm-hover">
+            <i class="ri-circle-line align-middle"></i>
+        </button>
+        <button class="sidenav-toggle-button">
+            <i class="ri-menu-5-line fs-20"></i>
+        </button>
+        <button class="button-close-fullsidebar">
+            <i class="ti ti-x align-middle"></i>
+        </button>
+
+        <div data-simplebar>
+            <ul class="side-nav">
+                <li class="side-nav-title mt-2">Main</li>
+                <li class="side-nav-item">
+                    <a href="{% url 'dashboard' %}" class="side-nav-link">
+                        <span class="menu-icon"><i class="ti ti-dashboard"></i></span>
+                        <span class="menu-text">Dashboard</span>
+                    </a>
+                </li>
+
+                <li class="side-nav-title mt-2">AI Engine</li>
+                <li class="side-nav-item">
+                    <a href="{% url 'training' %}" class="side-nav-link">
+                        <span class="menu-icon"><i class="ti ti-brain"></i></span>
+                        <span class="menu-text">Training</span>
+                    </a>
+                </li>
+                <li class="side-nav-item">
+                    <a href="{% url 'evaluation' %}" class="side-nav-link">
+                        <span class="menu-icon"><i class="ti ti-search"></i></span>
+                        <span class="menu-text">Evaluation</span>
+                    </a>
+                </li>
+
+                <li class="side-nav-title mt-2">Trading</li>
+                <li class="side-nav-item">
+                    <a href="{% url 'papertrading' %}" class="side-nav-link active">
+                        <span class="menu-icon"><i class="ti ti-chart-infographic"></i></span>
+                        <span class="menu-text">Paper Trading</span>
+                    </a>
+                </li>
+                <li class="side-nav-item">
+                    <a href="{% url 'realtrading' %}" class="side-nav-link">
+                        <span class="menu-icon"><i class="ti ti-rocket text-danger"></i></span>
+                        <span class="menu-text text-danger">Real Trading</span>
+                    </a>
+                </li>
+
+                <li class="side-nav-title mt-2">System</li>
+                <li class="side-nav-item">
+                    <a href="{% url 'settings' %}" class="side-nav-link">
+                        <span class="menu-icon"><i class="ti ti-settings"></i></span>
+                        <span class="menu-text">Settings</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    <!-- Sidenav Menu End -->
+
+    <!-- Topbar Start -->
+    <header class="app-topbar" id="header">
+        <div class="page-container topbar-menu">
+            <div class="d-flex align-items-center gap-2">
+                <button class="sidenav-toggle-button px-2">
+                    <i class="ri-menu-5-line fs-24"></i>
+                </button>
+                <div class="topbar-item d-none d-md-flex px-2">
+                    <h4 class="page-title fs-20 fw-semibold mb-0">Paper Trading Bot</h4>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <div class="topbar-item d-none d-sm-flex">
+                    <button class="topbar-link" id="light-dark-mode" type="button">
+                        <i class="ri-moon-line light-mode-icon fs-22"></i>
+                        <i class="ri-sun-line dark-mode-icon fs-22"></i>
+                    </button>
+                </div>
+                <div class="topbar-item nav-user">
+                    <div class="dropdown">
+                        <a class="topbar-link dropdown-toggle drop-arrow-none px-2" data-bs-toggle="dropdown"
+                           data-bs-offset="0,25" type="button">
+                            <img src="{% static 'images/users/avatar-1.jpg' %}" width="32"
+                                 class="rounded-circle me-lg-2 d-flex" alt="user">
+                            <span class="d-lg-flex flex-column gap-1 d-none">
+                                <h5 class="my-0">{{ request.user.username|default:'Admin' }}</h5>
+                            </span>
+                            <i class="ri-arrow-down-s-line d-none d-lg-block align-middle ms-1"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end">
+                            <div class="dropdown-header noti-title">
+                                <h6 class="text-overflow m-0">Welcome!</h6>
+                            </div>
+                            <a href="{% url 'settings' %}" class="dropdown-item">
+                                <i class="ri-settings-2-line me-1 fs-16 align-middle"></i>
+                                <span class="align-middle">Settings</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a href="/accounts/logout/"
+                               onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
+                               class="dropdown-item active fw-semibold text-danger">
+                                <i class="ri-logout-box-line me-1 fs-16 align-middle"></i>
+                                <span class="align-middle">Sign Out</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <form id="logout-form" action="/accounts/logout/" method="POST" style="display:none;">
+                    {% csrf_token %}
+                </form>
+            </div>
+        </div>
+    </header>
+    <!-- Topbar End -->
+
+    <div class="modal fade" id="searchModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content bg-transparent">
+                <form>
+                    <div class="card mb-1">
+                        <div class="px-3 py-2 d-flex flex-row align-items-center" id="top-search">
+                            <i class="ri-search-line fs-22"></i>
+                            <input type="search" class="form-control border-0" placeholder="Search...">
+                            <button type="button" class="btn p-0" data-bs-dismiss="modal">[esc]</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page Content -->
     <div class="page-content">
         <div class="page-container">
+
+            <!-- Control & Status -->
             <div class="row">
                 <div class="col-lg-12">
-                    <div class="card">
+                    <div class="card border border-primary-subtle">
                         <div class="card-body">
-                            <div class="row align-items-center">
+                            <div class="row align-items-start">
                                 <div class="col-lg-6">
                                     <h4 class="header-title">Control Panel</h4>
-                                    <p class="text-muted font-14">Select a trained model and launch the live paper
-                                        trading bot.</p>
-
+                                    <p class="text-muted font-14">
+                                        Select a trained model and launch the live paper trading bot.
+                                    </p>
                                     <form action="{% url 'start_trader' %}" method="POST" class="mb-2">
                                         {% csrf_token %}
                                         <div class="input-group">
-                                            <select class="form-select" id="model_file_select" name="model_file"
-                                                    required>
-                                                {% for model in model_files %}
-                                                <option value="{{ model }}">{{ model }}</option>
+                                            <select class="form-select" id="model_file_select" name="model_file" required>
+                                                {% for mf in model_files %}
+                                                    <option value="{{ mf }}">{{ mf }}</option>
                                                 {% empty %}
-                                                <option value="" disabled>No trained models found in /saved_models/
-                                                </option>
+                                                    <option value="" disabled>No models found</option>
                                                 {% endfor %}
                                             </select>
                                             <button type="submit" class="btn btn-success" id="start-btn">
@@ -47,24 +193,21 @@
                                             </button>
                                         </div>
                                     </form>
-
                                     <form action="{% url 'stop_trader' %}" method="POST">
                                         {% csrf_token %}
                                         <div class="d-grid">
-                                            <button type="submit" class="btn btn-danger" id="stop-btn">
+                                            <button type="submit" class="btn btn-danger" id="stop-btn" disabled>
                                                 <i class="ri-stop-fill me-1"></i> Stop Trader
                                             </button>
                                         </div>
                                     </form>
                                 </div>
-
                                 <div class="col-lg-6">
                                     <h4 class="header-title mt-3 mt-lg-0">Live Status</h4>
                                     <div class="d-flex justify-content-between align-items-center border-bottom py-2">
                                         <p class="mb-0">Status:</p>
                                         <div>
-                                            <span id="trader-status-badge"
-                                                  class="badge bg-secondary-subtle text-secondary">-</span>
+                                            <span id="trader-status-badge" class="badge bg-secondary-subtle text-secondary">-</span>
                                             <span id="trader-error-tooltip-container"></span>
                                         </div>
                                     </div>
@@ -77,32 +220,30 @@
                                         <span id="buying-power" class="fw-semibold">-</span>
                                     </div>
                                     <h5 class="mt-2">Current Activity:</h5>
-                                    <div id="trader-activity-log" class="alert alert-info bg-info-subtle border-0 mb-0"
-                                         role="alert">
+                                    <div class="alert alert-info bg-info-subtle border-0 mb-0" role="alert"
+                                         id="trader-activity-log">
                                         Waiting for status...
                                     </div>
                                 </div>
-                            </div> <!-- row -->
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Equity Curve -->
+            <!-- Equity & Positions -->
             <div class="row">
                 <div class="col-lg-12">
-                    <div class="card">
+                    <div class="card border">
                         <div class="card-body">
                             <h4 class="header-title mb-4">Live Equity Curve</h4>
-                            <div id="live-equity-chart" class="apex-charts" data-colors="#35b8e0"
-                                 style="min-height:380px;"></div>
+                            <div id="live-equity-chart" class="apex-charts" data-colors="#35b8e0"></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Positions -->
                 <div class="col-lg-12">
-                    <div class="card">
+                    <div class="card border">
                         <div class="card-body">
                             <h4 class="header-title">Current Positions</h4>
                             <table id="positions-datatable" class="table table-striped dt-responsive nowrap w-100">
@@ -119,15 +260,15 @@
                         </div>
                     </div>
                 </div>
-            </div> <!-- row -->
+            </div>
+
         </div>
 
         <footer class="footer">
             <div class="page-container">
                 <div class="row">
                     <div class="col-md-12 text-center">
-                        <script>document.write(new Date().getFullYear())</script>
-                        © AI Trader Control Panel
+                        <script>document.write(new Date().getFullYear())</script> © AI Trader Control Panel
                     </div>
                 </div>
             </div>
@@ -143,142 +284,130 @@
 <script src="{% static 'vendor/datatables.net-bs5/js/dataTables.bootstrap5.min.js' %}"></script>
 
 <script>
-    (function () {
-        function escapeHtml(str) {
-            return (str || '').replace(/[&<>"'`]/g, c => ({
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#39;',
-                '`': '&#96;'
-            }[c]));
+(function(){
+    function escapeHtml(str){
+        return (str||'').replace(/[&<>"'`]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c]));
+    }
+
+    let positionsTable;
+    let equityChart;
+
+    function initPositionsTable(){
+        positionsTable = $('#positions-datatable').DataTable({paging:false, info:false, searching:false});
+    }
+
+    function initEquityChart(){
+        const options = {
+            chart:{height:380,type:'area',zoom:{enabled:false},toolbar:{show:false}},
+            series:[{name:'Equity',data:[]}],
+            xaxis:{type:'datetime',categories:[]},
+            yaxis:{labels:{formatter:v=>"$"+Number(v).toLocaleString()}},
+            dataLabels:{enabled:false},
+            stroke:{curve:'smooth',width:2},
+            colors:["#35b8e0"]
+        };
+        equityChart = new ApexCharts(document.querySelector("#live-equity-chart"), options);
+        equityChart.render();
+    }
+
+    function setActivity(text,isError){
+        $('#trader-activity-log')
+            .text(text)
+            .toggleClass('alert-danger', !!isError)
+            .toggleClass('alert-info', !isError);
+    }
+
+    function statusBadgeClass(status){
+        if (status === 'RUNNING') return 'bg-success-subtle text-success';
+        if (status === 'FAILED') return 'bg-danger-subtle text-danger';
+        return 'bg-secondary-subtle text-secondary';
+    }
+
+    function updateStatusUI(data){
+        const badge = $('#trader-status-badge');
+        badge
+            .text(data.status)
+            .removeClass('bg-success-subtle text-success bg-danger-subtle text-danger bg-secondary-subtle text-secondary')
+            .addClass(statusBadgeClass(data.status));
+
+        const errC = $('#trader-error-tooltip-container');
+        if (data.status === 'FAILED'){
+            const msg = escapeHtml(data.error_message || 'Trader failed. No error details were captured. Check worker logs.');
+            errC.html(`<span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="${msg}">
+                <i class="ri-information-line text-danger"></i></span>`);
+            $('[data-bs-toggle="tooltip"]').tooltip();
+        } else {
+            errC.empty();
         }
 
-        let positionsTable;
-        let equityChart;
+        $('#start-btn').prop('disabled', data.status === 'RUNNING');
+        $('#stop-btn').prop('disabled', data.status !== 'RUNNING');
 
-        function initTables() {
-            positionsTable = $('#positions-datatable').DataTable({
-                paging: false, info: false, searching: false
-            });
-        }
+        $('#account-equity').text('$' + Number(data.equity||0).toLocaleString());
+        $('#buying-power').text('$' + Number(data.buying_power||0).toLocaleString());
 
-        function initChart() {
-            const options = {
-                chart: {height: 380, type: 'area', zoom: {enabled: false}, toolbar: {show: false}},
-                series: [{name: 'Equity', data: []}],
-                xaxis: {type: 'datetime', categories: []},
-                yaxis: {labels: {formatter: v => "$" + Number(v).toLocaleString()}},
-                dataLabels: {enabled: false},
-                stroke: {curve: 'smooth', width: 2},
-                colors: ["#35b8e0"]
-            };
-            equityChart = new ApexCharts(document.querySelector("#live-equity-chart"), options);
-            equityChart.render();
-        }
+        positionsTable.clear();
+        (data.positions||[]).forEach(p=>{
+            const pl = Number(p.unrealized_pl||0);
+            positionsTable.row.add([
+                escapeHtml(p.symbol),
+                Number(p.qty).toLocaleString(),
+                '$' + Number(p.market_value||0).toLocaleString(),
+                `<span class="${pl>=0?'text-success':'text-danger'}">$${pl.toLocaleString()}</span>`
+            ]);
+        });
+        positionsTable.draw();
 
-        function setActivity(text, isError) {
-            $('#trader-activity-log')
-                .text(text)
-                .toggleClass('alert-danger', !!isError)
-                .toggleClass('alert-info', !isError);
-        }
-
-        function statusBadgeClass(status) {
-            if (status === 'RUNNING') return 'bg-success-subtle text-success';
-            if (status === 'FAILED') return 'bg-danger-subtle text-danger';
-            return 'bg-secondary-subtle text-secondary';
-        }
-
-        function updateStatusUI(data) {
-            const badge = $('#trader-status-badge');
-            badge
-                .text(data.status)
-                .removeClass('bg-success-subtle text-success bg-danger-subtle text-danger bg-secondary-subtle text-secondary')
-                .addClass(statusBadgeClass(data.status));
-
-            const errorContainer = $('#trader-error-tooltip-container');
-            if (data.status === 'FAILED') {
-                const msg = escapeHtml(data.error_message || 'Trader failed. No error details were captured. Check worker logs.');
-                errorContainer.html(
-                    `<span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="${msg}">
-                    <i class="ri-information-line text-danger"></i>
-                 </span>`
-                );
-                $('[data-bs-toggle="tooltip"]').tooltip();
-            } else {
-                errorContainer.empty();
+        if (data.status === 'FAILED'){
+            setActivity(data.error_message || 'Trader failed. No error details.', true);
+        } else if (data.status === 'RUNNING'){
+            if (!$('#trader-activity-log').hasClass('alert-danger')){
+                setActivity('Running...', false);
             }
-
-            $('#start-btn').prop('disabled', data.status === 'RUNNING');
-            $('#stop-btn').prop('disabled', data.status !== 'RUNNING');
-
-            $('#account-equity').text('$' + Number(data.equity || 0).toLocaleString());
-            $('#buying-power').text('$' + Number(data.buying_power || 0).toLocaleString());
-
-            positionsTable.clear();
-            (data.positions || []).forEach(p => {
-                const pl = Number(p.unrealized_pl || 0);
-                positionsTable.row.add([
-                    p.symbol,
-                    p.qty,
-                    '$' + Number(p.market_value || 0).toLocaleString(),
-                    `<span class="${pl >= 0 ? 'text-success' : 'text-danger'}">$${pl.toLocaleString()}</span>`
-                ]);
-            });
-            positionsTable.draw();
-
-            if (data.status === 'FAILED') {
-                setActivity(data.error_message || 'Trader failed. No error details.', true);
-            } else if (data.status === 'RUNNING') {
-                if (!$('#trader-activity-log').hasClass('alert-danger')) {
-                    setActivity('Running...', false);
-                }
-            } else {
-                if (!$('#trader-activity-log').hasClass('alert-danger')) {
-                    setActivity('Idle (not running)', false);
-                }
+        } else {
+            if (!$('#trader-activity-log').hasClass('alert-danger')){
+                setActivity('Idle (not running)', false);
             }
         }
+    }
 
-        function fetchTraderStatus() {
-            fetch('/api/trader-status/?_=' + Date.now(), {cache: 'no-store'})
-                .then(r => r.ok ? r.json() : Promise.reject('HTTP ' + r.status))
-                .then(data => {
-                    console.log('trader-status payload:', data);
-                    updateStatusUI(data);
-                })
-                .catch(err => {
-                    console.error('Status fetch error', err);
-                    setActivity('Network / API error fetching status.', true);
-                });
-        }
+    function fetchTraderStatus(){
+        fetch("{% url 'trader_status_api' %}?_=" + Date.now(), {cache:'no-store'})
+            .then(r=> r.ok ? r.json() : Promise.reject('HTTP '+r.status))
+            .then(data=>{
+                updateStatusUI(data);
+            })
+            .catch(err=>{
+                console.error('Status fetch error', err);
+                setActivity('Network / API error fetching status.', true);
+            });
+    }
 
-        function fetchTraderActivity() {
-            if ($('#trader-activity-log').hasClass('alert-danger')) return;
-            fetch('/api/trader-activity/?_=' + Date.now(), {cache: 'no-store'})
-                .then(r => r.ok ? r.json() : Promise.reject())
-                .then(data => {
-                    if ($('#trader-status-badge').text() === 'RUNNING' && data.activity) {
+    function fetchTraderActivity(){
+        if ($('#trader-status-badge').text() === 'FAILED') return;
+        fetch("{% url 'trader_activity_api' %}?_=" + Date.now(), {cache:'no-store'})
+            .then(r=> r.ok ? r.json() : Promise.reject())
+            .then(data=>{
+                if ($('#trader-status-badge').text() === 'RUNNING' && data.activity){
+                    if (!$('#trader-activity-log').hasClass('alert-danger')){
                         setActivity(data.activity, false);
                     }
-                })
-                .catch(() => { /* silent */
-                });
-        }
+                }
+            })
+            .catch(()=>{ /* silent */ });
+    }
 
-        function init() {
-            initTables();
-            initChart();
-            fetchTraderStatus();
-            fetchTraderActivity();
-            setInterval(fetchTraderStatus, 8000);
-            setInterval(fetchTraderActivity, 2000);
-        }
+    function init(){
+        initPositionsTable();
+        initEquityChart();
+        fetchTraderStatus();
+        fetchTraderActivity();
+        setInterval(fetchTraderStatus, 8000);
+        setInterval(fetchTraderActivity, 2000);
+    }
 
-        document.addEventListener('DOMContentLoaded', init);
-    })();
+    document.addEventListener('DOMContentLoaded', init);
+})();
 </script>
 </body>
 </html>
