@@ -91,14 +91,14 @@ class TradingSession:
 
                     time.sleep(5)  # Pause between analyzing different stocks
 
-            interval_minutes = self.config.get('interval_minutes', 60)
+            interval_minutes = self.config.get('interval_minutes', 10)
             logger.info(f"Scan cycle complete. Sleeping for {interval_minutes} minutes...")
 
             # Sleep countdown loop
-            for i in range(interval_minutes * 60, 0, -1):
+            for i in range(interval_minutes * 10, 0, -1):
                 if self.abort_flag_callback(): break
                 if self.task:
-                    minutes, seconds = divmod(i, 60)
+                    minutes, seconds = divmod(i, 10)
                     self.task.update_state(state='PROGRESS',
                                            meta={'activity': f'Sleeping... ({minutes:02d}:{seconds:02d} remaining)'})
                 time.sleep(1)
