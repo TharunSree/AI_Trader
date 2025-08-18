@@ -50,14 +50,14 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <button id="start-btn" class="btn btn-success btn-sm w-100" {% if trader_status=='RUNNING'
-                            %}disabled{% endif %}>Start
-                    </button>
+                    <button id="start-btn" class="btn btn-success btn-sm w-100"
+                            {% if trader_status==
+                    'RUNNING' %}disabled{% endif %}>Start</button>
                 </form>
                 <form id="stop-form" method="post" action="{% url 'stop_trader' %}" class="mt-auto">
                     {% csrf_token %}
-                    <button id="stop-btn" type="button" class="btn btn-danger btn-sm w-100" {% if
-                            trader_status!='RUNNING' %}disabled{% endif %}>Stop
+                    <button id="stop-btn" type="button" class="btn btn-danger btn-sm w-100"
+                            {% if trader_status !='RUNNING' %}disabled{% endif %}>Stop
                     </button>
                 </form>
             </div>
