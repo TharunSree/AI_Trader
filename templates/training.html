@@ -222,92 +222,90 @@
 {% block extra_javascript %}
 <script src="{% static 'vendor/datatables.net/js/dataTables.min.js' %}"></script>
 <script src="{% static 'vendor/datatables.net-bs5/js/dataTables.bootstrap5.min.js' %}"></script>
+<!-- templates/training.html (replace only the fetch/update logic inside the existing script block) -->
 <script>
     $(document).ready(function () {
         $('#training-jobs-table').DataTable({"order": [[0, "desc"]]});
         $('#meta-jobs-table').DataTable({"order": [[0, "desc"]]});
 
         $('input[type=radio][name=training_mode]').change(function () {
-            if (this.value == 'EPISODES') {
+            if (this.value === 'EPISODES') {
                 $('#episodes_input_div').show();
                 $('#target_input_div').hide();
-            } else if (this.value == 'TARGET') {
+            } else {
                 $('#episodes_input_div').hide();
                 $('#target_input_div').show();
             }
         });
 
+        function escapeHtml(str){
+            return (str || '').replace(/[&<>"'`]/g, c => ({
+                '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'
+            }[c]));
+        }
+
+        function buildStatusBadge(status){
+            let cls = 'bg-secondary-subtle text-secondary';
+            if (status === 'COMPLETED') cls = 'bg-success-subtle text-success';
+            else if (status === 'RUNNING') cls = 'bg-info-subtle text-info';
+            else if (status === 'FAILED' || status === 'STOPPED') cls = 'bg-danger-subtle text-danger';
+            return `<span class="badge ${cls}">${status}</span>`;
+        }
+
         function fetchJobStatus() {
-            const cacheBuster = `?_=${new Date().getTime()}`;
+            const cacheBuster = `?_=${Date.now()}`;
             fetch(`{% url 'job_status_api' %}${cacheBuster}`)
-                .then(response => response.json())
+                .then(r => r.ok ? r.json() : Promise.reject(r.status))
                 .then(data => {
-                    let tooltipsNeedRefresh = false;
+                    let refreshTooltips = false;
 
-                    // Update Single Training Jobs
                     data.training_jobs.forEach(job => {
-                        const progressBar = document.getElementById(`job-progress-${job.id}`);
-                        if (progressBar) {
-                            progressBar.style.width = job.progress + '%';
-                            if (job.status === 'RUNNING') progressBar.classList.add('progress-bar-animated');
-                            else progressBar.classList.remove('progress-bar-animated');
+                        const pb = document.getElementById(`job-progress-${job.id}`);
+                        if (pb){
+                            pb.style.width = job.progress + '%';
+                            pb.classList.toggle('progress-bar-animated', job.status === 'RUNNING');
                         }
-
                         const statusCell = document.getElementById(`job-status-${job.id}`);
-                        if (statusCell) {
-                            let badgeClass = 'bg-secondary-subtle text-secondary';
-                            if (job.status === 'COMPLETED') badgeClass = 'bg-success-subtle text-success';
-                            else if (job.status === 'RUNNING') badgeClass = 'bg-info-subtle text-info';
-                            else if (job.status === 'FAILED' || job.status === 'STOPPED') badgeClass = 'bg-danger-subtle text-danger';
-
-                            let errorHtml = '';
-                            if (job.status === 'FAILED' && job.error_message) {
-                                errorHtml = `<span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="${job.error_message}"><i class="ri-information-line text-danger"></i></span>`;
-                                tooltipsNeedRefresh = true;
+                        if (statusCell){
+                            let html = buildStatusBadge(job.status);
+                            if (job.status === 'FAILED' && job.error_message){
+                                html += `<span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="${escapeHtml(job.error_message)}"><i class="ri-information-line text-danger"></i></span>`;
+                                refreshTooltips = true;
                             }
-                            statusCell.innerHTML = `<span class="badge ${badgeClass}">${job.status}</span>` + errorHtml;
+                            statusCell.innerHTML = html;
                         }
-
                         const rewardCell = document.getElementById(`job-reward-${job.id}`);
-                        if (rewardCell) {
-                            rewardCell.innerText = '$' + job.best_reward.toFixed(2);
+                        if (rewardCell){
+                            rewardCell.innerText = '$' + Number(job.best_reward).toFixed(2);
                         }
                     });
 
-                    // Update Meta-Training Jobs
                     data.meta_training_jobs.forEach(job => {
-                        const progressBar = document.getElementById(`meta-job-progress-${job.id}`);
-                        if (progressBar) {
-                            progressBar.style.width = job.progress + '%';
-                            if (job.status === 'RUNNING') progressBar.classList.add('progress-bar-animated');
-                            else progressBar.classList.remove('progress-bar-animated');
+                        const pb = document.getElementById(`meta-job-progress-${job.id}`);
+                        if (pb){
+                            pb.style.width = job.progress + '%';
+                            pb.classList.toggle('progress-bar-animated', job.status === 'RUNNING');
                         }
-
                         const statusCell = document.getElementById(`meta-job-status-${job.id}`);
-                        if (statusCell) {
-                            let badgeClass = 'bg-secondary-subtle text-secondary';
-                            if (job.status === 'COMPLETED') badgeClass = 'bg-success-subtle text-success';
-                            else if (job.status === 'RUNNING') badgeClass = 'bg-info-subtle text-info';
-                            else if (job.status === 'FAILED' || job.status === 'STOPPED') badgeClass = 'bg-danger-subtle text-danger';
-
-                            let errorHtml = '';
-                            if (job.status === 'FAILED' && job.error_message) {
-                                errorHtml = `<span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="${job.error_message}"><i class="ri-information-line text-danger"></i></span>`;
-                                tooltipsNeedRefresh = true;
+                        if (statusCell){
+                            let html = buildStatusBadge(job.status);
+                            if (job.status === 'FAILED' && job.error_message){
+                                html += `<span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="${escapeHtml(job.error_message)}"><i class="ri-information-line text-danger"></i></span>`;
+                                refreshTooltips = true;
                             }
-                            statusCell.innerHTML = `<span class="badge ${badgeClass}">${job.status}</span>` + errorHtml;
+                            statusCell.innerHTML = html;
                         }
-
                         const sharpeCell = document.getElementById(`meta-job-sharpe-${job.id}`);
-                        if (sharpeCell) {
-                            sharpeCell.innerText = job.best_sharpe_ratio ? job.best_sharpe_ratio.toFixed(2) : '-';
+                        if (sharpeCell){
+                            sharpeCell.innerText = job.best_sharpe_ratio ? Number(job.best_sharpe_ratio).toFixed(2) : '-';
                         }
                     });
 
-                    if (tooltipsNeedRefresh) {
+                    if (refreshTooltips){
                         $('[data-bs-toggle="tooltip"]').tooltip();
                     }
-                });
+                })
+                .catch(err => console.error('job_status_api fetch failed', err));
         }
 
         setInterval(fetchJobStatus, 5000);

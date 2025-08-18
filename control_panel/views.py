@@ -92,9 +92,12 @@ def papertrading_view(request):
 def start_trader_view(request):
     if request.method == 'POST':
         model_file = request.POST.get('model_file')
-        trader, created = PaperTrader.objects.get_or_create(id=1)
+        trader, _ = PaperTrader.objects.get_or_create(id=1)
 
-        if trader.status == 'STOPPED' and model_file:
+        # Reset previous error before (re)starting
+        trader.error_message = ''
+        # Allow restart from FAILED state too
+        if trader.status in ('STOPPED', 'FAILED') and model_file:
             task = run_paper_trader_task.delay(trader.id, model_file)
             trader.status = 'RUNNING'
             trader.model_file = model_file
@@ -205,19 +208,20 @@ def evaluation_report_view(request, job_id):
     return render(request, 'evaluation_report.html', context)
 
 
+# control_panel/views.py (update job_status_api)
 @login_required
 def job_status_api(request):
     training_jobs = TrainingJob.objects.all()
     meta_jobs = MetaTrainingJob.objects.all()
 
-    # Prepare the data in a simple format
     data = {
         'training_jobs': [
             {
                 'id': job.id,
                 'status': job.status,
                 'progress': job.progress,
-                'best_reward': round(job.best_reward, 2)
+                'best_reward': round(job.best_reward, 2),
+                'error_message': job.error_message or ''
             } for job in training_jobs
         ],
         'meta_training_jobs': [
@@ -225,17 +229,14 @@ def job_status_api(request):
                 'id': job.id,
                 'status': job.status,
                 'progress': job.progress,
-                # Safely get the sharpe ratio from the results JSON
-                'best_sharpe_ratio': job.results.get('sharpe_ratio', 0.0) if job.results else 0.0
+                'best_sharpe_ratio': job.results.get('sharpe_ratio', 0.0) if job.results else 0.0,
+                'error_message': job.error_message or ''
             } for job in meta_jobs
         ]
-        # We can add PaperTrader status here later
     }
-
     return JsonResponse(data)
 
 
-# control_panel/views.py (only trader_status_api updated)
 @login_required
 def trader_status_api(request):
     trader_model, _ = PaperTrader.objects.get_or_create(id=1)
@@ -244,14 +245,19 @@ def trader_status_api(request):
         account_info = broker.api.get_account()
         positions = broker.api.list_positions()
 
-        # If bot not failed now, avoid showing a stale old error
-        if trader_model.status != 'FAILED' and trader_model.error_message:
+        # Only clear a stale error if the bot is actively running
+        if trader_model.status == 'RUNNING' and trader_model.error_message:
             trader_model.error_message = ''
             trader_model.save(update_fields=['error_message'])
 
+        error_msg = trader_model.error_message or ''
+        # If FAILED but no message recorded, provide fallback
+        if trader_model.status == 'FAILED' and not error_msg:
+            error_msg = 'Trader failed but no error details were captured. Check Celery worker logs.'
+
         return JsonResponse({
             "status": trader_model.status,
-            "error_message": trader_model.error_message or "",
+            "error_message": error_msg,
             "equity": float(account_info.equity),
             "buying_power": float(account_info.buying_power),
             "positions": [
@@ -264,16 +270,19 @@ def trader_status_api(request):
             ]
         })
     except Exception as e:
+        # Persist detailed failure info
+        message = f"{type(e).__name__}: {e}"
         trader_model.status = 'FAILED'
-        trader_model.error_message = f"{type(e).__name__}: {e}"
+        trader_model.error_message = message
         trader_model.save(update_fields=['status', 'error_message'])
         return JsonResponse({
             "status": "FAILED",
-            "error_message": trader_model.error_message,
+            "error_message": message,
             "equity": 0,
             "buying_power": 0,
             "positions": []
         }, status=200)
+
 
 @login_required
 def stop_meta_job_view(request, job_id):
