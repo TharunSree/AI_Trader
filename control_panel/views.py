@@ -7,6 +7,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 import json
 
 from src.execution.broker import Broker
+from src.strategies import STRATEGY_PLAYBOOK
 from .env_manager import write_env_value, read_env_value
 from .models import TrainingJob, MetaTrainingJob, PaperTrader, EvaluationJob, SystemSettings
 from pathlib import Path
@@ -32,20 +33,21 @@ def dashboard_view(request):
 @login_required
 def training_view(request):
     if request.method == 'POST':
-        # Create a new job from the form submission
-        job = TrainingJob.objects.create(
-            training_mode=request.POST.get('training_mode'),
-            initial_cash=request.POST.get('initial_cash', 100000),
-            num_episodes=request.POST.get('num_episodes', 200),
-            target_equity=request.POST.get('target_equity', 200000)
+        TrainingJob.objects.create(
+            feature_set_key=request.POST.get('feature_set_key'),
+            hyperparameter_key=request.POST.get('hyperparameter_key'),
+            window_size=request.POST.get('window_size'),
+            initial_cash=request.POST.get('initial_cash', 100000)
         )
-        run_training_job_task.delay(job.id)
         return redirect('training')
 
     all_jobs = TrainingJob.objects.all().order_by('-id')
     meta_jobs = MetaTrainingJob.objects.all().order_by('-id')
-    context = {'training_jobs': all_jobs,
-               'meta_training_jobs': meta_jobs, }
+    context = {
+        'training_jobs': all_jobs,
+        'meta_training_jobs': meta_jobs,
+        'playbook': STRATEGY_PLAYBOOK,
+    }
     return render(request, 'training.html', context)
 
 

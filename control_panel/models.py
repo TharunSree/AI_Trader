@@ -4,31 +4,23 @@ from django.db import models
 
 
 class TrainingJob(models.Model):
-    STATUS_CHOICES = [
-        ('PENDING', 'Pending'), ('RUNNING', 'Running'), ('COMPLETED', 'Completed'),
-        ('FAILED', 'Failed'), ('STOPPED', 'Stopped'),
-    ]
-    # --- NEW: Add training mode choice ---
-    TRAINING_MODE_CHOICES = [
-        ('EPISODES', 'Train for N Episodes'),
-        ('TARGET', 'Train to Target Equity'),
-    ]
-
-    # --- Configuration ---
-    training_mode = models.CharField(max_length=10, choices=TRAINING_MODE_CHOICES, default='EPISODES')
-    initial_cash = models.FloatField(default=100000.0, help_text="The starting principal for the simulation.")
-    num_episodes = models.IntegerField(default=200)
-    target_equity = models.FloatField(default=200000.0)
-
-    # ... (rest of the model is the same)
+    STATUS_CHOICES = [('PENDING', 'Pending'), ('RUNNING', 'Running'), ('COMPLETED', 'Completed'), ('FAILED', 'Failed'),
+                      ('STOPPED', 'Stopped')]
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
-    best_reward = models.FloatField(default=0.0)
+
+    # Configuration from playbook
+    feature_set_key = models.CharField(max_length=50, default='all_in')
+    hyperparameter_key = models.CharField(max_length=50, default='balanced')
+    window_size = models.IntegerField(default=10)
+    initial_cash = models.FloatField(default=100000.0)
+
+    # Status Tracking
     progress = models.IntegerField(default=0)
+    best_reward = models.FloatField(default=0.0)
+    error_message = models.TextField(null=True, blank=True)
     celery_task_id = models.CharField(max_length=255, null=True, blank=True, editable=False)
 
-    error_message = models.TextField(null=True, blank=True)
-
-    def __str__(self): return f"Training Job #{self.id} - {self.status}"
+    def __str__(self): return f"Training Job #{self.id}"
 
 
 class MetaTrainingJob(models.Model):

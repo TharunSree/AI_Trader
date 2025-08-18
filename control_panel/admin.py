@@ -1,24 +1,25 @@
-# control_panel/admin.py
-
 from django.contrib import admin
-from .models import TrainingJob, PaperTrader
-from .tasks import run_training_job_task, stop_celery_task
+from .models import TrainingJob, MetaTrainingJob, PaperTrader, EvaluationJob, SystemSettings
 
-@admin.action(description='Start Selected Training Job(s)')
-def start_training(modeladmin, request, queryset):
-    for job in queryset:
-        if job.status in ['PENDING', 'STOPPED']:
-            run_training_job_task.delay(job.id)
-
-@admin.action(description='Stop Selected Job(s)')
-def stop_task(modeladmin, request, queryset):
-    for job in queryset:
-        if job.celery_task_id:
-            stop_celery_task.delay(job.celery_task_id)
-
+@admin.register(TrainingJob)
 class TrainingJobAdmin(admin.ModelAdmin):
-    list_display = ('id', 'status', 'num_episodes', 'target_equity', 'progress')
-    actions = [start_training, stop_task]
+    list_display = ('id', 'status', 'progress', 'best_reward',
+                    'feature_set_key', 'hyperparameter_key', 'window_size', 'initial_cash')
+    list_filter = ('status',)
+    search_fields = ('id',)
 
-admin.site.register(TrainingJob, TrainingJobAdmin)
-admin.site.register(PaperTrader)
+@admin.register(MetaTrainingJob)
+class MetaTrainingJobAdmin(admin.ModelAdmin):
+    list_display = ('id', 'status', 'progress')
+
+@admin.register(PaperTrader)
+class PaperTraderAdmin(admin.ModelAdmin):
+    list_display = ('id', 'status', 'model_file')
+
+@admin.register(EvaluationJob)
+class EvaluationJobAdmin(admin.ModelAdmin):
+    list_display = ('id', 'model_file', 'status')
+
+@admin.register(SystemSettings)
+class SystemSettingsAdmin(admin.ModelAdmin):
+    list_display = ('singleton_id', 'display_currency')

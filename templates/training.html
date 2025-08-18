@@ -18,19 +18,20 @@
         <div class="card border-primary border">
             <div class="card-body">
                 <h4 class="header-title text-primary">Master Coach: Find the Best Agent</h4>
-                <p class="text-muted font-14">Launch a full meta-training experiment to test multiple strategies.</p>
+                <p class="text-muted font-14">Launch a meta-training experiment to test multiple strategies and save the
+                    best-performing agent.</p>
                 <form action="{% url 'start_meta_job' %}" method="POST">
                     {% csrf_token %}
                     <div class="row">
                         <div class="col-md-5 mb-3">
                             <label for="meta_initial_cash" class="form-label">Initial Cash ($)</label>
                             <input type="number" id="meta_initial_cash" name="initial_cash" class="form-control"
-                                   value="100000" required>
+                                   value="100000" step="1" required>
                         </div>
                         <div class="col-md-5 mb-3">
                             <label for="meta_target_equity" class="form-label">Target Equity ($)</label>
                             <input type="number" id="meta_target_equity" name="target_equity" class="form-control"
-                                   value="200000" required>
+                                   value="200000" step="1" required>
                         </div>
                         <div class="col-md-2 mb-3 d-flex align-items-end">
                             <button type="submit" class="btn btn-primary w-100"><i class="ri-instance-line me-1"></i>
@@ -47,46 +48,39 @@
         <div class="card">
             <div class="card-body">
                 <h4 class="header-title">Start New Training Job</h4>
-                <p class="text-muted font-14">Configure and launch a single training session for the AI agent.</p>
+                <p class="text-muted font-14">Select a strategy from the playbook and launch a single training run.</p>
                 <form action="{% url 'training' %}" method="POST">
                     {% csrf_token %}
-                    <div class="row mb-3">
-                        <div class="col-md-12">
-                            <label class="form-label">Training Mode</label>
-                            <div>
-                                <div class="form-check form-check-inline">
-                                    <input type="radio" id="mode_episodes" name="training_mode" value="EPISODES"
-                                           class="form-check-input" checked>
-                                    <label class="form-check-label" for="mode_episodes">Train for N Episodes</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input type="radio" id="mode_target" name="training_mode" value="TARGET"
-                                           class="form-check-input">
-                                    <label class="form-check-label" for="mode_target">Train until Target Equity is
-                                        Reached</label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                     <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label for="initial_cash" class="form-label">Initial Cash ($)</label>
-                            <input type="number" id="initial_cash" name="initial_cash" class="form-control"
-                                   value="100000" step="1" required>
+                        <div class="col-md-3 mb-3">
+                            <label for="feature_set_key" class="form-label">Feature Set</label>
+                            <select class="form-select" name="feature_set_key">
+                                {% for key, val in playbook.feature_sets.items %}
+                                <option value="{{ key }}">{{ key|title }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
-                        <div class="col-md-4 mb-3" id="episodes_input_div">
-                            <label for="num_episodes" class="form-label">Number of Episodes</label>
-                            <input type="number" id="num_episodes" name="num_episodes" class="form-control" value="200">
+                        <div class="col-md-3 mb-3">
+                            <label for="hyperparameter_key" class="form-label">Hyperparameters</label>
+                            <select class="form-select" name="hyperparameter_key">
+                                {% for key, val in playbook.hyperparameters.items %}
+                                <option value="{{ key }}">{{ key|title }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
-                        <div class="col-md-4 mb-3" id="target_input_div" style="display: none;">
-                            <label for="target_equity" class="form-label">Target Equity ($)</label>
-                            <input type="number" id="target_equity" name="target_equity" class="form-control"
-                                   value="200000" step="1">
+                        <div class="col-md-3 mb-3">
+                            <label for="window_size" class="form-label">Window Size</label>
+                            <select class="form-select" name="window_size">
+                                {% for size in playbook.window_sizes %}
+                                <option value="{{ size }}">{{ size }} Days</option>
+                                {% endfor %}
+                            </select>
                         </div>
-                    </div>
-                    <div class="d-flex justify-content-end">
-                        <button type="submit" class="btn btn-success"><i class="ri-play-line me-1"></i> Start Training
-                        </button>
+                        <div class="col-md-3 mb-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-success w-100"><i class="ri-play-line me-1"></i> Start
+                                Training
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -113,12 +107,11 @@
                         <td>#{{ job.id }}</td>
                         <td id="meta-job-status-{{ job.id }}">
                             {% include "partials/status_badge.html" with status=job.status %}
-                            {% if job.status == 'FAILED' and job.error_message %}
-                            <span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top"
-                                  title="{{ job.error_message }}">
-                                <i class="ri-information-line text-danger"></i>
-                            </span>
-                            {% endif %}
+                            {% if job.status == 'FAILED' and job.error_message %}<span class="ms-1"
+                                                                                       data-bs-toggle="tooltip"
+                                                                                       data-bs-placement="top"
+                                                                                       title="{{ job.error_message }}"><i
+                                class="ri-information-line text-danger"></i></span>{% endif %}
                         </td>
                         <td>
                             <div class="progress progress-sm">
@@ -128,15 +121,14 @@
                             </div>
                         </td>
                         <td id="meta-job-sharpe-{{ job.id }}">
-                            {% if job.results.sharpe_ratio %}
-                            {{ job.results.sharpe_ratio|floatformat:2 }}
-                            {% else %} - {% endif %}
+                            {% if job.results.sharpe_ratio %}{{ job.results.sharpe_ratio|floatformat:2 }}{% else %} - {%
+                            endif %}
                         </td>
                         <td>
                             <form action="{% url 'stop_meta_job' job.id %}" method="POST" class="d-inline">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-danger btn-sm" {% if job.status != 'RUNNING' %}disabled{% endif %}>
-                                    <i class="ri-stop-circle-line"></i> Stop
+                                <button type="submit" class="btn btn-danger btn-sm" {% if job.status !='RUNNING'
+                                        %}disabled{% endif %}><i class="ri-stop-circle-line"></i> Stop
                                 </button>
                             </form>
                         </td>
@@ -173,12 +165,11 @@
                         <td>#{{ job.id }}</td>
                         <td id="job-status-{{ job.id }}">
                             {% include "partials/status_badge.html" with status=job.status %}
-                            {% if job.status == 'FAILED' and job.error_message %}
-                            <span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top"
-                                  title="{{ job.error_message }}">
-                                <i class="ri-information-line text-danger"></i>
-                            </span>
-                            {% endif %}
+                            {% if job.status == 'FAILED' and job.error_message %}<span class="ms-1"
+                                                                                       data-bs-toggle="tooltip"
+                                                                                       data-bs-placement="top"
+                                                                                       title="{{ job.error_message }}"><i
+                                class="ri-information-line text-danger"></i></span>{% endif %}
                         </td>
                         <td>
                             <div class="progress progress-sm">
@@ -187,21 +178,13 @@
                                      role="progressbar" style="width: {{ job.progress }}%;"></div>
                             </div>
                         </td>
-                        <td id="job-reward-{{ job.id }}">
-                            ${{ job.best_reward|floatformat:2 }}
-                        </td>
-                        <td>
-                            {% if job.training_mode == 'EPISODES' %}
-                            Episodes: {{ job.num_episodes }}
-                            {% else %}
-                            Target: ${{ job.target_equity|floatformat:0 }}
-                            {% endif %}
-                        </td>
+                        <td id="job-reward-{{ job.id }}">${{ job.best_reward|floatformat:2 }}</td>
+                        <td>{{ job.feature_set_key }} / {{ job.hyperparameter_key }} / {{ job.window_size }}w</td>
                         <td>
                             <form action="{% url 'stop_job' job.id %}" method="POST" class="d-inline">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-danger btn-sm" {% if job.status != 'RUNNING' %}disabled{% endif %}>
-                                    <i class="ri-stop-circle-line"></i> Stop
+                                <button type="submit" class="btn btn-danger btn-sm" {% if job.status !='RUNNING'
+                                        %}disabled{% endif %}><i class="ri-stop-circle-line"></i> Stop
                                 </button>
                             </form>
                         </td>
@@ -238,13 +221,13 @@
             }
         });
 
-        function escapeHtml(str){
+        function escapeHtml(str) {
             return (str || '').replace(/[&<>"'`]/g, c => ({
-                '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#96;'
             }[c]));
         }
 
-        function buildStatusBadge(status){
+        function buildStatusBadge(status) {
             let cls = 'bg-secondary-subtle text-secondary';
             if (status === 'COMPLETED') cls = 'bg-success-subtle text-success';
             else if (status === 'RUNNING') cls = 'bg-info-subtle text-info';
@@ -261,47 +244,47 @@
 
                     data.training_jobs.forEach(job => {
                         const pb = document.getElementById(`job-progress-${job.id}`);
-                        if (pb){
+                        if (pb) {
                             pb.style.width = job.progress + '%';
                             pb.classList.toggle('progress-bar-animated', job.status === 'RUNNING');
                         }
                         const statusCell = document.getElementById(`job-status-${job.id}`);
-                        if (statusCell){
+                        if (statusCell) {
                             let html = buildStatusBadge(job.status);
-                            if (job.status === 'FAILED' && job.error_message){
+                            if (job.status === 'FAILED' && job.error_message) {
                                 html += `<span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="${escapeHtml(job.error_message)}"><i class="ri-information-line text-danger"></i></span>`;
                                 refreshTooltips = true;
                             }
                             statusCell.innerHTML = html;
                         }
                         const rewardCell = document.getElementById(`job-reward-${job.id}`);
-                        if (rewardCell){
+                        if (rewardCell) {
                             rewardCell.innerText = '$' + Number(job.best_reward).toFixed(2);
                         }
                     });
 
                     data.meta_training_jobs.forEach(job => {
                         const pb = document.getElementById(`meta-job-progress-${job.id}`);
-                        if (pb){
+                        if (pb) {
                             pb.style.width = job.progress + '%';
                             pb.classList.toggle('progress-bar-animated', job.status === 'RUNNING');
                         }
                         const statusCell = document.getElementById(`meta-job-status-${job.id}`);
-                        if (statusCell){
+                        if (statusCell) {
                             let html = buildStatusBadge(job.status);
-                            if (job.status === 'FAILED' && job.error_message){
+                            if (job.status === 'FAILED' && job.error_message) {
                                 html += `<span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="${escapeHtml(job.error_message)}"><i class="ri-information-line text-danger"></i></span>`;
                                 refreshTooltips = true;
                             }
                             statusCell.innerHTML = html;
                         }
                         const sharpeCell = document.getElementById(`meta-job-sharpe-${job.id}`);
-                        if (sharpeCell){
+                        if (sharpeCell) {
                             sharpeCell.innerText = job.best_sharpe_ratio ? Number(job.best_sharpe_ratio).toFixed(2) : '-';
                         }
                     });
 
-                    if (refreshTooltips){
+                    if (refreshTooltips) {
                         $('[data-bs-toggle="tooltip"]').tooltip();
                     }
                 })

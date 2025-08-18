@@ -30,56 +30,39 @@ logger = logging.getLogger(__name__)
 
 @shared_task(bind=True, base=AbortableTask)
 def run_training_job_task(self, job_id):
-    """The real task that connects to our AI training engine."""
     job = TrainingJob.objects.get(id=job_id)
-    job.status = 'RUNNING'
-    job.celery_task_id = self.request.id
-    job.start_time = timezone.now()
+    job.status = 'RUNNING';
+    job.celery_task_id = self.request.id;
     job.save()
 
-    # Define a callback function that the trainer can use to update progress
     def progress_callback(progress_percent, latest_reward):
-        self.update_state(state='PROGRESS', meta={'progress': progress_percent, 'reward': latest_reward})
+        job.refresh_from_db()
         job.progress = progress_percent
         job.best_reward = latest_reward if latest_reward > job.best_reward else job.best_reward
         job.save(update_fields=['progress', 'best_reward'])
+        self.update_state(state='PROGRESS', meta={'progress': job.progress, 'reward': job.best_reward})
 
     try:
-        # --- THIS IS THE INTEGRATION ---
-        # 1. Define the configuration for the training session from our Django model
+        features = STRATEGY_PLAYBOOK['feature_sets'][job.feature_set_key]
+        params = STRATEGY_PLAYBOOK['hyperparameters'][job.hyperparameter_key]
+
         config = {
-            'ticker': 'SPY',
-            'start_date': '2015-01-01',
-            'end_date': '2023-12-31',
-            'observation_columns': [
-                'returns', 'SMA_50', 'RSI_14', 'STOCHk_14_3_3', 'MACDh_12_26_9',
-                'ADX_14', 'BBP_20_2', 'ATR_14', 'OBV'
-            ],
-            'window_size': 10,
-            'initial_cash': job.initial_cash,
-            'num_episodes': job.num_episodes,
-            'target_equity': job.target_equity,
+            'ticker': 'SPY', 'start_date': '2015-01-01', 'end_date': '2023-12-31',
+            'features': features, 'window': job.window_size, 'params': params,
+            'initial_cash': job.initial_cash, 'num_episodes': 500, 'target_equity': float('inf'),
         }
 
-        # 2. Create and run the session
         session = TrainingSession(config)
         result = session.run(progress_callback=progress_callback)
-
-        # 3. Update the job status based on the result
-        if result == 'TARGET_REACHED' or result == 'MAX_EPISODES_REACHED':
-            job.status = 'COMPLETED'
-        else:
-            job.status = 'STOPPED'  # Could be 'STALLED'
+        job.status = 'COMPLETED' if 'REACHED' in result else 'STOPPED'
 
     except Exception as e:
-        logger.error(f"An error occurred during training: {e}")
-        job.status = 'FAILED'
+        logger.error(f"Training job {job.id} failed: {e}", exc_info=True)
+        job.status = 'FAILED';
         job.error_message = str(e)
 
-    job.end_time = timezone.now()
-    job.progress = 100
+    job.end_time = timezone.now();
     job.save()
-
     return f"Training finished with status: {job.status}"
 
 

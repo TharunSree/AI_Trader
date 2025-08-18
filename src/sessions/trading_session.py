@@ -1,8 +1,10 @@
+# src/sessions/trading_session.py
+
 import logging
 import time
 from pathlib import Path
 import torch
-from datetime import datetime, timedelta
+from django.conf import settings  # Import settings to get the absolute path
 
 from src.execution.scanner import Scanner
 from src.execution.broker import Broker
@@ -10,44 +12,32 @@ from src.execution.risk_manager import RiskManager
 from src.models.ppo_agent import PPOAgent
 from src.data.preprocessor import calculate_features
 from src.data.yfinance_loader import YFinanceLoader
+from datetime import datetime, timedelta
 
 logger = logging.getLogger('rl_trading_backend')
 
 
-def create_state(ticker: str, window_size: int = 10):
-    """Helper function to create a state from live data."""
-    end_date = datetime.now()
-    start_date = end_date - timedelta(days=150)
-    loader = YFinanceLoader([ticker], start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
-    df = loader.load_data()
-    if df.empty or len(df) < 30: return None, None
-    featured_df = calculate_features(df)
-    if len(featured_df) < window_size: return None, None
-    window = featured_df.iloc[-window_size:]
-    current_price = window['Close'].iloc[-1].item()
-    observation_cols = [
-        'returns', 'SMA_50', 'RSI_14', 'STOCHk_14_3_3', 'MACDh_12_26_9',
-        'ADX_14', 'BBP_20_2', 'ATR_14', 'OBV'
-    ]
-    observation = window[observation_cols].values.flatten()
-    return torch.FloatTensor(observation), current_price
-
-
 class TradingSession:
-    """Encapsulates a live paper or real trading session."""
-
     def __init__(self, config: dict, abort_flag_callback):
         self.config = config
         self.abort_flag_callback = abort_flag_callback
-        self.task = None  # Will be set by the Celery task
+        self.task = None
 
     def run(self):
         logger.info(f"Launching trading session with model: {self.config['model_file']}")
 
-        state_dim = (9 * 10)  # 9 features * 10 window_size
-        agent = PPOAgent(state_dim=state_dim, action_dim=3)
-        agent.load(Path(f"saved_models/{self.config['model_file']}"))
+        # --- THIS IS THE FIX ---
+        # 1. Load the agent and its configuration ("blueprint") together
+        model_path = settings.BASE_DIR / "saved_models" / self.config['model_file']
+        if not model_path.exists():
+            raise FileNotFoundError(f"Model file not found at {model_path}")
+
+        agent, model_config = PPOAgent.load_with_config(model_path)
         agent.actor.eval()
+
+        # 2. Use the loaded config to define the state creation
+        window_size = model_config['window']
+        observation_columns = model_config['features']
 
         broker = Broker()
         risk_manager = RiskManager(broker, base_trade_usd=5.00, max_trade_usd=20.00)
@@ -61,7 +51,8 @@ class TradingSession:
                 if self.abort_flag_callback(): break
                 if self.task: self.task.update_state(state='PROGRESS', meta={'activity': f'Analyzing {ticker}...'})
 
-                state, price = create_state(ticker)
+                # Create state using the loaded model's specific requirements
+                state, price = self.create_state_for_model(ticker, window_size, observation_columns)
                 if state is None: continue
 
                 with torch.no_grad():
@@ -88,3 +79,20 @@ class TradingSession:
                     self.task.update_state(state='PROGRESS',
                                            meta={'activity': f'Sleeping... ({minutes:02d}:{seconds:02d} remaining)'})
                 time.sleep(1)
+
+    def create_state_for_model(self, ticker: str, window_size: int, observation_columns: list):
+        """Helper function to create a state from live data."""
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=150)  # Load enough data for warm-up
+        loader = YFinanceLoader([ticker], start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
+        df = loader.load_data()
+        if df.empty or len(df) < 30: return None, None
+
+        featured_df = calculate_features(df)
+        if len(featured_df) < window_size: return None, None
+
+        window = featured_df.iloc[-window_size:]
+        current_price = window['Close'].iloc[-1].item()
+
+        observation = window[observation_columns].values.flatten()
+        return torch.FloatTensor(observation), current_price
