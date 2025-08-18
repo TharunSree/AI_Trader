@@ -1,4 +1,4 @@
-<!-- language: html -->
+<!-- File: templates/papertrading.html -->
 {% extends "vertical.html" %}
 {% load static %}
 {% block title %}Paper Trading{% endblock title %}
@@ -9,16 +9,16 @@
 <style>
     .mini-badge {
         font-size: 11px;
-        letter-spacing: .5px;
+        letter-spacing: .5px
     }
 
     .activity-log {
-        max-height: 220px;
-        overflow-y: auto;
+        max-height: 200px;
+        overflow-y: auto
     }
 
     .mono {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace
     }
 </style>
 {% endblock extra_css %}
@@ -29,110 +29,25 @@
 
 {% block page_content %}
 <div class="row">
-    <div class="col-xl-5">
-        <div class="card border border-primary-subtle">
-            <div class="card-body">
-                <h4 class="header-title mb-3">Control Panel</h4>
-                <form action="{% url 'start_trader' %}" method="POST" id="start-form" class="mb-3">
-                    {% csrf_token %}
-                    <div class="mb-2">
-                        <label class="form-label small text-uppercase fw-semibold" for="model-file-select">Model
-                            File</label>
-                        <select name="model_file" id="model-file-select" class="form-select" required>
-                            <option value="">Select model file</option>
-                            {% for f in model_files %}
-                            <option value="{{ f }}">{{ f }}</option>
-                            {% empty %}
-                            <option value="">No models found</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="d-flex gap-2">
-                        <button id="start-btn" type="submit" class="btn btn-success fw-semibold">
-                            <i class="ri-play-line me-1"></i>Start
-                        </button>
-                        <button id="stop-btn" type="button" class="btn btn-danger fw-semibold" disabled>
-                            <i class="ri-stop-line me-1"></i>Stop
-                        </button>
-                    </div>
-                </form>
-                <div class="small text-muted">
-                    <i class="ri-information-line me-1"></i>Starts the session and enables periodic scans & decisions.
-                </div>
-                <form id="stop-form" action="{% url 'stop_trader' %}" method="POST" class="d-none">
-                    {% csrf_token %}
-                </form>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-7">
-        <div class="card">
-            <div class="card-body">
-                <h4 class="header-title mb-3">Live Status</h4>
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <div class="p-3 rounded border h-100">
-                            <span class="text-muted small text-uppercase fw-semibold">Session</span>
-                            <div class="mt-2">
-                                <span id="trader-status-badge"
-                                      class="badge bg-secondary-subtle text-secondary px-3 py-2">UNKNOWN</span>
-                            </div>
-                            <div class="mt-3 d-flex flex-column gap-1">
-                                <div class="small text-muted">Uptime:
-                                    <span id="uptime-badge" class="badge bg-dark-subtle text-dark mono">00:00:00</span>
-                                </div>
-                                <div class="small text-muted">Last Update:
-                                    <span id="last-update-ts" class="mono">-</span>
-                                </div>
-                            </div>
-                            <div id="error-icon" class="mt-2"></div>
-                        </div>
-                    </div>
-                    <div class="col-md-8">
-                        <div class="p-3 rounded border h-100">
-                            <span class="text-muted small text-uppercase fw-semibold">Cycle / Activity</span>
-                            <div class="mt-2 d-flex flex-wrap gap-2">
-                                <span id="cycle-badge"
-                                      class="badge mini-badge bg-secondary-subtle text-secondary">IDLE</span>
-                                <span id="analyzing-badge"
-                                      class="badge mini-badge bg-info-subtle text-info d-none"></span>
-                                <span id="sleep-badge"
-                                      class="badge mini-badge bg-warning-subtle text-warning d-none"></span>
-                            </div>
-                            <div class="mt-3">
-                                <div class="small text-muted mb-1">Recent Activity</div>
-                                <ul id="activity-list" class="list-group small activity-log mb-2">
-                                    <li class="list-group-item py-1">Waiting for data...</li>
-                                </ul>
-                                <div id="activity-summary" class="alert alert-info bg-info-subtle border-0 py-2 mb-0">
-                                    Idle
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div> <!-- row -->
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-xl-7">
-        <div class="card">
+    <div class="col-12">
+        <div class="card mb-3">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h4 class="header-title mb-0">Live Equity Curve</h4>
                     <span class="text-muted small" id="points-count">0 pts</span>
                 </div>
-                <div id="equity-chart" class="apex-charts" style="min-height:360px;"></div>
+                <div id="equity-chart" style="min-height:360px;"></div>
             </div>
         </div>
     </div>
-    <div class="col-xl-5">
-        <div class="card">
+</div>
+<div class="row">
+    <!-- Left column: Account snapshot + Positions -->
+    <div class="col-xl-6">
+        <div class="card mb-3">
             <div class="card-body">
                 <h4 class="header-title mb-3">Account Snapshot</h4>
-                <div class="row g-3">
+                <div class="row g-3 mb-2">
                     <div class="col-sm-6">
                         <div class="p-3 rounded border h-100">
                             <div class="small text-muted text-uppercase fw-semibold">Equity</div>
@@ -147,7 +62,7 @@
                     </div>
                 </div>
                 <hr/>
-                <h5 class="header-title mb-2">Top Positions</h5>
+                <h5 class="header-title mb-2">Positions</h5>
                 <table id="positions-dt" class="table table-sm table-striped nowrap w-100">
                     <thead>
                     <tr>
@@ -159,7 +74,61 @@
                     </thead>
                     <tbody></tbody>
                 </table>
-                <small class="text-muted">Auto‑sorted by market value.</small>
+                <small class="text-muted">Sorted by value.</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right column: Controls + Status + Activity -->
+    <div class="col-xl-6">
+        <div class="card mb-3">
+            <div class="card-body">
+                <h4 class="header-title mb-3">Control Panel</h4>
+                <form action="{% url 'start_trader' %}" method="POST" id="start-form" class="mb-3">
+                    {% csrf_token %}
+                    <div class="mb-2">
+                        <label class="form-label small text-uppercase fw-semibold" for="model-file-select">Model
+                            File</label>
+                        <select name="model_file" id="model-file-select" class="form-select" required>
+                            <option value="">Select model file</option>
+                            {% for f in model_files %}
+                            <option value="{{ f }}">{{ f }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button id="start-btn" type="submit" class="btn btn-success fw-semibold">
+                            <i class="ri-play-line me-1"></i>Start
+                        </button>
+                        <button id="stop-btn" type="button" class="btn btn-danger fw-semibold" disabled>
+                            <i class="ri-stop-line me-1"></i>Stop
+                        </button>
+                    </div>
+                </form>
+                <form id="stop-form" action="{% url 'stop_trader' %}" method="POST" class="d-none">{% csrf_token %}
+                </form>
+                <div class="small text-muted">
+                    Interval configured inside session; reduce for more frequent actions.
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <h4 class="header-title mb-3">Live Status</h4>
+                <div class="d-flex flex-wrap gap-3 align-items-center mb-3">
+                    <span id="trader-status-badge"
+                          class="badge bg-secondary-subtle text-secondary px-3 py-2">UNKNOWN</span>
+                    <span class="badge bg-secondary-subtle text-secondary mini-badge" id="cycle-badge">IDLE</span>
+                    <span class="badge bg-primary-subtle text-primary mini-badge d-none" id="analyzing-badge"></span>
+                    <span class="badge bg-warning-subtle text-warning mini-badge d-none" id="sleep-badge"></span>
+                    <span class="badge bg-dark-subtle text-dark mini-badge" id="uptime-badge">00:00:00</span>
+                </div>
+                <div id="error-icon" class="mb-2"></div>
+                <div id="activity-summary" class="alert alert-info py-2 mb-3 small">No activity yet.</div>
+                <h6 class="text-muted text-uppercase fw-semibold small mb-2">Recent Activity</h6>
+                <ul id="activity-list" class="list-group activity-log small mb-2"></ul>
+                <div class="small text-muted">Sleep countdown shown above; per‑second entries suppressed.</div>
             </div>
         </div>
     </div>
@@ -173,17 +142,17 @@
 <script>
     (function () {
         const UPTIME_KEY = 'paper_trader_uptime_start';
-        const activityPollMs = 2000;
+        const activityPollMs = 2500;
         const statusPoll = {RUNNING: 6000, STOPPED: 15000, FAILED: 10000, UNKNOWN: 10000};
         let currentStatus = 'UNKNOWN';
         let positionsTable, equityChart;
         const equitySeries = [];
         const MAX_POINTS = 800;
         const activityLog = [];
-        const MAX_ACTIVITY = 80;
+        const MAX_ACTIVITY = 60;
         let sleepSeconds = 0, sleepTimerId = null;
         let statusTimer = null, activityTimer = null;
-        let lastActivityText = '';
+        let lastNonSleepActivity = '';
 
         function fmt(n) {
             return Number(n || 0).toLocaleString();
@@ -218,7 +187,7 @@
                 colors: ['#35b8e0'],
                 fill: {
                     type: 'gradient',
-                    gradient: {shadeIntensity: 0.4, opacityFrom: 0.6, opacityTo: 0.1, stops: [0, 90, 100]}
+                    gradient: {shadeIntensity: .4, opacityFrom: .6, opacityTo: .1, stops: [0, 90, 100]}
                 }
             });
             equityChart.render();
@@ -260,7 +229,7 @@
         function tickUptime() {
             const start = parseInt(localStorage.getItem(UPTIME_KEY) || '0', 10);
             if (!start) {
-                document.getElementById('uptime-badge').textContent = '00:00:00';
+                requestAnimationFrame(tickUptime);
                 return;
             }
             const diff = Date.now() - start;
@@ -282,8 +251,11 @@
         }
 
         function addActivity(line, isError) {
-            if (!line || line === lastActivityText) return;
-            lastActivityText = line;
+            if (!line) return;
+            // Filter sleep countdown spam
+            if (/Sleeping\.\.\./.test(line)) return;
+            if (line === lastNonSleepActivity) return;
+            lastNonSleepActivity = line;
             activityLog.unshift({t: new Date(), msg: line, err: !!isError});
             if (activityLog.length > MAX_ACTIVITY) activityLog.pop();
             const ul = document.getElementById('activity-list');
@@ -301,10 +273,7 @@
             const cycle = document.getElementById('cycle-badge');
             const analyzing = document.getElementById('analyzing-badge');
             const sleepB = document.getElementById('sleep-badge');
-
             analyzing.classList.add('d-none');
-            sleepB.classList.add('d-none');
-
             if (/Scanning for opportunities/i.test(text)) {
                 setBadge(cycle, 'SCANNING', 'mini-badge bg-info-subtle text-info');
             } else if (/^Analyzing (\w+)/i.test(text)) {
@@ -312,19 +281,11 @@
                 setBadge(cycle, 'ANALYZING', 'mini-badge bg-primary-subtle text-primary');
                 analyzing.textContent = sym;
                 analyzing.classList.remove('d-none');
-            } else if (/Sleeping\.\.\./.test(text)) {
-                setBadge(cycle, 'SLEEPING', 'mini-badge bg-warning-subtle text-warning');
-                const m = text.match(/Sleeping\.\.\. \((\d{2}):(\d{2}) remaining\)/);
-                if (m) {
-                    sleepSeconds = parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
-                    startSleepTimer();
-                }
             } else {
-                if (currentStatus === 'RUNNING')
-                    setBadge(cycle, 'ACTIVE', 'mini-badge bg-success-subtle text-success');
-                else
-                    setBadge(cycle, 'IDLE', 'mini-badge bg-secondary-subtle text-secondary');
+                if (currentStatus === 'RUNNING') setBadge(cycle, 'ACTIVE', 'mini-badge bg-success-subtle text-success');
+                else setBadge(cycle, 'IDLE', 'mini-badge bg-secondary-subtle text-secondary');
             }
+            // Sleep badge handled separately
         }
 
         function startSleepTimer() {
@@ -349,18 +310,35 @@
             document.getElementById('sleep-badge').textContent = `Sleep ${m}:${s}`;
         }
 
+        function processActivityString(str) {
+            if (/Sleeping\.\.\./.test(str)) {
+                const m = str.match(/Sleeping\.\.\. \((\d{2}):(\d{2}) remaining\)/);
+                if (m) {
+                    sleepSeconds = parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+                    startSleepTimer();
+                    const cycle = document.getElementById('cycle-badge');
+                    setBadge(cycle, 'SLEEPING', 'mini-badge bg-warning-subtle text-warning');
+                }
+            } else {
+                addActivity(str, false);
+                document.getElementById('activity-summary').textContent = str;
+                const box = document.getElementById('activity-summary');
+                box.classList.remove('alert-danger');
+                box.classList.add('alert-info');
+            }
+        }
+
         function fetchStatus() {
             fetch("{% url 'trader_status_api' %}?_=" + Date.now(), {cache: 'no-store'})
                 .then(r => r.json())
                 .then(data => {
                     const prev = currentStatus;
                     currentStatus = data.status;
-                    document.getElementById('trader-status-badge').className = 'badge ' + statusBadgeClass(currentStatus);
-                    document.getElementById('trader-status-badge').textContent = currentStatus;
-                    document.getElementById('last-update-ts').textContent = new Date().toLocaleTimeString();
+                    const badge = document.getElementById('trader-status-badge');
+                    badge.className = 'badge ' + statusBadgeClass(currentStatus);
+                    badge.textContent = currentStatus;
                     document.getElementById('equity-val').textContent = '$' + fmt(data.equity);
                     document.getElementById('bp-val').textContent = '$' + fmt(data.buying_power);
-                    // buttons
                     document.getElementById('start-btn').disabled = currentStatus === 'RUNNING';
                     document.getElementById('stop-btn').disabled = currentStatus !== 'RUNNING';
 
@@ -373,18 +351,15 @@
 
                     const errIcon = document.getElementById('error-icon');
                     if (currentStatus === 'FAILED') {
-                        const msg = escapeHtml(data.error_message || 'Failure (no details)');
-                        errIcon.innerHTML = `<span class="text-danger small" data-bs-toggle="tooltip" title="${msg}">
-                        <i class="ri-error-warning-line"></i> ${msg}</span>`;
+                        const msg = escapeHtml(data.error_message || 'Failure');
+                        errIcon.innerHTML = `<span class="text-danger small"><i class="ri-error-warning-line"></i> ${msg}</span>`;
                         addActivity(data.error_message || 'Trader failed', true);
-                        document.getElementById('activity-summary').textContent = data.error_message || 'Trader failed';
-                        document.getElementById('activity-summary').classList.remove('alert-info');
-                        document.getElementById('activity-summary').classList.add('alert-danger');
-                    } else {
-                        errIcon.innerHTML = '';
-                    }
+                        const box = document.getElementById('activity-summary');
+                        box.textContent = data.error_message || 'Trader failed';
+                        box.classList.remove('alert-info');
+                        box.classList.add('alert-danger');
+                    } else errIcon.innerHTML = '';
 
-                    // Positions
                     const sorted = (data.positions || []).slice().sort((a, b) => Number(b.market_value || 0) - Number(a.market_value || 0));
                     positionsTable.clear();
                     sorted.forEach(p => {
@@ -400,9 +375,7 @@
 
                     scheduleStatus();
                 })
-                .catch(() => {
-                    scheduleStatus();
-                });
+                .catch(() => scheduleStatus());
         }
 
         function fetchActivity() {
@@ -414,16 +387,11 @@
                 .then(r => r.json())
                 .then(d => {
                     if (d.activity) {
-                        addActivity(d.activity, false);
-                        document.getElementById('activity-summary').textContent = d.activity;
-                        document.getElementById('activity-summary').classList.remove('alert-danger');
-                        document.getElementById('activity-summary').classList.add('alert-info');
+                        processActivityString(d.activity);
                     }
                     scheduleActivity();
                 })
-                .catch(() => {
-                    scheduleActivity();
-                });
+                .catch(() => scheduleActivity());
         }
 
         function wireControls() {
