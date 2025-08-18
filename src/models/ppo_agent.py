@@ -1,3 +1,4 @@
+python
 import torch
 import torch.nn as nn
 from torch.optim import Adam
@@ -28,6 +29,44 @@ class PPOAgent:
             {'params': self.critic.parameters(), 'lr': lr}
         ])
 
+    def select_action(self, state, deterministic: bool = False):
+        """
+        Returns:
+          action_index (int),
+          log_prob (float),
+          probs (np.array) full action distribution
+        """
+        if not torch.is_tensor(state):
+            state = torch.tensor(state, dtype=torch.float32, device=self.device)
+        else:
+            state = state.to(self.device, dtype=torch.float32)
+        if state.dim() == 1:
+            state = state.unsqueeze(0)
+
+        with torch.no_grad():
+            probs = self.actor(state)  # shape [1, action_dim]
+
+        dist = torch.distributions.Categorical(probs)
+        if deterministic:
+            action = probs.argmax(dim=-1)
+            log_prob = torch.log(probs.gather(-1, action.unsqueeze(-1))).squeeze(-1)
+        else:
+            action = dist.sample()
+            log_prob = dist.log_prob(action)
+
+        return action.item(), float(log_prob.item()), probs.squeeze(0).cpu().numpy()
+
+    def value(self, state):
+        if not torch.is_tensor(state):
+            state = torch.tensor(state, dtype=torch.float32, device=self.device)
+        else:
+            state = state.to(self.device, dtype=torch.float32)
+        if state.dim() == 1:
+            state = state.unsqueeze(0)
+        with torch.no_grad():
+            v = self.critic(state)
+        return float(v.item())
+
     def save(self, path: Path, config: dict):
         path.parent.mkdir(parents=True, exist_ok=True)
         torch.save({
@@ -56,5 +95,4 @@ class PPOAgent:
         agent.actor.load_state_dict(checkpoint['actor_state_dict'])
         agent.critic.load_state_dict(checkpoint['critic_state_dict'])
         agent.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-
         return agent, config
