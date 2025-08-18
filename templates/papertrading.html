@@ -177,7 +177,7 @@
             fetch(`{% url 'trader_status_api' %}${cacheBuster}`)
                 .then(response => response.json())
                 .then(data => {
-                    if (data.status === 'ERROR' && data.message) {
+                    if (data.status === 'FAILED' && data.message) {
                         $('#trader-activity-log').text(`API Error: ${data.message}`).addClass('alert-danger').removeClass('alert-info');
                         updateStatusUI({
                             status: 'FAILED',
