@@ -175,7 +175,7 @@ def run_paper_trader_task(self, trader_id, model_file):
     try:
         config = {
             "model_file": model_file,
-            "interval_minutes": 60,
+            "interval_minutes": 10,
         }
         session = TradingSession(config, abort_flag_callback=should_abort)
         session.task = self  # Pass the task instance to the session
