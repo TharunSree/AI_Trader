@@ -1,10 +1,9 @@
-# src/sessions/trading_session.py
-
 import logging
 import time
 from pathlib import Path
 import torch
-from django.conf import settings  # Import settings to get the absolute path
+from django.conf import settings
+from datetime import datetime, timedelta
 
 from src.execution.scanner import Scanner
 from src.execution.broker import Broker
@@ -12,21 +11,22 @@ from src.execution.risk_manager import RiskManager
 from src.models.ppo_agent import PPOAgent
 from src.data.preprocessor import calculate_features
 from src.data.yfinance_loader import YFinanceLoader
-from datetime import datetime, timedelta
 
 logger = logging.getLogger('rl_trading_backend')
 
 
 class TradingSession:
+    """Encapsulates a live paper or real trading session."""
+
     def __init__(self, config: dict, abort_flag_callback):
         self.config = config
         self.abort_flag_callback = abort_flag_callback
-        self.task = None
+        self.task = None  # Will be set by the Celery task to allow for state updates
 
     def run(self):
+        """The main execution loop for the trading bot."""
         logger.info(f"Launching trading session with model: {self.config['model_file']}")
 
-        # --- THIS IS THE FIX ---
         # 1. Load the agent and its configuration ("blueprint") together
         model_path = settings.BASE_DIR / "saved_models" / self.config['model_file']
         if not model_path.exists():
@@ -35,7 +35,7 @@ class TradingSession:
         agent, model_config = PPOAgent.load_with_config(model_path)
         agent.actor.eval()
 
-        # 2. Use the loaded config to define the state creation
+        # 2. Use the loaded config to define the state creation parameters
         window_size = model_config['window']
         observation_columns = model_config['features']
 
@@ -43,37 +43,58 @@ class TradingSession:
         risk_manager = RiskManager(broker, base_trade_usd=5.00, max_trade_usd=20.00)
         scanner = Scanner()
 
+        # 3. Main trading loop
         while not self.abort_flag_callback():
-            if self.task: self.task.update_state(state='PROGRESS', meta={'activity': 'Scanning for opportunities...'})
+            if self.task: self.task.update_state(state='PROGRESS', meta={'activity': 'Checking buying power...'})
+
             buying_power = broker.get_buying_power()
             logger.info(f"Current buying power: ${buying_power:,.2f}")
+
+            if self.task: self.task.update_state(state='PROGRESS', meta={'activity': 'Scanning for opportunities...'})
+
             hot_list = scanner.scan_for_opportunities(buying_power=buying_power)
 
-            for ticker in hot_list:
-                if self.abort_flag_callback(): break
-                if self.task: self.task.update_state(state='PROGRESS', meta={'activity': f'Analyzing {ticker}...'})
+            if not hot_list:
+                logger.info("Scanner found no opportunities in this cycle.")
+            else:
+                logger.info(f"Scanner found {len(hot_list)} opportunities. Analyzing now...")
 
-                # Create state using the loaded model's specific requirements
-                state, price = self.create_state_for_model(ticker, window_size, observation_columns)
-                if state is None: continue
+                # 4. Loop through ALL opportunities before sleeping
+                for i, ticker in enumerate(hot_list):
+                    if self.abort_flag_callback(): break
 
-                with torch.no_grad():
-                    action_probs = agent.actor(state.to(agent.device))
-                    confidence, action = torch.max(action_probs, 0)
-                    action, confidence = action.item(), confidence.item()
+                    logger.info(f"--- Analyzing {i + 1}/{len(hot_list)}: {ticker} ---")
+                    if self.task: self.task.update_state(state='PROGRESS', meta={'activity': f'Analyzing {ticker}...'})
 
-                logger.info(f"Analysis for {ticker}: Action={['HOLD', 'BUY', 'SELL'][action]}, Conf={confidence:.2f}")
+                    state, price = self.create_state_for_model(ticker, window_size, observation_columns)
+                    if state is None:
+                        logger.warning(f"Could not create state for {ticker}. Skipping.")
+                        continue
 
-                is_approved, notional_value = risk_manager.check_trade(ticker, action, confidence)
-                if is_approved:
-                    side = 'buy' if action == 1 else 'sell'
-                    broker.place_market_order(symbol=ticker, side=side, notional_value=notional_value)
+                    with torch.no_grad():
+                        action_probs = agent.actor(state.to(agent.device))
+                        confidence, action = torch.max(action_probs, 0)
+                        action, confidence = action.item(), confidence.item()
 
-                time.sleep(5)
+                    logger.info(
+                        f"Analysis for {ticker}: Action={['HOLD', 'BUY', 'SELL'][action]}, Conf={confidence:.2f}")
+
+                    is_approved, notional_value = risk_manager.check_trade(ticker, action, confidence)
+                    if is_approved:
+                        side = 'buy' if action == 1 else 'sell'
+                        success = broker.place_market_order(symbol=ticker, side=side, notional_value=notional_value)
+
+                        # If a trade was placed, update our local knowledge of buying power
+                        if success:
+                            buying_power = broker.get_buying_power()
+                            logger.info(f"Trade placed. New buying power: ${buying_power:,.2f}")
+
+                    time.sleep(5)  # Pause between analyzing different stocks
 
             interval_minutes = self.config.get('interval_minutes', 60)
             logger.info(f"Scan cycle complete. Sleeping for {interval_minutes} minutes...")
 
+            # Sleep countdown loop
             for i in range(interval_minutes * 60, 0, -1):
                 if self.abort_flag_callback(): break
                 if self.task:
@@ -83,9 +104,9 @@ class TradingSession:
                 time.sleep(1)
 
     def create_state_for_model(self, ticker: str, window_size: int, observation_columns: list):
-        """Helper function to create a state from live data."""
+        """Helper function to create a state from live data for a specific model's needs."""
         end_date = datetime.now()
-        start_date = end_date - timedelta(days=150)  # Load enough data for warm-up
+        start_date = end_date - timedelta(days=150)
         loader = YFinanceLoader([ticker], start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
         df = loader.load_data()
         if df.empty or len(df) < 30: return None, None

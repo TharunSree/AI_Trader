@@ -50,13 +50,14 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <button id="start-btn" class="btn btn-success btn-sm w-100" {% if trader_status==
-                    'RUNNING' %}disabled{% endif %}>Start</button>
+                    <button id="start-btn" class="btn btn-success btn-sm w-100" {% if trader_status=='RUNNING'
+                            %}disabled{% endif %}>Start
+                    </button>
                 </form>
                 <form id="stop-form" method="post" action="{% url 'stop_trader' %}" class="mt-auto">
                     {% csrf_token %}
-                    <button id="stop-btn" type="button" class="btn btn-danger btn-sm w-100" {% if trader_status
-                            !='RUNNING' %}disabled{% endif %}>Stop
+                    <button id="stop-btn" type="button" class="btn btn-danger btn-sm w-100" {% if
+                            trader_status!='RUNNING' %}disabled{% endif %}>Stop
                     </button>
                 </form>
             </div>
@@ -110,8 +111,7 @@
             <div class="card-body d-flex flex-column">
                 <h5 class="mb-3">Last Activity</h5>
                 <div id="activity-summary"
-                     class="alert alert-info py-2 px-2 small mb-0 flex-grow-1 d-flex align-items-center">
-                    -
+                     class="alert alert-info py-2 px-2 small mb-0 flex-grow-1 d-flex align-items-center">-
                 </div>
                 <div class="mt-2 small text-muted">Full log below</div>
             </div>
