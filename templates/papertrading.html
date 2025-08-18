@@ -4,188 +4,211 @@
 {% block title %}Paper Trading{% endblock title %}
 
 {% block extra_css %}
-    <link href="{% static 'vendor/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}" rel="stylesheet" type="text/css" />
+<link href="{% static 'vendor/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}" rel="stylesheet"
+      type="text/css"/>
 {% endblock extra_css %}
 
 {% block page_title %}
-    {% include 'partials/topbar.html' with topbarTitle='Paper Trading Bot' %}
+{% include 'partials/topbar.html' with topbarTitle='Paper Trading Bot' %}
 {% endblock page_title %}
 
 {% block page_content %}
-    <div class="row">
-        <div class="col-lg-12">
-            <div class="card">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-lg-6">
-                            <h4 class="header-title">Control Panel</h4>
-                            <p class="text-muted font-14">
-                                Select a trained model and launch the live paper trading bot.
-                            </p>
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-lg-6">
+                        <h4 class="header-title">Control Panel</h4>
+                        <p class="text-muted font-14">
+                            Select a trained model and launch the live paper trading bot.
+                        </p>
 
-                            <form action="{% url 'start_trader' %}" method="POST" class="mb-2">
-                                {% csrf_token %}
-                                <div class="input-group">
-                                    <select class="form-select" id="model_file_select" name="model_file" required>
-                                        {% for model in model_files %}
-                                            <option value="{{ model }}">{{ model }}</option>
-                                        {% empty %}
-                                            <option value="" disabled>No trained models found in /saved_models/</option>
-                                        {% endfor %}
-                                    </select>
-                                    <button type="submit" class="btn btn-success" id="start-btn"><i class="ri-play-fill me-1"></i> Start Trader</button>
-                                </div>
-                            </form>
+                        <form action="{% url 'start_trader' %}" method="POST" class="mb-2">
+                            {% csrf_token %}
+                            <div class="input-group">
+                                <select class="form-select" id="model_file_select" name="model_file" required>
+                                    {% for model in model_files %}
+                                    <option value="{{ model }}">{{ model }}</option>
+                                    {% empty %}
+                                    <option value="" disabled>No trained models found in /saved_models/</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="btn btn-success" id="start-btn"><i
+                                        class="ri-play-fill me-1"></i> Start Trader
+                                </button>
+                            </div>
+                        </form>
 
-                            <form action="{% url 'stop_trader' %}" method="POST">
-                                {% csrf_token %}
-                                <div class="d-grid">
-                                    <button type="submit" class="btn btn-danger" id="stop-btn"><i class="ri-stop-fill me-1"></i> Stop Trader</button>
-                                </div>
-                            </form>
+                        <form action="{% url 'stop_trader' %}" method="POST">
+                            {% csrf_token %}
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-danger" id="stop-btn"><i
+                                        class="ri-stop-fill me-1"></i> Stop Trader
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="col-lg-6">
+                        <h4 class="header-title mt-3 mt-lg-0">Live Status</h4>
+                        <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                            <p class="mb-0">Status:</p>
+                            <div>
+                                <span id="trader-status-badge" class="badge bg-secondary-subtle text-secondary">-</span>
+                                <span id="trader-error-tooltip-container"></span>
+                            </div>
                         </div>
-                        <div class="col-lg-6">
-                            <h4 class="header-title mt-3 mt-lg-0">Live Status</h4>
-                            <div class="d-flex justify-content-between align-items-center border-bottom py-2">
-                                <p class="mb-0">Status:</p>
-                                <div>
-                                    <span id="trader-status-badge" class="badge bg-secondary-subtle text-secondary">-</span>
-                                    <span id="trader-error-tooltip-container"></span>
-                                </div>
-                            </div>
-                            <div class="d-flex justify-content-between border-bottom py-2">
-                                <p class="mb-0">Account Equity:</p>
-                                <span id="account-equity" class="fw-semibold">-</span>
-                            </div>
-                            <div class="d-flex justify-content-between py-2">
-                                <p class="mb-0">Buying Power:</p>
-                                <span id="buying-power" class="fw-semibold">-</span>
-                            </div>
-                            <h5 class="mt-2">Current Activity:</h5>
-                            <div class="alert alert-info bg-info-subtle border-0 mb-0" role="alert" id="trader-activity-log">
-                                Waiting for status...
-                            </div>
+                        <div class="d-flex justify-content-between border-bottom py-2">
+                            <p class="mb-0">Account Equity:</p>
+                            <span id="account-equity" class="fw-semibold">-</span>
+                        </div>
+                        <div class="d-flex justify-content-between py-2">
+                            <p class="mb-0">Buying Power:</p>
+                            <span id="buying-power" class="fw-semibold">-</span>
+                        </div>
+                        <h5 class="mt-2">Current Activity:</h5>
+                        <div class="alert alert-info bg-info-subtle border-0 mb-0" role="alert"
+                             id="trader-activity-log">
+                            Waiting for status...
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <div class="row">
-        <div class="col-lg-12">
-            <div class="card">
-                <div class="card-body">
-                    <h4 class="header-title mb-4">Live Equity Curve</h4>
-                    <div id="live-equity-chart" class="apex-charts" data-colors="#35b8e0"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-12">
-            <div class="card">
-                <div class="card-body">
-                    <h4 class="header-title">Current Positions</h4>
-                    <table id="positions-datatable" class="table table-striped dt-responsive nowrap w-100">
-                        <thead>
-                            <tr><th>Symbol</th><th>Quantity</th><th>Market Value</th><th>Unrealized P/L</th></tr>
-                        </thead>
-                        <tbody>
-                            </tbody>
-                    </table>
-                </div>
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="header-title mb-4">Live Equity Curve</h4>
+                <div id="live-equity-chart" class="apex-charts" data-colors="#35b8e0"></div>
             </div>
         </div>
     </div>
+
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="header-title">Current Positions</h4>
+                <table id="positions-datatable" class="table table-striped dt-responsive nowrap w-100">
+                    <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Quantity</th>
+                        <th>Market Value</th>
+                        <th>Unrealized P/L</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock page_content %}
 
 {% block extra_javascript %}
-    <script src="{% static 'vendor/apexcharts/apexcharts.min.js' %}"></script>
-    <script src="{% static 'vendor/datatables.net/js/dataTables.min.js' %}"></script>
-    <script src="{% static 'vendor/datatables.net-bs5/js/dataTables.bootstrap5.min.js' %}"></script>
-    <script>
-        $(document).ready(function() {
-            var positionsTable = $('#positions-datatable').DataTable({"paging": false, "info": false, "searching": false});
+<script src="{% static 'vendor/apexcharts/apexcharts.min.js' %}"></script>
+<script src="{% static 'vendor/datatables.net/js/dataTables.min.js' %}"></script>
+<script src="{% static 'vendor/datatables.net-bs5/js/dataTables.bootstrap5.min.js' %}"></script>
+<script>
+    $(document).ready(function () {
+        var positionsTable = $('#positions-datatable').DataTable({"paging": false, "info": false, "searching": false});
 
-            var chartOptions = {
-                chart: { height: 380, type: 'area', zoom: { enabled: false }, toolbar: { show: false } },
-                series: [{ name: 'Equity', data: [] }],
-                xaxis: { type: 'datetime', categories: [] },
-                yaxis: { labels: { formatter: (val) => { return "$" + val.toLocaleString() } } },
-                dataLabels: { enabled: false }, stroke: { curve: 'smooth', width: 2 }, colors: ["#35b8e0"],
-            };
-            var equityChart = new ApexCharts(document.querySelector("#live-equity-chart"), chartOptions);
-            equityChart.render();
+        var chartOptions = {
+            chart: {height: 380, type: 'area', zoom: {enabled: false}, toolbar: {show: false}},
+            series: [{name: 'Equity', data: []}],
+            xaxis: {type: 'datetime', categories: []},
+            yaxis: {
+                labels: {
+                    formatter: (val) => {
+                        return "$" + val.toLocaleString()
+                    }
+                }
+            },
+            dataLabels: {enabled: false}, stroke: {curve: 'smooth', width: 2}, colors: ["#35b8e0"],
+        };
+        var equityChart = new ApexCharts(document.querySelector("#live-equity-chart"), chartOptions);
+        equityChart.render();
 
-            function updateStatusUI(data) {
-                const statusBadge = $('#trader-status-badge');
-                statusBadge.text(data.status);
-                statusBadge.removeClass('bg-success-subtle text-success bg-danger-subtle text-danger bg-secondary-subtle text-secondary').addClass(
-                    data.status === 'RUNNING' ? 'bg-success-subtle text-success' :
+        function updateStatusUI(data) {
+            const statusBadge = $('#trader-status-badge');
+            statusBadge.text(data.status);
+            statusBadge.removeClass('bg-success-subtle text-success bg-danger-subtle text-danger bg-secondary-subtle text-secondary').addClass(
+                data.status === 'RUNNING' ? 'bg-success-subtle text-success' :
                     (data.status === 'FAILED' ? 'bg-danger-subtle text-danger' : 'bg-secondary-subtle text-secondary')
-                );
+            );
 
-                const errorContainer = $('#trader-error-tooltip-container');
-                if (data.status === 'FAILED' && data.error_message) {
-                    const errorHtml = `<span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="${data.error_message}"><i class="ri-information-line text-danger"></i></span>`;
-                    errorContainer.html(errorHtml);
-                    $('[data-bs-toggle="tooltip"]').tooltip();
-                } else {
-                    errorContainer.html('');
-                }
-
-                $('#start-btn').prop('disabled', data.status === 'RUNNING');
-                $('#stop-btn').prop('disabled', data.status !== 'RUNNING');
-
-                $('#account-equity').text('$' + data.equity.toLocaleString());
-                $('#buying-power').text('$' + data.buying_power.toLocaleString());
-
-                positionsTable.clear();
-                if (data.positions && data.positions.length > 0) {
-                    data.positions.forEach(pos => {
-                        let plClass = parseFloat(pos.unrealized_pl) >= 0 ? 'text-success' : 'text-danger';
-                        positionsTable.row.add([
-                            pos.symbol,
-                            pos.qty,
-                            '$' + parseFloat(pos.market_value).toLocaleString(),
-                            `<span class="${plClass}">$` + parseFloat(pos.unrealized_pl).toLocaleString() + `</span>`
-                        ]);
-                    });
-                }
-                positionsTable.draw();
+            const errorContainer = $('#trader-error-tooltip-container');
+            if (data.status === 'FAILED' && data.error_message) {
+                const errorHtml = `<span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="${data.error_message}"><i class="ri-information-line text-danger"></i></span>`;
+                errorContainer.html(errorHtml);
+                $('[data-bs-toggle="tooltip"]').tooltip();
+            } else {
+                errorContainer.html('');
             }
 
-            function fetchTraderStatus() {
-                const cacheBuster = `?_=${new Date().getTime()}`;
-                fetch(`{% url 'trader_status_api' %}${cacheBuster}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'ERROR' && data.message) {
-                            $('#trader-activity-log').text(`API Error: ${data.message}`).addClass('alert-danger').removeClass('alert-info');
-                            updateStatusUI({status: 'FAILED', error_message: data.message, equity: 0, buying_power: 0, positions: []});
-                            return;
-                        }
-                        $('#trader-activity-log').removeClass('alert-danger').addClass('alert-info');
-                        updateStatusUI(data);
-                    })
-                    .catch(error => {
-                        console.error("Failed to fetch trader status:", error);
-                    });
-            }
+            $('#start-btn').prop('disabled', data.status === 'RUNNING');
+            $('#stop-btn').prop('disabled', data.status !== 'RUNNING');
 
-            function fetchTraderActivity() {
-                const cacheBuster = `?_=${new Date().getTime()}`;
-                fetch(`{% url 'trader_activity_api' %}${cacheBuster}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        $('#trader-activity-log').text(data.activity || 'Waiting...');
-                    });
-            }
+            $('#account-equity').text('$' + data.equity.toLocaleString());
+            $('#buying-power').text('$' + data.buying_power.toLocaleString());
 
-            fetchTraderStatus();
-            fetchTraderActivity();
-            setInterval(fetchTraderStatus, 10000);
-            setInterval(fetchTraderActivity, 2000);
-        });
-    </script>
+            positionsTable.clear();
+            if (data.positions && data.positions.length > 0) {
+                data.positions.forEach(pos => {
+                    let plClass = parseFloat(pos.unrealized_pl) >= 0 ? 'text-success' : 'text-danger';
+                    positionsTable.row.add([
+                        pos.symbol,
+                        pos.qty,
+                        '$' + parseFloat(pos.market_value).toLocaleString(),
+                        `<span class="${plClass}">$` + parseFloat(pos.unrealized_pl).toLocaleString() + `</span>`
+                    ]);
+                });
+            }
+            positionsTable.draw();
+        }
+
+        function fetchTraderStatus() {
+            const cacheBuster = `?_=${new Date().getTime()}`;
+            fetch(`{% url 'trader_status_api' %}${cacheBuster}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'ERROR' && data.message) {
+                        $('#trader-activity-log').text(`API Error: ${data.message}`).addClass('alert-danger').removeClass('alert-info');
+                        updateStatusUI({
+                            status: 'FAILED',
+                            error_message: data.message,
+                            equity: 0,
+                            buying_power: 0,
+                            positions: []
+                        });
+                        return;
+                    }
+                    $('#trader-activity-log').removeClass('alert-danger').addClass('alert-info');
+                    updateStatusUI(data);
+                })
+                .catch(error => {
+                    console.error("Failed to fetch trader status:", error);
+                });
+        }
+
+        function fetchTraderActivity() {
+            const cacheBuster = `?_=${new Date().getTime()}`;
+            fetch(`{% url 'trader_activity_api' %}${cacheBuster}`)
+                .then(response => response.json())
+                .then(data => {
+                    $('#trader-activity-log').text(data.activity || 'Waiting...');
+                });
+        }
+
+        fetchTraderStatus();
+        fetchTraderActivity();
+        setInterval(fetchTraderStatus, 10000);
+        setInterval(fetchTraderActivity, 2000);
+    });
+</script>
 {% endblock extra_javascript %}

@@ -246,21 +246,24 @@ def trader_status_api(request):
 
         data = {
             "status": trader_model.status,
-            "error_message": trader_model.error_message,
+            "error_message": trader_model.error_message,  # Provides the error message
             "equity": float(account_info.equity),
             "buying_power": float(account_info.buying_power),
             "positions": [
                 {
-                    "symbol": pos.symbol,
-                    "qty": float(pos.qty),
-                    "market_value": float(pos.market_value),
-                    "unrealized_pl": float(pos.unrealized_pl),
+                    "symbol": pos.symbol, "qty": float(pos.qty),
+                    "market_value": float(pos.market_value), "unrealized_pl": float(pos.unrealized_pl),
                 } for pos in positions
             ]
         }
         return JsonResponse(data)
     except Exception as e:
-        return JsonResponse({"status": "ERROR", "message": str(e)})
+        # If the API itself fails (e.g. bad keys), create an error response
+        trader_model, created = PaperTrader.objects.get_or_create(id=1)
+        trader_model.status = 'FAILED'
+        trader_model.error_message = f"API connection failed: {e}"
+        trader_model.save()
+        return JsonResponse({"status": "FAILED", "message": trader_model.error_message})
 
 @login_required
 def stop_meta_job_view(request, job_id):
