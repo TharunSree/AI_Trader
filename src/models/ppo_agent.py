@@ -30,32 +30,31 @@ class PPOAgent:
             {'params': self.critic.parameters(), 'lr': lr}
         ])
 
-    # --- UPDATED: Save method now includes a config dictionary ---
     def save(self, path: Path, config: dict):
         path.parent.mkdir(parents=True, exist_ok=True)
         torch.save({
             'actor_state_dict': self.actor.state_dict(),
             'critic_state_dict': self.critic.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
-            'config': config,  # Save the blueprint
+            'config': config,
         }, path)
 
-    # --- UPDATED: Load method now just loads weights ---
     def load(self, path: Path):
-        checkpoint = torch.load(path, map_location=self.device)
+        # --- ADDED weights_only=False ---
+        checkpoint = torch.load(path, map_location=self.device, weights_only=False)
         self.actor.load_state_dict(checkpoint['actor_state_dict'])
         self.critic.load_state_dict(checkpoint['critic_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
-    # --- NEW: A helper method to load an agent and its config together ---
     @staticmethod
     def load_with_config(path: Path):
-        checkpoint = torch.load(path, map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # --- ADDED weights_only=False ---
+        checkpoint = torch.load(path, map_location=device, weights_only=False)
         config = checkpoint['config']
 
-        # Recreate the agent with the correct dimensions from the config
         state_dim = len(config['features']) * config['window']
-        action_dim = 3  # Assuming this is fixed for our environment
+        action_dim = 3
 
         agent = PPOAgent(state_dim, action_dim, lr=config['params']['lr'])
         agent.actor.load_state_dict(checkpoint['actor_state_dict'])
