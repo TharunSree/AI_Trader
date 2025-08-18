@@ -235,42 +235,45 @@ def job_status_api(request):
     return JsonResponse(data)
 
 
+# control_panel/views.py (only trader_status_api updated)
 @login_required
 def trader_status_api(request):
+    trader_model, _ = PaperTrader.objects.get_or_create(id=1)
     try:
         broker = Broker()
         account_info = broker.api.get_account()
         positions = broker.api.list_positions()
 
-        trader_model, _ = PaperTrader.objects.get_or_create(id=1)
+        # If bot not failed now, avoid showing a stale old error
+        if trader_model.status != 'FAILED' and trader_model.error_message:
+            trader_model.error_message = ''
+            trader_model.save(update_fields=['error_message'])
 
-        data = {
+        return JsonResponse({
             "status": trader_model.status,
             "error_message": trader_model.error_message or "",
             "equity": float(account_info.equity),
             "buying_power": float(account_info.buying_power),
             "positions": [
                 {
-                    "symbol": pos.symbol,
-                    "qty": float(pos.qty),
-                    "market_value": float(pos.market_value),
-                    "unrealized_pl": float(pos.unrealized_pl),
-                } for pos in positions
+                    "symbol": p.symbol,
+                    "qty": float(p.qty),
+                    "market_value": float(p.market_value),
+                    "unrealized_pl": float(p.unrealized_pl),
+                } for p in positions
             ]
-        }
-        return JsonResponse(data)
+        })
     except Exception as e:
-        trader_model, _ = PaperTrader.objects.get_or_create(id=1)
         trader_model.status = 'FAILED'
-        trader_model.error_message = f"API connection failed: {e}"
-        trader_model.save()
+        trader_model.error_message = f"{type(e).__name__}: {e}"
+        trader_model.save(update_fields=['status', 'error_message'])
         return JsonResponse({
             "status": "FAILED",
             "error_message": trader_model.error_message,
             "equity": 0,
             "buying_power": 0,
             "positions": []
-        })
+        }, status=200)
 
 @login_required
 def stop_meta_job_view(request, job_id):
