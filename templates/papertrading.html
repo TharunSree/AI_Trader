@@ -116,36 +116,40 @@
 <script src="{% static 'vendor/datatables.net-bs5/js/dataTables.bootstrap5.min.js' %}"></script>
 <script>
     $(document).ready(function () {
-        var positionsTable = $('#positions-datatable').DataTable({"paging": false, "info": false, "searching": false});
+        const positionsTable = $('#positions-datatable').DataTable({"paging": false, "info": false, "searching": false});
 
-        var chartOptions = {
+        const chartOptions = {
             chart: {height: 380, type: 'area', zoom: {enabled: false}, toolbar: {show: false}},
             series: [{name: 'Equity', data: []}],
             xaxis: {type: 'datetime', categories: []},
-            yaxis: {
-                labels: {
-                    formatter: (val) => {
-                        return "$" + val.toLocaleString()
-                    }
-                }
-            },
-            dataLabels: {enabled: false}, stroke: {curve: 'smooth', width: 2}, colors: ["#35b8e0"],
+            yaxis: {labels: {formatter: v => "$" + v.toLocaleString()}},
+            dataLabels: {enabled: false},
+            stroke: {curve: 'smooth', width: 2},
+            colors: ["#35b8e0"],
         };
-        var equityChart = new ApexCharts(document.querySelector("#live-equity-chart"), chartOptions);
+        const equityChart = new ApexCharts(document.querySelector("#live-equity-chart"), chartOptions);
         equityChart.render();
+
+        function escapeHtml(str) {
+            return (str || '').replace(/[&<>"'`]/g, c => ({
+                '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'
+            }[c]));
+        }
 
         function updateStatusUI(data) {
             const statusBadge = $('#trader-status-badge');
             statusBadge.text(data.status);
-            statusBadge.removeClass('bg-success-subtle text-success bg-danger-subtle text-danger bg-secondary-subtle text-secondary').addClass(
-                data.status === 'RUNNING' ? 'bg-success-subtle text-success' :
-                    (data.status === 'FAILED' ? 'bg-danger-subtle text-danger' : 'bg-secondary-subtle text-secondary')
-            );
+            statusBadge
+                .removeClass('bg-success-subtle text-success bg-danger-subtle text-danger bg-secondary-subtle text-secondary')
+                .addClass(
+                    data.status === 'RUNNING' ? 'bg-success-subtle text-success' :
+                        (data.status === 'FAILED' ? 'bg-danger-subtle text-danger' : 'bg-secondary-subtle text-secondary')
+                );
 
             const errorContainer = $('#trader-error-tooltip-container');
-            if (data.status === 'FAILED' && (data.error_message || data.message)) {
-                const errorMsg = data.error_message || data.message;
-                const errorHtml = `<span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="${errorMsg}"><i class="ri-information-line text-danger"></i></span>`;
+            if (data.error_message) {
+                const msg = escapeHtml(data.error_message);
+                const errorHtml = `<span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="${msg}"><i class="ri-information-line text-danger"></i></span>`;
                 errorContainer.html(errorHtml);
                 $('[data-bs-toggle="tooltip"]').tooltip();
             } else {
@@ -155,18 +159,19 @@
             $('#start-btn').prop('disabled', data.status === 'RUNNING');
             $('#stop-btn').prop('disabled', data.status !== 'RUNNING');
 
-            $('#account-equity').text('$' + (data.equity ? data.equity.toLocaleString() : '0'));
-            $('#buying-power').text('$' + (data.buying_power ? data.buying_power.toLocaleString() : '0'));
+            $('#account-equity').text('$' + (data.equity ? Number(data.equity).toLocaleString() : '0'));
+            $('#buying-power').text('$' + (data.buying_power ? Number(data.buying_power).toLocaleString() : '0'));
 
             positionsTable.clear();
-            if (data.positions && data.positions.length > 0) {
+            if (data.positions && data.positions.length) {
                 data.positions.forEach(pos => {
-                    let plClass = parseFloat(pos.unrealized_pl) >= 0 ? 'text-success' : 'text-danger';
+                    const pl = parseFloat(pos.unrealized_pl);
+                    const plClass = pl >= 0 ? 'text-success' : 'text-danger';
                     positionsTable.row.add([
                         pos.symbol,
                         pos.qty,
                         '$' + parseFloat(pos.market_value).toLocaleString(),
-                        `<span class="${plClass}">$` + parseFloat(pos.unrealized_pl).toLocaleString() + `</span>`
+                        `<span class="${plClass}">$${pl.toLocaleString()}</span>`
                     ]);
                 });
             }
@@ -174,37 +179,43 @@
         }
 
         function fetchTraderStatus() {
-            const cacheBuster = `?_=${new Date().getTime()}`;
-            fetch("{% url 'trader_status_api' %}" + cacheBuster)
-                .then(response => response.json())
+            const cacheBuster = `?_=${Date.now()}`;
+            fetch("/api/trader-status/" + cacheBuster)
+                .then(r => r.json())
                 .then(data => {
-                    if (data.status === 'FAILED' && (data.message || data.error_message)) {
-                        const errorMsg = data.message || data.error_message;
-                        $('#trader-activity-log').text(`API Error: ${errorMsg}`).addClass('alert-danger').removeClass('alert-info');
-                        updateStatusUI({
-                            status: 'FAILED',
-                            error_message: errorMsg,
-                            equity: 0,
-                            buying_power: 0,
-                            positions: []
-                        });
-                        return;
+                    // Show error message prominently if exists
+                    if (data.error_message) {
+                        $('#trader-activity-log')
+                            .text(data.error_message)
+                            .removeClass('alert-info')
+                            .addClass('alert-danger');
+                    } else {
+                        $('#trader-activity-log')
+                            .text('Running...')
+                            .removeClass('alert-danger')
+                            .addClass('alert-info');
                     }
-                    $('#trader-activity-log').removeClass('alert-danger').addClass('alert-info');
                     updateStatusUI(data);
                 })
-                .catch(error => {
-                    console.error("Failed to fetch trader status:", error);
+                .catch(err => {
+                    $('#trader-activity-log')
+                        .text('Network error fetching status.')
+                        .removeClass('alert-info')
+                        .addClass('alert-danger');
+                    console.error(err);
                 });
         }
 
         function fetchTraderActivity() {
-            const cacheBuster = `?_=${new Date().getTime()}`;
-            fetch("{% url 'trader_activity_api' %}" + cacheBuster)
-                .then(response => response.json())
+            const cacheBuster = `?_=${Date.now()}`;
+            fetch("/api/trader-activity/" + cacheBuster)
+                .then(r => r.json())
                 .then(data => {
-                    $('#trader-activity-log').text(data.activity || 'Waiting...');
-                });
+                    if (!$('#trader-activity-log').hasClass('alert-danger')) {
+                        $('#trader-activity-log').text(data.activity || 'Waiting...');
+                    }
+                })
+                .catch(() => { /* silent */ });
         }
 
         fetchTraderStatus();
