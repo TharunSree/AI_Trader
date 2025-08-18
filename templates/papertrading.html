@@ -175,7 +175,7 @@
 
         function fetchTraderStatus() {
             const cacheBuster = `?_=${new Date().getTime()}`;
-            fetch(`{% url 'trader_status_api' %}${cacheBuster}`)
+            fetch("{% url 'trader_status_api' %}" + cacheBuster)
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'FAILED' && (data.message || data.error_message)) {
@@ -200,7 +200,7 @@
 
         function fetchTraderActivity() {
             const cacheBuster = `?_=${new Date().getTime()}`;
-            fetch(`{% url 'trader_activity_api' %}${cacheBuster}`)
+            fetch("{% url 'trader_activity_api' %}" + cacheBuster)
                 .then(response => response.json())
                 .then(data => {
                     $('#trader-activity-log').text(data.activity || 'Waiting...');
