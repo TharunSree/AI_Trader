@@ -143,8 +143,9 @@
             );
 
             const errorContainer = $('#trader-error-tooltip-container');
-            if (data.status === 'FAILED' && data.error_message) {
-                const errorHtml = `<span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="${data.error_message}"><i class="ri-information-line text-danger"></i></span>`;
+            if (data.status === 'FAILED' && (data.error_message || data.message)) {
+                const errorMsg = data.error_message || data.message;
+                const errorHtml = `<span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="${errorMsg}"><i class="ri-information-line text-danger"></i></span>`;
                 errorContainer.html(errorHtml);
                 $('[data-bs-toggle="tooltip"]').tooltip();
             } else {
@@ -154,8 +155,8 @@
             $('#start-btn').prop('disabled', data.status === 'RUNNING');
             $('#stop-btn').prop('disabled', data.status !== 'RUNNING');
 
-            $('#account-equity').text('$' + data.equity.toLocaleString());
-            $('#buying-power').text('$' + data.buying_power.toLocaleString());
+            $('#account-equity').text('$' + (data.equity ? data.equity.toLocaleString() : '0'));
+            $('#buying-power').text('$' + (data.buying_power ? data.buying_power.toLocaleString() : '0'));
 
             positionsTable.clear();
             if (data.positions && data.positions.length > 0) {
@@ -177,11 +178,12 @@
             fetch(`{% url 'trader_status_api' %}${cacheBuster}`)
                 .then(response => response.json())
                 .then(data => {
-                    if (data.status === 'FAILED' && data.message) {
-                        $('#trader-activity-log').text(`API Error: ${data.message}`).addClass('alert-danger').removeClass('alert-info');
+                    if (data.status === 'FAILED' && (data.message || data.error_message)) {
+                        const errorMsg = data.message || data.error_message;
+                        $('#trader-activity-log').text(`API Error: ${errorMsg}`).addClass('alert-danger').removeClass('alert-info');
                         updateStatusUI({
                             status: 'FAILED',
-                            error_message: data.message,
+                            error_message: errorMsg,
                             equity: 0,
                             buying_power: 0,
                             positions: []
