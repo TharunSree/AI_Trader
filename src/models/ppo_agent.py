@@ -1,5 +1,3 @@
-# src/models/ppo_agent.py
-
 import torch
 import torch.nn as nn
 from torch.optim import Adam
@@ -40,7 +38,6 @@ class PPOAgent:
         }, path)
 
     def load(self, path: Path):
-        # --- ADDED weights_only=False ---
         checkpoint = torch.load(path, map_location=self.device, weights_only=False)
         self.actor.load_state_dict(checkpoint['actor_state_dict'])
         self.critic.load_state_dict(checkpoint['critic_state_dict'])
@@ -49,14 +46,13 @@ class PPOAgent:
     @staticmethod
     def load_with_config(path: Path):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        # --- ADDED weights_only=False ---
         checkpoint = torch.load(path, map_location=device, weights_only=False)
         config = checkpoint['config']
 
         state_dim = len(config['features']) * config['window']
         action_dim = 3
 
-        agent = PPOAgent(state_dim, action_dim, lr=config['params']['lr'])
+        agent = PPOAgent(state_dim, action_dim, lr=config.get('params', {}).get('lr', 0.001))
         agent.actor.load_state_dict(checkpoint['actor_state_dict'])
         agent.critic.load_state_dict(checkpoint['critic_state_dict'])
         agent.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
