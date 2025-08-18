@@ -72,32 +72,118 @@
         </div>
     </div>
 
-    {% endblock page_content %}
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="header-title mb-4">Live Equity Curve</h4>
+                    <div id="live-equity-chart" class="apex-charts" data-colors="#35b8e0"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="header-title">Current Positions</h4>
+                    <table id="positions-datatable" class="table table-striped dt-responsive nowrap w-100">
+                        <thead>
+                            <tr><th>Symbol</th><th>Quantity</th><th>Market Value</th><th>Unrealized P/L</th></tr>
+                        </thead>
+                        <tbody>
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock page_content %}
 
 {% block extra_javascript %}
+    <script src="{% static 'vendor/apexcharts/apexcharts.min.js' %}"></script>
+    <script src="{% static 'vendor/datatables.net/js/dataTables.min.js' %}"></script>
+    <script src="{% static 'vendor/datatables.net-bs5/js/dataTables.bootstrap5.min.js' %}"></script>
     <script>
         $(document).ready(function() {
-            // ... (table and chart init are the same)
+            var positionsTable = $('#positions-datatable').DataTable({"paging": false, "info": false, "searching": false});
 
-            function updateStatus(data) {
+            var chartOptions = {
+                chart: { height: 380, type: 'area', zoom: { enabled: false }, toolbar: { show: false } },
+                series: [{ name: 'Equity', data: [] }],
+                xaxis: { type: 'datetime', categories: [] },
+                yaxis: { labels: { formatter: (val) => { return "$" + val.toLocaleString() } } },
+                dataLabels: { enabled: false }, stroke: { curve: 'smooth', width: 2 }, colors: ["#35b8e0"],
+            };
+            var equityChart = new ApexCharts(document.querySelector("#live-equity-chart"), chartOptions);
+            equityChart.render();
+
+            function updateStatusUI(data) {
                 const statusBadge = $('#trader-status-badge');
-                // ... (badge text and class logic is the same)
+                statusBadge.text(data.status);
+                statusBadge.removeClass('bg-success-subtle text-success bg-danger-subtle text-danger bg-secondary-subtle text-secondary').addClass(
+                    data.status === 'RUNNING' ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'
+                );
 
-                // --- NEW: Logic to add/remove error tooltip ---
                 const errorContainer = $('#trader-error-tooltip-container');
                 if (data.status === 'FAILED' && data.error_message) {
                     const errorHtml = `<span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="${data.error_message}"><i class="ri-information-line text-danger"></i></span>`;
                     errorContainer.html(errorHtml);
-                    // Re-initialize tooltips on the page
                     $('[data-bs-toggle="tooltip"]').tooltip();
                 } else {
-                    errorContainer.html(''); // Clear the error icon if status is not FAILED
+                    errorContainer.html('');
                 }
 
-                // ... (rest of the updateStatus function is the same)
+                $('#start-btn').prop('disabled', data.status === 'RUNNING');
+                $('#stop-btn').prop('disabled', data.status !== 'RUNNING');
+
+                $('#account-equity').text('$' + data.equity.toLocaleString());
+                $('#buying-power').text('$' + data.buying_power.toLocaleString());
+
+                positionsTable.clear();
+                if (data.positions && data.positions.length > 0) {
+                    data.positions.forEach(pos => {
+                        let plClass = pos.unrealized_pl >= 0 ? 'text-success' : 'text-danger';
+                        positionsTable.row.add([
+                            pos.symbol,
+                            pos.qty,
+                            '$' + parseFloat(pos.market_value).toLocaleString(),
+                            `<span class="${plClass}">$` + parseFloat(pos.unrealized_pl).toLocaleString() + `</span>`
+                        ]);
+                    });
+                }
+                positionsTable.draw();
             }
 
-            // ... (fetchTraderStatus and fetchTraderActivity functions are the same)
+            function fetchTraderStatus() {
+                const cacheBuster = `?_=${new Date().getTime()}`;
+                fetch(`{% url 'trader_status_api' %}${cacheBuster}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'ERROR') {
+                            $('#trader-activity-log').text(`API Error: ${data.message}`).addClass('alert-danger').removeClass('alert-info');
+                            return;
+                        }
+                        $('#trader-activity-log').removeClass('alert-danger').addClass('alert-info');
+                        updateStatusUI(data);
+                    })
+                    .catch(error => {
+                        console.error("Failed to fetch trader status:", error);
+                    });
+            }
+
+            function fetchTraderActivity() {
+                const cacheBuster = `?_=${new Date().getTime()}`;
+                fetch(`{% url 'trader_activity_api' %}${cacheBuster}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        $('#trader-activity-log').text(data.activity || 'Waiting...');
+                    });
+            }
+
+            fetchTraderStatus();
+            fetchTraderActivity();
+            setInterval(fetchTraderStatus, 10000);
+            setInterval(fetchTraderActivity, 2000);
         });
     </script>
 {% endblock extra_javascript %}

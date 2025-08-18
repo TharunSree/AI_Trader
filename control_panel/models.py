@@ -61,6 +61,7 @@ class PaperTrader(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='STOPPED')
     model_file = models.CharField(max_length=255, null=True, blank=True, help_text="e.g., best_agent.pth")
     celery_task_id = models.CharField(max_length=255, null=True, blank=True, editable=False)
+    error_message = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return f"Paper Trading Bot - Status: {self.status}"

@@ -201,6 +201,7 @@ def run_paper_trader_task(self, trader_id, model_file):
     except Exception as e:
         logger.error(f"Paper trader task failed: {e}")
         trader.status = 'FAILED'
+        trader.error_message = str(e)
 
     if trader.status != 'FAILED':
         trader.status = 'STOPPED'
