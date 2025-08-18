@@ -52,6 +52,22 @@ def training_view(request):
 
 
 @login_required
+def start_training_job_view(request):
+    if request.method == 'POST':
+        # 1. Create the job object in the database
+        job = TrainingJob.objects.create(
+            feature_set_key=request.POST.get('feature_set_key'),
+            hyperparameter_key=request.POST.get('hyperparameter_key'),
+            window_size=request.POST.get('window_size'),
+            initial_cash=request.POST.get('initial_cash', 100000)
+        )
+        # 2. CRUCIAL FIX: Send the job to the Celery worker
+        run_training_job_task.delay(job.id)
+
+    return redirect('training')
+
+
+@login_required
 def stop_job_view(request, job_id):
     if request.method == 'POST':
         job = get_object_or_404(TrainingJob, id=job_id)

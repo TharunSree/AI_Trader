@@ -5,6 +5,7 @@ from . import views
 urlpatterns = [
     path('', views.dashboard_view, name='dashboard'),
     path('training/', views.training_view, name='training'),
+    path('training/start/', views.start_training_job_view, name='start_training_job'),
     path('training/job/<int:job_id>/stop/', views.stop_job_view, name='stop_job'),
     path('training/meta/start/', views.start_meta_job_view, name='start_meta_job'),
     path('training/meta-job/<int:job_id>/stop/', views.stop_meta_job_view, name='stop_meta_job'),
