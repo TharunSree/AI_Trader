@@ -1,4 +1,3 @@
-# src/sessions/trading_session.py
 import logging
 import time
 from pathlib import Path
@@ -22,15 +21,13 @@ class TradingSession:
     def __init__(self, config: dict, abort_flag_callback):
         self.config = config
         self.abort_flag_callback = abort_flag_callback
-        self.task = None  # Celery task instance injected externally
+        self.task = None
 
     def run(self):
-        model_file = self.config['model_file']
-        logger.info(f"DEBUG: TradingSession.run() started with model: {model_file}")
+        logger.info(f"DEBUG: TradingSession.run() started with model: {self.config['model_file']}")
 
-        model_path = settings.BASE_DIR / "saved_models" / model_file
-        if not model_path.exists():
-            raise FileNotFoundError(f"Model file not found at {model_path}")
+        model_path = settings.BASE_DIR / "saved_models" / self.config['model_file']
+        if not model_path.exists(): raise FileNotFoundError(f"Model file not found at {model_path}")
 
         agent, model_config = PPOAgent.load_with_config(model_path)
         agent.actor.eval()
@@ -42,98 +39,87 @@ class TradingSession:
         risk_manager = RiskManager(broker, base_trade_usd=5.00, max_trade_usd=20.00)
         scanner = Scanner()
 
-        interval_minutes = int(self.config.get('interval_minutes', 10))
-        if interval_minutes < 1:
-            interval_minutes = 1  # safety floor
-
         while not self.abort_flag_callback():
-            logger.info("DEBUG: Main loop iteration start.")
+            logger.info("DEBUG: Main `while` loop started an iteration.")
 
             buying_power = broker.get_buying_power()
 
-            # SCANNING phase
-            self._update_activity("Scanning for opportunities")
+            if self.task: self.task.update_state(state='PROGRESS', meta={'activity': 'Scanning...'})
             hot_list = scanner.scan_for_opportunities(buying_power=buying_power)
 
             if not hot_list:
-                logger.info("DEBUG: No tickers returned by scanner.")
+                logger.info("DEBUG: `hot_list` was empty. Proceeding to sleep cycle.")
             else:
-                logger.info(f"DEBUG: Scanner produced {len(hot_list)} symbols.")
-                for ticker in hot_list:
+                logger.info(f"DEBUG: `hot_list` found {len(hot_list)} items. Entering `for` loop.")
+
+                for i, ticker in enumerate(hot_list):
                     if self.abort_flag_callback():
-                        logger.info("DEBUG: Abort detected mid-analysis loop.")
+                        logger.info(f"DEBUG: Abort flag was True. Breaking `for` loop at ticker {ticker}.")
                         break
 
-                    # ANALYZING phase
-                    self._update_activity(f"Analyzing {ticker}")
-                    logger.info(f"DEBUG: Analyzing {ticker}")
+                    logger.info(f"DEBUG: --- Top of `for` loop for ticker: {ticker} ({i + 1}/{len(hot_list)}) ---")
+                    if self.task: self.task.update_state(state='PROGRESS', meta={'activity': f'Analyzing {ticker}...'})
 
-                    state, current_price = self.create_state_for_model(
-                        ticker, window_size, observation_columns
-                    )
+                    state, price = self.create_state_for_model(ticker, window_size, observation_columns)
                     if state is None:
-                        logger.info(f"DEBUG: Insufficient data for {ticker}, skipping.")
+                        logger.warning(
+                            f"DEBUG: `create_state_for_model` returned None for {ticker}. Continuing to next ticker.")
                         continue
 
+                    logger.info(f"DEBUG: State created for {ticker}. Getting agent action.")
                     with torch.no_grad():
-                        action, confidence = agent.select_action(state.unsqueeze(0))
+                        action_probs = agent.actor(state.to(agent.device))
+                        confidence, action = torch.max(action_probs, 0)
+                        action, confidence = action.item(), confidence.item()
 
-                    logger.info(
-                        f"DEBUG: Action {action} (confidence {confidence:.3f}) for {ticker} @ {current_price}"
-                    )
+                    logger.info(f"DEBUG: Agent action for {ticker} is {action}. Checking trade with risk manager.")
 
-                    is_approved, notional_value = risk_manager.check_trade(
-                        ticker, action, confidence
-                    )
+                    is_approved, notional_value = risk_manager.check_trade(ticker, action, confidence)
                     if is_approved:
-                        try:
-                            if action == 1:
-                                broker.submit_buy_order(ticker, notional_value)
-                                logger.info(f"DEBUG: Submitted BUY {ticker} ${notional_value:.2f}")
-                            elif action == 2:
-                                broker.submit_sell_order(ticker, notional_value)
-                                logger.info(f"DEBUG: Submitted SELL {ticker} ${notional_value:.2f}")
-                        except Exception as e:
-                            logger.error(f"Trade execution failed for {ticker}: {e}")
-                    time.sleep(1)  # slight pacing
+                        logger.info(f"DEBUG: Trade approved for {ticker}. Placing order.")
+                        side = 'buy' if action == 1 else 'sell'
+                        success = broker.place_market_order(symbol=ticker, side=side, notional_value=notional_value)
 
-            # SLEEP phase
-            if self.abort_flag_callback():
-                logger.info("DEBUG: Abort detected before sleep; exiting loop.")
-                break
+                        if success:
+                            logger.info(f"DEBUG: Order placed successfully for {ticker}.")
+                        else:
+                            logger.warning(f"DEBUG: Order placement failed for {ticker}.")
 
-            logger.info(f"DEBUG: Sleeping for {interval_minutes} minute(s).")
+                    logger.info(f"DEBUG: --- Bottom of `for` loop for ticker: {ticker}. Pausing. ---")
+                    time.sleep(2)  # Shortened pause for debugging
+
+                logger.info("DEBUG: `for` loop has completed for all tickers.")
+
+            interval_minutes = self.config.get('interval_minutes', 10)
+            logger.info(f"DEBUG: Proceeding to sleep cycle for {interval_minutes} minutes.")
+            if self.task:
+                self.task.update_state(state='PROGRESS', meta={'activity': 'Sleeping...'})
+
             countdown_seconds = interval_minutes * 60
             for remaining in range(countdown_seconds, 0, -1):
                 if self.abort_flag_callback():
-                    logger.info("DEBUG: Abort detected during sleep; breaking.")
+                    logger.info("DEBUG: Abort flag was True. Breaking sleep loop.")
                     break
-                mm, ss = divmod(remaining, 60)
-                self._update_activity(f"Sleeping... ({mm:02d}:{ss:02d} remaining)")
+                if self.task:
+                    m, s = divmod(remaining, 60)
+                    self.task.update_state(
+                        state='PROGRESS',
+                        meta={'activity': f'Sleeping... ({m:02d}:{s:02d} remaining)'}
+                    )
                 time.sleep(1)
 
-        logger.info("DEBUG: Main loop terminated gracefully.")
-
-    def _update_activity(self, text: str):
-        """Helper to send activity updates to Celery state."""
-        if self.task:
-            try:
-                self.task.update_state(state='PROGRESS', meta={'activity': text})
-            except Exception as e:
-                logger.debug(f"DEBUG: update_state failed: {e}")
+        logger.info("DEBUG: Main `while` loop has ended.")
 
     def create_state_for_model(self, ticker: str, window_size: int, observation_columns: list):
-        """Create the observation state slice required by the model."""
+        """Helper function to create a state from live data for a specific model's needs."""
         end_date = datetime.now()
         start_date = end_date - timedelta(days=150)
         loader = YFinanceLoader([ticker], start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
         df = loader.load_data()
-        if df.empty or len(df) < 30:
-            return None, None
+        if df.empty or len(df) < 30: return None, None
 
         featured_df = calculate_features(df)
-        if len(featured_df) < window_size:
-            return None, None
+        if len(featured_df) < window_size: return None, None
 
         window = featured_df.iloc[-window_size:]
         current_price = window['Close'].iloc[-1].item()
