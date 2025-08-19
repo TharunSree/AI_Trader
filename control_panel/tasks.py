@@ -151,14 +151,13 @@ def run_meta_trainer_task(self, meta_job_id):
 
 
 @shared_task(bind=True, base=AbortableTask)
-def run_paper_trader_task(self, trader_id, model_file, initial_cash):
+def run_paper_trader_task(self, trader_id, model_file):  # <-- REMOVED initial_cash
     """The real task that runs the live paper trading bot."""
     trader = PaperTrader.objects.get(id=trader_id)
-    logger.info(f"Starting paper trader '{trader_id}' with model '{model_file}' and initial cash ${initial_cash}")
+    logger.info(f"Starting paper trader '{trader_id}' with model '{model_file}'")
 
     def should_abort():
-        if self.is_aborted():
-            return True
+        if self.is_aborted(): return True
         trader.refresh_from_db()
         return trader.status != 'RUNNING'
 
@@ -167,9 +166,8 @@ def run_paper_trader_task(self, trader_id, model_file, initial_cash):
             "model_file": model_file,
             "interval_minutes": 1,
             "trader_id": trader_id,
-            "initial_cash": float(initial_cash)
+            # 'initial_cash' is no longer needed here
         }
-        # --- FIX: Removed the unexpected 'activity_callback' argument ---
         session = TradingSession(config, abort_flag_callback=should_abort)
         session.task = self
         session.run()

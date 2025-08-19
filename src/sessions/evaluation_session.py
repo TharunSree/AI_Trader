@@ -75,8 +75,8 @@ class EvaluationSession:
             "sharpe_ratio": round(sharpe_ratio, 2),
             "final_equity": round(equity_curve[-1], 2),
             "trade_log": [
-                {'timestamp': t['timestamp'].strftime('%Y-%m-%d'), 'action': t['action'], 'symbol': t['symbol'],
+                {'timestamp': str(t['timestamp']), 'action': t['action'], 'symbol': t['symbol'],
                  'quantity': round(t['quantity'], 4), 'price': round(t['price'], 2)} for t in env.trade_log],
-            "equity_chart": {"dates": [d.strftime('%Y-%m-%d') for d in dates],
+            "equity_chart": {"dates": [str(d) for d in dates],
                              "equity": [round(e, 2) for e in equity_curve]}
         }

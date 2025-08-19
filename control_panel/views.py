@@ -119,41 +119,26 @@ def papertrading_view(request):
 
 @login_required
 def start_trader_view(request):
+    """
+    Handles the POST request to start the paper trader.
+    """
     if request.method == 'POST':
         model_file = request.POST.get('model_file')
-        initial_cash = request.POST.get('initial_cash') or '100000'
+        # --- REMOVED: No longer need to get initial_cash from the form ---
+
         trader, _ = PaperTrader.objects.get_or_create(id=1)
-
-        # Allow start unless already RUNNING
-        if trader.status == 'RUNNING':
-            messages.info(request, "Trader already running.")
-            return redirect('papertrading')
-
-        if not model_file:
-            messages.error(request, "Select a model file first.")
-            return redirect('papertrading')
-
-        # Set pre-dispatch state so worker sees it
-        trader.status = 'STARTING'
         trader.error_message = ''
-        trader.model_file = model_file
-        trader.initial_cash = initial_cash
-        trader.celery_task_id = ''
-        trader.save()
 
-        try:
-            async_res = run_paper_trader_task.apply_async(args=[trader.id, model_file, initial_cash])
-        except Exception as e:
-            trader.status = 'FAILED'
-            trader.error_message = f'Queue dispatch failed: {e}'
-            trader.save(update_fields=['status', 'error_message'])
-            messages.error(request, f"Failed to enqueue task: {e}")
-            return redirect('papertrading')
+        if trader.status in ('STOPPED', 'FAILED') and model_file:
+            # --- MODIFIED: The task call is now simpler ---
+            task = run_paper_trader_task.delay(trader.id, model_file)
 
-        trader.celery_task_id = async_res.id
-        trader.status = 'RUNNING'
-        trader.save(update_fields=['celery_task_id', 'status'])
-        messages.success(request, f"Trader task queued ({async_res.id}).")
+            trader.status = 'RUNNING'
+            trader.model_file = model_file
+            # No need to save initial_cash anymore
+            trader.celery_task_id = task.id
+            trader.save()
+
     return redirect('papertrading')
 
 
@@ -358,55 +343,64 @@ def stop_meta_job_view(request, job_id):
     return redirect('training')
 
 
+@login_required
 def trader_activity_api(request):
     """
-    Provides the detailed, real-time activity of a running task
-    by checking the Celery task's custom state.
+    Provides the detailed, real-time activity of a running task.
     """
-    # We assume a single paper trader instance with id=1
-    trader, created = PaperTrader.objects.get_or_create(id=1)
-
-    # Check if the bot is supposed to be running and has a task ID
+    trader, _ = PaperTrader.objects.get_or_create(id=1)
     if trader.status == 'RUNNING' and trader.celery_task_id:
-        # Use the task ID to get the task's result/state from Celery
         task_result = AsyncResult(trader.celery_task_id)
+        if task_result.state == 'PROGRESS':
+            return JsonResponse({"status": "RUNNING", **task_result.info})
+        else:
+            return JsonResponse({"status": "RUNNING", "activity": f"Task state: {task_result.state}"})
+    else:
+        return JsonResponse({"status": "STOPPED", "activity": "Trader is not active."})
 
-        # The 'info' attribute holds the custom metadata we set with update_state()
-        if task_result.info and isinstance(task_result.info, dict):
-            return JsonResponse(task_result.info)
-
-    # If the bot isn't running or has no status, return a default message
-    return JsonResponse({'activity': 'Not Running'})
 
 
 @login_required
-def trader_report_view(request):
-    trader, _ = PaperTrader.objects.get_or_create(id=1)
-    trades = TradeLog.objects.filter(trader=trader).order_by('-timestamp')
+def trader_status_api(request):
+    """
+    API endpoint to get the status of the paper trader, including
+    live broker information like equity, buying power, and positions.
+    """
+    trader_model, _ = PaperTrader.objects.get_or_create(id=1)
 
-    # Define a decimal zero matching your notional_value field precision
-    ZERO_DEC = Value(0, output_field=DecimalField(max_digits=20, decimal_places=2))
+    try:
+        broker = Broker()
+        # Fetch live data from Alpaca
+        equity = broker.get_equity()
+        buying_power = broker.get_buying_power()
+        positions = broker.get_positions()
 
-    sell_trades = trades.filter(action='SELL')
-    buy_trades = trades.filter(action='BUY')
+        # Format positions data for the frontend
+        positions_data = [{
+            "symbol": pos.symbol,
+            "qty": pos.qty,
+            "market_value": pos.market_value,
+            "unrealized_pl": pos.unrealized_pl,
+        } for pos in positions]
 
-    total_notional_sells = sell_trades.aggregate(
-        total=Coalesce(Sum('notional_value'), ZERO_DEC)
-    )['total']
+        return JsonResponse({
+            "status": trader_model.status,
+            "model_file": trader_model.model_file,
+            "equity": equity,
+            "buying_power": buying_power,
+            "positions": positions_data
+        })
+    except Exception as e:
+        # If we can't connect to the broker, report a FAILED state
+        message = f"Failed to connect to broker: {e}"
+        trader_model.status = "FAILED"
+        trader_model.error_message = message
+        trader_model.save(update_fields=['status', 'error_message'])
 
-    total_notional_buys = buy_trades.aggregate(
-        total=Coalesce(Sum('notional_value'), ZERO_DEC)
-    )['total']
-
-    gross_pnl = (total_notional_sells or 0) - (total_notional_buys or 0)
-
-    context = {
-        'trader': trader,
-        'all_trades': trades,
-        'total_trades': trades.count(),
-        'buy_count': buy_trades.count(),
-        'sell_count': sell_trades.count(),
-        'gross_pnl': gross_pnl,
-        'total_volume': (total_notional_buys or 0) + (total_notional_sells or 0),
-    }
-    return render(request, 'trader_report.html', context)
+        return JsonResponse({
+            "status": "FAILED",
+            "error_message": message,
+            "equity": 0,
+            "buying_power": 0,
+            "positions": []
+        }, status=200)

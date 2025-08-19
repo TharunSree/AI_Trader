@@ -40,13 +40,6 @@
           </select>
         </div>
 
-        <div class="mb-3">
-            <label for="initial_cash_input" class="form-label small">Initial Simulated Cash ($)</label>
-            <input type="number" name="initial_cash" id="initial_cash_input" class="form-control form-control-sm"
-                   value="{{ trader.initial_cash|default_if_none:'100000' }}" step="1" required
-                   {% if trader_status == 'RUNNING' %}disabled{% endif %}>
-        </div>
-
         <button id="start-btn" class="btn btn-success btn-sm w-100" {% if trader_status == 'RUNNING' %}disabled{% endif %}>Start</button>
       </form>
 
@@ -266,6 +259,13 @@
     }
   }
 
+  function formatCurrency(value) {
+    return '$' + Number(value || 0).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
   function startSleepTimer(){
     const sleepB=document.getElementById('sleep-badge');
     sleepB.classList.remove('d-none');
@@ -281,6 +281,52 @@
       }
     },1000);
   }
+
+  function updateStatusUI(data) {
+    currentStatus = data.status;
+    const statusBadge = document.getElementById('bot-status-badge');
+    const startBtn = document.getElementById('start-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const modelSelect = document.getElementById('model_file_select');
+
+    if (data.status === 'RUNNING') {
+        statusBadge.innerHTML = `<span class="badge bg-success">RUNNING</span>`;
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        modelSelect.disabled = true;
+    } else if (data.status === 'FAILED') {
+        statusBadge.innerHTML = `<span class="badge bg-danger" title="${data.error_message || ''}">FAILED</span>`;
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+        modelSelect.disabled = false;
+    } else { // STOPPED
+        statusBadge.innerHTML = `<span class="badge bg-secondary">STOPPED</span>`;
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+        modelSelect.disabled = false;
+    }
+
+    document.getElementById('broker-equity').innerText = formatCurrency(data.equity);
+    document.getElementById('buying-power').innerText = formatCurrency(data.buying_power);
+
+    // Update positions table
+    if (positionsTable) {
+        positionsTable.clear();
+        (data.positions || []).forEach(p => {
+            const pnlClass = Number(p.unrealized_pl) >= 0 ? 'text-success' : 'text-danger';
+            const pnlFormatted = formatCurrency(p.unrealized_pl);
+
+            positionsTable.row.add([
+                p.symbol,
+                Number(p.qty).toLocaleString(),
+                formatCurrency(p.market_value),
+                `<span class="${pnlClass}">${pnlFormatted}</span>`
+            ]);
+        });
+        positionsTable.draw();
+    }
+}
+
   function updateSleepBadge(){
     const m=String(Math.floor(sleepSeconds/60)).padStart(2,'0');
     const s=String(sleepSeconds%60).padStart(2,'0');
@@ -299,60 +345,42 @@
     }
   }
 
-  function fetchStatus(){
-    fetch("{% url 'trader_status_api' %}?_="+Date.now(),{cache:'no-store'})
-      .then(r=>r.json())
-      .then(data=>{
-        currentStatus=data.status;
-        const badge=document.getElementById('trader-status-badge');
-        badge.className='badge '+statusBadgeClass(currentStatus);
-        badge.textContent=currentStatus;
-        document.getElementById('equity-val').textContent='$'+fmt(data.equity);
-        document.getElementById('bp-val').textContent='$'+fmt(data.buying_power);
-        // NEW: push equity point to chart
-        addEquityPoint(data.equity);
-        document.getElementById('start-btn').disabled=currentStatus==='RUNNING';
-        document.getElementById('stop-btn').disabled=currentStatus!=='RUNNING';
-        const errBox=document.getElementById('status-error');
-        if(data.error_message){
-          errBox.textContent=data.error_message;
-          errBox.classList.remove('d-none');
-        } else {
-          errBox.classList.add('d-none');
-          errBox.textContent='';
-        }
-        if(currentStatus==='RUNNING'){ ensureUptimeStart(); } else { clearUptime(); }
-        const sorted=(data.positions||[]).slice().sort((a,b)=>Number(b.market_value||0)-Number(a.market_value||0));
-        positionsTable.clear();
-        sorted.forEach(p=>{
-          positionsTable.row.add([
-            p.symbol,
-            Number(p.qty).toLocaleString(),
-            '$'+Number(p.market_value||0).toLocaleString(),
-            (Number(p.unrealized_pl)>=0?'<span class="text-success">+$'+Number(p.unrealized_pl).toLocaleString()+'</span>':
-              '<span class="text-danger">-$'+Math.abs(Number(p.unrealized_pl)).toLocaleString()+'</span>')
-          ]);
+  function fetchStatus() {
+    fetch("{% url 'trader_status_api' %}?_=" + Date.now(), { cache: 'no-store' })
+        .then(response => response.json())
+        .then(data => {
+            updateStatusUI(data);
+            setTimeout(fetchStatus, 5000); // Schedule next fetch
+        })
+        .catch(error => {
+            console.error("Failed to fetch trader status:", error);
+            setTimeout(fetchStatus, 10000); // Retry after a longer delay on error
         });
-        positionsTable.draw();
-        scheduleStatus();
-      })
-      .catch(()=>scheduleStatus());
-  }
+}
 
-  function fetchActivity(){
-    if(currentStatus!=='RUNNING'){ scheduleActivity(); return; }
-    fetch("{% url 'trader_activity_api' %}?_="+Date.now(),{cache:'no-store'})
-      .then(r=>r.json())
-      .then(d=>{
-        if(d.activity){ processActivityString(d.activity); }
-        scheduleActivity();
-      })
-      .catch(()=>scheduleActivity());
-  }
+  function fetchActivity() {
+    if (currentStatus !== 'RUNNING') {
+        document.getElementById('live-activity').innerText = 'Trader is not active.';
+        setTimeout(fetchActivity, 2000);
+        return;
+    }
+    fetch("{% url 'trader_activity_api' %}?_=" + Date.now(), { cache: 'no-store' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.activity) {
+                document.getElementById('live-activity').innerText = data.activity;
+            }
+            setTimeout(fetchActivity, 2000);
+        })
+        .catch(() => setTimeout(fetchActivity, 5000));
+}
+
 
   function wireControls(){
     document.getElementById('stop-btn').addEventListener('click',()=>{ document.getElementById('stop-form').submit(); });
   }
+
+
 
   function boot(){
     initPositions();
