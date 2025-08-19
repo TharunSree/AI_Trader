@@ -1,3 +1,5 @@
+# python
+# File: src/sessions/evaluation_session.py
 import logging
 import pandas as pd
 import numpy as np
@@ -38,16 +40,42 @@ class EvaluationSession:
         if raw_df.empty:
             raise ValueError("Evaluation data loading failed.")
 
-        featured_df = calculate_features(raw_df)
-        backtest_df = featured_df.loc[self.config['start_date']:]
+        # Defensive: ensure timestamp column exists
+        if 'timestamp' not in raw_df.columns:
+            # If already indexed correctly, reset; otherwise cannot proceed
+            if isinstance(raw_df.index, pd.DatetimeIndex):
+                raw_df = raw_df.reset_index().rename(columns={'index': 'timestamp'})
+            else:
+                raise ValueError("DataFrame missing 'timestamp' column.")
 
+        # Defensive: ensure symbol column
+        if 'symbol' not in raw_df.columns:
+            sym = loader.tickers[0] if getattr(loader, 'tickers', None) else 'SPY'
+            raw_df['symbol'] = sym
+            logger.info("Inserted missing 'symbol' column for evaluation dataset.")
+
+        # Set datetime index for slicing
+        if not isinstance(raw_df['timestamp'].dtype, pd.DatetimeTZDtype) and not isinstance(raw_df.index,
+                                                                                            pd.DatetimeIndex):
+            raw_df['timestamp'] = pd.to_datetime(raw_df['timestamp'])
+        raw_df = raw_df.sort_values('timestamp').set_index('timestamp')
+
+        featured_df = calculate_features(raw_df)
+        # After feature calc, keep symbol
+        if 'symbol' not in featured_df.columns:
+            featured_df['symbol'] = raw_df['symbol']
+
+        backtest_df = featured_df.loc[self.config['start_date']:]
         if len(backtest_df) < window_size + 1:
             raise ValueError(f"Not enough data in range. Need {window_size + 1} days, got {len(backtest_df)}.")
 
         env = TradingEnv(
-            df=backtest_df, observation_columns=observation_columns,
-            window_size=window_size, initial_cash=100_000,
-            transaction_cost_pct=0.001, slippage_pct=0.0005
+            df=backtest_df,
+            observation_columns=observation_columns,
+            window_size=window_size,
+            initial_cash=100_000,
+            transaction_cost_pct=0.001,
+            slippage_pct=0.0005
         )
 
         obs, _ = env.reset(start_at_beginning=True)
@@ -67,7 +95,6 @@ class EvaluationSession:
 
         daily_returns = pd.Series(equity_curve).pct_change().dropna()
         total_return_pct = (equity_curve[-1] / equity_curve[0] - 1) * 100
-
         sharpe_ratio = (daily_returns.mean() / daily_returns.std()) * np.sqrt(252) if daily_returns.std() > 0 else 0.0
 
         return {
@@ -75,8 +102,16 @@ class EvaluationSession:
             "sharpe_ratio": round(sharpe_ratio, 2),
             "final_equity": round(equity_curve[-1], 2),
             "trade_log": [
-                {'timestamp': str(t['timestamp']), 'action': t['action'], 'symbol': t['symbol'],
-                 'quantity': round(t['quantity'], 4), 'price': round(t['price'], 2)} for t in env.trade_log],
-            "equity_chart": {"dates": [str(d) for d in dates],
-                             "equity": [round(e, 2) for e in equity_curve]}
+                {
+                    'timestamp': str(t['timestamp']),
+                    'action': t['action'],
+                    'symbol': t.get('symbol', 'SPY'),
+                    'quantity': round(t['quantity'], 4),
+                    'price': round(t['price'], 2)
+                } for t in env.trade_log
+            ],
+            "equity_chart": {
+                "dates": [str(d) for d in dates],
+                "equity": [round(e, 2) for e in equity_curve]
+            }
         }
