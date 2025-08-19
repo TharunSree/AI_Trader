@@ -1,6 +1,8 @@
 # control_panel/views.py
 from celery.result import AsyncResult
 from decimal import Decimal
+import time
+import logging
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
@@ -16,6 +18,7 @@ from pathlib import Path
 from .tasks import run_training_job_task, stop_celery_task, run_meta_trainer_task, run_paper_trader_task, \
     run_evaluation_task
 
+logger = logging.getLogger(__name__)
 
 @login_required
 def dashboard_view(request):
