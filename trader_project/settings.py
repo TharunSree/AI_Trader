@@ -28,9 +28,9 @@ load_dotenv(BASE_DIR / '.env')
 SECRET_KEY = "django-insecure-m5wcmhxo5-xme#vego5zj+xrzi0@!#^vr!h9@)(8la(2ko=z72"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ['trading.tarunsree.live','www.trading.tarunsree.live']
+ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -134,7 +134,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = 'Asia/Kolkata'
 
 USE_I18N = True
 

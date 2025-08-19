@@ -1,128 +1,166 @@
+# src/sessions/trading_session.py
 import logging
 import time
 from pathlib import Path
 import torch
-from django.conf import settings
 from datetime import datetime, timedelta
 
-from src.execution.scanner import Scanner
+# --- Django Imports for DB access ---
+import os
+import django
+
+# Ensure Django is configured before importing models
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'trader_project.settings')
+django.setup()
+
+from src.data.preprocessor import calculate_features
+from src.models.ppo_agent import PPOAgent
 from src.execution.broker import Broker
 from src.execution.risk_manager import RiskManager
-from src.models.ppo_agent import PPOAgent
-from src.data.preprocessor import calculate_features
+from src.utils.logger import setup_logging
+from src.execution.scanner import Scanner
 from src.data.yfinance_loader import YFinanceLoader
-
-logger = logging.getLogger('rl_trading_backend')
+from src.core.portfolio import Portfolio
+from control_panel.models import PaperTrader, TradeLog
 
 
 class TradingSession:
-    """Encapsulates a live paper or real trading session."""
-
-    def __init__(self, config: dict, abort_flag_callback):
+    def __init__(self, config, abort_flag_callback=None):
+        setup_logging()
+        self.log = logging.getLogger(self.__class__.__name__)
         self.config = config
-        self.abort_flag_callback = abort_flag_callback
+        self.should_abort = abort_flag_callback or (lambda: False)
         self.task = None
 
-    def run(self):
-        logger.info(f"DEBUG: TradingSession.run() started with model: {self.config['model_file']}")
+        model_path = Path("saved_models") / self.config['model_file']
+        self.agent, self.model_config = PPOAgent.load_with_config(model_path)
+        self.agent.actor.eval()
+        self.log.info(f"Loaded model with config: {self.model_config}")
 
-        model_path = settings.BASE_DIR / "saved_models" / self.config['model_file']
-        if not model_path.exists(): raise FileNotFoundError(f"Model file not found at {model_path}")
+        self.broker = Broker()
+        self.risk_manager = RiskManager(self.broker, base_trade_usd=50.00, max_trade_usd=200.00)
+        self.scanner = Scanner()
+        self.portfolio = Portfolio(initial_cash=self.config.get('initial_cash', 100000.0))
+        self.trader = PaperTrader.objects.get(id=self.config['trader_id'])
 
-        agent, model_config = PPOAgent.load_with_config(model_path)
-        agent.actor.eval()
+    def update_activity(self, message):
+        """Update Celery task state with current activity."""
+        if self.task:
+            current_prices = self.get_current_prices_for_portfolio()
+            portfolio_value = self.portfolio.get_equity(current_prices) if current_prices else self.portfolio.cash
+            self.task.update_state(state='PROGRESS', meta={
+                'activity': message,
+                'timestamp': datetime.now().isoformat(),
+                'portfolio_value': f"${portfolio_value:,.2f}"
+            })
 
-        window_size = model_config['window']
-        observation_columns = model_config['features']
+    def get_current_prices_for_portfolio(self):
+        """Helper to get prices for assets currently in the simulated portfolio."""
+        prices = {}
+        for symbol in self.portfolio.positions.keys():
+            try:
+                _, price = self.create_state_from_live_data(symbol)
+                if price:
+                    prices[symbol] = price
+            except Exception as e:
+                self.log.warning(f"Could not fetch price for portfolio asset {symbol}: {e}")
+        return prices
 
-        broker = Broker()
-        risk_manager = RiskManager(broker, base_trade_usd=5.00, max_trade_usd=20.00)
-        scanner = Scanner()
-
-        while not self.abort_flag_callback():
-            logger.info("DEBUG: Main `while` loop started an iteration.")
-
-            buying_power = broker.get_buying_power()
-
-            if self.task: self.task.update_state(state='PROGRESS', meta={'activity': 'Scanning...'})
-            hot_list = scanner.scan_for_opportunities(buying_power=buying_power)
-
-            if not hot_list:
-                logger.info("DEBUG: `hot_list` was empty. Proceeding to sleep cycle.")
-            else:
-                logger.info(f"DEBUG: `hot_list` found {len(hot_list)} items. Entering `for` loop.")
-
-                for i, ticker in enumerate(hot_list):
-                    if self.abort_flag_callback():
-                        logger.info(f"DEBUG: Abort flag was True. Breaking `for` loop at ticker {ticker}.")
-                        break
-
-                    logger.info(f"DEBUG: --- Top of `for` loop for ticker: {ticker} ({i + 1}/{len(hot_list)}) ---")
-                    if self.task: self.task.update_state(state='PROGRESS', meta={'activity': f'Analyzing {ticker}...'})
-
-                    state, price = self.create_state_for_model(ticker, window_size, observation_columns)
-                    if state is None:
-                        logger.warning(
-                            f"DEBUG: `create_state_for_model` returned None for {ticker}. Continuing to next ticker.")
-                        continue
-
-                    logger.info(f"DEBUG: State created for {ticker}. Getting agent action.")
-                    with torch.no_grad():
-                        action_probs = agent.actor(state.to(agent.device))
-                        confidence, action = torch.max(action_probs, 0)
-                        action, confidence = action.item(), confidence.item()
-
-                    logger.info(f"DEBUG: Agent action for {ticker} is {action}. Checking trade with risk manager.")
-
-                    is_approved, notional_value = risk_manager.check_trade(ticker, action, confidence)
-                    if is_approved:
-                        logger.info(f"DEBUG: Trade approved for {ticker}. Placing order.")
-                        side = 'buy' if action == 1 else 'sell'
-                        success = broker.place_market_order(symbol=ticker, side=side, notional_value=notional_value)
-
-                        if success:
-                            logger.info(f"DEBUG: Order placed successfully for {ticker}.")
-                        else:
-                            logger.warning(f"DEBUG: Order placement failed for {ticker}.")
-
-                    logger.info(f"DEBUG: --- Bottom of `for` loop for ticker: {ticker}. Pausing. ---")
-                    time.sleep(2)  # Shortened pause for debugging
-
-                logger.info("DEBUG: `for` loop has completed for all tickers.")
-
-            interval_minutes = self.config.get('interval_minutes', 10)
-            logger.info(f"DEBUG: Proceeding to sleep cycle for {interval_minutes} minutes.")
-            if self.task:
-                self.task.update_state(state='PROGRESS', meta={'activity': 'Sleeping...'})
-
-            countdown_seconds = interval_minutes * 60
-            for remaining in range(countdown_seconds, 0, -1):
-                if self.abort_flag_callback():
-                    logger.info("DEBUG: Abort flag was True. Breaking sleep loop.")
-                    break
-                if self.task:
-                    m, s = divmod(remaining, 60)
-                    self.task.update_state(
-                        state='PROGRESS',
-                        meta={'activity': f'Sleeping... ({m:02d}:{s:02d} remaining)'}
-                    )
-                time.sleep(1)
-
-        logger.info("DEBUG: Main `while` loop has ended.")
-
-    def create_state_for_model(self, ticker: str, window_size: int, observation_columns: list):
-        """Helper function to create a state from live data for a specific model's needs."""
+    def create_state_from_live_data(self, ticker: str):
         end_date = datetime.now()
-        start_date = end_date - timedelta(days=150)
-        loader = YFinanceLoader([ticker], start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
+        start_date = end_date - timedelta(days=365)
+        loader = YFinanceLoader([ticker], start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
         df = loader.load_data()
-        if df.empty or len(df) < 30: return None, None
+
+        if df.empty or len(df) < self.model_config.get('window', 5) * 2:
+            return None, None
 
         featured_df = calculate_features(df)
-        if len(featured_df) < window_size: return None, None
+        window_size = self.model_config['window']
+
+        if len(featured_df) < window_size:
+            return None, None
 
         window = featured_df.iloc[-window_size:]
-        current_price = window['Close'].iloc[-1].item()
+        current_price = window["Close"].iloc[-1].item()
+        observation_cols = self.model_config['features']
+        observation = window[observation_cols].values.flatten()
+        state = torch.FloatTensor(observation).to(self.agent.device)
+        return state, current_price
 
-        observation = window[observation_columns].values.flatten()
-        return torch.FloatTensor(observation), current_price
+    def run(self):
+        self.log.info("Starting main scanning and trading loop...")
+        self.update_activity("Starting trading session...")
+
+        try:
+            while not self.should_abort():
+                # --- FIX: Get the current buying power from the broker ---
+                current_buying_power = self.broker.get_buying_power()
+                self.update_activity(f"Scanning market (BP: ${current_buying_power:,.2f})...")
+
+                # --- FIX: Pass the buying_power argument to the scanner ---
+                hot_list = self.scanner.scan_for_opportunities(buying_power=current_buying_power)
+
+                if not hot_list:
+                    self.log.info("No promising opportunities found in this scan.")
+                else:
+                    self.log.info(f"Scanner found {len(hot_list)} potential opportunities: {hot_list}")
+                    for ticker in hot_list:
+                        if self.should_abort():
+                            break
+                        self.update_activity(f"Analyzing {ticker}...")
+
+                        state, current_price = self.create_state_from_live_data(ticker)
+                        if state is None:
+                            self.log.warning(f"Could not create state for {ticker}. Skipping.")
+                            continue
+
+                        with torch.no_grad():
+                            action_probs = self.agent.actor(state)
+                            confidence, action = torch.max(action_probs, 0)
+                            action = action.item()
+                            confidence = confidence.item()
+
+                        self.log.info(
+                            f"[{ticker}] Price: ${current_price:.2f} | Action: {['HOLD', 'BUY', 'SELL'][action]} (Conf: {confidence:.2f})")
+
+                        is_approved, notional_value = self.risk_manager.check_trade(ticker, action, confidence)
+                        if is_approved:
+                            side = "buy" if action == 1 else "sell"
+                            quantity = notional_value / current_price
+
+                            self.update_activity(f"Placing {side.upper()} order for {ticker}...")
+
+                            # Place the actual order with the broker
+                            self.broker.place_market_order(symbol=ticker, side=side, notional_value=notional_value)
+
+                            # Log the simulated trade to the database
+                            TradeLog.objects.create(
+                                trader=self.trader, symbol=ticker, action=side.upper(),
+                                quantity=quantity, price=current_price, notional_value=notional_value
+                            )
+                            # Update our internal simulated portfolio
+                            if side == "buy":
+                                self.portfolio.buy(ticker, quantity, current_price)
+                            elif side == "sell":
+                                # For a sell, we assume we're selling the whole simulated position
+                                if ticker in self.portfolio.positions:
+                                    sim_quantity = self.portfolio.positions[ticker]['quantity']
+                                    self.portfolio.sell(ticker, sim_quantity, current_price)
+
+                            self.log.info(f"Logged {side.upper()} trade for {ticker}.")
+
+                        time.sleep(2)  # Small delay between processing tickers
+
+                self.update_activity(f"Scan complete. Sleeping for {self.config['interval_minutes']} minutes...")
+
+                # Sleep in smaller chunks to remain responsive to the stop signal
+                sleep_duration = self.config['interval_minutes'] * 60
+                for _ in range(sleep_duration // 5):
+                    if self.should_abort():
+                        break
+                    time.sleep(5)
+
+        except Exception as e:
+            self.log.error(f"A critical error occurred in trading session: {e}", exc_info=True)
+            raise  # Re-raise the exception to be handled by the Celery task

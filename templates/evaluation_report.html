@@ -7,8 +7,13 @@
     <link href="{% static 'vendor/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}" rel="stylesheet" type="text/css" />
 {% endblock extra_css %}
 
+{% block page_title %}
+{% with topbarTitle="Evaluation Report: " %}
+    {% include 'partials/topbar.html' with topbarTitle=topbarTitle|add:job.model_file %}
+{% endwith %}
+{% endblock page_title %}
+
 {% block page_content %}
-    {% include 'partials/page-title.html' with title="Evaluation Report" subtitle="Job #"|add:job.id %}
 
     <div class="row">
         <div class="col-12">

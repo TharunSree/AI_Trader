@@ -21,6 +21,8 @@ urlpatterns = [
     path('api/trader-status/', views.trader_status_api, name='trader_status_api'),
     path('api/trader-activity/', views.trader_activity_api, name='trader_activity_api'),
 
+    path('trader-report/', views.trader_report_view, name='trader_report'),
+
     path('real-trading/', views.realtrading_view, name='realtrading'),
     path('settings/', views.settings_view, name='settings'),
 ]

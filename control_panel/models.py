@@ -1,4 +1,5 @@
 # control_panel/models.py
+import uuid
 
 from django.db import models
 
@@ -54,6 +55,7 @@ class PaperTrader(models.Model):
     model_file = models.CharField(max_length=255, null=True, blank=True, help_text="e.g., best_agent.pth")
     celery_task_id = models.CharField(max_length=255, null=True, blank=True, editable=False)
     error_message = models.TextField(null=True, blank=True)
+    initial_cash = models.DecimalField(max_digits=15, decimal_places=2, default=100000.00)
 
     def __str__(self):
         return f"Paper Trading Bot - Status: {self.status}"
@@ -81,6 +83,19 @@ class EvaluationJob(models.Model):
     def __str__(self):
         return f"Evaluation Job #{self.id} for {self.model_file}"
 
+
+class TradeLog(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    symbol = models.CharField(max_length=10)
+    action = models.CharField(max_length=4)  # BUY or SELL
+    quantity = models.DecimalField(max_digits=15, decimal_places=8)
+    price = models.DecimalField(max_digits=15, decimal_places=2)
+    notional_value = models.DecimalField(max_digits=15, decimal_places=2)
+    trader = models.ForeignKey(PaperTrader, on_delete=models.CASCADE, related_name='trades')
+
+    def __str__(self):
+        return f"{self.timestamp} - {self.action} {self.quantity} {self.symbol} @ {self.price}"
 
 
 class SystemSettings(models.Model):

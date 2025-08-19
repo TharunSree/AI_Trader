@@ -1,3 +1,4 @@
+# src/core/environment.py
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
@@ -21,10 +22,8 @@ class TradingEnv(gym.Env):
 
         num_features = len(self.observation_columns)
         self.observation_space = spaces.Box(
-            low=-np.inf,
-            high=np.inf,
-            shape=(window_size * num_features,),
-            dtype=np.float32,
+            low=-np.inf, high=np.inf,
+            shape=(window_size * num_features,), dtype=np.float32,
         )
 
         self.portfolio = None
@@ -36,7 +35,9 @@ class TradingEnv(gym.Env):
         if start_at_beginning:
             self.current_step = self.window_size
         else:
-            self.current_step = random.randint(self.window_size, len(self.df) - 2)
+            # Start at a random point in the first 80% of the data to ensure test data remains unseen
+            max_start = int((len(self.df) - 2) * 0.8)
+            self.current_step = random.randint(self.window_size, max_start)
 
         self.portfolio = Portfolio(self.initial_cash, self.transaction_cost_pct)
         self.trade_log = []
@@ -44,23 +45,36 @@ class TradingEnv(gym.Env):
 
     def step(self, action):
         prev_equity = self.portfolio.get_equity(self._get_current_prices())
-
         trade_profit_loss = self._execute_trade(action)
-
         self.current_step += 1
 
         current_equity = self.portfolio.get_equity(self._get_current_prices())
         step_reward = current_equity - prev_equity
 
+        # --- REWARD SHAPING ---
+        # 1. Heavily reward realized profits
         if trade_profit_loss > 0:
-            step_reward += trade_profit_loss  # Add realized profit to reward
+            step_reward += trade_profit_loss * 0.5  # Add 50% of realized profit to reward
+
+        # 2. Penalize realized losses more
         elif trade_profit_loss < 0:
-            step_reward += trade_profit_loss  # Add realized loss (penalty)
+            step_reward += trade_profit_loss * 1.5  # Penalize 150% of realized loss
 
+        # 3. Small penalty for holding cash and doing nothing
         if action == 0 and not self.portfolio.positions:
-            step_reward -= self.initial_cash * 1e-5  # Tiny penalty for inaction
+            step_reward -= self.initial_cash * 1e-7
 
-        done = current_equity <= 0 or self.current_step >= len(self.df) - 1
+        # 4. Include unrealized P&L to give a continuous signal
+        unrealized_pnl = 0
+        if self.portfolio.positions:
+            current_price = self._get_current_prices().get("SPY", 0)
+            entry_price = self.portfolio.positions["SPY"]["entry_price"]
+            quantity = self.portfolio.positions["SPY"]["quantity"]
+            unrealized_pnl = (current_price - entry_price) * quantity
+
+        step_reward += unrealized_pnl * 0.05  # Add 5% of unrealized P&L to reward
+
+        done = current_equity <= self.initial_cash * 0.5 or self.current_step >= len(self.df) - 1
 
         return self._get_observation(), step_reward, done, False, {}
 
@@ -71,8 +85,7 @@ class TradingEnv(gym.Env):
         return obs_df.values.flatten().astype(np.float32)
 
     def _get_current_prices(self):
-        prices = {}
-        prices["SPY"] = self.df["Close"].iloc[self.current_step].item()
+        prices = {"SPY": self.df["Close"].iloc[self.current_step].item()}
         return prices
 
     def _execute_trade(self, action):
@@ -82,17 +95,18 @@ class TradingEnv(gym.Env):
 
         price_with_slippage = current_price
         if action == 1:  # Buy
-            price_with_slippage = current_price * (1 + self.slippage_pct)
+            price_with_slippage *= (1 + self.slippage_pct)
         elif action == 2:  # Sell
-            price_with_slippage = current_price * (1 - self.slippage_pct)
+            price_with_slippage *= (1 - self.slippage_pct)
 
         if action == 1:  # Buy
+            # Buy with 95% of available cash
             trade_value = self.portfolio.cash * 0.95
-            if trade_value > 10:
+            if trade_value > 10:  # Minimum trade
                 quantity = trade_value / price_with_slippage
                 self.portfolio.buy(symbol, quantity, price_with_slippage)
-                self.trade_log.append({'timestamp': timestamp, 'action': 'BUY', 'symbol': symbol, 'quantity': quantity,
-                                       'price': price_with_slippage})
+                self.trade_log.append(
+                    {'timestamp': timestamp, 'action': 'BUY', 'quantity': quantity, 'price': price_with_slippage})
             return 0
 
         elif action == 2:  # Sell
@@ -101,8 +115,7 @@ class TradingEnv(gym.Env):
                 entry_price = self.portfolio.positions[symbol]["entry_price"]
                 profit_loss = (price_with_slippage - entry_price) * quantity
                 self.portfolio.sell(symbol, quantity, price_with_slippage)
-                self.trade_log.append({'timestamp': timestamp, 'action': 'SELL', 'symbol': symbol, 'quantity': quantity,
-                                       'price': price_with_slippage})
+                self.trade_log.append(
+                    {'timestamp': timestamp, 'action': 'SELL', 'quantity': quantity, 'price': price_with_slippage})
                 return profit_loss
-
         return 0

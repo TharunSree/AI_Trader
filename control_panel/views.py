@@ -5,11 +5,12 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 import json
-
+from django.db.models import Sum, Count, Avg, Value, DecimalField
+from django.db.models.functions import Coalesce
 from src.execution.broker import Broker
 from src.strategies import STRATEGY_PLAYBOOK
 from .env_manager import write_env_value, read_env_value
-from .models import TrainingJob, MetaTrainingJob, PaperTrader, EvaluationJob, SystemSettings
+from .models import TrainingJob, MetaTrainingJob, PaperTrader, EvaluationJob, SystemSettings, TradeLog
 from pathlib import Path
 from .tasks import run_training_job_task, stop_celery_task, run_meta_trainer_task, run_paper_trader_task, \
     run_evaluation_task
@@ -100,9 +101,18 @@ def _get_available_models():
 # --- NEW: Views to start and stop the trader ---
 @login_required
 def papertrading_view(request):
-    model_files = _get_available_models()
-    trader, created = PaperTrader.objects.get_or_create(id=1)
-    context = {'model_files': model_files, 'trader_status': trader.status}
+    """
+    Displays the main paper trading page and its current state.
+    """
+    trader, _ = PaperTrader.objects.get_or_create(id=1)
+    saved_models_path = Path("saved_models")
+    model_files = [p.name for p in saved_models_path.glob("*.pth")] if saved_models_path.exists() else []
+
+    context = {
+        'trader': trader,
+        'trader_status': trader.status,
+        'model_files': model_files
+    }
     return render(request, 'papertrading.html', context)
 
 
@@ -110,17 +120,39 @@ def papertrading_view(request):
 def start_trader_view(request):
     if request.method == 'POST':
         model_file = request.POST.get('model_file')
+        initial_cash = request.POST.get('initial_cash') or '100000'
         trader, _ = PaperTrader.objects.get_or_create(id=1)
 
-        # Reset previous error before (re)starting
+        # Allow start unless already RUNNING
+        if trader.status == 'RUNNING':
+            messages.info(request, "Trader already running.")
+            return redirect('papertrading')
+
+        if not model_file:
+            messages.error(request, "Select a model file first.")
+            return redirect('papertrading')
+
+        # Set pre-dispatch state so worker sees it
+        trader.status = 'STARTING'
         trader.error_message = ''
-        # Allow restart from FAILED state too
-        if trader.status in ('STOPPED', 'FAILED') and model_file:
-            task = run_paper_trader_task.delay(trader.id, model_file)
-            trader.status = 'RUNNING'
-            trader.model_file = model_file
-            trader.celery_task_id = task.id
-            trader.save()
+        trader.model_file = model_file
+        trader.initial_cash = initial_cash
+        trader.celery_task_id = ''
+        trader.save()
+
+        try:
+            async_res = run_paper_trader_task.apply_async(args=[trader.id, model_file, initial_cash])
+        except Exception as e:
+            trader.status = 'FAILED'
+            trader.error_message = f'Queue dispatch failed: {e}'
+            trader.save(update_fields=['status', 'error_message'])
+            messages.error(request, f"Failed to enqueue task: {e}")
+            return redirect('papertrading')
+
+        trader.celery_task_id = async_res.id
+        trader.status = 'RUNNING'
+        trader.save(update_fields=['celery_task_id', 'status'])
+        messages.success(request, f"Trader task queued ({async_res.id}).")
     return redirect('papertrading')
 
 
@@ -332,3 +364,36 @@ def trader_activity_api(request):
 
     # If the bot isn't running or has no status, return a default message
     return JsonResponse({'activity': 'Not Running'})
+
+
+@login_required
+def trader_report_view(request):
+    trader, _ = PaperTrader.objects.get_or_create(id=1)
+    trades = TradeLog.objects.filter(trader=trader).order_by('-timestamp')
+
+    # Define a decimal zero matching your notional_value field precision
+    ZERO_DEC = Value(0, output_field=DecimalField(max_digits=20, decimal_places=2))
+
+    sell_trades = trades.filter(action='SELL')
+    buy_trades = trades.filter(action='BUY')
+
+    total_notional_sells = sell_trades.aggregate(
+        total=Coalesce(Sum('notional_value'), ZERO_DEC)
+    )['total']
+
+    total_notional_buys = buy_trades.aggregate(
+        total=Coalesce(Sum('notional_value'), ZERO_DEC)
+    )['total']
+
+    gross_pnl = (total_notional_sells or 0) - (total_notional_buys or 0)
+
+    context = {
+        'trader': trader,
+        'all_trades': trades,
+        'total_trades': trades.count(),
+        'buy_count': buy_trades.count(),
+        'sell_count': sell_trades.count(),
+        'gross_pnl': gross_pnl,
+        'total_volume': (total_notional_buys or 0) + (total_notional_sells or 0),
+    }
+    return render(request, 'trader_report.html', context)

@@ -23,28 +23,40 @@
 <div class="row row-cols-1 row-cols-lg-4 g-3 top-panels mb-3">
   <!-- Controls -->
   <div class="col">
-    <div class="card h-100">
-      <div class="card-body d-flex flex-column">
-        <h5 class="mb-3">Controls</h5>
-        <form id="start-form" method="post" action="{% url 'start_trader' %}" class="mb-2">
-          {% csrf_token %}
-          <div class="mb-2">
-            <select name="model_file" class="form-select form-select-sm" required {% if trader_status == 'RUNNING' %}disabled{% endif %}>
-              <option value="" disabled selected>Select model</option>
-              {% for f in model_files %}
-              <option value="{{ f }}">{{ f }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <button id="start-btn" class="btn btn-success btn-sm w-100" {% if trader_status == 'RUNNING' %}disabled{% endif %}>Start</button>
-        </form>
-        <form id="stop-form" method="post" action="{% url 'stop_trader' %}" class="mt-auto">
-          {% csrf_token %}
-          <button id="stop-btn" type="button" class="btn btn-danger btn-sm w-100" {% if trader_status != 'RUNNING' %}disabled{% endif %}>Stop</button>
-        </form>
-      </div>
+  <div class="card h-100">
+    <div class="card-body d-flex flex-column">
+      <h5 class="mb-3">Controls</h5>
+
+      <form id="start-form" method="post" action="{% url 'start_trader' %}" class="mb-2">
+        {% csrf_token %}
+
+        <div class="mb-2">
+          <label for="model_file_select" class="form-label small">Select Model</label>
+          <select name="model_file" id="model_file_select" class="form-select form-select-sm" required {% if trader_status == 'RUNNING' %}disabled{% endif %}>
+            <option value="" disabled selected>Select a model to run</option>
+            {% for f in model_files %}
+            <option value="{{ f }}" {% if f == trader.model_file %}selected{% endif %}>{{ f }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="initial_cash_input" class="form-label small">Initial Simulated Cash ($)</label>
+            <input type="number" name="initial_cash" id="initial_cash_input" class="form-control form-control-sm"
+                   value="{{ trader.initial_cash|default_if_none:'100000' }}" step="1" required
+                   {% if trader_status == 'RUNNING' %}disabled{% endif %}>
+        </div>
+
+        <button id="start-btn" class="btn btn-success btn-sm w-100" {% if trader_status == 'RUNNING' %}disabled{% endif %}>Start</button>
+      </form>
+
+      <form id="stop-form" method="post" action="{% url 'stop_trader' %}" class="mt-auto">
+        {% csrf_token %}
+        <button id="stop-btn" type="button" class="btn btn-danger btn-sm w-100" {% if trader_status != 'RUNNING' %}disabled{% endif %}>Stop</button>
+      </form>
     </div>
   </div>
+</div>
 
   <!-- Bot Status -->
   <div class="col">
@@ -182,15 +194,17 @@
       dataLabels:{enabled:false},
       stroke:{curve:'smooth',width:2},
       colors:['#35b8e0'],
-      fill:{type:'gradient',gradient:{shadeIntensity:.4,opacityFrom:.6,opacityTo:.1,stops:[0,90,100]}}
+      fill:{type:'gradient',gradient:{shadeIntensity:.4,opacityFrom:.6,opacityTo:.1,stops:[0,90,100]}},
+      noData:{text:'Waiting for data...'}
     });
     equityChart.render();
   }
 
   function addEquityPoint(val){
+    if(val==null || isNaN(val)) return;
     const last=equitySeries[equitySeries.length-1];
-    if(!last||last.y!==val){
-      equitySeries.push({x:Date.now(),y:val});
+    if(!last || last.y!==Number(val)){
+      equitySeries.push({x:Date.now(),y:Number(val)});
       if(equitySeries.length>MAX_POINTS) equitySeries.splice(0,equitySeries.length-MAX_POINTS);
       equityChart.updateSeries([{name:'Equity',data:equitySeries}]);
     }
@@ -295,6 +309,8 @@
         badge.textContent=currentStatus;
         document.getElementById('equity-val').textContent='$'+fmt(data.equity);
         document.getElementById('bp-val').textContent='$'+fmt(data.buying_power);
+        // NEW: push equity point to chart
+        addEquityPoint(data.equity);
         document.getElementById('start-btn').disabled=currentStatus==='RUNNING';
         document.getElementById('stop-btn').disabled=currentStatus!=='RUNNING';
         const errBox=document.getElementById('status-error');
@@ -306,7 +322,6 @@
           errBox.textContent='';
         }
         if(currentStatus==='RUNNING'){ ensureUptimeStart(); } else { clearUptime(); }
-        // positions
         const sorted=(data.positions||[]).slice().sort((a,b)=>Number(b.market_value||0)-Number(a.market_value||0));
         positionsTable.clear();
         sorted.forEach(p=>{
@@ -343,7 +358,7 @@
     initPositions();
     initChart();
     wireControls();
-    fetchStatus();
+    fetchStatus();          // will add first equity point
     fetchActivity();
     tickUptime();
   }

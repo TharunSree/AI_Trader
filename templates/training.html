@@ -104,18 +104,18 @@
                 <table id="meta-jobs-table" class="table table-striped dt-responsive nowrap w-100">
                     <thead>
                     <tr>
-                        <th>Job ID</th>
-                        <th>Status</th>
-                        <th>Progress</th>
-                        <th>Best Sharpe Ratio</th>
-                        <th>Actions</th>
+                        <th class="text-center">Job ID</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-center">Progress</th>
+                        <th class="text-center">Best Sharpe Ratio</th>
+                        <th class="text-center">Actions</th>
                     </tr>
                     </thead>
                     <tbody>
                     {% for job in meta_training_jobs %}
                     <tr id="meta-job-row-{{ job.id }}">
-                        <td>#{{ job.id }}</td>
-                        <td id="meta-job-status-{{ job.id }}">
+                        <td class="text-center">{{ job.id }}</td>
+                        <td id="meta-job-status-{{ job.id }}" class="text-center">
                             {% include "partials/status_badge.html" with status=job.status %}
                             {% if job.status == 'FAILED' and job.error_message %}
                                 <span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top"
@@ -124,17 +124,17 @@
                                 </span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td class="text-center">
                             <div class="progress progress-sm">
                                 <div id="meta-job-progress-{{ job.id }}"
                                      class="progress-bar {% if job.status == 'RUNNING' %}progress-bar-animated{% endif %} bg-primary"
                                      role="progressbar" style="width: {{ job.progress }}%;"></div>
                             </div>
                         </td>
-                        <td id="meta-job-sharpe-{{ job.id }}">
+                        <td id="meta-job-sharpe-{{ job.id }}" class="text-center">
                             {% if job.results.sharpe_ratio %}{{ job.results.sharpe_ratio|floatformat:2 }}{% else %}-{% endif %}
                         </td>
-                        <td>
+                        <td class="text-center">
                             <form action="{% url 'stop_meta_job' job.id %}" method="POST" class="d-inline">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-danger btn-sm"
@@ -161,19 +161,19 @@
                 <table id="training-jobs-table" class="table table-striped dt-responsive nowrap w-100">
                     <thead>
                     <tr>
-                        <th>Job ID</th>
-                        <th>Status</th>
-                        <th>Progress</th>
-                        <th>Best Reward</th>
-                        <th>Config</th>
-                        <th>Actions</th>
+                        <th class="text-center">Job ID</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-center">Progress</th>
+                        <th class="text-center">Best Reward</th>
+                        <th class="text-center">Config</th>
+                        <th class="text-center">Actions</th>
                     </tr>
                     </thead>
                     <tbody>
                     {% for job in training_jobs %}
                     <tr id="job-row-{{ job.id }}">
-                        <td>#{{ job.id }}</td>
-                        <td id="job-status-{{ job.id }}">
+                        <td class="text-center">{{ job.id }}</td>
+                        <td id="job-status-{{ job.id }}" class="text-center">
                             {% include "partials/status_badge.html" with status=job.status %}
                             {% if job.status == 'FAILED' and job.error_message %}
                                 <span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top"
@@ -182,16 +182,16 @@
                                 </span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td class="text-center">
                             <div class="progress progress-sm">
                                 <div id="job-progress-{{ job.id }}"
                                      class="progress-bar {% if job.status == 'RUNNING' %}progress-bar-animated{% endif %} bg-success"
                                      role="progressbar" style="width: {{ job.progress }}%;"></div>
                             </div>
                         </td>
-                        <td id="job-reward-{{ job.id }}">${{ job.best_reward|floatformat:2 }}</td>
-                        <td>{{ job.feature_set_key }} / {{ job.hyperparameter_key }} / {{ job.window_size }}w / ${{ job.initial_cash|floatformat:0 }}</td>
-                        <td>
+                        <td id="job-reward-{{ job.id }}" class="text-center">${{ job.best_reward|floatformat:2 }}</td>
+                        <td class="text-center">{{ job.feature_set_key }} / {{ job.hyperparameter_key }} / {{ job.window_size }}w / ${{ job.initial_cash|floatformat:0 }}</td>
+                        <td class="text-center">
                             <form action="{% url 'stop_job' job.id %}" method="POST" class="d-inline">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-danger btn-sm"
