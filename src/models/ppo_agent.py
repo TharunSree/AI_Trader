@@ -72,7 +72,8 @@ class PPOAgent:
             logger.error(f"Model file not found at {path}")
             raise FileNotFoundError(f"No model file at {path}")
 
-        checkpoint = torch.load(path, map_location=self.device)
+        # --- FIX: Added weights_only=False to allow loading pickled data ---
+        checkpoint = torch.load(path, map_location=self.device, weights_only=False)
         self.actor.load_state_dict(checkpoint['actor_state_dict'])
         self.critic.load_state_dict(checkpoint['critic_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
@@ -89,7 +90,8 @@ class PPOAgent:
             logger.error(f"Model file not found at {path}")
             raise FileNotFoundError(f"No model file at {path}")
 
-        checkpoint = torch.load(path, map_location=device)
+        # --- FIX: Added weights_only=False to allow loading pickled data ---
+        checkpoint = torch.load(path, map_location=device, weights_only=False)
 
         if 'config' not in checkpoint:
             raise ValueError(
