@@ -38,47 +38,33 @@ class YFinanceLoader:
                 "period1": start_timestamp,
                 "period2": end_timestamp,
                 "interval": "1d",
-                "includePrePost": "true",
-                "events": "div%2Csplit",
+                "events": "history",
+                "includeAdjustedClose": "true",
             }
 
             headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
             }
 
-            response = requests.get(url, params=params, headers=headers, timeout=30)
+            response = requests.get(url, params=params, headers=headers, timeout=10)
             response.raise_for_status()
-
             data = response.json()
 
-            if "chart" not in data or not data["chart"]["result"]:
-                logger.error(
-                    f"No data found for ticker {ticker_symbol} in the given date range."
-                )
-                return pd.DataFrame()
-
             result = data["chart"]["result"][0]
-
-            # Extract timestamps and convert to dates
             timestamps = result["timestamp"]
-            dates = [datetime.fromtimestamp(ts) for ts in timestamps]
+            ohlc = result["indicators"]["quote"][0]
 
-            # Extract OHLCV data
-            quotes = result["indicators"]["quote"][0]
-
-            # Create DataFrame
             df = pd.DataFrame(
                 {
-                    "Open": quotes["open"],
-                    "High": quotes["high"],
-                    "Low": quotes["low"],
-                    "Close": quotes["close"],
-                    "Volume": quotes["volume"],
-                },
-                index=dates,
+                    "timestamp": pd.to_datetime(timestamps, unit="s"),
+                    "Open": ohlc["open"],
+                    "High": ohlc["high"],
+                    "Low": ohlc["low"],
+                    "Close": ohlc["close"],
+                    "Volume": ohlc["volume"],
+                }
             )
 
-            # Handle adjusted close if available
             if "adjclose" in result["indicators"]:
                 df["Adj Close"] = result["indicators"]["adjclose"][0]["adjclose"]
             else:
@@ -92,6 +78,10 @@ class YFinanceLoader:
                     f"No valid data found for ticker {ticker_symbol} after cleaning."
                 )
                 return pd.DataFrame()
+
+            # --- FIX: ADD THE SYMBOL COLUMN TO THE DATAFRAME ---
+            df['symbol'] = ticker_symbol
+            # ---------------------------------------------------
 
             # Auto-adjust prices (similar to yfinance auto_adjust=True)
             if "Adj Close" in df.columns:
