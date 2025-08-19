@@ -146,11 +146,32 @@ def start_trader_view(request):
 def stop_trader_view(request):
     if request.method == 'POST':
         trader = get_object_or_404(PaperTrader, id=1)
+
+        try:
+            broker = Broker()
+            positions = broker.get_positions()
+            if positions:
+                logger.info(f"Stopping trader. Liquidating {len(positions)} open positions.")
+                for position in positions:
+                    try:
+                        broker.api.close_position(position.symbol)
+                        time.sleep(1)  # API rate limiting
+                    except Exception as e:
+                        logger.error(f"Could not close position {position.symbol}: {e}")
+                messages.info(request, f"Trader stopped and attempted to close {len(positions)} positions.")
+            else:
+                messages.info(request, "Trader stopped. No open positions to close.")
+        except Exception as e:
+            logger.error(f"Failed to liquidate positions on stop: {e}")
+            messages.error(request, "Trader stopped, but failed to connect to broker to liquidate positions.")
+
         if trader.celery_task_id:
             stop_celery_task.delay(trader.celery_task_id)
-            trader.status = 'STOPPED'  # The task will also set this, but we do it here for immediate feedback
-            trader.celery_task_id = ''
-            trader.save()
+
+        trader.status = 'STOPPED'
+        trader.celery_task_id = None
+        trader.save()
+
     return redirect('papertrading')
 
 

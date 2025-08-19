@@ -1,15 +1,10 @@
-# src/sessions/training_session.py
-
 import logging
 from pathlib import Path
-import time
-from django.conf import settings
-
+from src.data.yfinance_loader import YFinanceLoader
 from src.data.preprocessor import calculate_features
 from src.core.environment import TradingEnv
 from src.models.ppo_agent import PPOAgent
 from src.models.trainer import Trainer
-from src.data.yfinance_loader import YFinanceLoader
 
 logger = logging.getLogger('rl_trading_backend')
 
@@ -19,9 +14,10 @@ class TrainingSession:
 
     def __init__(self, config: dict):
         self.config = config
+        logger.info(f"Initializing training session with config: {self.config}")
 
     def run(self, progress_callback=None):
-        """Executes the training session."""
+        """Executes the training session and returns the trained agent."""
 
         logger.info("Loading training data...")
         loader = YFinanceLoader(
@@ -38,8 +34,6 @@ class TrainingSession:
         # Set up Environment
         env = TradingEnv(
             df=featured_df,
-            # --- THIS IS THE FIX ---
-            # Changed 'observation_columns' to 'features' to match the config
             observation_columns=self.config['features'],
             window_size=self.config.get('window', 10),
             initial_cash=self.config['initial_cash'],
@@ -48,7 +42,7 @@ class TrainingSession:
         )
 
         # Set up Agent
-        state_dim = env.observation_space.shape[0]
+        state_dim = len(self.config['features']) * self.config['window']
         action_dim = env.action_space.n
         agent = PPOAgent(state_dim=state_dim, action_dim=action_dim, lr=self.config['params']['lr'])
 
@@ -57,18 +51,11 @@ class TrainingSession:
             "num_episodes": self.config.get('num_episodes', 500),
             "gamma": self.config['params']['gamma'],
             "target_equity": self.config.get('target_equity', float('inf')),
-            "patience_episodes": 50
         }
         trainer = Trainer(agent, env, trainer_config)
 
         result = trainer.train(progress_callback=progress_callback)
 
-        # Save the final model
-        model_name = f"agent_{self.config['ticker']}_{int(time.time())}.pth"
-        save_path = settings.BASE_DIR / "saved_models" / model_name
-
-        agent.save(save_path, config=self.config)
-
-        logger.info(f"Training session complete. Result: {result}. Model saved to {save_path}")
-
-        return result
+        logger.info(f"Training session finished. Result: {result}")
+        # Return the trained agent so it can be saved by the task
+        return agent, result

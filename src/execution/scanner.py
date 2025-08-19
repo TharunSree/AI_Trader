@@ -1,5 +1,3 @@
-# src/execution/scanner.py
-
 import logging
 import pandas as pd
 from src.data.yfinance_loader import YFinanceLoader
@@ -18,14 +16,12 @@ class Scanner:
                 "min_price": 20.0,
                 "max_price": 1000.0,
                 "min_volume_avg_20d": 1_000_000,
-                "min_volatility_pct_1d": 2.0,
+                "min_volatility_pct_1d": 1.5,  # Loosened from 2.0 to allow more opportunities
             }
         else:
             self.config = config
 
-        logger.info(
-            f"Scanner initialized for a universe of {len(self.universe)} stocks."
-        )
+        logger.info(f"Scanner initialized for a universe of {len(self.universe)} stocks.")
         logger.info(f"Using filter configuration: {self.config}")
 
     def _get_sp500_tickers(self) -> list:
@@ -38,29 +34,14 @@ class Scanner:
             logger.info(f"Successfully fetched {len(tickers)} S&P 500 tickers.")
             return tickers
         except Exception as e:
-            logger.error(
-                f"Could not fetch S&P 500 tickers: {e}. Falling back to a default list."
-            )
-            return [
-                "AAPL",
-                "MSFT",
-                "GOOG",
-                "AMZN",
-                "TSLA",
-                "JPM",
-                "V",
-                "NVDA",
-                "JNJ",
-                "UNH",
-            ]
+            logger.error(f"Could not fetch S&P 500 tickers: {e}. Falling back to a default list.")
+            return ["AAPL", "MSFT", "GOOG", "AMZN", "TSLA", "JPM", "V", "NVDA", "JNJ", "UNH"]
 
     def scan_for_opportunities(self, buying_power: float) -> list:
         hot_list = []
         logger.info(f"Starting scan on {len(self.universe)} tickers...")
 
-        universe_subset = self.universe
-
-        for ticker in universe_subset:
+        for ticker in self.universe:
             try:
                 # Use a recent but fixed date range for scanning consistency
                 loader = YFinanceLoader(
@@ -103,7 +84,5 @@ class Scanner:
 
             return True
         except (IndexError, TypeError, ValueError) as e:
-            logger.warning(
-                f"Not enough data or data format issue for {ticker} to apply filters. Error: {e}"
-            )
+            logger.warning(f"Not enough data or data format issue for {ticker} to apply filters. Error: {e}")
             return False

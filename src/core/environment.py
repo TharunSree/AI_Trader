@@ -1,4 +1,3 @@
-# src/core/environment.py
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
@@ -8,6 +7,11 @@ import random
 
 
 class TradingEnv(gym.Env):
+    """
+    A stock trading environment for reinforcement learning.
+    This version includes enhanced reward shaping to encourage profitable selling.
+    """
+
     def __init__(self, df, observation_columns, window_size, initial_cash, transaction_cost_pct, slippage_pct):
         super(TradingEnv, self).__init__()
 
@@ -22,100 +26,104 @@ class TradingEnv(gym.Env):
 
         num_features = len(self.observation_columns)
         self.observation_space = spaces.Box(
-            low=-np.inf, high=np.inf,
-            shape=(window_size * num_features,), dtype=np.float32,
+            low=-np.inf,
+            high=np.inf,
+            shape=(window_size * num_features,),
+            dtype=np.float32,
         )
 
         self.portfolio = None
         self.current_step = 0
-        self.trade_log = []
 
-    def reset(self, seed=None, options=None, start_at_beginning=False):
+    def reset(self, seed=None, options=None):
+        """Resets the environment to a random starting point."""
         super().reset(seed=seed)
-        if start_at_beginning:
-            self.current_step = self.window_size
-        else:
-            # Start at a random point in the first 80% of the data to ensure test data remains unseen
-            max_start = int((len(self.df) - 2) * 0.8)
-            self.current_step = random.randint(self.window_size, max_start)
-
+        # Start at a random point to ensure the agent doesn't overfit to a specific start sequence
+        self.current_step = random.randint(self.window_size, len(self.df) - 2)
         self.portfolio = Portfolio(self.initial_cash, self.transaction_cost_pct)
-        self.trade_log = []
         return self._get_observation(), {}
 
     def step(self, action):
-        prev_equity = self.portfolio.get_equity(self._get_current_prices())
-        trade_profit_loss = self._execute_trade(action)
+        """Execute one time step within the environment."""
+
+        # Execute trade and get any realized profit or loss from the transaction
+        realized_pnl = self._execute_trade(action)
         self.current_step += 1
 
-        current_equity = self.portfolio.get_equity(self._get_current_prices())
-        step_reward = current_equity - prev_equity
+        # Get the current market price for the new time step
+        current_prices = self._get_current_prices()
+        current_equity = self.portfolio.get_equity(current_prices)
+        step_reward = 0
 
-        # --- REWARD SHAPING ---
-        # 1. Heavily reward realized profits
-        if trade_profit_loss > 0:
-            step_reward += trade_profit_loss * 0.5  # Add 50% of realized profit to reward
+        # --- Enhanced Reward Shaping ---
+        # 1. Strong reward for realized profits from selling
+        if realized_pnl > 0:
+            step_reward += realized_pnl * 1.5  # Give 150% of the profit as a bonus reward
 
-        # 2. Penalize realized losses more
-        elif trade_profit_loss < 0:
-            step_reward += trade_profit_loss * 1.5  # Penalize 150% of realized loss
+        # 2. Strong penalty for realized losses
+        elif realized_pnl < 0:
+            step_reward += realized_pnl * 2.0  # Penalize 200% of the loss
 
-        # 3. Small penalty for holding cash and doing nothing
+        # 3. Calculate unrealized profit/loss for the current position
+        unrealized_pnl = 0
+        if "SPY" in self.portfolio.positions:
+            entry_price = self.portfolio.positions["SPY"]["entry_price"]
+            quantity = self.portfolio.positions["SPY"]["quantity"]
+            current_price = current_prices.get("SPY", 0)
+            unrealized_pnl = (current_price - entry_price) * quantity
+
+            # Penalize holding a losing position to encourage cutting losses
+            if unrealized_pnl < 0:
+                step_reward += unrealized_pnl * 0.1  # Penalize 10% of the unrealized loss each step
+
+        # 4. Small penalty for inaction (holding cash) to encourage participation
         if action == 0 and not self.portfolio.positions:
             step_reward -= self.initial_cash * 1e-7
 
-        # 4. Include unrealized P&L to give a continuous signal
-        unrealized_pnl = 0
-        if self.portfolio.positions:
-            current_price = self._get_current_prices().get("SPY", 0)
-            entry_price = self.portfolio.positions["SPY"]["entry_price"]
-            quantity = self.portfolio.positions["SPY"]["quantity"]
-            unrealized_pnl = (current_price - entry_price) * quantity
-
-        step_reward += unrealized_pnl * 0.05  # Add 5% of unrealized P&L to reward
-
+        # End the episode if equity drops by 50% or we run out of data
         done = current_equity <= self.initial_cash * 0.5 or self.current_step >= len(self.df) - 1
 
         return self._get_observation(), step_reward, done, False, {}
 
     def _get_observation(self):
+        """Get the observation for the current time step."""
         start = self.current_step - self.window_size
         end = self.current_step
         obs_df = self.df.iloc[start:end][self.observation_columns]
         return obs_df.values.flatten().astype(np.float32)
 
     def _get_current_prices(self):
-        prices = {"SPY": self.df["Close"].iloc[self.current_step].item()}
-        return prices
+        """Get the current price from the dataframe."""
+        return {"SPY": self.df["Close"].iloc[self.current_step].item()}
 
     def _execute_trade(self, action):
+        """Executes a trade based on the chosen action."""
         symbol = "SPY"
         current_price = self.df["Close"].iloc[self.current_step].item()
-        timestamp = self.df.index[self.current_step]
 
-        price_with_slippage = current_price
-        if action == 1:  # Buy
-            price_with_slippage *= (1 + self.slippage_pct)
-        elif action == 2:  # Sell
-            price_with_slippage *= (1 - self.slippage_pct)
+        # Apply slippage to simulate real-world trade execution
+        buy_price = current_price * (1 + self.slippage_pct)
+        sell_price = current_price * (1 - self.slippage_pct)
 
         if action == 1:  # Buy
-            # Buy with 95% of available cash
-            trade_value = self.portfolio.cash * 0.95
-            if trade_value > 10:  # Minimum trade
-                quantity = trade_value / price_with_slippage
-                self.portfolio.buy(symbol, quantity, price_with_slippage)
-                self.trade_log.append(
-                    {'timestamp': timestamp, 'action': 'BUY', 'quantity': quantity, 'price': price_with_slippage})
-            return 0
+            # Buy with 95% of available cash only if not already in a position
+            if "SPY" not in self.portfolio.positions:
+                trade_value = self.portfolio.cash * 0.95
+                if trade_value > 10:  # Minimum trade value
+                    quantity = trade_value / buy_price
+                    self.portfolio.buy(symbol, quantity, buy_price)
+            return 0  # No realized P&L on a buy action
 
         elif action == 2:  # Sell
+            # Sell the entire position if one exists
             if symbol in self.portfolio.positions:
                 quantity = self.portfolio.positions[symbol]["quantity"]
                 entry_price = self.portfolio.positions[symbol]["entry_price"]
-                profit_loss = (price_with_slippage - entry_price) * quantity
-                self.portfolio.sell(symbol, quantity, price_with_slippage)
-                self.trade_log.append(
-                    {'timestamp': timestamp, 'action': 'SELL', 'quantity': quantity, 'price': price_with_slippage})
-                return profit_loss
-        return 0
+
+                # Calculate profit/loss based on the actual entry price
+                profit_loss = (sell_price - entry_price) * quantity
+
+                self.portfolio.sell(symbol, quantity, sell_price)
+                return profit_loss  # Return the realized P&L to be used in reward shaping
+
+        return 0  # Return 0 if no trade was executed
