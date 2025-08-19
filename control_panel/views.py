@@ -1,5 +1,6 @@
 # control_panel/views.py
 from celery.result import AsyncResult
+from decimal import Decimal
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
@@ -290,37 +291,49 @@ def job_status_api(request):
 @login_required
 def trader_status_api(request):
     trader_model, _ = PaperTrader.objects.get_or_create(id=1)
-    try:
-        broker = Broker()
-        account_info = broker.api.get_account()
-        positions = broker.api.list_positions()
 
-        # Only clear a stale error if the bot is actively running
+    # Default safe zeros
+    zero_dec = Value(0, output_field=DecimalField(max_digits=20, decimal_places=2))
+
+    # Prepare simulated equity only (no Alpaca call)
+    try:
+        initial_cash = Decimal(str(trader_model.initial_cash or 0))
+
+        # Aggregate executed trade notionals
+        trades = TradeLog.objects.filter(trader=trader_model)
+        buys_total = trades.filter(action='BUY').aggregate(
+            t=Coalesce(Sum('notional_value'), zero_dec)
+        )['t'] or Decimal('0')
+        sells_total = trades.filter(action='SELL').aggregate(
+            t=Coalesce(Sum('notional_value'), zero_dec)
+        )['t'] or Decimal('0')
+
+        # Simple model: cash increases on SELL, decreases on BUY
+        simulated_cash = initial_cash - buys_total + sells_total
+
+        # If you later track unrealized P/L, add it here
+        unrealized_pl = Decimal('0')
+
+        equity = simulated_cash + unrealized_pl
+        buying_power = simulated_cash  # For paper mode treat as remaining cash
+
+        # Clear stale error if actively running
         if trader_model.status == 'RUNNING' and trader_model.error_message:
             trader_model.error_message = ''
             trader_model.save(update_fields=['error_message'])
 
         error_msg = trader_model.error_message or ''
-        # If FAILED but no message recorded, provide fallback
         if trader_model.status == 'FAILED' and not error_msg:
-            error_msg = 'Trader failed but no error details were captured. Check Celery worker logs.'
+            error_msg = 'Trader failed; check worker logs.'
 
         return JsonResponse({
             "status": trader_model.status,
             "error_message": error_msg,
-            "equity": float(account_info.equity),
-            "buying_power": float(account_info.buying_power),
-            "positions": [
-                {
-                    "symbol": p.symbol,
-                    "qty": float(p.qty),
-                    "market_value": float(p.market_value),
-                    "unrealized_pl": float(p.unrealized_pl),
-                } for p in positions
-            ]
+            "equity": float(equity),
+            "buying_power": float(buying_power),
+            "positions": []  # Optional: populate if you maintain synthetic positions
         })
     except Exception as e:
-        # Persist detailed failure info
         message = f"{type(e).__name__}: {e}"
         trader_model.status = 'FAILED'
         trader_model.error_message = message
