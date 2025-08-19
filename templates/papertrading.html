@@ -150,40 +150,65 @@
 {% endblock page_content %}
 
 {% block extra_javascript %}
+<!-- File: templates/papertrading.html (only the <script> block replaced) -->
 <script src="{% static 'vendor/apexcharts/apexcharts.min.js' %}"></script>
 <script src="{% static 'vendor/datatables.net/js/dataTables.min.js' %}"></script>
 <script src="{% static 'vendor/datatables.net-bs5/js/dataTables.bootstrap5.min.js' %}"></script>
 <script>
 (function(){
   const UPTIME_KEY='paper_trader_uptime_start';
-  const activityPollMs=2500;
-  const statusPoll={RUNNING:6000,STOPPED:15000,FAILED:10000,UNKNOWN:10000};
-  let currentStatus='UNKNOWN';
-  let positionsTable,equityChart;
-  const equitySeries=[];
+  const ACTIVITY_POLL_MS=2500;
+  const STATUS_INTERVALS={RUNNING:5000,FAILED:10000,STOPPED:15000,UNKNOWN:10000};
   const MAX_POINTS=800;
-  const activityLog=[];
-  const MAX_ACTIVITY=60;
-  let sleepSeconds=0,sleepTimerId=null;
-  let statusTimer=null,activityTimer=null;
-  let lastNonSleepActivity='';
+  const MAX_ACTIVITY=80;
 
-  function fmt(n){return Number(n||0).toLocaleString();}
-  function escapeHtml(s){return (s||'').replace(/[&<>"'`]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c]));}
+  let currentStatus='UNKNOWN';
+  let positionsTable;
+  let equityChart;
+  let equitySeries=[];
+  let statusTimer=null;
+  let activityTimer=null;
+  let lastActivityLine='';
+  let sleepSeconds=0;
+  let sleepTimerId=null;
 
-  function initPositions(){
-    positionsTable=$('#positions-dt').DataTable({
-      paging:false,searching:false,info:false,order:[[2,'desc']],
-      columnDefs:[{targets:[1,2,3],className:'text-end'}]
-    });
+  /* ---------- Helpers ---------- */
+  function fmtNum(n){return Number(n||0).toLocaleString();}
+  function fmtCurrency(v){
+    return '$'+Number(v||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  }
+  function escapeHtml(s){return (s||'').replace(/[&<>"'`]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'" :'&#39;','`':'&#96;'}[c]));}
+  function now(){return Date.now();}
+
+  /* ---------- Uptime ---------- */
+  function ensureUptimeStart(){
+    if(!localStorage.getItem(UPTIME_KEY)){
+      localStorage.setItem(UPTIME_KEY,String(now()));
+    }
+  }
+  function clearUptime(){
+    localStorage.removeItem(UPTIME_KEY);
+    document.getElementById('uptime-badge').textContent='00:00:00';
+  }
+  function tickUptime(){
+    const start=parseInt(localStorage.getItem(UPTIME_KEY)||'0',10);
+    if(start){
+      const diff=now()-start;
+      const h=String(Math.floor(diff/3600000));
+      const m=String(Math.floor(diff/60000)%60).padStart(2,'0');
+      const s=String(Math.floor(diff/1000)%60).padStart(2,'0');
+      document.getElementById('uptime-badge').textContent=`${h.padStart(2,'0')}:${m}:${s}`;
+    }
+    requestAnimationFrame(tickUptime);
   }
 
+  /* ---------- Chart ---------- */
   function initChart(){
     equityChart=new ApexCharts(document.querySelector('#equity-chart'),{
       chart:{type:'area',height:360,toolbar:{show:false}},
       series:[{name:'Equity',data:[]}],
       xaxis:{type:'datetime'},
-      yaxis:{labels:{formatter:v=>'$'+fmt(v)}},
+      yaxis:{labels:{formatter:v=>'$'+fmtNum(v)}},
       dataLabels:{enabled:false},
       stroke:{curve:'smooth',width:2},
       colors:['#35b8e0'],
@@ -192,201 +217,216 @@
     });
     equityChart.render();
   }
-
   function addEquityPoint(val){
     if(val==null || isNaN(val)) return;
+    const n=Number(val);
     const last=equitySeries[equitySeries.length-1];
-    if(!last || last.y!==Number(val)){
-      equitySeries.push({x:Date.now(),y:Number(val)});
+    if(!last || last.y!==n){
+      equitySeries.push({x:now(),y:n});
       if(equitySeries.length>MAX_POINTS) equitySeries.splice(0,equitySeries.length-MAX_POINTS);
       equityChart.updateSeries([{name:'Equity',data:equitySeries}]);
     }
   }
 
-  function setBadge(el,text,cls){el.textContent=text;el.className='badge '+cls;}
-  function statusBadgeClass(s){
-    if(s==='RUNNING') return 'bg-success-subtle text-success px-3 py-2';
-    if(s==='FAILED') return 'bg-danger-subtle text-danger px-3 py-2';
-    if(s==='STOPPED') return 'bg-secondary-subtle text-secondary px-3 py-2';
-    return 'bg-secondary-subtle text-secondary px-3 py-2';
-  }
-
-  function ensureUptimeStart(){ if(!localStorage.getItem(UPTIME_KEY)){ localStorage.setItem(UPTIME_KEY,Date.now().toString()); } }
-  function clearUptime(){ localStorage.removeItem(UPTIME_KEY); document.getElementById('uptime-badge').textContent='00:00:00'; }
-  function tickUptime(){
-    const start=parseInt(localStorage.getItem(UPTIME_KEY)||'0',10);
-    if(!start){requestAnimationFrame(tickUptime);return;}
-    const diff=Date.now()-start;
-    const h=String(Math.floor(diff/3600000)).padStart(2,'0');
-    const m=String(Math.floor(diff/60000)%60).padStart(2,'0');
-    const s=String(Math.floor(diff/1000)%60).padStart(2,'0');
-    document.getElementById('uptime-badge').textContent=`${h}:${m}:${s}`;
-    requestAnimationFrame(tickUptime);
-  }
-
-  function scheduleStatus(){ if(statusTimer) clearTimeout(statusTimer); statusTimer=setTimeout(fetchStatus,statusPoll[currentStatus]||10000); }
-  function scheduleActivity(){ if(activityTimer) clearTimeout(activityTimer); activityTimer=setTimeout(fetchActivity,activityPollMs); }
-
-  function addActivity(line,isError){
-    if(!line) return;
-    if(/Sleeping\.\.\./.test(line)) return;
-    if(line===lastNonSleepActivity) return;
-    lastNonSleepActivity=line;
-    activityLog.unshift({t:new Date(),msg:line,err:!!isError});
-    if(activityLog.length>MAX_ACTIVITY) activityLog.pop();
-    const ul=document.getElementById('activity-list');
-    ul.innerHTML='';
-    activityLog.forEach(a=>{
-      const li=document.createElement('li');
-      li.className='list-group-item py-1 d-flex justify-content-between '+(a.err?'text-danger':'');
-      li.innerHTML=`<span class="text-truncate" style="max-width:70%">${escapeHtml(a.msg)}</span><code class="small mono mb-0">${a.t.toLocaleTimeString()}</code>`;
-      ul.appendChild(li);
+  /* ---------- Positions ---------- */
+  function initPositions(){
+    positionsTable=$('#positions-dt').DataTable({
+      paging:false,searching:false,info:false,order:[[2,'desc']],
+      columnDefs:[{targets:[1,2,3],className:'text-end'}]
     });
-    interpretCycle(line);
-    document.getElementById('activity-summary').textContent=line;
-    document.getElementById('activity-summary-box').textContent=line;
   }
-
-  function interpretCycle(text){
-    const cycle=document.getElementById('cycle-badge');
-    if(/Scanning for opportunities/i.test(text)){
-      setBadge(cycle,'SCANNING','mini-badge bg-info-subtle text-info');
-    } else if(/^Analyzing (\w+)/i.test(text)){
-      setBadge(cycle,'ANALYZING','mini-badge bg-warning-subtle text-warning');
-    } else {
-      setBadge(cycle,currentStatus==='RUNNING'?'ACTIVE':'IDLE',
-        'mini-badge '+(currentStatus==='RUNNING'?'bg-success-subtle text-success':'bg-secondary-subtle text-secondary'));
-    }
-  }
-
-  function formatCurrency(value) {
-    return '$' + Number(value || 0).toLocaleString('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
+  function updatePositions(positions){
+    if(!positionsTable) return;
+    positionsTable.clear();
+    (positions||[]).forEach(p=>{
+      const pnl=Number(p.unrealized_pl||0);
+      const pnlClass=pnl>=0?'text-success':'text-danger';
+      positionsTable.row.add([
+        escapeHtml(p.symbol),
+        Number(p.qty||0).toLocaleString(),
+        fmtCurrency(p.market_value||0),
+        `<span class="${pnlClass}">${fmtCurrency(pnl)}</span>`
+      ]);
     });
-}
+    positionsTable.draw();
+  }
 
-  function startSleepTimer(){
-    const sleepB=document.getElementById('sleep-badge');
-    sleepB.classList.remove('d-none');
+  /* ---------- Badges / Status ---------- */
+  function setStatusBadge(status){
+    const el=document.getElementById('trader-status-badge');
+    let cls='bg-secondary-subtle text-secondary';
+    if(status==='RUNNING') cls='bg-success-subtle text-success';
+    else if(status==='FAILED') cls='bg-danger-subtle text-danger';
+    else if(status==='STOPPED') cls='bg-secondary-subtle text-secondary';
+    el.className='badge '+cls+' px-3 py-2';
+    el.textContent=status;
+  }
+  function setCycleBadge(mode){
+    const el=document.getElementById('cycle-badge');
+    el.textContent=mode;
+    let cls='mini-badge bg-secondary-subtle text-secondary';
+    if(mode==='SCANNING') cls='mini-badge bg-info-subtle text-info';
+    else if(mode==='ANALYZING') cls='mini-badge bg-warning-subtle text-warning';
+    else if(mode==='ACTIVE') cls='mini-badge bg-success-subtle text-success';
+    el.className='badge '+cls;
+  }
+
+  /* ---------- Sleep timer ---------- */
+  function startSleep(seconds){
+    sleepSeconds=seconds;
+    const el=document.getElementById('sleep-badge');
+    el.classList.remove('d-none');
     updateSleepBadge();
     if(sleepTimerId) clearInterval(sleepTimerId);
     sleepTimerId=setInterval(()=>{
-      if(sleepSeconds>0){
-        sleepSeconds--;
-        updateSleepBadge();
-      } else {
+      if(sleepSeconds<=0){
         clearInterval(sleepTimerId);
-        sleepB.classList.add('d-none');
+        el.classList.add('d-none');
+        return;
       }
+      sleepSeconds--;
+      updateSleepBadge();
     },1000);
   }
-
-  function updateStatusUI(data) {
-    currentStatus = data.status;
-    const statusBadge = document.getElementById('bot-status-badge');
-    const startBtn = document.getElementById('start-btn');
-    const stopBtn = document.getElementById('stop-btn');
-    const modelSelect = document.getElementById('model_file_select');
-
-    if (data.status === 'RUNNING') {
-        statusBadge.innerHTML = `<span class="badge bg-success">RUNNING</span>`;
-        startBtn.disabled = true;
-        stopBtn.disabled = false;
-        modelSelect.disabled = true;
-    } else if (data.status === 'FAILED') {
-        statusBadge.innerHTML = `<span class="badge bg-danger" title="${data.error_message || ''}">FAILED</span>`;
-        startBtn.disabled = false;
-        stopBtn.disabled = true;
-        modelSelect.disabled = false;
-    } else { // STOPPED
-        statusBadge.innerHTML = `<span class="badge bg-secondary">STOPPED</span>`;
-        startBtn.disabled = false;
-        stopBtn.disabled = true;
-        modelSelect.disabled = false;
-    }
-
-    document.getElementById('broker-equity').innerText = formatCurrency(data.equity);
-    document.getElementById('buying-power').innerText = formatCurrency(data.buying_power);
-
-    // Update positions table
-    if (positionsTable) {
-        positionsTable.clear();
-        (data.positions || []).forEach(p => {
-            const pnlClass = Number(p.unrealized_pl) >= 0 ? 'text-success' : 'text-danger';
-            const pnlFormatted = formatCurrency(p.unrealized_pl);
-
-            positionsTable.row.add([
-                p.symbol,
-                Number(p.qty).toLocaleString(),
-                formatCurrency(p.market_value),
-                `<span class="${pnlClass}">${pnlFormatted}</span>`
-            ]);
-        });
-        positionsTable.draw();
-    }
-}
-
   function updateSleepBadge(){
     const m=String(Math.floor(sleepSeconds/60)).padStart(2,'0');
     const s=String(sleepSeconds%60).padStart(2,'0');
     document.getElementById('sleep-badge').textContent=`Sleep ${m}:${s}`;
   }
 
-  function processActivityString(str){
-    if(/Sleeping\.\.\./.test(str)){
-      const m=str.match(/Sleeping\.\.\. \((\d{2}):(\d{2}) remaining\)/);
-      if(m){
-        sleepSeconds=parseInt(m[1],10)*60+parseInt(m[2],10);
-        startSleepTimer();
-      }
+  /* ---------- Activity ---------- */
+  const activityLog=[];
+  function addActivity(line,isError){
+    if(!line) return;
+    if(line===lastActivityLine) return;
+    lastActivityLine=line;
+    // Filter repetitive sleep lines in list (still parse separately)
+    if(/Sleeping\.\.\./.test(line)) return;
+
+    activityLog.unshift({t:new Date(),msg:line,err:!!isError});
+    if(activityLog.length>MAX_ACTIVITY) activityLog.pop();
+
+    document.getElementById('activity-summary').textContent=line;
+    document.getElementById('activity-summary-box').textContent=line;
+
+    const ul=document.getElementById('activity-list');
+    ul.innerHTML='';
+    activityLog.forEach(a=>{
+      const li=document.createElement('li');
+      li.className='list-group-item py-1 d-flex justify-content-between '+(a.err?'text-danger':'');
+      li.innerHTML=`<span class="text-truncate" style="max-width:70%">${escapeHtml(a.msg)}</span>`+
+                   `<code class="small mono">${a.t.toLocaleTimeString()}</code>`;
+      ul.appendChild(li);
+    });
+
+    // Cycle interpretation
+    if(/Scanning for opportunities/i.test(line)) setCycleBadge('SCANNING');
+    else if(/^Analyzing\s+/i.test(line)) setCycleBadge('ANALYZING');
+    else if(currentStatus==='RUNNING') setCycleBadge('ACTIVE');
+  }
+  function processActivityString(s){
+    if(!s) return;
+    const m=s.match(/Sleeping\.\.\. \((\d{2}):(\d{2}) remaining\)/);
+    if(m){
+      const sec=parseInt(m[1],10)*60+parseInt(m[2],10);
+      startSleep(sec);
     } else {
-      addActivity(str,false);
+      addActivity(s,false);
     }
   }
 
-  function fetchStatus() {
-    fetch("{% url 'trader_status_api' %}?_=" + Date.now(), { cache: 'no-store' })
-        .then(response => response.json())
-        .then(data => {
-            updateStatusUI(data);
-            setTimeout(fetchStatus, 5000); // Schedule next fetch
-        })
-        .catch(error => {
-            console.error("Failed to fetch trader status:", error);
-            setTimeout(fetchStatus, 10000); // Retry after a longer delay on error
-        });
-}
+  /* ---------- Fetchers ---------- */
+  function scheduleStatus(){
+    if(statusTimer) clearTimeout(statusTimer);
+    statusTimer=setTimeout(fetchStatus, STATUS_INTERVALS[currentStatus]||10000);
+  }
+  function scheduleActivity(){
+    if(activityTimer) clearTimeout(activityTimer);
+    activityTimer=setTimeout(fetchActivity, ACTIVITY_POLL_MS);
+  }
 
-  function fetchActivity() {
-    if (currentStatus !== 'RUNNING') {
-        document.getElementById('live-activity').innerText = 'Trader is not active.';
-        setTimeout(fetchActivity, 2000);
-        return;
+  function fetchStatus(){
+    fetch("{% url 'trader_status_api' %}?_="+now(), {cache:'no-store'})
+      .then(r=>r.json())
+      .then(data=>{
+        const prev=currentStatus;
+        currentStatus=data.status || 'UNKNOWN';
+        setStatusBadge(currentStatus);
+
+        // Uptime handling
+        if(currentStatus==='RUNNING'){
+          ensureUptimeStart();
+        } else if(prev==='RUNNING' && currentStatus!=='RUNNING'){
+          clearUptime();
+        }
+
+        // Error display
+        const errBox=document.getElementById('status-error');
+        if(currentStatus==='FAILED' && data.error_message){
+            errBox.textContent=data.error_message;
+            errBox.classList.remove('d-none');
+        } else {
+            errBox.classList.add('d-none');
+            errBox.textContent='';
+        }
+
+        // Buttons & model select
+        const startBtn=document.getElementById('start-btn');
+        const stopBtn=document.getElementById('stop-btn');
+        const modelSel=document.getElementById('model_file_select');
+        if(currentStatus==='RUNNING'){
+          startBtn.disabled=true; stopBtn.disabled=false; modelSel.disabled=true;
+        } else {
+          startBtn.disabled=false; stopBtn.disabled=true; modelSel.disabled=false;
+        }
+
+        // Equity / BP
+        document.getElementById('equity-val').textContent=fmtCurrency(data.equity);
+        document.getElementById('bp-val').textContent=fmtCurrency(data.buying_power);
+        addEquityPoint(data.equity);
+
+        // Positions
+        updatePositions(data.positions);
+
+        // Cycle badge reset when not running
+        if(currentStatus!=='RUNNING') setCycleBadge('IDLE');
+
+        scheduleStatus();
+      })
+      .catch(()=>{
+        // On error retry slower
+        currentStatus='UNKNOWN';
+        scheduleStatus();
+      });
+  }
+
+  function fetchActivity(){
+    if(currentStatus!=='RUNNING'){
+      scheduleActivity();
+      return;
     }
-    fetch("{% url 'trader_activity_api' %}?_=" + Date.now(), { cache: 'no-store' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.activity) {
-                document.getElementById('live-activity').innerText = data.activity;
-            }
-            setTimeout(fetchActivity, 2000);
-        })
-        .catch(() => setTimeout(fetchActivity, 5000));
-}
+    fetch("{% url 'trader_activity_api' %}?_="+now(), {cache:'no-store'})
+      .then(r=>r.json())
+      .then(data=>{
+        if(data.activity) processActivityString(data.activity);
+        scheduleActivity();
+      })
+      .catch(()=>scheduleActivity());
+  }
 
-
+  /* ---------- Wire Controls ---------- */
   function wireControls(){
-    document.getElementById('stop-btn').addEventListener('click',()=>{ document.getElementById('stop-form').submit(); });
+    document.getElementById('stop-btn').addEventListener('click',()=>{
+      document.getElementById('stop-form').submit();
+    });
   }
 
-
-
+  /* ---------- Boot ---------- */
   function boot(){
     initPositions();
     initChart();
     wireControls();
-    fetchStatus();          // will add first equity point
+    fetchStatus();
     fetchActivity();
     tickUptime();
   }

@@ -275,93 +275,6 @@ def job_status_api(request):
 
 @login_required
 def trader_status_api(request):
-    trader_model, _ = PaperTrader.objects.get_or_create(id=1)
-
-    # Default safe zeros
-    zero_dec = Value(0, output_field=DecimalField(max_digits=20, decimal_places=2))
-
-    # Prepare simulated equity only (no Alpaca call)
-    try:
-        initial_cash = Decimal(str(trader_model.initial_cash or 0))
-
-        # Aggregate executed trade notionals
-        trades = TradeLog.objects.filter(trader=trader_model)
-        buys_total = trades.filter(action='BUY').aggregate(
-            t=Coalesce(Sum('notional_value'), zero_dec)
-        )['t'] or Decimal('0')
-        sells_total = trades.filter(action='SELL').aggregate(
-            t=Coalesce(Sum('notional_value'), zero_dec)
-        )['t'] or Decimal('0')
-
-        # Simple model: cash increases on SELL, decreases on BUY
-        simulated_cash = initial_cash - buys_total + sells_total
-
-        # If you later track unrealized P/L, add it here
-        unrealized_pl = Decimal('0')
-
-        equity = simulated_cash + unrealized_pl
-        buying_power = simulated_cash  # For paper mode treat as remaining cash
-
-        # Clear stale error if actively running
-        if trader_model.status == 'RUNNING' and trader_model.error_message:
-            trader_model.error_message = ''
-            trader_model.save(update_fields=['error_message'])
-
-        error_msg = trader_model.error_message or ''
-        if trader_model.status == 'FAILED' and not error_msg:
-            error_msg = 'Trader failed; check worker logs.'
-
-        return JsonResponse({
-            "status": trader_model.status,
-            "error_message": error_msg,
-            "equity": float(equity),
-            "buying_power": float(buying_power),
-            "positions": []  # Optional: populate if you maintain synthetic positions
-        })
-    except Exception as e:
-        message = f"{type(e).__name__}: {e}"
-        trader_model.status = 'FAILED'
-        trader_model.error_message = message
-        trader_model.save(update_fields=['status', 'error_message'])
-        return JsonResponse({
-            "status": "FAILED",
-            "error_message": message,
-            "equity": 0,
-            "buying_power": 0,
-            "positions": []
-        }, status=200)
-
-
-@login_required
-def stop_meta_job_view(request, job_id):
-    if request.method == 'POST':
-        job = get_object_or_404(MetaTrainingJob, id=job_id)
-        if job.celery_task_id:
-            stop_celery_task.delay(job.celery_task_id)
-            job.status = 'STOPPED'
-            job.save()
-    return redirect('training')
-
-
-@login_required
-def trader_activity_api(request):
-    """
-    Provides the detailed, real-time activity of a running task.
-    """
-    trader, _ = PaperTrader.objects.get_or_create(id=1)
-    if trader.status == 'RUNNING' and trader.celery_task_id:
-        task_result = AsyncResult(trader.celery_task_id)
-        if task_result.state == 'PROGRESS':
-            return JsonResponse({"status": "RUNNING", **task_result.info})
-        else:
-            return JsonResponse({"status": "RUNNING", "activity": f"Task state: {task_result.state}"})
-    else:
-        return JsonResponse({"status": "STOPPED", "activity": "Trader is not active."})
-
-
-
-@login_required
-def trader_status_api(request):
     """
     API endpoint to get the status of the paper trader, including
     live broker information like equity, buying power, and positions.
@@ -404,3 +317,62 @@ def trader_status_api(request):
             "buying_power": 0,
             "positions": []
         }, status=200)
+
+
+@login_required
+def stop_meta_job_view(request, job_id):
+    if request.method == 'POST':
+        job = get_object_or_404(MetaTrainingJob, id=job_id)
+        if job.celery_task_id:
+            stop_celery_task.delay(job.celery_task_id)
+            job.status = 'STOPPED'
+            job.save()
+    return redirect('training')
+
+
+def trader_activity_api(request):
+    """
+    Provides the detailed, real-time activity of a running task.
+    """
+    trader, _ = PaperTrader.objects.get_or_create(id=1)
+    if trader.status == 'RUNNING' and trader.celery_task_id:
+        task_result = AsyncResult(trader.celery_task_id)
+        if task_result.state == 'PROGRESS':
+            return JsonResponse({"status": "RUNNING", **task_result.info})
+        else:
+            return JsonResponse({"status": "RUNNING", "activity": f"Task state: {task_result.state}"})
+    else:
+        return JsonResponse({"status": "STOPPED", "activity": "Trader is not active."})
+
+
+@login_required
+def trader_report_view(request):
+    trader, _ = PaperTrader.objects.get_or_create(id=1)
+    trades = TradeLog.objects.filter(trader=trader).order_by('-timestamp')
+
+    # Define a decimal zero matching your notional_value field precision
+    ZERO_DEC = Value(0, output_field=DecimalField(max_digits=20, decimal_places=2))
+
+    sell_trades = trades.filter(action='SELL')
+    buy_trades = trades.filter(action='BUY')
+
+    total_notional_sells = sell_trades.aggregate(
+        total=Coalesce(Sum('notional_value'), ZERO_DEC)
+    )['total']
+
+    total_notional_buys = buy_trades.aggregate(
+        total=Coalesce(Sum('notional_value'), ZERO_DEC)
+    )['total']
+
+    gross_pnl = (total_notional_sells or 0) - (total_notional_buys or 0)
+
+    context = {
+        'trader': trader,
+        'all_trades': trades,
+        'total_trades': trades.count(),
+        'buy_count': buy_trades.count(),
+        'sell_count': sell_trades.count(),
+        'gross_pnl': gross_pnl,
+        'total_volume': (total_notional_buys or 0) + (total_notional_sells or 0),
+    }
+    return render(request, 'trader_report.html', context)
