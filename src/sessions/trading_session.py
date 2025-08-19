@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 import os
 import django
 
+from src.utils.logger import setup_logging
+
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'trader_project.settings')
 django.setup()
 
