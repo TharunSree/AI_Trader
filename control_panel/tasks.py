@@ -200,8 +200,8 @@ def run_evaluation_task(self, job_id):
     try:
         config = {
             'model_file': job.model_file,
-            'start_date': job.start_date.strftime('%Y-%m-%d'),
-            'end_date': job.end_date.strftime('%Y-%m-%d'),
+            'start_date': str(job.start_date),
+            'end_date': str(job.end_date),
         }
 
         session = EvaluationSession(config)
