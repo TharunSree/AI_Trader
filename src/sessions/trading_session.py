@@ -403,7 +403,7 @@ class TradingSession:
                 # If get_next_market_open_minutes returns a tuple (hours, minutes)
                 next_open = self.broker.get_next_market_open_minutes()
                 if isinstance(next_open, tuple):
-                    next_open_mins = next_open[0] * 60 + next_open[1]
+                    next_open_mins = int(next_open[0]) * 60 + int(next_open[1])
                 else:
                     next_open_mins = int(next_open)
 
