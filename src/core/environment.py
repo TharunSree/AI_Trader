@@ -9,8 +9,8 @@ import random
 class TradingEnv(gym.Env):
     """
     A stock trading environment for reinforcement learning.
-    This version includes AGGRESSIVE reward shaping to force the agent
-    to learn both buy and sell signals.
+    This version includes AGGRESSIVE and NORMALIZED reward shaping to force the agent
+    to learn both buy and sell signals effectively.
     """
 
     def __init__(self, df, observation_columns, window_size, initial_cash, transaction_cost_pct, slippage_pct):
@@ -30,6 +30,7 @@ class TradingEnv(gym.Env):
         self.portfolio = None
         self.current_step = 0
         self.trade_log = []
+        self._peak_equity = self.initial_cash
 
     def reset(self, seed=None, options=None, start_at_beginning=False):
         """Resets the environment."""
@@ -40,50 +41,43 @@ class TradingEnv(gym.Env):
             self.current_step = random.randint(self.window_size, len(self.df) - 2)
         self.portfolio = Portfolio(self.initial_cash, self.transaction_cost_pct)
         self.trade_log = []
+        self._peak_equity = self.initial_cash  # Reset peak equity
         return self._get_observation(), self.get_info()
 
-    # src/core/environment.py (modified reward shaping section inside step)
     def step(self, action):
         realized_pnl = self._execute_trade(action)
         self.current_step += 1
         current_prices = self._get_current_prices()
         current_equity = self.portfolio.get_equity(current_prices)
 
-        # Initialize reward
         step_reward = 0.0
 
         # --- Realized PnL shaping (normalized) ---
         if realized_pnl > 0:
-            # Strong reward for profitable close
             step_reward += 5.0 * (realized_pnl / self.initial_cash)
         elif realized_pnl < 0:
-            # Penalty for realized loss
-            step_reward += 3.0 * (realized_pnl / self.initial_cash)  # realized_pnl is negative
+            step_reward += 3.0 * (realized_pnl / self.initial_cash)
 
         # Track / store previous equity to reward new highs
         if not hasattr(self, "_peak_equity"):
             self._peak_equity = self.initial_cash
         if current_equity > self._peak_equity:
-            # Mild bonus for pushing to a new equity high (prevents too-early profit taking)
             equity_gain = (current_equity - self._peak_equity) / self.initial_cash
             step_reward += 0.5 * equity_gain
             self._peak_equity = current_equity
 
         # Holding penalties / unrealized shaping
         if "SPY" in self.portfolio.positions:
-            # Time cost
-            step_reward -= 1e-5
+            step_reward -= 1e-5  # Time cost penalty
             pos = self.portfolio.positions["SPY"]
             entry_price = pos["entry_price"]
             quantity = pos["quantity"]
             current_price = current_prices.get("SPY", 0)
             unrealized_pnl = (current_price - entry_price) * quantity
 
-            # Penalize unrealized losses (scaled)
             if unrealized_pnl < 0:
                 step_reward += 0.2 * (unrealized_pnl / self.initial_cash)
             else:
-                # Slight positive shaping for unrealized gains (encourage waiting for larger profits)
                 step_reward += 0.05 * (unrealized_pnl / self.initial_cash)
 
         done = current_equity <= self.initial_cash * 0.5 or self.current_step >= len(self.df) - 1
