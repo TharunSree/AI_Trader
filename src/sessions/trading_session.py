@@ -1,4 +1,3 @@
-python
 # src/sessions/trading_session.py
 import logging
 import time
