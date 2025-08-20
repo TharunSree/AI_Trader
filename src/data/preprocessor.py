@@ -39,9 +39,21 @@ def calculate_features(df: pd.DataFrame) -> pd.DataFrame:
     df["BBP_20_2"] = calculate_bollinger_bands_percentage(df["Close"], 20, 2)
     df["ATR_14"] = calculate_atr(df["High"], df["Low"], df["Close"], 14)
 
-    # --- NEW: Volume Indicator ---
+    # --- Volume Indicators ---
     df["OBV"] = calculate_obv(df["Close"], df["Volume"])
 
+    # Add missing volume features
+    if 'Volume' in df.columns:
+        df['volume_sma_5'] = df['Volume'].rolling(window=5).mean()
+        df['volume_sma_20'] = df['Volume'].rolling(window=20).mean()
+        df['volume_sma_ratio'] = df['Volume'] / df['volume_sma_20']
+        df['volume_ema_ratio'] = df['Volume'] / df['Volume'].ewm(span=10).mean()
+    else:
+        # Default values if no volume data
+        df['volume_sma_5'] = 1.0
+        df['volume_sma_20'] = 1.0
+        df['volume_sma_ratio'] = 1.0
+        df['volume_ema_ratio'] = 1.0
 
     # Fill any NaN values that might have been created
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
