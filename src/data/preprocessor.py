@@ -24,6 +24,8 @@ def calculate_features(df: pd.DataFrame) -> pd.DataFrame:
     # --- Basic Features ---
     df["returns"] = df["Close"].pct_change()
     df["SMA_50"] = df["Close"].rolling(window=50).mean()  # 50-day Simple Moving Average
+    df["SMA_20"] = df["Close"].rolling(window=20).mean()
+    df["SMA_200"] = df["Close"].rolling(window=200).mean()
 
     # --- Momentum Indicators ---
     df["RSI_14"] = calculate_rsi(df["Close"], 14)
