@@ -273,7 +273,7 @@ def run_paper_trader_task(self, trader_id, model_file):
         config = {
             'trader_id': trader_id,
             'model_file': model_file,
-            'interval_minutes': 15,
+            'interval_minutes': 5,
             'position_size': 500,
             'enable_profit_taking': True,
 
