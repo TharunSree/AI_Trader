@@ -1,571 +1,430 @@
-import logging
 import time
+import logging
 from pathlib import Path
 from datetime import datetime, timedelta
-import os
-import django
 import torch
+import numpy as np
+from typing import Optional, Callable
 
-# Django setup (only once)
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'trader_project.settings')
-django.setup()
-
-from control_panel.models import PaperTrader, TradeLog
-from src.data.preprocessor import calculate_features
 from src.data.yfinance_loader import YFinanceLoader
+from src.data.preprocessor import calculate_features
 from src.models.ppo_agent import PPOAgent
 from src.execution.broker import Broker
-from src.execution.risk_manager import RiskManager
-from src.execution.scanner import Scanner
-from src.utils.logger import setup_logging
+from control_panel.models import PaperTrader, TradeLog
+
+logger = logging.getLogger(__name__)
 
 
 class TradingSession:
-    def __init__(self, config, abort_flag_callback=None):
+    def __init__(self, config: dict, abort_flag_callback: Optional[Callable] = None):
         self.config = config
-        self.should_abort_callback = abort_flag_callback
-        self.log = setup_logging('TradingSession')
+        self.abort_flag_callback = abort_flag_callback or (lambda: False)
+        self.task = None  # Will be set by the calling task
 
         # Trading parameters
         self.trader_id = config.get('trader_id', 1)
-        self.interval_minutes = float(config.get('interval_minutes', 15))
-        self.position_size = float(config.get('position_size', 500))
+        self.model_file = config['model_file']
+        self.interval_minutes = config.get('interval_minutes', 15)
+        self.position_size = config.get('position_size', 500)
 
-        # Strategy type determines behavior
-        self.strategy_type = config.get('strategy_type', 'short_term')  # 'short_term' or 'long_term'
-
-        # Short-term vs Long-term configuration
-        if self.strategy_type == 'short_term':
-            self.profit_target_percent = float(config.get('profit_target_percent', 1.5))
-            self.stop_loss_percent = float(config.get('stop_loss_percent', 0.8))
-            self.max_daily_trades = int(config.get('max_daily_trades', 15))
-            self.buy_cooldown_minutes = float(config.get('buy_cooldown_minutes', 15))
-            self.position_hold_time_minutes = float(config.get('position_hold_time_minutes', 60))
-            self.confidence_threshold = float(config.get('confidence_threshold', 0.65))
-        else:  # long_term
-            self.profit_target_percent = float(config.get('profit_target_percent', 3.0))
-            self.stop_loss_percent = float(config.get('stop_loss_percent', 1.5))
-            self.max_daily_trades = int(config.get('max_daily_trades', 5))
-            self.buy_cooldown_minutes = float(config.get('buy_cooldown_minutes', 120))
-            self.position_hold_time_minutes = float(config.get('position_hold_time_minutes', 1440))  # 24 hours
-            self.confidence_threshold = float(config.get('confidence_threshold', 0.75))
-
+        # Strategy settings
         self.enable_profit_taking = config.get('enable_profit_taking', True)
+        self.profit_target_percent = config.get('profit_target_percent', 2.0)
+        self.stop_loss_percent = config.get('stop_loss_percent', 1.0)
+        self.max_daily_trades = config.get('max_daily_trades', 10)
+        self.confidence_threshold = config.get('confidence_threshold', 0.7)
+
+        # Initialize components
+        self.broker = Broker()
+        self.agent = None
+        self.model_config = None
         self.daily_trade_count = 0
         self.last_trade_date = None
 
-        # Initialize components
-        self.agent = None
-        self.model_config = None
-        self.broker = Broker()
+        # Load the trained model
+        self._load_model()
 
-        # Enhanced Risk Manager with strategy-specific settings
-        self.risk_manager = RiskManager(
-            broker=self.broker,
-            base_trade_usd=self.position_size,
-            max_trade_usd=self.position_size * 2,
-            max_drawdown_pct=0.10,
-            max_position_pct=0.20 if self.strategy_type == 'short_term' else 0.15,
-            max_daily_trades=self.max_daily_trades,
-            profit_take_pct=self.profit_target_percent / 100,
-            stop_loss_pct=self.stop_loss_percent / 100
-        )
+    def _load_model(self):
+        """Load the trained PPO agent from the model file"""
+        try:
+            model_path = Path("saved_models") / self.model_file
+            if not model_path.exists():
+                raise FileNotFoundError(f"Model file not found: {model_path}")
 
-        self.scanner = Scanner()
-        self.task = None
-        self.last_buy_time = None
-        self.position_entry_times = {}
+            # Load the model
+            checkpoint = torch.load(model_path, map_location='cpu')
 
-        # Track session metrics
-        self.session_start_time = datetime.now()
-        self.session_trades = 0
-        self.session_equity_start = 0.0
+            # Extract configuration
+            self.model_config = checkpoint.get('config', {})
+            features = self.model_config.get('features', [])
+            window_size = self.model_config.get('window', 10)
 
-        # Load model
-        self.load_model()
+            # Calculate state dimension
+            state_dim = len(features) * window_size
+            action_dim = 3  # Hold, Buy, Sell
 
-    def load_model(self):
-        model_path = Path("saved_models") / self.config['model_file']
-        if not model_path.exists():
-            raise FileNotFoundError(f"Model not found: {model_path}")
+            # Initialize agent
+            lr = self.model_config.get('params', {}).get('lr', 0.0003)
+            self.agent = PPOAgent(state_dim=state_dim, action_dim=action_dim, lr=lr)
 
-        self.agent, self.model_config = PPOAgent.load_with_config(model_path)
-        self.agent.actor.eval()
-        self.log.info(f"✅ Model loaded: {self.config['model_file']} (Strategy: {self.strategy_type})")
-
-    def should_abort(self):
-        return self.should_abort_callback() if self.should_abort_callback else False
-
-    def update_activity(self, message):
-        if hasattr(self, 'task') and self.task:
-            self.task.update_state(state='PROGRESS', meta={'activity': message})
-
-    def sleep_with_countdown(self, total_seconds, sleep_type="interval"):
-        """Enhanced sleep with dynamic countdown for market closed periods"""
-        if reason == "market_closed":
-            self.log_activity("Market Closed - sleeping until next open")
-
-        for remaining in range(total_seconds, 0, -1):
-            if self.should_abort():
-                return
-            mins, secs = divmod(remaining, 60)
-
-            # For market closed, recalculate remaining time dynamically
-            if sleep_type == "market_closed":
-                # Get fresh market open time each iteration
-                actual_remaining_mins = self.broker.get_next_market_open_minutes()
-                actual_remaining_secs = actual_remaining_mins * 60
-
-                # If actual time is less than our countdown, adjust
-                if actual_remaining_secs < remaining:
-                    remaining = actual_remaining_secs
-                    mins, secs = divmod(remaining, 60)
-
-                hours, mins_remaining = divmod(actual_remaining_mins, 60)
-                context = f" (Market opens in {hours}h {mins_remaining}m)"
+            # Load the trained weights
+            if 'actor_state_dict' in checkpoint:
+                self.agent.actor.load_state_dict(checkpoint['actor_state_dict'])
+            elif 'model_state_dict' in checkpoint:
+                self.agent.actor.load_state_dict(checkpoint['model_state_dict'])
             else:
-                context = ""
+                raise KeyError("No valid state dict found in checkpoint")
 
-            self.update_activity(f"Sleeping ({sleep_type})... ({mins:02d}:{secs:02d} remaining){context}")
-            time.sleep(1)
+            self.agent.actor.eval()
+            logger.info(f"✅ Model loaded successfully: {self.model_file}")
+            logger.info(f"📊 Features: {len(features)}, Window: {window_size}, State dim: {state_dim}")
 
-    def reset_daily_counters(self):
-        """Reset daily trade counter if new day"""
-        today = datetime.now().date()
-        if self.last_trade_date != today:
-            old_count = self.daily_trade_count
-            self.daily_trade_count = 0
-            self.last_trade_date = today
-            self.log.info(f"🔄 Daily counters reset for {today} (Previous: {old_count} trades)")
+        except Exception as e:
+            logger.error(f"❌ Failed to load model {self.model_file}: {e}")
+            raise
 
-    def check_position_hold_time(self, symbol, current_positions):
-        """Check if position has been held long enough based on strategy"""
-        if symbol not in self.position_entry_times:
-            return True
+    def _get_market_data(self, symbol: str = 'SPY') -> Optional[np.ndarray]:
+        """Get recent market data and prepare state for the agent"""
+        try:
+            # Get recent data (last 60 days to ensure we have enough)
+            end_date = datetime.now().strftime('%Y-%m-%d')
+            start_date = (datetime.now() - timedelta(days=60)).strftime('%Y-%m-%d')
 
-        entry_time = self.position_entry_times[symbol]
-        hold_duration = (datetime.now() - entry_time).total_seconds() / 60
+            # Load and process data
+            loader = YFinanceLoader([symbol], start_date, end_date)
+            raw_data = loader.load_data()
 
-        if self.strategy_type == 'short_term':
-            # For short-term, allow quick exits but prefer some holding time
-            min_hold = self.position_hold_time_minutes * 0.5
-            return hold_duration >= min_hold
-        else:
-            # For long-term, enforce minimum holding period
-            return hold_duration >= self.position_hold_time_minutes
+            if raw_data.empty:
+                logger.warning(f"No data available for {symbol}")
+                return None
 
-    def check_risk_based_exits(self, current_positions):
-        """Use risk manager to check for automatic exits"""
-        positions_to_sell = []
+            # Calculate features
+            processed_data = calculate_features(raw_data)
 
-        for position in current_positions:
-            symbol = position.symbol
-            should_exit, reason = self.risk_manager.should_take_profit_or_stop_loss(symbol)
+            # Extract the features we need
+            features = self.model_config.get('features', [])
+            window_size = self.model_config.get('window', 10)
 
-            if should_exit:
-                # Check hold time for long-term strategy
-                if self.strategy_type == 'long_term' and reason == 'PROFIT_TAKE':
-                    if not self.check_position_hold_time(symbol, current_positions):
-                        hold_time = (datetime.now() - self.position_entry_times.get(symbol,
-                                                                                    datetime.now())).total_seconds() / 60
-                        self.log.info(
-                            f"⏰ Delaying profit take for {symbol} - held {hold_time:.1f}min, need {self.position_hold_time_minutes}min")
-                        continue
+            # Get the last window_size rows
+            recent_data = processed_data[features].tail(window_size)
 
-                try:
-                    quantity = float(position.qty)
-                    if quantity > 0:
-                        positions_to_sell.append({
-                            'symbol': symbol,
-                            'reason': reason,
-                            'quantity': quantity,
-                            'market_value': float(position.market_value or 0),
-                            'unrealized_pl': float(position.unrealized_pl or 0)
-                        })
-                        self.log.info(
-                            f"🎯 {symbol} marked for exit: {reason} (P&L: ${float(position.unrealized_pl or 0):.2f})")
-                except Exception as e:
-                    self.log.error(f"❌ Error processing exit for {symbol}: {e}")
+            if len(recent_data) < window_size:
+                logger.warning(f"Insufficient data: got {len(recent_data)}, need {window_size}")
+                return None
 
-        return positions_to_sell
+            # Flatten to create state vector
+            state = recent_data.values.flatten()
 
-    def can_trade_today(self):
-        """Check if we can still trade today using risk manager"""
-        return self.risk_manager.check_daily_trade_limit()
+            # Handle any NaN values
+            if np.any(np.isnan(state)):
+                logger.warning("NaN values detected in state, filling with zeros")
+                state = np.nan_to_num(state)
 
-    def get_position_value(self, ticker, current_positions):
-        """Get current position value for a ticker"""
-        for position in current_positions:
-            if position.symbol == ticker:
-                return float(position.market_value or 0)
-        return 0
+            return state
 
-    def has_position(self, ticker, current_positions):
-        """Check if we currently have a position in this ticker"""
-        for position in current_positions:
-            if position.symbol == ticker and float(position.qty) > 0:
+        except Exception as e:
+            logger.error(f"Error getting market data: {e}")
+            return None
+
+    def _make_trading_decision(self, symbol: str = 'SPY') -> tuple:
+        """
+        Make trading decision using the loaded agent
+        Returns (action, confidence, state_info)
+        """
+        try:
+            state = self._get_market_data(symbol)
+            if state is None:
+                return 0, 0.0, "No market data"
+
+            # Convert to tensor
+            state_tensor = torch.FloatTensor(state).unsqueeze(0)
+
+            # Get action probabilities from agent
+            with torch.no_grad():
+                action_probs = self.agent.actor(state_tensor)
+                action_dist = torch.softmax(action_probs, dim=-1)
+
+                # Get the most likely action and its confidence
+                action = torch.argmax(action_dist).item()
+                confidence = torch.max(action_dist).item()
+
+            action_names = ['HOLD', 'BUY', 'SELL']
+            state_info = f"Action: {action_names[action]}, Confidence: {confidence:.3f}"
+
+            return action, confidence, state_info
+
+        except Exception as e:
+            logger.error(f"Error making trading decision: {e}")
+            return 0, 0.0, f"Error: {str(e)}"
+
+    def _execute_trade(self, action: int, confidence: float, symbol: str = 'SPY') -> bool:
+        """Execute the trading action"""
+        try:
+            action_names = ['HOLD', 'BUY', 'SELL']
+
+            # Check confidence threshold
+            if confidence < self.confidence_threshold:
+                logger.info(
+                    f"⚠️ Action {action_names[action]} confidence {confidence:.3f} below threshold {self.confidence_threshold}")
+                return False
+
+            # Check daily trade limit
+            today = datetime.now().date()
+            if self.last_trade_date != today:
+                self.daily_trade_count = 0
+                self.last_trade_date = today
+
+            if self.daily_trade_count >= self.max_daily_trades:
+                logger.info(f"⚠️ Daily trade limit reached ({self.max_daily_trades})")
+                return False
+
+            # Execute the action
+            if action == 1:  # BUY
+                return self._execute_buy(symbol, confidence)
+            elif action == 2:  # SELL
+                return self._execute_sell(symbol, confidence)
+            else:  # HOLD
+                logger.info(f"💤 HOLD decision - confidence: {confidence:.3f}")
                 return True
-        return False
 
-    def log_trade(self, ticker, side, order):
+        except Exception as e:
+            logger.error(f"Error executing trade: {e}")
+            return False
+
+    def _execute_buy(self, symbol: str, confidence: float) -> bool:
+        """Execute buy order"""
+        try:
+            # Check if we already have a position
+            if self.broker.has_position(symbol):
+                logger.info(f"⚠️ Already have position in {symbol}, skipping buy")
+                return False
+
+            logger.info(f"🟢 BUY signal for {symbol} - confidence: {confidence:.3f}, size: ${self.position_size}")
+
+            # Place market buy order
+            filled, order = self.broker.place_market_order(
+                symbol=symbol,
+                side='buy',
+                notional_value=self.position_size,
+                wait_fill=True,
+                timeout_sec=60
+            )
+
+            if filled:
+                self.daily_trade_count += 1
+
+                # Log the trade
+                self._log_trade(symbol, 'BUY', self.position_size, confidence)
+
+                logger.info(f"✅ BUY order filled for {symbol}")
+                return True
+            else:
+                logger.warning(f"❌ BUY order failed for {symbol}")
+                return False
+
+        except Exception as e:
+            logger.error(f"Error executing buy: {e}")
+            return False
+
+    def _execute_sell(self, symbol: str, confidence: float) -> bool:
+        """Execute sell order"""
+        try:
+            # Check if we have a position to sell
+            if not self.broker.has_position(symbol):
+                logger.info(f"⚠️ No position in {symbol} to sell")
+                return False
+
+            position_value = self.broker.get_position_value(symbol)
+            logger.info(f"🔴 SELL signal for {symbol} - confidence: {confidence:.3f}, value: ${position_value:.2f}")
+
+            # Place market sell order
+            filled, order = self.broker.place_market_order(
+                symbol=symbol,
+                side='sell',
+                wait_fill=True,
+                timeout_sec=60
+            )
+
+            if filled:
+                self.daily_trade_count += 1
+
+                # Log the trade
+                self._log_trade(symbol, 'SELL', position_value, confidence)
+
+                logger.info(f"✅ SELL order filled for {symbol}")
+                return True
+            else:
+                logger.warning(f"❌ SELL order failed for {symbol}")
+                return False
+
+        except Exception as e:
+            logger.error(f"Error executing sell: {e}")
+            return False
+
+    def _log_trade(self, symbol: str, action: str, notional_value: float, confidence: float):
         """Log trade to database"""
         try:
             trader = PaperTrader.objects.get(id=self.trader_id)
-
-            filled_qty = float(order.filled_qty or 0)
-            filled_price = float(order.filled_avg_price or 0)
-            notional_value = filled_qty * filled_price
-
             TradeLog.objects.create(
                 trader=trader,
-                symbol=ticker,
-                action=side.upper(),
-                quantity=filled_qty,
-                price=filled_price,
+                symbol=symbol,
+                action=action,
                 notional_value=notional_value,
+                confidence=confidence,
                 timestamp=datetime.now()
             )
-
-            self.session_trades += 1
-            self.log.info(
-                f"📝 Trade logged: {side.upper()} {filled_qty:.4f} {ticker} @ ${filled_price:.2f} (Session trades: {self.session_trades})")
-            return True
-
         except Exception as e:
-            self.log.error(f"❌ Failed to log trade: {e}")
-            return False
+            logger.error(f"Error logging trade: {e}")
 
-    def execute_buy_with_risk_check(self, ticker, confidence):
-        """Execute buy order with full risk management"""
+    def _check_profit_targets(self, symbol: str = 'SPY'):
+        """Check and execute profit taking / stop loss"""
+        if not self.enable_profit_taking:
+            return
+
         try:
-            # Get current price for calculation
-            ticker_data = self.scanner.get_ticker_data(ticker)
-            if not ticker_data or 'Close' not in ticker_data:
-                self.log.warning(f"⚠️ No price data available for {ticker}")
-                return False
+            if not self.broker.has_position(symbol):
+                return
 
-            current_price = float(ticker_data['Close'])
+            # Get position details
+            position = self.broker.api.get_position(symbol)
+            unrealized_pl_pct = float(position.unrealized_plpc) * 100
 
-            # Use risk manager to check and size the trade
-            action = 1  # BUY
-            can_trade, notional_value = self.risk_manager.check_trade(ticker, action, confidence)
+            # Check profit target
+            if unrealized_pl_pct >= self.profit_target_percent:
+                logger.info(
+                    f"🎯 Profit target hit for {symbol}: {unrealized_pl_pct:.2f}% >= {self.profit_target_percent}%")
+                self._execute_sell(symbol, 1.0)  # High confidence for profit taking
 
-            if not can_trade:
-                return False
-
-            # Calculate quantity based on approved notional value
-            quantity = notional_value / current_price
-
-            self.update_activity(f"Buying {ticker} (conf: {confidence:.2f}, size: ${notional_value:.0f})")
-
-            # Use broker's market order method with enhanced features
-            filled, order = self.broker.place_market_order(
-                symbol=ticker,
-                side='buy',
-                notional_value=notional_value,
-                wait_fill=True,
-                timeout_sec=300,
-                enable_gap_protection=True,
-                max_gap_percent=5.0
-            )
-
-            if filled and order and order.filled_qty:
-                self.log_trade(ticker, 'buy', order)
-                self.daily_trade_count += 1
-                self.last_buy_time = datetime.now()
-                self.position_entry_times[ticker] = datetime.now()
-
-                # Log risk status
-                risk_status = self.risk_manager.get_risk_status()
-                filled_qty = float(order.filled_qty)
-                filled_price = float(order.filled_avg_price or current_price)
-
-                self.log.info(f"✅ BUY: {filled_qty:.4f} {ticker} @ ${filled_price:.2f}")
-                self.log.info(f"📊 Risk Status: {risk_status['daily_trades_used']}/{self.max_daily_trades} trades, "
-                              f"Drawdown: {risk_status['drawdown_pct']:.1f}%")
-                return True
-            else:
-                self.log.warning(f"❌ BUY order for {ticker} was not filled")
-                return False
+            # Check stop loss
+            elif unrealized_pl_pct <= -self.stop_loss_percent:
+                logger.info(
+                    f"🛑 Stop loss triggered for {symbol}: {unrealized_pl_pct:.2f}% <= -{self.stop_loss_percent}%")
+                self._execute_sell(symbol, 1.0)  # High confidence for stop loss
 
         except Exception as e:
-            self.log.error(f"❌ Failed to execute BUY for {ticker}: {e}")
-            return False
+            logger.error(f"Error checking profit targets: {e}")
 
-    def execute_sell_with_risk_check(self, ticker, current_positions, confidence=None):
-        """Execute sell order with position validation"""
-        try:
-            position_qty = 0
-            position_value = 0
-            unrealized_pl = 0
-
-            for pos in current_positions:
-                if pos.symbol == ticker:
-                    position_qty = float(pos.qty)
-                    position_value = float(pos.market_value or 0)
-                    unrealized_pl = float(pos.unrealized_pl or 0)
-                    break
-
-            if position_qty <= 0:
-                self.log.warning(f"⚠️ No position to sell for {ticker}")
-                return False
-
-            # For long-term strategy, check hold time
-            if self.strategy_type == 'long_term':
-                if not self.check_position_hold_time(ticker, current_positions):
-                    hold_time = (datetime.now() - self.position_entry_times.get(ticker,
-                                                                                datetime.now())).total_seconds() / 60
-                    self.log.info(
-                        f"⏰ Delaying sell for {ticker} - held {hold_time:.1f}min, need {self.position_hold_time_minutes}min")
-                    return False
-
-            conf_str = f" (conf: {confidence:.2f})" if confidence else ""
-            self.update_activity(f"Selling {ticker}{conf_str} (P&L: ${unrealized_pl:.2f})")
-
-            # Use broker's market order method
-            filled, order = self.broker.place_market_order(
-                symbol=ticker,
-                side='sell',
-                qty=position_qty,
-                wait_fill=True,
-                timeout_sec=300,
-                enable_gap_protection=True,
-                max_gap_percent=5.0
-            )
-
-            if filled and order and order.filled_qty:
-                self.log_trade(ticker, 'sell', order)
-                self.daily_trade_count += 1
-
-                # Clean up tracking
-                if ticker in self.position_entry_times:
-                    del self.position_entry_times[ticker]
-
-                filled_qty = float(order.filled_qty)
-                filled_price = float(order.filled_avg_price or 0)
-                realized_pl = unrealized_pl  # Approximate realized P&L
-
-                self.log.info(
-                    f"✅ SELL: {filled_qty:.4f} {ticker} @ ${filled_price:.2f} (Realized P&L: ${realized_pl:.2f})")
-                return True
-            else:
-                self.log.warning(f"❌ SELL order for {ticker} was not filled")
-                return False
-
-        except Exception as e:
-            self.log.error(f"❌ Failed to execute SELL for {ticker}: {e}")
-            return False
-
-    def get_strategy_specific_tickers(self):
-        """Get tickers based on strategy type"""
-        if self.strategy_type == 'short_term':
-            # More tickers for short-term to find quick opportunities
-            return self.scanner.get_active_tickers(limit=30)
-        else:
-            # Fewer, higher quality tickers for long-term
-            return self.scanner.get_active_tickers(limit=15)
-
-    def log_session_summary(self):
-        """Log session performance summary"""
-        try:
-            current_equity = self.broker.get_equity()
-            session_duration = (datetime.now() - self.session_start_time).total_seconds() / 3600
-
-            if self.session_equity_start > 0:
-                session_return = ((current_equity - self.session_equity_start) / self.session_equity_start) * 100
-                self.log.info(f"📊 Session Summary:")
-                self.log.info(f"   Duration: {session_duration:.1f} hours")
-                self.log.info(f"   Trades: {self.session_trades}")
-                self.log.info(f"   Start Equity: ${self.session_equity_start:,.2f}")
-                self.log.info(f"   End Equity: ${current_equity:,.2f}")
-                self.log.info(f"   Return: {session_return:+.2f}%")
-
-        except Exception as e:
-            self.log.error(f"❌ Error logging session summary: {e}")
+    def _update_task_state(self, activity: str):
+        """Update task state for real-time monitoring"""
+        if self.task:
+            try:
+                self.task.update_state(
+                    state='PROGRESS',
+                    meta={
+                        'activity': activity,
+                        'timestamp': datetime.now().isoformat(),
+                        'daily_trades': self.daily_trade_count,
+                        'max_daily_trades': self.max_daily_trades
+                    }
+                )
+            except Exception as e:
+                logger.debug(f"Could not update task state: {e}")
 
     def run(self):
-        self.log.info(f"🚀 Trading session started - Strategy: {self.strategy_type.upper()}")
-        self.log.info(
-            f"📋 Session Config: {self.profit_target_percent}% profit target, {self.stop_loss_percent}% stop loss, max {self.max_daily_trades} trades/day")
-        self.update_activity(f"Session started ({self.strategy_type} strategy)")
-
-        # Initialize session metrics
+        """Main trading loop"""
         try:
-            self.session_equity_start = self.broker.get_equity()
-        except:
-            self.session_equity_start = 0.0
+            logger.info(f"🚀 Starting paper trading session")
+            logger.info(f"📋 Model: {self.model_file}")
+            logger.info(f"⏱️ Interval: {self.interval_minutes} minutes")
+            logger.info(f"💰 Position size: ${self.position_size}")
+            logger.info(f"🎯 Confidence threshold: {self.confidence_threshold}")
 
-        try:
-            while not self.should_abort():
-                # Reset daily counters if needed
-                self.reset_daily_counters()
+            cycle_count = 0
 
-                # If get_next_market_open_minutes returns a tuple (hours, minutes)
-                next_open = self.broker.get_next_market_open_minutes()
-                if isinstance(next_open, tuple):
-                    next_open_mins = int(next_open[0]) * 60 + int(next_open[1])
-                else:
-                    next_open_mins = int(next_open)
-
-                self.update_activity(
-                    f"US Market closed - waiting for open (in {next_open_mins // 60}h {next_open_mins % 60}m)")
-                sleep_duration = min(3600, next_open_mins * 60, 3600)
-                self.sleep_with_countdown(sleep_duration, "market_closed")
-
-                # Check if risk manager kill switch is active
-                risk_status = self.risk_manager.get_risk_status()
-                if risk_status['kill_switch_active']:
-                    self.log.critical("🔴 KILL SWITCH ACTIVATED - Stopping trading")
-                    self.update_activity("KILL SWITCH - Trading stopped due to excessive drawdown")
-                    break
-
-                # Check daily trade limit
-                if not self.can_trade_today():
-                    self.update_activity(f"Daily trade limit reached ({self.max_daily_trades})")
-                    self.sleep_with_countdown(3600, "daily_limit")
-                    continue
-
-                # Get current positions and account info
+            while not self.abort_flag_callback():
                 try:
-                    current_positions = self.broker.get_positions()
-                    buying_power = self.broker.get_buying_power()
-                    equity = self.broker.get_equity()
+                    cycle_count += 1
 
-                    positions_value = sum(float(p.market_value or 0) for p in current_positions)
-                    unrealized_pl = sum(float(p.unrealized_pl or 0) for p in current_positions)
+                    # Check if market is open
+                    if not self.broker._is_market_open():
+                        next_open_minutes, time_str = self.broker.get_next_market_open_minutes()
 
-                    self.log.info(f"💰 Equity: ${equity:,.2f}, Buying Power: ${buying_power:,.2f}, "
-                                  f"Positions: {len(current_positions)} (${positions_value:,.2f}, P&L: ${unrealized_pl:+.2f}) | Strategy: {self.strategy_type}")
+                        # Sleep for a reasonable amount (max 30 minutes)
+                        sleep_minutes = min(30, max(5, next_open_minutes // 12))
 
-                    # Log risk status periodically
-                    self.log.info(f"📊 Daily trades: {risk_status['daily_trades_used']}/{self.max_daily_trades}, "
-                                  f"Drawdown: {risk_status['drawdown_pct']:.1f}%, Session trades: {self.session_trades}")
+                        activity = f"Market closed. Next open in {time_str}. Sleeping {sleep_minutes}m..."
+                        logger.info(f"🌙 {activity}")
+                        self._update_task_state(activity)
 
-                except Exception as e:
-                    self.log.error(f"❌ Failed to get account info: {e}")
-                    self.sleep_with_countdown(60, "error_recovery")
-                    continue
+                        for i in range(sleep_minutes * 60):  # Sleep in 1-second intervals
+                            if self.abort_flag_callback():
+                                return
 
-                # Check for risk-based exits (profit taking / stop losses)
-                positions_to_sell = self.check_risk_based_exits(current_positions)
+                            # Update sleep countdown every 30 seconds
+                            if i % 30 == 0:
+                                remaining_seconds = (sleep_minutes * 60) - i
+                                remaining_minutes = remaining_seconds // 60
+                                remaining_secs = remaining_seconds % 60
+                                sleep_activity = f"Sleeping... ({remaining_minutes:02d}:{remaining_secs:02d} remaining)"
+                                self._update_task_state(sleep_activity)
 
-                # Execute risk-based sells
-                sells_executed = 0
-                for sell_info in positions_to_sell:
-                    if not self.can_trade_today():
-                        self.log.info(
-                            f"⚠️ Daily trade limit reached, skipping remaining {len(positions_to_sell) - sells_executed} sells")
-                        break
-
-                    if self.execute_sell_with_risk_check(sell_info['symbol'], current_positions):
-                        sells_executed += 1
-                    time.sleep(2)  # Brief delay between orders
-
-                if sells_executed > 0:
-                    self.log.info(f"✅ Executed {sells_executed} risk-based sells")
-
-                # Scan for new opportunities
-                self.update_activity("Scanning for opportunities...")
-                tickers = self.get_strategy_specific_tickers()
-
-                if not tickers:
-                    self.log.warning("⚠️ No active tickers found")
-                    self.sleep_with_countdown(300, "no_tickers")
-                    continue
-
-                self.log.info(f"📊 Scanning {len(tickers)} tickers for {self.strategy_type} opportunities")
-
-                # Analyze each ticker
-                analyzed_count = 0
-                buy_signals = 0
-                sell_signals = 0
-
-                for ticker in tickers:
-                    if self.should_abort() or not self.can_trade_today():
-                        break
-
-                    try:
-                        self.update_activity(f"Analyzing {ticker} ({analyzed_count + 1}/{len(tickers)})")
-
-                        # Get data
-                        df = self.scanner.get_dataframe_for_ticker(
-                            ticker,
-                            self.model_config['features'],
-                            self.model_config['window']
-                        )
-
-                        if df is None or len(df) < self.model_config['window']:
-                            analyzed_count += 1
-                            continue
-
-                        # Get prediction
-                        observation = df[self.model_config['features']].tail(
-                            self.model_config['window']).values.flatten()
-                        state = torch.FloatTensor(observation).to(self.agent.device)
-
-                        with torch.no_grad():
-                            action_probs = self.agent.actor(state)
-                            action_idx = torch.argmax(action_probs).item()
-                            confidence = float(action_probs[action_idx])
-
-                        # Strategy-specific confidence filtering
-                        if confidence < self.confidence_threshold:
-                            analyzed_count += 1
-                            continue
-
-                        # Execute trades based on prediction and strategy
-                        if action_idx == 1:  # BUY
-                            buy_signals += 1
-                            # Don't buy if we already have a position (for this implementation)
-                            if self.has_position(ticker, current_positions):
-                                analyzed_count += 1
-                                continue
-
-                            # Check cooldown using risk manager
-                            if not self.risk_manager.check_buy_cooldown(ticker):
-                                analyzed_count += 1
-                                continue
-
-                            self.execute_buy_with_risk_check(ticker, confidence)
-
-                        elif action_idx == 2:  # SELL
-                            sell_signals += 1
-                            if self.has_position(ticker, current_positions):
-                                self.execute_sell_with_risk_check(ticker, current_positions, confidence)
-
-                        analyzed_count += 1
-                        # Brief throttle between analyses
-                        time.sleep(1)
-
-                    except Exception as e:
-                        self.log.error(f"❌ Error analyzing {ticker}: {e}")
-                        analyzed_count += 1
+                            time.sleep(1)
                         continue
 
-                self.log.info(
-                    f"📈 Analysis complete: {analyzed_count} tickers, {buy_signals} buy signals, {sell_signals} sell signals")
+                    # Market is open - execute trading logic
+                    logger.info(f"🔍 Trading cycle {cycle_count} - Scanning for opportunities...")
+                    self._update_task_state(f"Scanning for opportunities (cycle {cycle_count})")
 
-                # Strategy-specific sleep intervals
-                if len(current_positions) > 0:
-                    # Has positions - more frequent monitoring
-                    if self.strategy_type == 'short_term':
-                        interval_seconds = 300  # 5 minutes
-                    else:
-                        interval_seconds = 600  # 10 minutes
-                else:
-                    # No positions - less frequent scanning
-                    if self.strategy_type == 'short_term':
-                        interval_seconds = int(self.interval_minutes * 60)  # 15 minutes
-                    else:
-                        interval_seconds = int(self.interval_minutes * 60 * 1.5)  # 22.5 minutes
+                    # Check existing positions for profit/loss management
+                    if self.enable_profit_taking:
+                        self._check_profit_targets('SPY')
 
-                self.sleep_with_countdown(interval_seconds, "interval")
+                    # Make new trading decision
+                    action, confidence, state_info = self._make_trading_decision('SPY')
+
+                    activity = f"Analyzing SPY - {state_info}"
+                    logger.info(f"📊 {activity}")
+                    self._update_task_state(activity)
+
+                    # Execute the decision
+                    if action != 0:  # Not HOLD
+                        trade_executed = self._execute_trade(action, confidence, 'SPY')
+
+                        if trade_executed:
+                            activity = f"Trade executed: {['HOLD', 'BUY', 'SELL'][action]} SPY (confidence: {confidence:.3f})"
+                            logger.info(f"✅ {activity}")
+                            self._update_task_state(activity)
+
+                    # Get account summary
+                    try:
+                        summary = self.broker.get_account_summary()
+                        equity = summary.get('equity', 0)
+                        positions = len(self.broker.get_positions())
+
+                        status_msg = f"Equity: ${equity:,.2f}, Positions: {positions}, Daily trades: {self.daily_trade_count}/{self.max_daily_trades}"
+                        logger.info(f"📈 {status_msg}")
+
+                    except Exception as e:
+                        logger.warning(f"Could not get account summary: {e}")
+
+                    # Sleep between cycles
+                    sleep_seconds = self.interval_minutes * 60
+
+                    for i in range(sleep_seconds):
+                        if self.abort_flag_callback():
+                            return
+
+                        # Update sleep countdown every 30 seconds
+                        if i % 30 == 0:
+                            remaining_seconds = sleep_seconds - i
+                            remaining_minutes = remaining_seconds // 60
+                            remaining_secs = remaining_seconds % 60
+                            sleep_activity = f"Sleeping... ({remaining_minutes:02d}:{remaining_secs:02d} remaining)"
+                            self._update_task_state(sleep_activity)
+
+                        time.sleep(1)
+
+                except Exception as e:
+                    logger.error(f"Error in trading cycle {cycle_count}: {e}")
+                    self._update_task_state(f"Error in cycle {cycle_count}: {str(e)}")
+
+                    # Sleep before retrying
+                    time.sleep(60)
 
         except Exception as e:
-            self.log.error(f"💥 Critical trading session error: {e}", exc_info=True)
-            self.update_activity(f"Error: {e}")
+            logger.error(f"Fatal error in trading session: {e}")
             raise
+
         finally:
-            self.log_session_summary()
-            self.log.info("🛑 Trading session ended")
-            self.update_activity("Session ended")
+            logger.info("🛑 Trading session ended")
+            self._update_task_state("Trading session ended")
