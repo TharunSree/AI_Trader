@@ -3,13 +3,30 @@
 {% block title %}Paper Trading{% endblock title %}
 
 {% block extra_css %}
-<link href="{% static 'vendor/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}" rel="stylesheet" type="text/css"/>
+<link href="{% static 'vendor/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}" rel="stylesheet"
+      type="text/css"/>
 <style>
-  .mini-badge{font-size:11px;letter-spacing:.5px}
-  .activity-log{max-height:240px;overflow-y:auto}
-  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
-  .top-panels .card{height:100%}
-  .status-badges .badge{padding:.45rem .7rem}
+    .mini-badge {
+        font-size: 11px;
+        letter-spacing: .5px
+    }
+
+    .activity-log {
+        max-height: 240px;
+        overflow-y: auto
+    }
+
+    .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace
+    }
+
+    .top-panels .card {
+        height: 100%
+    }
+
+    .status-badges .badge {
+        padding: .45rem .7rem
+    }
 </style>
 {% endblock extra_css %}
 
@@ -20,128 +37,129 @@
 {% block page_content %}
 
 <div class="row row-cols-1 row-cols-lg-4 g-3 top-panels mb-3">
-  <!-- Controls -->
-  <div class="col">
-    <div class="card h-100">
-      <div class="card-body d-flex flex-column">
-        <h5 class="mb-3">Controls</h5>
+    <div class="col">
+        <div class="card h-100">
+            <div class="card-body d-flex flex-column">
+                <h5 class="mb-3">Controls</h5>
 
-        <form id="start-form" method="post" action="{% url 'start_trader' %}" class="mb-2">
-          {% csrf_token %}
-          <div class="mb-2">
-            <label for="model_file_select" class="form-label small">Select Model</label>
-            <select name="model_file" id="model_file_select" class="form-select form-select-sm" required {% if trader_status == 'RUNNING' %}disabled{% endif %}>
-              <option value="" disabled selected>Select a model to run</option>
-              {% for f in model_files %}
-              <option value="{{ f }}" {% if f == trader.model_file %}selected{% endif %}>{{ f }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <button id="start-btn" class="btn btn-success btn-sm w-100" {% if trader_status == 'RUNNING' %}disabled{% endif %}>Start</button>
-        </form>
+                <form id="start-form" method="post" action="{% url 'start_trader' %}" class="mb-2">
+                    {% csrf_token %}
+                    <div class="mb-2">
+                        <label for="model_file_select" class="form-label small">Select Model</label>
+                        <select name="model_file" id="model_file_select" class="form-select form-select-sm" required {%
+                                if trader_status== 'RUNNING' %}disabled{% endif %}>
+                        <option value="" disabled selected>Select a model to run</option>
+                        {% for f in model_files %}
+                        <option value="{{ f }}" {% if f== trader.model_file %}selected{% endif %}>{{ f }}</option>
+                        {% endfor %}
+                        </select>
+                    </div>
+                    <button id="start-btn" class="btn btn-success btn-sm w-100" {% if trader_status==
+                    'RUNNING' %}disabled{% endif %}>Start</button>
+                </form>
 
-        <form id="stop-form" method="post" action="{% url 'stop_trader' %}" class="mt-auto">
-          {% csrf_token %}
-          <button id="stop-btn" type="button" class="btn btn-danger btn-sm w-100" {% if trader_status != 'RUNNING' %}disabled{% endif %}>Stop</button>
-        </form>
-      </div>
+                <form id="stop-form" method="post" action="{% url 'stop_trader' %}" class="mt-auto">
+                    {% csrf_token %}
+                    <button id="stop-btn" type="button" class="btn btn-danger btn-sm w-100" {% if trader_status
+                            !='RUNNING' %}disabled{% endif %}>Stop
+                    </button>
+                </form>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <!-- Bot Status -->
-  <div class="col">
-    <div class="card h-100">
-      <div class="card-body d-flex flex-column">
-        <h5 class="mb-3">Bot Status</h5>
-        <div class="status-badges d-flex flex-wrap align-items-center gap-2 mb-3">
-          <span id="trader-status-badge" class="badge bg-secondary-subtle text-secondary px-3 py-2">UNKNOWN</span>
-          <span id="cycle-badge" class="badge mini-badge bg-secondary-subtle text-secondary">IDLE</span>
-          <span id="sleep-badge" class="badge mini-badge bg-info-subtle text-info d-none">Sleep 00:00</span>
-            <span class="badge mini-badge bg-dark-subtle text-dark">
+    <div class="col">
+        <div class="card h-100">
+            <div class="card-body d-flex flex-column">
+                <h5 class="mb-3">Bot Status</h5>
+                <div class="status-badges d-flex flex-wrap align-items-center gap-2 mb-3">
+                    <span id="trader-status-badge"
+                          class="badge bg-secondary-subtle text-secondary px-3 py-2">UNKNOWN</span>
+                    <span id="cycle-badge" class="badge mini-badge bg-secondary-subtle text-secondary">IDLE</span>
+                    <span id="sleep-badge" class="badge mini-badge bg-info-subtle text-info d-none">Sleep 00:00</span>
+                    <span class="badge mini-badge bg-dark-subtle text-dark">
               Uptime <span id="uptime-badge" class="mono">00:00:00</span>
             </span>
+                </div>
+                <div class="small mb-2">
+                    <strong>Last:</strong> <span id="activity-summary">-</span>
+                </div>
+                <div id="status-error" class="small text-danger d-none"></div>
+                <div class="mt-auto small text-muted">
+                    Status & activity refresh adapt to state.
+                </div>
+            </div>
         </div>
-        <div class="small mb-2">
-          <strong>Last:</strong> <span id="activity-summary">-</span>
-        </div>
-        <div id="status-error" class="small text-danger d-none"></div>
-        <div class="mt-auto small text-muted">
-          Status & activity refresh adapt to state.
-        </div>
-      </div>
     </div>
-  </div>
 
-  <!-- Equity Snapshot -->
-  <div class="col">
-    <div class="card h-100">
-      <div class="card-body d-flex flex-column">
-        <h5 class="mb-3">Equity Snapshot</h5>
-        <div class="d-flex justify-content-between mb-2">
-          <span class="text-muted small">Equity</span>
-          <span id="equity-val" class="fw-semibold">$0</span>
+    <div class="col">
+        <div class="card h-100">
+            <div class="card-body d-flex flex-column">
+                <h5 class="mb-3">Equity Snapshot</h5>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted small">Equity</span>
+                    <span id="equity-val" class="fw-semibold">$0</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted small">Buying Power</span>
+                    <span id="bp-val" class="fw-semibold">$0</span>
+                </div>
+                <div class="mt-auto small text-muted">Auto-updates while running</div>
+            </div>
         </div>
-        <div class="d-flex justify-content-between mb-2">
-          <span class="text-muted small">Buying Power</span>
-          <span id="bp-val" class="fw-semibold">$0</span>
-        </div>
-        <div class="mt-auto small text-muted">Auto-updates while running</div>
-      </div>
     </div>
-  </div>
 
-  <!-- Last Activity -->
-  <div class="col">
-    <div class="card h-100">
-      <div class="card-body d-flex flex-column">
-        <h5 class="mb-3">Last Activity</h5>
-        <div id="activity-summary-box" class="alert alert-info py-2 px-2 small mb-0 flex-grow-1 d-flex align-items-center">-</div>
-        <div class="mt-2 small text-muted">Full log below</div>
-      </div>
+    <div class="col">
+        <div class="card h-100">
+            <div class="card-body d-flex flex-column">
+                <h5 class="mb-3">Last Activity</h5>
+                <div id="activity-summary-box"
+                     class="alert alert-info py-2 px-2 small mb-0 flex-grow-1 d-flex align-items-center">-
+                </div>
+                <div class="mt-2 small text-muted">Full log below</div>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
 
-<!-- Equity Chart -->
 <div class="row mb-3">
-  <div class="col-12">
-    <div class="card">
-      <div class="card-body">
-        <h5 class="mb-3">Equity Curve</h5>
-        <div id="equity-chart" style="height:360px;"></div>
-      </div>
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="mb-3">Equity Curve</h5>
+                <div id="equity-chart" style="height:360px;"></div>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
 
-<!-- Positions + Activity Log -->
 <div class="row">
-  <div class="col-xl-6 mb-3">
-    <div class="card h-100">
-      <div class="card-body">
-        <h5 class="mb-3">Account Positions</h5>
-        <table id="positions-dt" class="table table-sm table-striped mb-0 w-100">
-          <thead>
-            <tr>
-              <th>Symbol</th>
-              <th>Qty</th>
-              <th>Value</th>
-              <th>Unrealized P/L</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
+    <div class="col-xl-6 mb-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="mb-3">Account Positions</h5>
+                <table id="positions-dt" class="table table-sm table-striped mb-0 w-100">
+                    <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Qty</th>
+                        <th>Value</th>
+                        <th>Unrealized P/L</th>
+                    </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
     </div>
-  </div>
-  <div class="col-xl-6 mb-3">
-    <div class="card h-100">
-      <div class="card-body d-flex flex-column">
-        <h5 class="mb-3">Recent Activity</h5>
-        <ul id="activity-list" class="list-group list-group-flush activity-log small flex-grow-1"></ul>
-      </div>
+    <div class="col-xl-6 mb-3">
+        <div class="card h-100">
+            <div class="card-body d-flex flex-column">
+                <h5 class="mb-3">Recent Activity</h5>
+                <ul id="activity-list" class="list-group list-group-flush activity-log small flex-grow-1"></ul>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
 
 {% endblock page_content %}
@@ -151,279 +169,316 @@
 <script src="{% static 'vendor/datatables.net/js/dataTables.min.js' %}"></script>
 <script src="{% static 'vendor/datatables.net-bs5/js/dataTables.bootstrap5.min.js' %}"></script>
 <script>
-(function(){
-  const UPTIME_KEY='paper_trader_uptime_start';
-  const ACTIVITY_POLL_MS=2500;
-  const STATUS_INTERVALS={RUNNING:2000,FAILED:10000,STOPPED:15000,UNKNOWN:10000};
-  const MAX_POINTS=1200;
-  const MAX_ACTIVITY=120;
+    (function () {
+        const UPTIME_KEY = 'paper_trader_uptime_start';
+        const ACTIVITY_POLL_MS = 2500;
+        const STATUS_INTERVALS = {RUNNING: 2000, FAILED: 10000, STOPPED: 15000, UNKNOWN: 10000};
+        const MAX_POINTS = 1200;
+        const MAX_ACTIVITY = 120;
 
-  let currentStatus='UNKNOWN';
-  let positionsTable;
-  let equityChart;
-  let equitySeries=[];
-  let statusTimer=null;
-  let activityTimer=null;
-  let lastActivityLine='';
-  let sleepSeconds=0;
-  let sleepTimerId=null;
+        let currentStatus = 'UNKNOWN';
+        let positionsTable;
+        let equityChart;
+        let equitySeries = [];
+        let statusTimer = null;
+        let activityTimer = null;
+        let lastActivityLine = '';
+        let sleepSeconds = 0;
+        let sleepTimerId = null;
 
-  function fmtNum(n){return Number(n||0).toLocaleString();}
-  function fmtCurrency(v){return '$'+Number(v||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
-  function escapeHtml(s){return (s||'').replace(/[&<>"'`]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'" :'&#39;','`':'&#96;'}[c]));}
-  function now(){return Date.now();}
-
-  function ensureUptimeStart(){
-    if(!localStorage.getItem(UPTIME_KEY)){
-      localStorage.setItem(UPTIME_KEY,String(now()));
-    }
-  }
-  function clearUptime(){
-    localStorage.removeItem(UPTIME_KEY);
-    document.getElementById('uptime-badge').textContent='00:00:00';
-  }
-  function tickUptime(){
-    const start=parseInt(localStorage.getItem(UPTIME_KEY)||'0',10);
-    if(start){
-      const diff=now()-start;
-      const h=String(Math.floor(diff/3600000));
-      const m=String(Math.floor(diff/60000)%60).padStart(2,'0');
-      const s=String(Math.floor(diff/1000)%60).padStart(2,'0');
-      document.getElementById('uptime-badge').textContent=`${h.padStart(2,'0')}:${m}:${s}`;
-    }
-    requestAnimationFrame(tickUptime);
-  }
-
-  function initChart(){
-    equityChart=new ApexCharts(document.querySelector('#equity-chart'),{
-      chart:{type:'area',height:360,toolbar:{show:false},animations:{enabled:true}},
-      series:[{name:'Equity',data:[]}],
-      xaxis:{type:'datetime'},
-      yaxis:{labels:{formatter:v=>'$'+fmtNum(v)}},
-      dataLabels:{enabled:false},
-      stroke:{curve:'smooth',width:2},
-      colors:['#35b8e0'],
-      fill:{type:'gradient',gradient:{shadeIntensity:.4,opacityFrom:.6,opacityTo:.1,stops:[0,90,100]}},
-      noData:{text:'Waiting for data...'}
-    });
-    equityChart.render();
-  }
-
-  function addEquityPoint(val){
-    if(val==null||isNaN(val)) return;
-    equitySeries.push({x:now(),y:Number(val)});
-    if(equitySeries.length>MAX_POINTS) equitySeries.splice(0,equitySeries.length-MAX_POINTS);
-    equityChart.updateSeries([{name:'Equity',data:equitySeries}]);
-  }
-
-  function initPositions(){
-    positionsTable=$('#positions-dt').DataTable({
-      paging:false,searching:false,info:false,order:[[2,'desc']],
-      columnDefs:[
-        {targets:[1,2,3],className:'text-end'}
-      ]
-    });
-  }
-
-  function updatePositions(positions){
-    if(!positionsTable) return;
-    positionsTable.clear();
-    (positions||[]).forEach(p=>{
-      const qty=Number(p.qty||0);
-      const mv=Number(p.market_value||0);
-      const upl=Number(p.unrealized_pl||0);
-      const uplCls=upl>=0?'text-success':'text-danger';
-      positionsTable.row.add([
-        `<span data-order="${mv}">${escapeHtml(p.symbol)}</span>`,
-        `<span data-order="${qty}">${qty.toLocaleString()}</span>`,
-        `<span data-order="${mv}">${fmtCurrency(mv)}</span>`,
-        `<span data-order="${upl}" class="${uplCls}">${fmtCurrency(upl)}</span>`
-      ]);
-    });
-    positionsTable.draw(false);
-  }
-
-  function setStatusBadge(status){
-    const el=document.getElementById('trader-status-badge');
-    let cls='bg-secondary-subtle text-secondary';
-    if(status==='RUNNING') cls='bg-success-subtle text-success';
-    else if(status==='FAILED') cls='bg-danger-subtle text-danger';
-    else if(status==='STOPPED') cls='bg-secondary-subtle text-secondary';
-    el.className='badge '+cls+' px-3 py-2';
-    el.textContent=status;
-  }
-
-  function setCycleBadge(mode){
-    const el=document.getElementById('cycle-badge');
-    el.textContent=mode;
-    let cls='mini-badge bg-secondary-subtle text-secondary';
-    if(mode==='SCANNING') cls='mini-badge bg-info-subtle text-info';
-    else if(mode==='ANALYZING') cls='mini-badge bg-warning-subtle text-warning';
-    else if(mode==='ACTIVE') cls='mini-badge bg-success-subtle text-success';
-    el.className='badge '+cls;
-  }
-
-  function startSleep(seconds){
-    sleepSeconds=seconds;
-    const el=document.getElementById('sleep-badge');
-    el.classList.remove('d-none');
-    updateSleepBadge();
-    if(sleepTimerId) clearInterval(sleepTimerId);
-    sleepTimerId=setInterval(()=>{
-      if(sleepSeconds<=0){
-        clearInterval(sleepTimerId);
-        el.classList.add('d-none');
-        return;
-      }
-      sleepSeconds--;
-      updateSleepBadge();
-    },1000);
-  }
-
-  function updateSleepBadge(){
-    const m=String(Math.floor(sleepSeconds/60)).padStart(2,'0');
-    const s=String(sleepSeconds%60).padStart(2,'0');
-    document.getElementById('sleep-badge').textContent=`Sleep ${m}:${s}`;
-  }
-
-  const activityLog=[];
-  function addActivity(line,isError){
-    if(!line||line===lastActivityLine) return;
-    lastActivityLine=line;
-    if(/Sleeping\.\.\./.test(line)) return;
-    activityLog.unshift({t:new Date(),msg:line,err:!!isError});
-    if(activityLog.length>MAX_ACTIVITY) activityLog.pop();
-    document.getElementById('activity-summary').textContent=line;
-    document.getElementById('activity-summary-box').textContent=line;
-    const ul=document.getElementById('activity-list');
-    ul.innerHTML='';
-    activityLog.forEach(a=>{
-      const li=document.createElement('li');
-      li.className='list-group-item py-1 d-flex justify-content-between '+(a.err?'text-danger':'');
-      li.innerHTML=`<span class="text-truncate" style="max-width:70%">${escapeHtml(a.msg)}</span><code class="small mono">${a.t.toLocaleTimeString()}</code>`;
-      ul.appendChild(li);
-    });
-    if(/Scanning for opportunities/i.test(line)) setCycleBadge('SCANNING');
-    else if(/^Analyzing\s+/i.test(line)) setCycleBadge('ANALYZING');
-    else if(currentStatus==='RUNNING') setCycleBadge('ACTIVE');
-  }
-
-  function processActivityString(s){
-  if(!s) return;
-  // Updated regex to handle the actual format from trading session
-  const m=s.match(/Sleeping.*?\((\d{1,2}):(\d{2}) remaining\)/);
-  if(m){
-    const sec=parseInt(m[1],10)*60+parseInt(m[2],10);
-    startSleep(sec);
-  } else {
-    addActivity(s,false);
-  }
-}
-
-  function scheduleStatus(){
-    if(statusTimer) clearTimeout(statusTimer);
-    statusTimer=setTimeout(fetchStatus, STATUS_INTERVALS[currentStatus]||10000);
-  }
-
-  function scheduleActivity(){
-    if(activityTimer) clearTimeout(activityTimer);
-    activityTimer=setTimeout(fetchActivity, ACTIVITY_POLL_MS);
-  }
-
-  function fetchStatus(){
-    fetch("{% url 'trader_status_api' %}?_="+now(), {cache:'no-store'})
-      .then(r=>r.json())
-      .then(data=>{
-        const prev=currentStatus;
-        currentStatus=data.status || 'UNKNOWN';
-        setStatusBadge(currentStatus);
-
-        if(currentStatus==='RUNNING') ensureUptimeStart();
-        else if(prev==='RUNNING' && currentStatus!=='RUNNING') clearUptime();
-
-        const errBox=document.getElementById('status-error');
-        if(currentStatus==='FAILED' && data.error_message){
-          errBox.textContent=data.error_message;
-          errBox.classList.remove('d-none');
-        } else {
-          errBox.classList.add('d-none');
-          errBox.textContent='';
+        function fmtNum(n) {
+            return Number(n || 0).toLocaleString();
         }
 
-        const startBtn=document.getElementById('start-btn');
-        const stopBtn=document.getElementById('stop-btn');
-        const modelSel=document.getElementById('model_file_select');
-        if(currentStatus==='RUNNING'){
-          startBtn.disabled=true;
-          stopBtn.disabled=false;
-          modelSel.disabled=true;
-        } else {
-          startBtn.disabled=false;
-          stopBtn.disabled=true;
-          modelSel.disabled=false;
+        function fmtCurrency(v) {
+            return '$' + Number(v || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
         }
 
-        document.getElementById('equity-val').textContent=fmtCurrency(data.equity);
-        document.getElementById('bp-val').textContent=fmtCurrency(data.buying_power);
-        addEquityPoint(data.equity);
+        function escapeHtml(s) {
+            return (s || '').replace(/[&<>"'`]/g, c => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;',
+                '`': '&#96;'
+            }[c]));
+        }
 
-        updatePositions(data.positions);
+        function now() {
+            return Date.now();
+        }
 
-        if(currentStatus!=='RUNNING') setCycleBadge('IDLE');
+        function ensureUptimeStart() {
+            if (!localStorage.getItem(UPTIME_KEY)) {
+                localStorage.setItem(UPTIME_KEY, String(now()));
+            }
+        }
 
-        scheduleStatus();
-      })
-      .catch(()=>{
-        currentStatus='UNKNOWN';
-        scheduleStatus();
-      });
-  }
+        function clearUptime() {
+            localStorage.removeItem(UPTIME_KEY);
+            document.getElementById('uptime-badge').textContent = '00:00:00';
+        }
 
-  function fetchActivity(){
-    if(currentStatus!=='RUNNING'){
-      scheduleActivity();
-      return;
-    }
-    fetch("{% url 'trader_activity_api' %}?_="+now(), {cache:'no-store'})
-      .then(r=>r.json())
-      .then(data=>{
-        if(data.activity) processActivityString(data.activity);
-        scheduleActivity();
-      })
-      .catch(()=>scheduleActivity());
-  }
+        function tickUptime() {
+            const start = parseInt(localStorage.getItem(UPTIME_KEY) || '0', 10);
+            if (start) {
+                const diff = now() - start;
+                const h = String(Math.floor(diff / 3600000));
+                const m = String(Math.floor(diff / 60000) % 60).padStart(2, '0');
+                const s = String(Math.floor(diff / 1000) % 60).padStart(2, '0');
+                document.getElementById('uptime-badge').textContent = `${h.padStart(2, '0')}:${m}:${s}`;
+            }
+            requestAnimationFrame(tickUptime);
+        }
 
-  function wireControls(){
-    document.getElementById('stop-btn').addEventListener('click',()=>{
-      if(confirm('Are you sure you want to stop the trading bot?')){
-        document.getElementById('stop-form').submit();
-      }
-    });
+        function initChart() {
+            equityChart = new ApexCharts(document.querySelector('#equity-chart'), {
+                chart: {type: 'area', height: 360, toolbar: {show: false}, animations: {enabled: true}},
+                series: [{name: 'Equity', data: []}],
+                xaxis: {type: 'datetime'},
+                yaxis: {labels: {formatter: v => '$' + fmtNum(v)}},
+                dataLabels: {enabled: false},
+                stroke: {curve: 'smooth', width: 2},
+                colors: ['#35b8e0'],
+                fill: {
+                    type: 'gradient',
+                    gradient: {shadeIntensity: .4, opacityFrom: .6, opacityTo: .1, stops: [0, 90, 100]}
+                },
+                noData: {text: 'Waiting for data...'}
+            });
+            equityChart.render();
+        }
 
-    document.getElementById('start-form').addEventListener('submit',(e)=>{
-      const model=document.getElementById('model_file_select').value;
-      if(!model){
-        e.preventDefault();
-        alert('Please select a model file first.');
-        return false;
-      }
-      if(!confirm(`Start paper trading with model: ${model}?`)){
-        e.preventDefault();
-        return false;
-      }
-    });
-  }
+        function addEquityPoint(val) {
+            if (val == null || isNaN(val)) return;
+            equitySeries.push({x: now(), y: Number(val)});
+            if (equitySeries.length > MAX_POINTS) equitySeries.splice(0, equitySeries.length - MAX_POINTS);
+            equityChart.updateSeries([{name: 'Equity', data: equitySeries}]);
+        }
 
-  function boot(){
-    initPositions();
-    initChart();
-    wireControls();
-    fetchStatus();
-    fetchActivity();
-    tickUptime();
-  }
+        function initPositions() {
+            positionsTable = $('#positions-dt').DataTable({
+                paging: false, searching: false, info: false, order: [[2, 'desc']],
+                columnDefs: [
+                    {targets: [1, 2, 3], className: 'text-end'}
+                ]
+            });
+        }
 
-  document.addEventListener('DOMContentLoaded',boot);
-})();
+        function updatePositions(positions) {
+            if (!positionsTable) return;
+            positionsTable.clear();
+            (positions || []).forEach(p => {
+                const qty = Number(p.qty || 0);
+                const mv = Number(p.market_value || 0);
+                const upl = Number(p.unrealized_pl || 0);
+                const uplCls = upl >= 0 ? 'text-success' : 'text-danger';
+                positionsTable.row.add([
+                    `<span data-order="${mv}">${escapeHtml(p.symbol)}</span>`,
+                    `<span data-order="${qty}">${qty.toLocaleString()}</span>`,
+                    `<span data-order="${mv}">${fmtCurrency(mv)}</span>`,
+                    `<span data-order="${upl}" class="${uplCls}">${fmtCurrency(upl)}</span>`
+                ]);
+            });
+            positionsTable.draw(false);
+        }
+
+        function setStatusBadge(status) {
+            const el = document.getElementById('trader-status-badge');
+            let cls = 'bg-secondary-subtle text-secondary';
+            if (status === 'RUNNING') cls = 'bg-success-subtle text-success';
+            else if (status === 'FAILED') cls = 'bg-danger-subtle text-danger';
+            else if (status === 'STOPPED') cls = 'bg-secondary-subtle text-secondary';
+            el.className = 'badge ' + cls + ' px-3 py-2';
+            el.textContent = status;
+        }
+
+        function setCycleBadge(mode) {
+            const el = document.getElementById('cycle-badge');
+            el.textContent = mode;
+            let cls = 'mini-badge bg-secondary-subtle text-secondary';
+            if (mode === 'SCANNING') cls = 'mini-badge bg-info-subtle text-info';
+            else if (mode === 'ANALYZING') cls = 'mini-badge bg-warning-subtle text-warning';
+            else if (mode === 'ACTIVE') cls = 'mini-badge bg-success-subtle text-success';
+            el.className = 'badge ' + cls;
+        }
+
+        function startSleep(seconds, message) {
+            sleepSeconds = seconds;
+            const el = document.getElementById('sleep-badge');
+            el.classList.remove('d-none');
+            updateSleepBadge(message);
+            if (sleepTimerId) clearInterval(sleepTimerId);
+            sleepTimerId = setInterval(() => {
+                if (sleepSeconds <= 0) {
+                    clearInterval(sleepTimerId);
+                    el.classList.add('d-none');
+                    return;
+                }
+                sleepSeconds--;
+                updateSleepBadge(message);
+            }, 1000);
+        }
+
+        function updateSleepBadge(message) {
+            const h = String(Math.floor(sleepSeconds / 3600)).padStart(2, '0');
+            const m = String(Math.floor((sleepSeconds % 3600) / 60)).padStart(2, '0');
+            const s = String(sleepSeconds % 60).padStart(2, '0');
+            let timeStr = '';
+            if (parseInt(h) > 0) {
+                timeStr = `${h}:${m}:${s}`;
+            } else {
+                timeStr = `${m}:${s}`;
+            }
+            document.getElementById('sleep-badge').textContent = `${message} ${timeStr}`;
+        }
+
+        const activityLog = [];
+
+        function addActivity(line, isError) {
+            if (!line || line === lastActivityLine) return;
+            lastActivityLine = line;
+            if (/Sleeping\.\.\./.test(line)) return;
+            activityLog.unshift({t: new Date(), msg: line, err: !!isError});
+            if (activityLog.length > MAX_ACTIVITY) activityLog.pop();
+            document.getElementById('activity-summary').textContent = line;
+            document.getElementById('activity-summary-box').textContent = line;
+            const ul = document.getElementById('activity-list');
+            ul.innerHTML = '';
+            activityLog.forEach(a => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item py-1 d-flex justify-content-between ' + (a.err ? 'text-danger' : '');
+                li.innerHTML = `<span class="text-truncate" style="max-width:70%">${escapeHtml(a.msg)}</span><code class="small mono">${a.t.toLocaleTimeString()}</code>`;
+                ul.appendChild(li);
+            });
+            if (/Scanning for opportunities/i.test(line)) setCycleBadge('SCANNING');
+            else if (/^Analyzing\s+/i.test(line)) setCycleBadge('ANALYZING');
+            else if (currentStatus === 'RUNNING') setCycleBadge('ACTIVE');
+        }
+
+        function processActivityString(s) {
+            if (!s) return;
+            // Updated regex to handle the actual format from trading session
+            const sleepMatch = s.match(/Sleeping.*?\((\d{1,2}):(\d{2}) remaining\)/);
+            const marketClosedMatch = s.match(/Market closed. Sleeping.*?\((\d+):(\d{2}) remaining\)/);
+
+            if (marketClosedMatch) {
+                const mins = parseInt(marketClosedMatch[1], 10);
+                const secs = parseInt(marketClosedMatch[2], 10);
+                startSleep(mins * 60 + secs, "Market Closed");
+            } else if (sleepMatch) {
+                const sec = parseInt(sleepMatch[1], 10) * 60 + parseInt(sleepMatch[2], 10);
+                startSleep(sec, "Sleep");
+            } else {
+                addActivity(s, false);
+            }
+        }
+
+        function scheduleStatus() {
+            if (statusTimer) clearTimeout(statusTimer);
+            statusTimer = setTimeout(fetchStatus, STATUS_INTERVALS[currentStatus] || 10000);
+        }
+
+        function scheduleActivity() {
+            if (activityTimer) clearTimeout(activityTimer);
+            activityTimer = setTimeout(fetchActivity, ACTIVITY_POLL_MS);
+        }
+
+        function fetchStatus() {
+            fetch("{% url 'trader_status_api' %}?_=" + now(), {cache: 'no-store'})
+                .then(r => r.json())
+                .then(data => {
+                    const prev = currentStatus;
+                    currentStatus = data.status || 'UNKNOWN';
+                    setStatusBadge(currentStatus);
+
+                    if (currentStatus === 'RUNNING') ensureUptimeStart();
+                    else if (prev === 'RUNNING' && currentStatus !== 'RUNNING') clearUptime();
+
+                    const errBox = document.getElementById('status-error');
+                    if (currentStatus === 'FAILED' && data.error_message) {
+                        errBox.textContent = data.error_message;
+                        errBox.classList.remove('d-none');
+                    } else {
+                        errBox.classList.add('d-none');
+                        errBox.textContent = '';
+                    }
+
+                    const startBtn = document.getElementById('start-btn');
+                    const stopBtn = document.getElementById('stop-btn');
+                    const modelSel = document.getElementById('model_file_select');
+                    if (currentStatus === 'RUNNING') {
+                        startBtn.disabled = true;
+                        stopBtn.disabled = false;
+                        modelSel.disabled = true;
+                    } else {
+                        startBtn.disabled = false;
+                        stopBtn.disabled = true;
+                        modelSel.disabled = false;
+                    }
+
+                    document.getElementById('equity-val').textContent = fmtCurrency(data.equity);
+                    document.getElementById('bp-val').textContent = fmtCurrency(data.buying_power);
+                    addEquityPoint(data.equity);
+
+                    updatePositions(data.positions);
+
+                    if (currentStatus !== 'RUNNING') setCycleBadge('IDLE');
+
+                    scheduleStatus();
+                })
+                .catch(() => {
+                    currentStatus = 'UNKNOWN';
+                    scheduleStatus();
+                });
+        }
+
+        function fetchActivity() {
+            if (currentStatus !== 'RUNNING') {
+                scheduleActivity();
+                return;
+            }
+            fetch("{% url 'trader_activity_api' %}?_=" + now(), {cache: 'no-store'})
+                .then(r => r.json())
+                .then(data => {
+                    if (data.activity) processActivityString(data.activity);
+                    scheduleActivity();
+                })
+                .catch(() => scheduleActivity());
+        }
+
+        function wireControls() {
+            document.getElementById('stop-btn').addEventListener('click', () => {
+                if (confirm('Are you sure you want to stop the trading bot?')) {
+                    document.getElementById('stop-form').submit();
+                }
+            });
+
+            document.getElementById('start-form').addEventListener('submit', (e) => {
+                const model = document.getElementById('model_file_select').value;
+                if (!model) {
+                    e.preventDefault();
+                    alert('Please select a model file first.');
+                    return false;
+                }
+                if (!confirm(`Start paper trading with model: ${model}?`)) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+        }
+
+        function boot() {
+            initPositions();
+            initChart();
+            wireControls();
+            fetchStatus();
+            fetchActivity();
+            tickUptime();
+        }
+
+        document.addEventListener('DOMContentLoaded', boot);
+    })();
 </script>
 {% endblock extra_javascript %}

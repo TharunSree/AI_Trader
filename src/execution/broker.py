@@ -165,44 +165,28 @@ class Broker:
             except:
                 return True, 0.0, None, 0.0
 
-    def _is_market_open(self) -> bool:
+    def is_market_open(self) -> bool:
         """Check if US market is currently open (with IST logging)"""
         try:
             clock = self.api.get_clock()
-            is_open = clock.is_open
-
-            times = self._get_market_times_ist()
-
-            logger.info(f"🕐 Market Status: {'OPEN' if is_open else 'CLOSED'}")
-            logger.info(f"🇺🇸 US ET: {times['et_time']}")
-            logger.info(f"🇮🇳 India IST: {times['ist_time']}")
-
-            if not is_open:
-                # Calculate when market opens next in IST
-                if times['et_weekday'] >= 5:  # Weekend
-                    logger.info("📅 Market closed: Weekend")
-                elif times['et_hour'] < 9 or (times['et_hour'] == 9 and times['et_minute'] < 30):
-                    logger.info(f"🌅 Market opens at 9:30 AM ET (8:00 PM IST)")
-                else:
-                    logger.info(f"🌙 Market closed until tomorrow 9:30 AM ET (8:00 PM IST)")
-
-            return is_open
-
+            return clock.is_open
         except Exception as e:
             logger.warning(f"Could not check market status: {e}")
+            # Fallback to manual calculation
+            return self._is_market_open_manual()
 
-            # Fallback: manual calculation
-            times = self._get_market_times_ist()
-            et_hour = times['et_hour']
-            et_minute = times['et_minute']
-            et_weekday = times['et_weekday']
+    def _is_market_open_manual(self) -> bool:
+        times = self._get_market_times_ist()
+        et_hour = times['et_hour']
+        et_minute = times['et_minute']
+        et_weekday = times['et_weekday']
 
-            # Market hours: Mon-Fri 9:30 AM - 4:00 PM ET
-            if et_weekday >= 5:  # Weekend
-                return False
-            if et_hour < 9 or (et_hour == 9 and et_minute < 30) or et_hour >= 16:
-                return False
-            return True
+        # Market hours: Mon-Fri 9:30 AM - 4:00 PM ET
+        if et_weekday >= 5:  # Weekend
+            return False
+        if (et_hour < 9 or (et_hour == 9 and et_minute < 30)) or et_hour >= 16:
+            return False
+        return True
 
     def get_next_market_open_minutes(self) -> int:
         """Get minutes until next market open for sleep timer"""
@@ -242,7 +226,7 @@ class Broker:
         Returns (filled: bool, order_obj)
         """
         # Check market status with IST logging
-        market_open = self._is_market_open()
+        market_open = self.is_market_open()
 
         if not market_open:
             logger.warning(

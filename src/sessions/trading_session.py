@@ -96,11 +96,16 @@ class TradingSession:
             self.task.update_state(state='PROGRESS', meta={'activity': message})
 
     def sleep_with_countdown(self, total_seconds, sleep_type="interval"):
-        for remaining in range(total_seconds, 0, -1):
+        start_time = time.time()
+        while time.time() - start_time < total_seconds:
             if self.should_abort():
                 return
+            remaining = int(total_seconds - (time.time() - start_time))
             mins, secs = divmod(remaining, 60)
-            self.update_activity(f"Sleeping... ({mins:02d}:{secs:02d} remaining)")
+            if sleep_type == "market_close":
+                self.update_activity(f"Market closed. Sleeping... ({mins:02d}:{secs:02d} remaining)")
+            else:
+                self.update_activity(f"Sleeping... ({mins:02d}:{secs:02d} remaining)")
             time.sleep(1)
 
     def reset_daily_counters(self):
@@ -291,6 +296,11 @@ class TradingSession:
 
         try:
             while not self.should_abort():
+                # Check if market is open
+                if not self.broker.is_market_open():
+                    minutes_to_open = self.broker.get_next_market_open_minutes()
+                    self.sleep_with_countdown(minutes_to_open * 60, "market_close")
+                    continue
                 # Check if risk manager kill switch is active
                 risk_status = self.risk_manager.get_risk_status()
                 if risk_status['kill_switch_active']:
