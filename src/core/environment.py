@@ -42,40 +42,52 @@ class TradingEnv(gym.Env):
         self.trade_log = []
         return self._get_observation(), self.get_info()
 
+    # src/core/environment.py (modified reward shaping section inside step)
     def step(self, action):
-        """Execute one time step within the environment."""
         realized_pnl = self._execute_trade(action)
         self.current_step += 1
         current_prices = self._get_current_prices()
         current_equity = self.portfolio.get_equity(current_prices)
 
-        # --- FINAL REWARD SHAPING LOGIC ---
-        step_reward = 0
+        # Initialize reward
+        step_reward = 0.0
 
-        # 1. HUGE reward for taking a profit. This is the primary goal.
+        # --- Realized PnL shaping (normalized) ---
         if realized_pnl > 0:
-            step_reward += realized_pnl * 5  # Greatly incentivize closing profitable trades.
-
-        # 2. HUGE penalty for taking a loss.
+            # Strong reward for profitable close
+            step_reward += 5.0 * (realized_pnl / self.initial_cash)
         elif realized_pnl < 0:
-            step_reward += realized_pnl * 3  # Strongly penalize closing losing trades.
+            # Penalty for realized loss
+            step_reward += 3.0 * (realized_pnl / self.initial_cash)  # realized_pnl is negative
 
-        # 3. If holding a position, apply a penalty for every step to represent "time cost".
-        # This forces the agent to have a good reason to stay in a trade.
+        # Track / store previous equity to reward new highs
+        if not hasattr(self, "_peak_equity"):
+            self._peak_equity = self.initial_cash
+        if current_equity > self._peak_equity:
+            # Mild bonus for pushing to a new equity high (prevents too-early profit taking)
+            equity_gain = (current_equity - self._peak_equity) / self.initial_cash
+            step_reward += 0.5 * equity_gain
+            self._peak_equity = current_equity
+
+        # Holding penalties / unrealized shaping
         if "SPY" in self.portfolio.positions:
-            # This is a small, constant penalty for holding, encouraging the agent to exit trades.
-            step_reward -= self.initial_cash * 1e-5
-
-            # Additionally, penalize based on unrealized loss to encourage cutting losses.
-            entry_price = self.portfolio.positions["SPY"]["entry_price"]
-            quantity = self.portfolio.positions["SPY"]["quantity"]
+            # Time cost
+            step_reward -= 1e-5
+            pos = self.portfolio.positions["SPY"]
+            entry_price = pos["entry_price"]
+            quantity = pos["quantity"]
             current_price = current_prices.get("SPY", 0)
             unrealized_pnl = (current_price - entry_price) * quantity
+
+            # Penalize unrealized losses (scaled)
             if unrealized_pnl < 0:
-                step_reward += unrealized_pnl * 0.2  # 20% of the unrealized loss is a penalty each step.
+                step_reward += 0.2 * (unrealized_pnl / self.initial_cash)
+            else:
+                # Slight positive shaping for unrealized gains (encourage waiting for larger profits)
+                step_reward += 0.05 * (unrealized_pnl / self.initial_cash)
 
         done = current_equity <= self.initial_cash * 0.5 or self.current_step >= len(self.df) - 1
-        return self._get_observation(), step_reward, done, False, self.get_info()
+        return self._get_observation(), float(step_reward), done, False, self.get_info()
 
     def get_info(self):
         """Returns a dictionary of the current state of the environment."""
