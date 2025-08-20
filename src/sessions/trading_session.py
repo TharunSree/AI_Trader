@@ -16,6 +16,7 @@ from src.execution.risk_manager import RiskManager
 from src.execution.scanner import Scanner
 from src.data.yfinance_loader import YFinanceLoader
 from control_panel.models import PaperTrader, TradeLog
+from src.utils.logger import setup_logging
 
 
 class TradingSession:
