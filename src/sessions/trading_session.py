@@ -182,17 +182,21 @@ class TradingSession:
                         break
                     continue
 
-                # Buy cooldown
-                if self.last_buy_time and (datetime.now() - self.last_buy_time) < timedelta(
-                        minutes=self.buy_cooldown_minutes):
-                    self.update_activity("Buy cooldown active (sell-only)")
-                    hot_list = []
+                # Check buy cooldown to determine scanning behavior
+                in_buy_cooldown = (self.last_buy_time and
+                                   (datetime.now() - self.last_buy_time) < timedelta(minutes=self.buy_cooldown_minutes))
+
+                if in_buy_cooldown:
+                    self.update_activity("Buy cooldown active (sell-only mode)")
+                    hot_list = []  # Don't scan for new opportunities during cooldown
                 else:
                     try:
                         bp_raw = self.broker.get_buying_power()
                         bp = float(bp_raw)
-                    except Exception:
+                    except Exception as e:
+                        self.log.warning(f"Could not get buying power: {e}")
                         bp = 0.0
+
                     self.update_activity(f"Scanning for opportunities (BP ${bp:,.2f})")
                     hot_list = self.scanner.scan_for_opportunities(buying_power=bp)
 
@@ -200,9 +204,16 @@ class TradingSession:
                 try:
                     current_positions_objs = self.broker.get_positions()
                     current_positions = [p.symbol for p in current_positions_objs]
-                except Exception:
+                except Exception as e:
+                    self.log.warning(f"Could not get positions: {e}")
                     current_positions = []
+
                 tickers = list(set(hot_list + current_positions))
+
+                # Add debug logging
+                self.log.info(f"🔍 Scanner results: {len(hot_list)} tickers found: {hot_list}")
+                self.log.info(f"📍 Current positions: {current_positions}")
+                self.log.info(f"🎯 Final ticker list to analyze: {tickers}")
 
                 if not tickers:
                     self.update_activity("No opportunities found")
@@ -214,7 +225,7 @@ class TradingSession:
                         self.update_activity(f"Analyzing {ticker}")
                         state, current_price = self.create_state_from_live_data(ticker)
                         if state is None:
-                            self.log.debug(f"No valid state for {ticker}, skipping.")
+                            self.log.warning(f"⚠️ Could not get data for {ticker}")
                             continue
 
                         with torch.no_grad():
@@ -224,16 +235,17 @@ class TradingSession:
 
                         # Action mapping: 0=HOLD 1=BUY 2=SELL
                         if action_idx == 0:
-                            self.log.info(f"[{ticker}] HOLD | Price ${current_price:.2f} | Conf {confidence:.3f}")
+                            self.log.info(f"[{ticker}] HOLD | Price ${current_price:.2f} | Confidence {confidence:.3f}")
                             continue
 
                         side = "buy" if action_idx == 1 else "sell"
-                        self.log.info(f"[{ticker}] {side.upper()} signal | ${current_price:.2f} | Conf {confidence:.3f}")
+                        self.log.info(
+                            f"[{ticker}] {side.upper()} signal | Price ${current_price:.2f} | Confidence {confidence:.3f}")
 
-                        # Risk manager
-                        approved, notional_value = self.risk_manager.check_trade(ticker, action_idx, confidence)
-                        if not approved:
-                            self.log.info(f"Rejected by risk manager: {ticker}")
+                        # Risk management check
+                        is_approved, notional_value = self.risk_manager.check_trade(ticker, action_idx, confidence)
+                        if not is_approved:
+                            self.log.info(f"❌ Trade rejected by risk manager: {ticker}")
                             continue
 
                         if hasattr(notional_value, "item"):
@@ -241,44 +253,42 @@ class TradingSession:
                         else:
                             notional_value = float(notional_value)
 
-                        # Additional buy constraints
+                        # Additional checks for buy orders
                         if side == 'buy':
-                            if self.last_buy_time and (datetime.now() - self.last_buy_time) < timedelta(
-                                    minutes=self.buy_cooldown_minutes):
-                                self.log.info(f"Buy cooldown still active: {ticker}")
+                            if in_buy_cooldown:
+                                self.log.info(f"⏳ Buy cooldown active for {ticker}")
                                 continue
                             if ticker in current_positions:
-                                self.log.info(f"Already holding {ticker}")
+                                self.log.info(f"📍 Already holding {ticker}")
                                 continue
 
                         self.update_activity(f"Placing {side.upper()} order for {ticker}")
+
+                        # Place order with gap protection enabled
                         filled, order = self.broker.place_market_order(
                             symbol=ticker,
                             side=side,
                             notional_value=notional_value if side == 'buy' else None,
                             enable_gap_protection=True,
-                            max_gap_percent=5.0
+                            max_gap_percent=5.0  # 5% gap protection
                         )
 
                         if not filled or order is None:
-                            self.log.warning(f"Order not filled for {ticker}")
+                            self.log.warning(f"❌ Order not filled for {ticker}")
                             continue
 
-                        if self.log_trade(ticker, side, order) and side == 'buy':
+                        # Log the trade to database
+                        logged_successfully = self.log_trade(ticker, side, order)
+
+                        if logged_successfully and side == 'buy':
                             self.last_buy_time = datetime.now()
 
-                        # Brief throttle
-                        for _ in range(2):
-                            if self.should_abort():
-                                break
-                            time.sleep(1)
+                        # Brief pause between trades
+                        time.sleep(2)
 
                 # Interval sleep (per-second countdown)
                 interval_seconds = int(float(self.config.get('interval_minutes', 1)) * 60)
                 self.sleep_with_countdown(interval_seconds, sleep_type="interval")
-
-                if self.should_abort():
-                    break
 
         except Exception as e:
             self.log.error(f"💥 Critical trading session error: {e}", exc_info=True)
