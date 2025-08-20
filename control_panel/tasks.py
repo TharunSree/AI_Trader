@@ -7,6 +7,7 @@ from celery import shared_task, current_app
 from celery.contrib.abortable import AbortableTask
 from django.utils import timezone
 from trader_project import settings
+import torch
 
 from src.sessions.evaluation_session import EvaluationSession
 from src.sessions.trading_session import TradingSession
@@ -89,19 +90,25 @@ def run_meta_trainer_task(self, meta_job_id):
 
         best_sharpe = -float('inf')
         best_strategy_info = {}
+        champion_agent_state = None  # Variable to hold the state of the best agent
+
         all_combinations = list(product(
             STRATEGY_PLAYBOOK["feature_sets"].keys(),
             STRATEGY_PLAYBOOK["hyperparameters"].keys(),
             STRATEGY_PLAYBOOK["window_sizes"]
         ))
 
+        # --- Main Loop to test all combinations ---
         for i, (feat_key, param_key, window) in enumerate(all_combinations):
-            if self.is_aborted(): break
+            if self.is_aborted():
+                break
+
             logger.info(
                 f"META-TRAINER: Running experiment {i + 1}/{len(all_combinations)}: {feat_key}, {param_key}, w={window}")
 
             features = STRATEGY_PLAYBOOK["feature_sets"][feat_key]
             params = STRATEGY_PLAYBOOK["hyperparameters"][param_key]
+
             train_env = TradingEnv(train_df, features, window, float(meta_job.initial_cash), 0.001, 0.0005)
             state_dim, action_dim = train_env.observation_space.shape[0], train_env.action_space.n
             agent = PPOAgent(state_dim, action_dim, lr=params['lr'])
@@ -116,23 +123,45 @@ def run_meta_trainer_task(self, meta_job_id):
             performance_metrics = validator.evaluate(agent)
             current_sharpe = performance_metrics['sharpe_ratio']
 
+            # --- Check for New Champion ---
             if current_sharpe > best_sharpe:
                 best_sharpe = current_sharpe
                 best_strategy_info = {
                     "features": features, "params": params, "window": window,
                     "sharpe_ratio": best_sharpe, "return_pct": performance_metrics['total_return_pct']
                 }
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                model_name = f"Meta-{feat_key}-sharpe{best_sharpe:.2f}-{timestamp}.pth"
-                save_path = Path(settings.BASE_DIR) / "saved_models" / model_name
-                agent.save(save_path, config=best_strategy_info)
-                logger.info(f"!!! New best agent found! Sharpe: {best_sharpe:.2f}. Model saved as {model_name} !!!")
+                # --- Store the champion's state in memory, don't save to file yet ---
+                champion_agent_state = agent.actor.state_dict()
+                logger.info(f"!!! New champion found! Sharpe: {best_sharpe:.2f}. State captured in memory. !!!")
 
+            # Update progress in the database
             progress = int(((i + 1) / len(all_combinations)) * 100)
             meta_job.progress, meta_job.results = progress, best_strategy_info
             meta_job.save(update_fields=['progress', 'results'])
 
+        # --- AFTER THE LOOP: Save the single best model ---
+        if champion_agent_state and not self.is_aborted():
+            logger.info("Meta-training complete. Saving the final champion model...")
+
+            # Re-create the champion agent with the correct dimensions
+            final_features = best_strategy_info['features']
+            final_window = best_strategy_info['window']
+            final_params = best_strategy_info['params']
+            final_state_dim = len(final_features) * final_window
+            final_action_dim = 3
+
+            champion_agent = PPOAgent(final_state_dim, final_action_dim, lr=final_params['lr'])
+            champion_agent.actor.load_state_dict(champion_agent_state)
+
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            model_name = f"Meta-Champion-{best_strategy_info['features']}-sharpe{best_sharpe:.2f}-{timestamp}.pth"
+            save_path = Path(settings.BASE_DIR) / "saved_models" / model_name
+
+            champion_agent.save(save_path, config=best_strategy_info)
+            logger.info(f"Final champion model saved as {model_name}")
+
         meta_job.status = 'COMPLETED' if not self.is_aborted() else 'STOPPED'
+
     except Exception as e:
         logger.error(f"Meta-Training job {meta_job.id} failed: {e}", exc_info=True)
         meta_job.status = 'FAILED'
