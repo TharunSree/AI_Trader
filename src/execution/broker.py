@@ -2,8 +2,11 @@ import logging
 import time
 from alpaca_trade_api.rest import APIError, REST
 from django.conf import settings
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
+from alpaca_trade_api.common import URL
+from alpaca_trade_api.entity import BarSet
+import math
 
 logger = logging.getLogger("rl_trading_backend")
 
@@ -85,6 +88,72 @@ class Broker:
             'ist_weekday': now_ist.weekday()
         }
 
+    def _get_last_close_price(self, symbol: str) -> float:
+        """Get the last closing price for gap protection"""
+        try:
+            # Get yesterday's bar to get closing price
+            bars = self.api.get_bars(symbol, '1Day', limit=2)
+            if bars:
+                # Get the most recent completed day
+                return float(bars[-1].c) if len(bars) == 1 else float(bars[-2].c)
+        except Exception as e:
+            logger.warning(f"Could not get last close for {symbol}: {e}")
+
+        try:
+            # Fallback: get latest trade price
+            latest_trade = self.api.get_latest_trade(symbol)
+            return float(latest_trade.price)
+        except Exception as e:
+            logger.warning(f"Could not get latest trade for {symbol}: {e}")
+            return None
+
+    def _check_gap_protection(self, symbol: str, side: str, max_gap_percent: float = 5.0) -> tuple:
+        """
+        Check if current price gaps too much from last close.
+        Returns (is_safe: bool, current_price: float, last_close: float, gap_percent: float)
+        """
+        try:
+            # Get current market price
+            latest_trade = self.api.get_latest_trade(symbol)
+            current_price = float(latest_trade.price)
+
+            # Get last close price
+            last_close = self._get_last_close_price(symbol)
+
+            if last_close is None:
+                logger.warning(
+                    f"⚠️ Gap protection: Could not get last close for {symbol}, proceeding without protection")
+                return True, current_price, None, 0.0
+
+            # Calculate gap percentage
+            gap_percent = abs((current_price - last_close) / last_close) * 100
+
+            # Check if gap is within acceptable range
+            is_safe = gap_percent <= max_gap_percent
+
+            gap_direction = "UP" if current_price > last_close else "DOWN"
+
+            if not is_safe:
+                logger.warning(f"🚨 GAP PROTECTION TRIGGERED: {symbol}")
+                logger.warning(f"📊 Last Close: ${last_close:.2f} | Current: ${current_price:.2f}")
+                logger.warning(f"📈 Gap: {gap_percent:.2f}% {gap_direction} (max allowed: {max_gap_percent}%)")
+                logger.warning(f"❌ {side.upper()} order blocked due to excessive gap")
+            else:
+                logger.info(
+                    f"✅ Gap check passed: {symbol} gap {gap_percent:.2f}% {gap_direction} (limit: {max_gap_percent}%)")
+
+            return is_safe, current_price, last_close, gap_percent
+
+        except Exception as e:
+            logger.error(f"Error in gap protection for {symbol}: {e}")
+            # On error, allow trade but warn
+            try:
+                latest_trade = self.api.get_latest_trade(symbol)
+                current_price = float(latest_trade.price)
+                return True, current_price, None, 0.0
+            except:
+                return True, 0.0, None, 0.0
+
     def _is_market_open(self) -> bool:
         """Check if US market is currently open (with IST logging)"""
         try:
@@ -124,6 +193,27 @@ class Broker:
                 return False
             return True
 
+    def get_next_market_open_minutes(self) -> int:
+        """Get minutes until next market open for sleep timer"""
+        try:
+            clock = self.api.get_clock()
+            if clock.is_open:
+                return 0
+
+            next_open = clock.next_open.replace(tzinfo=pytz.timezone('US/Eastern'))
+            now_et = datetime.now(pytz.timezone('US/Eastern'))
+
+            time_diff = next_open - now_et
+            minutes_until_open = int(time_diff.total_seconds() / 60)
+
+            logger.info(f"⏰ Market opens in {minutes_until_open} minutes ({time_diff})")
+            return max(0, minutes_until_open)
+
+        except Exception as e:
+            logger.warning(f"Could not calculate market open time: {e}")
+            # Fallback: assume market opens in 12 hours
+            return 12 * 60
+
     def place_market_order(
             self,
             symbol: str,
@@ -132,10 +222,12 @@ class Broker:
             qty: float | None = None,
             wait_fill: bool = True,
             timeout_sec: int = 300,  # 5 minutes default
-            poll_interval: float = 3.0
+            poll_interval: float = 3.0,
+            enable_gap_protection: bool = True,
+            max_gap_percent: float = 5.0
     ):
         """
-        Place market order with India timezone awareness.
+        Place market order with gap protection and India timezone awareness.
         Returns (filled: bool, order_obj)
         """
         # Check market status with IST logging
@@ -148,6 +240,19 @@ class Broker:
             timeout_sec = 30  # Very short timeout when market closed
             wait_fill = False  # Don't wait for fills when market closed
 
+        # Gap protection check
+        if enable_gap_protection and market_open:
+            is_safe, current_price, last_close, gap_percent = self._check_gap_protection(symbol, side, max_gap_percent)
+            if not is_safe:
+                logger.error(f"❌ Trade blocked: {symbol} gap {gap_percent:.2f}% exceeds limit {max_gap_percent}%")
+                return False, None
+        else:
+            try:
+                latest_trade = self.api.get_latest_trade(symbol)
+                current_price = float(latest_trade.price)
+            except:
+                current_price = 0.0
+
         side_l = side.lower()
         try:
             if side_l == 'buy':
@@ -155,19 +260,14 @@ class Broker:
                     raise ValueError("Buy requires notional_value or qty.")
 
                 if qty is None:
-                    try:
-                        # Get current market price
-                        latest_trade = self.api.get_latest_trade(symbol)
-                        current_price = float(latest_trade.price)
-                        qty = float(notional_value) / current_price
-
-                        # Round to 6 decimal places for fractional shares
-                        qty = round(qty, 6)
-                        logger.info(
-                            f"Calculated qty {qty} for {symbol} at ${current_price:.2f} (notional=${notional_value})")
-                    except Exception as e:
-                        logger.error(f"Failed to get price for {symbol}: {e}")
+                    if current_price <= 0:
+                        logger.error(f"Invalid price {current_price} for {symbol}")
                         return False, None
+
+                    qty = float(notional_value) / current_price
+                    qty = round(qty, 6)  # Round to 6 decimal places for fractional shares
+                    logger.info(
+                        f"Calculated qty {qty} for {symbol} at ${current_price:.2f} (notional=${notional_value})")
 
                 # Check if symbol supports fractional shares
                 try:
