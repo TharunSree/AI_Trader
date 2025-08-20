@@ -28,7 +28,7 @@ class TradingEnv(gym.Env):
         self.action_space = spaces.Discrete(3)
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf,
-            shape=(window_size * num_features,), dtype=np.float32
+            shape=(int(window_size) * num_features,), dtype=np.float32
         )
 
         self.portfolio = None

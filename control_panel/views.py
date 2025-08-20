@@ -66,14 +66,35 @@ def training_view(request):
 @login_required
 def start_training_job_view(request):
     if request.method == 'POST':
-        # 1. Create the job object in the database
+        # Get form values
+        feature_set_key = request.POST.get('feature_set_key')
+        hyperparameter_key = request.POST.get('hyperparameter_key')
+        window_size_input = request.POST.get('window_size')
+
+        # Convert window_size to integer
+        try:
+            if window_size_input in ['short_term', 'long_term', 'balanced']:
+                # Map strategy types to default window sizes
+                window_map = {
+                    'short_term': 10,
+                    'long_term': 20,
+                    'balanced': 15
+                }
+                window_size = window_map[window_size_input]
+            else:
+                window_size = int(window_size_input)
+        except (ValueError, KeyError):
+            window_size = 10  # Default fallback
+
+        # Create the job object
         job = TrainingJob.objects.create(
-            feature_set_key=request.POST.get('feature_set_key'),
-            hyperparameter_key=request.POST.get('hyperparameter_key'),
-            window_size=request.POST.get('window_size'),
+            feature_set_key=feature_set_key,
+            hyperparameter_key=hyperparameter_key,
+            window_size=window_size,  # Now guaranteed to be an integer
             initial_cash=request.POST.get('initial_cash', 100000)
         )
-        # 2. CRUCIAL FIX: Send the job to the Celery worker
+
+        # Send to Celery worker
         run_training_job_task.delay(job.id)
 
     return redirect('training')
@@ -414,6 +435,7 @@ def trader_report_view(request):
         'total_volume': (total_notional_buys or 0) + (total_notional_sells or 0),
     }
     return render(request, 'trader_report.html', context)
+
 
 @login_required
 def reset_trader_report_view(request):
