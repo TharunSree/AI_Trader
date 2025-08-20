@@ -5,7 +5,6 @@ from django.conf import settings
 from datetime import datetime, timedelta
 import pytz
 from alpaca_trade_api.common import URL
-from alpaca_trade_api.entity import BarSet
 import math
 
 logger = logging.getLogger("rl_trading_backend")
@@ -91,13 +90,25 @@ class Broker:
     def _get_last_close_price(self, symbol: str) -> float:
         """Get the last closing price for gap protection"""
         try:
-            # Get yesterday's bar to get closing price
-            bars = self.api.get_bars(symbol, '1Day', limit=2)
-            if bars:
-                # Get the most recent completed day
-                return float(bars[-1].c) if len(bars) == 1 else float(bars[-2].c)
+            # Get last day's bar data
+            from alpaca_trade_api.rest import TimeFrame
+            bars = self.api.get_bars(
+                symbol,
+                TimeFrame.Day,
+                limit=1,
+                asof=datetime.now().strftime('%Y-%m-%d')
+            )
+
+            if bars and len(bars) > 0:
+                # bars is a list of Bar objects
+                last_bar = bars[0]
+                return float(last_bar.c)  # closing price
+            else:
+                logger.warning(f"No bar data found for {symbol}")
+                return None
+
         except Exception as e:
-            logger.warning(f"Could not get last close for {symbol}: {e}")
+            logger.warning(f"Could not get bars for {symbol}: {e}")
 
         try:
             # Fallback: get latest trade price
