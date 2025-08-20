@@ -318,7 +318,7 @@
     if (marketClosedMatch) {
       const mins = parseInt(marketClosedMatch[1], 10);
       const secs = parseInt(marketClosedMatch[2], 10);
-      startSleep(mins * 60 + secs, "Market Closed");
+      startSleep(mins * 60 + secs, "Market Closed: ");
     } else if (sleepMatch) {
       const sec = parseInt(sleepMatch[1], 10) * 60 + parseInt(sleepMatch[2], 10);
       startSleep(sec, "Sleep");
