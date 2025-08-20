@@ -204,26 +204,44 @@ class Broker:
                 return False
             return True
 
-    def get_next_market_open_minutes(self) -> int:
-        """Get minutes until next market open for sleep timer"""
+    def get_next_market_open_minutes(self) -> tuple[int, str]:
+        """
+        Get minutes until next market open.
+        Returns (total_minutes: int, time_str: str)
+        """
         try:
             clock = self.api.get_clock()
             if clock.is_open:
-                return 0
+                return 0, "Market is open"
 
-            next_open = clock.next_open.replace(tzinfo=pytz.timezone('US/Eastern'))
+            next_open = clock.next_open.astimezone(pytz.timezone('US/Eastern'))
             now_et = datetime.now(pytz.timezone('US/Eastern'))
 
             time_diff = next_open - now_et
-            minutes_until_open = int(time_diff.total_seconds() / 60)
+            total_minutes = int(time_diff.total_seconds() // 60)
 
-            logger.info(f"⏰ Market opens in {minutes_until_open} minutes ({time_diff})")
-            return max(0, minutes_until_open)
+            # Calculate days, hours, minutes
+            days = time_diff.days
+            hours, remainder = divmod(time_diff.seconds, 3600)
+            minutes, _ = divmod(remainder, 60)
+
+            parts = []
+            if days > 0:
+                parts.append(f"{days}d")
+            if hours > 0:
+                parts.append(f"{hours}h")
+            if minutes > 0:
+                parts.append(f"{minutes}m")
+
+            time_str = " ".join(parts) if parts else "soon"
+
+            logger.info(f"⏰ Market opens in {total_minutes} minutes ({time_str})")
+            return max(0, total_minutes), time_str
 
         except Exception as e:
             logger.warning(f"Could not calculate market open time: {e}")
             # Fallback: assume market opens in 12 hours
-            return 12 * 60
+            return 12 * 60, "12h 0m"
 
     def place_market_order(
             self,
