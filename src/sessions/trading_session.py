@@ -102,6 +102,9 @@ class TradingSession:
 
     def sleep_with_countdown(self, total_seconds, sleep_type="interval"):
         """Enhanced sleep with dynamic countdown for market closed periods"""
+        if reason == "market_closed":
+            self.log_activity("Market Closed - sleeping until next open")
+
         for remaining in range(total_seconds, 0, -1):
             if self.should_abort():
                 return
@@ -397,15 +400,17 @@ class TradingSession:
                 # Reset daily counters if needed
                 self.reset_daily_counters()
 
-                # Check if market is open with enhanced logging
-                if not self.broker._is_market_open():
-                    next_open_mins = self.broker.get_next_market_open_minutes()
-                    self.update_activity(
-                        f"US Market closed - waiting for open (in {next_open_mins // 60}h {next_open_mins % 60}m)")
-                    # Use shorter sleep periods when market closed to update countdown more frequently
-                    sleep_duration = min(3600, next_open_mins * 60, 3600)  # Max 1 hour sleep
-                    self.sleep_with_countdown(sleep_duration, "market_closed")
-                    continue
+                # If get_next_market_open_minutes returns a tuple (hours, minutes)
+                next_open = self.broker.get_next_market_open_minutes()
+                if isinstance(next_open, tuple):
+                    next_open_mins = next_open[0] * 60 + next_open[1]
+                else:
+                    next_open_mins = int(next_open)
+
+                self.update_activity(
+                    f"US Market closed - waiting for open (in {next_open_mins // 60}h {next_open_mins % 60}m)")
+                sleep_duration = min(3600, next_open_mins * 60, 3600)
+                self.sleep_with_countdown(sleep_duration, "market_closed")
 
                 # Check if risk manager kill switch is active
                 risk_status = self.risk_manager.get_risk_status()
