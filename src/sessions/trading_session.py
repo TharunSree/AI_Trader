@@ -101,15 +101,24 @@ class TradingSession:
             self.task.update_state(state='PROGRESS', meta={'activity': message})
 
     def sleep_with_countdown(self, total_seconds, sleep_type="interval"):
+        """Enhanced sleep with dynamic countdown for market closed periods"""
         for remaining in range(total_seconds, 0, -1):
             if self.should_abort():
                 return
             mins, secs = divmod(remaining, 60)
 
-            # Add context to sleep message
+            # For market closed, recalculate remaining time dynamically
             if sleep_type == "market_closed":
-                next_open_mins = self.broker.get_next_market_open_minutes()
-                hours, mins_remaining = divmod(next_open_mins, 60)
+                # Get fresh market open time each iteration
+                actual_remaining_mins = self.broker.get_next_market_open_minutes()
+                actual_remaining_secs = actual_remaining_mins * 60
+
+                # If actual time is less than our countdown, adjust
+                if actual_remaining_secs < remaining:
+                    remaining = actual_remaining_secs
+                    mins, secs = divmod(remaining, 60)
+
+                hours, mins_remaining = divmod(actual_remaining_mins, 60)
                 context = f" (Market opens in {hours}h {mins_remaining}m)"
             else:
                 context = ""
@@ -393,7 +402,9 @@ class TradingSession:
                     next_open_mins = self.broker.get_next_market_open_minutes()
                     self.update_activity(
                         f"US Market closed - waiting for open (in {next_open_mins // 60}h {next_open_mins % 60}m)")
-                    self.sleep_with_countdown(min(3600, next_open_mins * 60), "market_closed")
+                    # Use shorter sleep periods when market closed to update countdown more frequently
+                    sleep_duration = min(3600, next_open_mins * 60, 3600)  # Max 1 hour sleep
+                    self.sleep_with_countdown(sleep_duration, "market_closed")
                     continue
 
                 # Check if risk manager kill switch is active
