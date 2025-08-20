@@ -1,8 +1,7 @@
 # src/execution/broker.py
-
-import alpaca_trade_api as tradeapi
 import logging
-from alpaca_trade_api.rest import APIError
+import time
+from alpaca_trade_api.rest import APIError, REST
 from django.conf import settings
 
 logger = logging.getLogger("rl_trading_backend")
@@ -10,122 +9,166 @@ logger = logging.getLogger("rl_trading_backend")
 
 class Broker:
     """
-    Handles all interactions with the Alpaca trading API using the `alpaca-trade-api` library.
+    Lightweight Alpaca broker wrapper.
+    Compatible with existing settings:
+      settings.API_KEY
+      settings.SECRET_KEY_ALPACA (loaded from env SECRET_KEY)
+      settings.BASE_URL (already a full URL chosen in settings.py)
     """
+
     def __init__(self):
+        api_key = getattr(settings, 'ALPACA_API_KEY', None) or getattr(settings, 'API_KEY', None)
+        secret_key = (
+            getattr(settings, 'ALPACA_SECRET_KEY', None)
+            or getattr(settings, 'SECRET_KEY_ALPACA', None)
+            or getattr(settings, 'SECRET_KEY', None)   # legacy / discouraged
+        )
+        raw_base = getattr(settings, 'BASE_URL', 'paper')
+
+        if not api_key or not secret_key:
+            raise ValueError("Missing Alpaca credentials (API_KEY / SECRET_KEY).")
+
+        base_url = self._normalize_base_url(raw_base)
+
+        logger.info(f"Broker initializing (endpoint={base_url})")
         try:
-            # --- Read credentials directly from Django settings ---
-            api_key = settings.API_KEY
-            secret_key = settings.SECRET_KEY_ALPACA
-            base_url_setting = settings.BASE_URL
-
-            # --- Handle "paper" and "live" shorthand ---
-            if base_url_setting == 'paper':
-                base_url = 'https://paper-api.alpaca.markets'
-            elif base_url_setting == 'live':
-                base_url = 'https://api.alpaca.markets'
-            else:
-                base_url = base_url_setting # Use the value directly if it's a full URL
-
-            self.api = tradeapi.REST(
-                key_id=api_key,
-                secret_key=secret_key,
-                base_url=base_url,
-                api_version='v2'
-            )
-            account_status = self.api.get_account().status
-            logger.info(f"Connected to Alpaca. Endpoint: {base_url}, Account Status: {account_status}")
+            self.api = REST(key_id=api_key, secret_key=secret_key, base_url=base_url, api_version='v2')
             self.account = self.api.get_account()
-
+            logger.info(
+                f"Connected to Alpaca: status={self.account.status} equity={self.account.equity} buying_power={self.account.buying_power}"
+            )
+        except APIError as e:
+            # Distinguish auth quickly
+            msg = str(e).lower()
+            if 'not authorized' in msg or 'access key verification failed' in msg or 'forbidden' in msg:
+                logger.error(f"Alpaca authorization failed: {e}", exc_info=True)
+            else:
+                logger.error(f"Alpaca API error during init: {e}", exc_info=True)
+            raise
         except Exception as e:
-            logger.exception("Failed to connect to Alpaca. Check API credentials and endpoint in settings.")
-            self.api = None
-            self.account = None
-            raise e
+            logger.error(f"Unexpected broker init error: {e}", exc_info=True)
+            raise
 
-    def get_account(self):
-        """Returns the Alpaca account object."""
-        if not self.api: return None
+    @staticmethod
+    def _normalize_base_url(value: str) -> str:
+        """
+        Accept:
+          - full URLs (returned unchanged)
+          - 'paper' / 'live' tokens (map to official URLs)
+          - anything else starting with http(s) is passed through
+        """
+        if not value:
+            return 'https://paper-api.alpaca.markets'
+        v = value.strip()
+        lower = v.lower()
+        if lower.startswith('http://') or lower.startswith('https://'):
+            return v
+        if lower == 'paper':
+            return 'https://paper-api.alpaca.markets'
+        if lower == 'live':
+            return 'https://api.alpaca.markets'
+        # Fallback: if user put something unexpected, assume they meant a full URL but forgot scheme
+        if 'alpaca' in lower and not lower.startswith('http'):
+            return 'https://' + v
+        return v
+
+    def _refresh_account(self):
+        if not self.api:
+            return None
         try:
-            # Refresh account details
             self.account = self.api.get_account()
             return self.account
         except APIError as e:
-            logger.error(f"Failed to get account details: {e}")
+            logger.error(f"Failed to refresh account: {e}")
             return None
 
+    def get_account(self):
+        return self._refresh_account()
+
     def get_equity(self) -> float:
-        """Returns the current total portfolio equity."""
-        account = self.get_account()
-        return float(account.equity) if account else 0.0
+        acct = self._refresh_account()
+        try:
+            return float(acct.equity) if acct else 0.0
+        except Exception:
+            return 0.0
 
     def get_buying_power(self) -> float:
-        """Returns the available buying power."""
-        account = self.get_account()
-        return float(account.buying_power) if account else 0.0
+        acct = self._refresh_account()
+        try:
+            return float(acct.buying_power) if acct else 0.0
+        except Exception:
+            return 0.0
 
     def get_positions(self) -> list:
-        """Returns a list of all open positions."""
-        if not self.api: return []
+        if not self.api:
+            return []
         try:
             return self.api.list_positions()
         except APIError as e:
             logger.error(f"Failed to get positions: {e}")
             return []
 
-    def get_net_exposure(self) -> float:
-        """Calculates the total market value of all positions."""
-        positions = self.get_positions()
-        return sum(abs(float(p.market_value)) for p in positions)
-
-
-    def get_position_value(self, symbol: str) -> float:
-        try:
-            position = self.api.get_position(symbol)
-            return float(position.market_value)
-        except tradeapi.rest.APIError: # Position does not exist
-            return 0.0
-        except Exception as e:
-            logger.error(f"Error getting position value for {symbol}: {e}")
-            return 0.0
-
-    def place_market_order(self, symbol: str, side: str, notional_value: float = None, qty: float = None) -> bool:
+    def place_market_order(self, symbol: str, side: str, notional_value: float) -> bool:
         """
-        Submits a market order. Handles both notional and quantity orders.
+        Market order by converting notional to whole-share quantity (buy) or full position (sell).
         """
+        if not self.api:
+            logger.error("Broker API not initialized.")
+            return False
+        side_l = side.lower()
         try:
-            if notional_value and qty:
-                logger.error("Order cannot have both 'qty' and 'notional_value'.")
-                return False
-
-            if notional_value:
-                self.api.submit_order(
-                    symbol=symbol,
-                    notional=notional_value,
-                    side=side,
-                    type="market",
-                    time_in_force="day",
-                )
-                logger.info(
-                    f"Market Order Submitted: {side.upper()} ${notional_value:,.2f} of {symbol}"
-                )
-            elif qty:
-                self.api.submit_order(
-                    symbol=symbol,
-                    qty=qty,
-                    side=side,
-                    type="market",
-                    time_in_force="day",
-                )
-                logger.info(
-                    f"Market Order Submitted: {side.upper()} {qty} shares of {symbol}"
-                )
+            if side_l == 'buy':
+                last_price = self.api.get_latest_trade(symbol).price
+                qty = int(notional_value // last_price)
+                if qty <= 0:
+                    logger.warning(
+                        f"Notional ${notional_value:.2f} insufficient for one share of {symbol} at ${last_price:.2f}."
+                    )
+                    return False
+            elif side_l == 'sell':
+                try:
+                    position = self.api.get_position(symbol)
+                except APIError as e:
+                    if 'position does not exist' in str(e).lower() or 'position not found' in str(e).lower():
+                        logger.warning(f"No position to sell for {symbol}.")
+                        return False
+                    raise
+                qty = int(abs(float(position.qty)))
+                if qty <= 0:
+                    logger.warning(f"Computed zero quantity to sell for {symbol}.")
+                    return False
             else:
-                logger.error("Order must have either 'qty' or 'notional_value'.")
+                logger.error(f"Invalid order side: {side}")
                 return False
-            return True
+
+            logger.info(f"Submitting {side_l.upper()} order: {symbol} qty={qty}")
+            order = self.api.submit_order(
+                symbol=symbol,
+                qty=qty,
+                side=side_l,
+                type="market",
+                time_in_force="day",
+            )
+
+            # Simple confirmation loop
+            for _ in range(5):
+                time.sleep(1)
+                chk = self.api.get_order(order.id)
+                if chk.status in ('accepted', 'new', 'pending_new', 'partially_filled', 'filled'):
+                    logger.info(f"Order {order.id} status={chk.status}")
+                    return True
+                if chk.status in ('rejected', 'canceled', 'expired'):
+                    logger.error(f"Order {order.id} failed status={chk.status} symbol={symbol}")
+                    return False
+            logger.warning(f"Order {order.id} not confirmed after polling.")
+            return False
+
         except APIError as e:
-            logger.error(f"APIError placing order for {symbol}: {e}", exc_info=True)
+            msg = str(e).lower()
+            if 'not authorized' in msg:
+                logger.error(f"Authorization error placing order: {e}")
+            else:
+                logger.error(f"APIError placing order for {symbol}: {e}", exc_info=True)
             return False
         except Exception as e:
             logger.error(f"Unexpected error placing order for {symbol}: {e}", exc_info=True)

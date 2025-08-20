@@ -1,3 +1,4 @@
+<!-- templates/trader_report.html -->
 {% extends "vertical.html" %}
 {% load static %}
 {% block title %}Trader Report{% endblock title %}
@@ -5,6 +6,30 @@
 {% block extra_css %}
 <link href="{% static 'vendor/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}" rel="stylesheet" type="text/css"/>
 <link href="{% static 'vendor/datatables.net-responsive-bs5/css/responsive.bootstrap5.min.css' %}" rel="stylesheet" type="text/css"/>
+<style>
+    .dataTables_wrapper .dataTables_length select { padding-right: 1.5rem; }
+    .metrics-row .widget-flat { min-height: 100%; }
+    .trade-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .75rem 1rem;
+        align-items: flex-end;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+    .trade-toolbar .left-block h4 { margin-bottom: .25rem; }
+    .trade-toolbar .filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .75rem;
+        align-items: flex-end;
+    }
+    .filters .form-label { font-size: .65rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: .15rem; }
+    @media (max-width: 576px){
+        .trade-toolbar { flex-direction: column; align-items: stretch; }
+        .trade-toolbar .filters { width: 100%; }
+    }
+</style>
 {% endblock extra_css %}
 
 {% block page_title %}
@@ -12,99 +37,123 @@
 {% endblock page_title %}
 
 {% block page_content %}
-
-<div class="row">
-    <div class="col-xl-3 col-lg-6">
-        <div class="card widget-flat">
+<div class="row metrics-row">
+    <div class="col-xl-3 col-lg-6 mb-3">
+        <div class="card widget-flat h-100">
             <div class="card-body">
-                <div class="float-end">
-                    <i class="mdi mdi-swap-horizontal widget-icon"></i>
-                </div>
+                <div class="float-end"><i class="mdi mdi-swap-horizontal widget-icon"></i></div>
                 <h5 class="text-muted fw-normal mt-0" title="Total Trades">Total Trades</h5>
-                <h3 class="mt-3 mb-3">{{ total_trades }}</h3>
+                <h3 class="mt-3 mb-0">{{ total_trades }}</h3>
             </div>
         </div>
     </div>
-
-    <div class="col-xl-3 col-lg-6">
-        <div class="card widget-flat">
+    <div class="col-xl-3 col-lg-6 mb-3">
+        <div class="card widget-flat h-100">
             <div class="card-body">
-                <div class="float-end">
-                    <i class="mdi mdi-chart-line widget-icon bg-success-lighten text-success"></i>
-                </div>
-                <h5 class="text-muted fw-normal mt-0" title="Gross Profit/Loss">Gross P&L</h5>
-                <h3 class="mt-3 mb-3 {% if gross_pnl > 0 %}text-success{% elif gross_pnl < 0 %}text-danger{% endif %}">
-                    ${{ gross_pnl|floatformat:2 }}
-                </h3>
+                <div class="float-end"><i class="mdi mdi-chart-line widget-icon bg-success-lighten text-success"></i></div>
+                <h5 class="text-muted fw-normal mt-0" title="Gross Profit/Loss">Gross P&amp;L</h5>
+                <h3 class="mt-3 mb-0 {% if gross_pnl > 0 %}text-success{% elif gross_pnl < 0 %}text-danger{% endif %}">${{ gross_pnl|floatformat:2 }}</h3>
             </div>
         </div>
     </div>
-
-    <div class="col-xl-3 col-lg-6">
-        <div class="card widget-flat">
+    <div class="col-xl-3 col-lg-6 mb-3">
+        <div class="card widget-flat h-100">
             <div class="card-body">
-                <div class="float-end">
-                    <i class="mdi mdi-currency-usd widget-icon"></i>
-                </div>
+                <div class="float-end"><i class="mdi mdi-currency-usd widget-icon"></i></div>
                 <h5 class="text-muted fw-normal mt-0" title="Total Volume Traded">Total Volume</h5>
-                <h3 class="mt-3 mb-3">${{ total_volume|floatformat:2 }}</h3>
+                <h3 class="mt-3 mb-0">${{ total_volume|floatformat:2 }}</h3>
             </div>
         </div>
     </div>
-
-    <div class="col-xl-3 col-lg-6">
-        <div class="card widget-flat">
+    <div class="col-xl-3 col-lg-6 mb-3">
+        <div class="card widget-flat h-100">
             <div class="card-body">
-                <div class="float-end">
-                    <i class="mdi mdi-chart-pie widget-icon bg-warning-lighten text-warning"></i>
-                </div>
+                <div class="float-end"><i class="mdi mdi-chart-pie widget-icon bg-warning-lighten text-warning"></i></div>
                 <h5 class="text-muted fw-normal mt-0" title="Buy vs Sell Count">Trade Distribution</h5>
-                <h3 class="mt-3 mb-3">{{ buy_count }} Buys / {{ sell_count }} Sells</h3>
+                <h3 class="mt-3 mb-0">{{ buy_count }} Buys / {{ sell_count }} Sells</h3>
             </div>
         </div>
     </div>
 </div>
 
-
+<!-- Trade History -->
 <div class="row">
     <div class="col-12">
-        <div class="card">
+        <div class="card mb-0">
             <div class="card-body">
-                <h4 class="header-title">Complete Trade History</h4>
-                <p class="text-muted font-14">
-                    A log of all simulated trades executed by the paper trading bot.
-                </p>
+                <div class="trade-toolbar">
+                    <div class="left-block">
+                        <h4 class="header-title mb-0">Complete Trade History</h4>
+                        <p class="text-muted font-12 mb-0">Paginated &amp; filterable log of simulated trades.</p>
+                    </div>
+                    <div class="filters">
+                        <div>
+                            <label class="form-label mb-1">Symbol</label>
+                            <select id="symbolFilter" class="form-select form-select-sm">
+                                <option value="">All</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label mb-1">Action</label>
+                            <select id="actionFilter" class="form-select form-select-sm">
+                                <option value="">All</option>
+                                <option value="BUY">BUY</option>
+                                <option value="SELL">SELL</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label mb-1">Search</label>
+                            <input id="globalSearch" type="text" class="form-control form-control-sm" placeholder="Search...">
+                        </div>
+                        <div class="ms-sm-2">
+                            <label class="form-label mb-1 opacity-0 d-block">&nbsp;</label>
+                            <form action="{% url 'reset_trader_report' %}" method="post"
+                                  onsubmit="return confirm('Delete all trade logs?');" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                    <i class="ri-delete-bin-line me-1"></i>Reset Log
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
 
-                <table id="trade-log-datatable" class="table table-striped dt-responsive nowrap w-100">
+                <table id="trade-log-datatable" class="table table-striped table-hover dt-responsive nowrap w-100 align-middle">
                     <thead class="table-light">
                         <tr>
                             <th>Timestamp</th>
                             <th>Symbol</th>
                             <th>Action</th>
-                            <th>Quantity</th>
-                            <th>Price</th>
-                            <th>Notional Value</th>
+                            <th class="text-end">Quantity</th>
+                            <th class="text-end">Price</th>
+                            <th class="text-end">Notional Value</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for trade in all_trades %}
                         <tr>
-                            <td>{{ trade.timestamp|date:"Y-m-d H:i:s" }}</td>
+                            <td data-order="{{ trade.timestamp|date:'U' }}">{{ trade.timestamp|date:"Y-m-d H:i:s" }}</td>
                             <td>{{ trade.symbol }}</td>
                             <td>
                                 {% if trade.action == 'BUY' %}
-                                <span class="badge bg-success-lighten text-success">{{ trade.action }}</span>
+                                  <span class="badge bg-success-subtle text-success">{{ trade.action }}</span>
                                 {% else %}
-                                <span class="badge bg-danger-lighten text-danger">{{ trade.action }}</span>
+                                  <span class="badge bg-danger-subtle text-danger">{{ trade.action }}</span>
                                 {% endif %}
                             </td>
-                            <td>{{ trade.quantity|floatformat:6 }}</td>
-                            <td>${{ trade.price|floatformat:2 }}</td>
-                            <td>${{ trade.notional_value|floatformat:2 }}</td>
+                            <td class="text-end">{{ trade.quantity|floatformat:6 }}</td>
+                            <td class="text-end">${{ trade.price|floatformat:2 }}</td>
+                            <td class="text-end">${{ trade.notional_value|floatformat:2 }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
+
+                <div class="mt-2">
+                    <small class="text-muted">
+                        Tip: Use filters or type in search. Click headers to sort. Reset clears all stored trade logs.
+                    </small>
+                </div>
             </div>
         </div>
     </div>
@@ -116,12 +165,52 @@
 <script src="{% static 'vendor/datatables.net-bs5/js/dataTables.bootstrap5.min.js' %}"></script>
 <script src="{% static 'vendor/datatables.net-responsive/js/dataTables.responsive.min.js' %}"></script>
 <script src="{% static 'vendor/datatables.net-responsive-bs5/js/responsive.bootstrap5.min.js' %}"></script>
-
 <script>
-    $(document).ready(function() {
-        $('#trade-log-datatable').DataTable({
-            "order": [[ 0, "desc" ]] // Order by the first column (Timestamp) descending
+(function(){
+    function initSymbolFilter(table){
+        const symbols = new Set();
+        table.column(1).data().each(v => symbols.add(v));
+        const sel = document.getElementById('symbolFilter');
+        Array.from(symbols).sort().forEach(sym=>{
+            const opt=document.createElement('option');
+            opt.value = sym;
+            opt.textContent = sym;
+            sel.appendChild(opt);
         });
+        sel.addEventListener('change', ()=>{
+            const val = sel.value;
+            table.column(1).search(val ? '^'+val+'$' : '', true, false).draw();
+        });
+    }
+    function initActionFilter(table){
+        const sel=document.getElementById('actionFilter');
+        sel.addEventListener('change', ()=>{
+            const v=sel.value;
+            table.column(2).search(v? v : '', true, false).draw();
+        });
+    }
+    function initGlobalSearch(table){
+        const input=document.getElementById('globalSearch');
+        let debounce;
+        input.addEventListener('input', ()=>{
+            clearTimeout(debounce);
+            debounce=setTimeout(()=>table.search(input.value).draw(),180);
+        });
+    }
+    document.addEventListener('DOMContentLoaded', function(){
+        const tbl = $('#trade-log-datatable').DataTable({
+            order: [[0,'desc']],
+            pageLength: 25,
+            lengthMenu: [[10,25,50,100,-1],[10,25,50,100,'All']],
+            responsive: true,
+            columnDefs: [
+                { targets: [3,4,5], className: 'text-end' }
+            ]
+        });
+        initSymbolFilter(tbl);
+        initActionFilter(tbl);
+        initGlobalSearch(tbl);
     });
+})();
 </script>
 {% endblock extra_js %}

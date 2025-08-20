@@ -17,8 +17,15 @@ from .models import TrainingJob, MetaTrainingJob, PaperTrader, EvaluationJob, Sy
 from pathlib import Path
 from .tasks import run_training_job_task, stop_celery_task, run_meta_trainer_task, run_paper_trader_task, \
     run_evaluation_task
+# Replace the existing decimal import line with:
+from decimal import Decimal, InvalidOperation
+
+# Add (if not already present):
+from collections import defaultdict
+import yfinance as yf
 
 logger = logging.getLogger(__name__)
+
 
 @login_required
 def dashboard_view(request):
@@ -297,48 +304,55 @@ def job_status_api(request):
     return JsonResponse(data)
 
 
-@login_required
 def trader_status_api(request):
-    """
-    API endpoint to get the status of the paper trader, including
-    live broker information like equity, buying power, and positions.
-    """
     trader_model, _ = PaperTrader.objects.get_or_create(id=1)
+
+    def _to_float(v):
+        from decimal import Decimal, InvalidOperation
+        try:
+            if isinstance(v, Decimal):
+                return float(v)
+            return float(str(v))
+        except (ValueError, TypeError, InvalidOperation):
+            return 0.0
 
     try:
         broker = Broker()
-        # Fetch live data from Alpaca
-        equity = broker.get_equity()
-        buying_power = broker.get_buying_power()
-        positions = broker.get_positions()
-
-        # Format positions data for the frontend
-        positions_data = [{
-            "symbol": pos.symbol,
-            "qty": pos.qty,
-            "market_value": pos.market_value,
-            "unrealized_pl": pos.unrealized_pl,
-        } for pos in positions]
-
+        equity = _to_float(broker.get_equity())
+        buying_power = _to_float(broker.get_buying_power())
+        positions_raw = broker.get_positions()
+        positions = []
+        for p in positions_raw:
+            positions.append({
+                "symbol": getattr(p, 'symbol', ''),
+                "qty": _to_float(getattr(p, 'qty', 0)),
+                "market_value": _to_float(getattr(p, 'market_value', 0)),
+                "unrealized_pl": _to_float(getattr(p, 'unrealized_pl', 0)),
+            })
+        positions.sort(key=lambda x: x['market_value'], reverse=True)
         return JsonResponse({
             "status": trader_model.status,
             "model_file": trader_model.model_file,
+            "error_message": trader_model.error_message or "",
             "equity": equity,
             "buying_power": buying_power,
-            "positions": positions_data
+            "positions": positions
         })
     except Exception as e:
-        # If we can't connect to the broker, report a FAILED state
-        message = f"Failed to connect to broker: {e}"
-        trader_model.status = "FAILED"
-        trader_model.error_message = message
-        trader_model.save(update_fields=['status', 'error_message'])
-
+        msg = str(e)
+        if "authorization failed" in msg.lower() or "alpaca authorization failed" in msg.lower():
+            trader_model.status = 'FAILED'
+            trader_model.error_message = "Alpaca auth failed. Check keys & endpoint."
+            trader_model.save(update_fields=['status', 'error_message'])
+        else:
+            trader_model.status = 'FAILED'
+            trader_model.error_message = msg
+            trader_model.save(update_fields=['status', 'error_message'])
         return JsonResponse({
             "status": "FAILED",
-            "error_message": message,
-            "equity": 0,
-            "buying_power": 0,
+            "error_message": trader_model.error_message,
+            "equity": 0.0,
+            "buying_power": 0.0,
             "positions": []
         }, status=200)
 
@@ -400,3 +414,14 @@ def trader_report_view(request):
         'total_volume': (total_notional_buys or 0) + (total_notional_sells or 0),
     }
     return render(request, 'trader_report.html', context)
+
+@login_required
+def reset_trader_report_view(request):
+    """
+    Deletes all trade logs for the primary paper trader.
+    """
+    if request.method == 'POST':
+        trader, _ = PaperTrader.objects.get_or_create(id=1)
+        trades_deleted, _ = TradeLog.objects.filter(trader=trader).delete()
+        messages.success(request, f"Successfully deleted {trades_deleted} trade log entries.")
+    return redirect('trader_report')
