@@ -31,59 +31,66 @@ class TradingEnv(gym.Env):
             shape=(window_size * num_features,),
             dtype=np.float32,
         )
-
         self.portfolio = None
         self.current_step = 0
+        self.trade_log = []
 
-    def reset(self, seed=None, options=None):
-        """Resets the environment to a random starting point."""
+    def reset(self, seed=None, options=None, start_at_beginning=False):
+        """
+        Resets the environment.
+        Args:
+            start_at_beginning (bool): If True, starts from the first possible step.
+                                       If False, starts at a random step.
+        """
         super().reset(seed=seed)
-        # Start at a random point to ensure the agent doesn't overfit to a specific start sequence
-        self.current_step = random.randint(self.window_size, len(self.df) - 2)
+
+        if start_at_beginning:
+            self.current_step = self.window_size
+        else:
+            self.current_step = random.randint(self.window_size, len(self.df) - 2)
+
         self.portfolio = Portfolio(self.initial_cash, self.transaction_cost_pct)
-        return self._get_observation(), {}
+        self.trade_log = []
+        return self._get_observation(), self.get_info()
 
     def step(self, action):
         """Execute one time step within the environment."""
-
-        # Execute trade and get any realized profit or loss from the transaction
         realized_pnl = self._execute_trade(action)
         self.current_step += 1
 
-        # Get the current market price for the new time step
         current_prices = self._get_current_prices()
         current_equity = self.portfolio.get_equity(current_prices)
         step_reward = 0
 
-        # --- Enhanced Reward Shaping ---
-        # 1. Strong reward for realized profits from selling
+        # Enhanced Reward Shaping
         if realized_pnl > 0:
-            step_reward += realized_pnl * 1.5  # Give 150% of the profit as a bonus reward
-
-        # 2. Strong penalty for realized losses
+            step_reward += realized_pnl * 1.5
         elif realized_pnl < 0:
-            step_reward += realized_pnl * 2.0  # Penalize 200% of the loss
+            step_reward += realized_pnl * 2.0
 
-        # 3. Calculate unrealized profit/loss for the current position
         unrealized_pnl = 0
         if "SPY" in self.portfolio.positions:
             entry_price = self.portfolio.positions["SPY"]["entry_price"]
             quantity = self.portfolio.positions["SPY"]["quantity"]
             current_price = current_prices.get("SPY", 0)
             unrealized_pnl = (current_price - entry_price) * quantity
-
-            # Penalize holding a losing position to encourage cutting losses
             if unrealized_pnl < 0:
-                step_reward += unrealized_pnl * 0.1  # Penalize 10% of the unrealized loss each step
+                step_reward += unrealized_pnl * 0.1
 
-        # 4. Small penalty for inaction (holding cash) to encourage participation
         if action == 0 and not self.portfolio.positions:
             step_reward -= self.initial_cash * 1e-7
 
-        # End the episode if equity drops by 50% or we run out of data
         done = current_equity <= self.initial_cash * 0.5 or self.current_step >= len(self.df) - 1
 
-        return self._get_observation(), step_reward, done, False, {}
+        return self._get_observation(), step_reward, done, False, self.get_info()
+
+    def get_info(self):
+        """Returns a dictionary of the current state of the environment."""
+        return {
+            "timestamp": self.df['timestamp'].iloc[self.current_step],
+            "equity": self.portfolio.get_equity(self._get_current_prices()),
+            "trade_log": self.trade_log,
+        }
 
     def _get_observation(self):
         """Get the observation for the current time step."""
@@ -100,30 +107,27 @@ class TradingEnv(gym.Env):
         """Executes a trade based on the chosen action."""
         symbol = "SPY"
         current_price = self.df["Close"].iloc[self.current_step].item()
+        timestamp = self.df['timestamp'].iloc[self.current_step]
 
-        # Apply slippage to simulate real-world trade execution
         buy_price = current_price * (1 + self.slippage_pct)
         sell_price = current_price * (1 - self.slippage_pct)
 
+        realized_pnl = 0
         if action == 1:  # Buy
-            # Buy with 95% of available cash only if not already in a position
             if "SPY" not in self.portfolio.positions:
                 trade_value = self.portfolio.cash * 0.95
-                if trade_value > 10:  # Minimum trade value
+                if trade_value > 10:
                     quantity = trade_value / buy_price
                     self.portfolio.buy(symbol, quantity, buy_price)
-            return 0  # No realized P&L on a buy action
-
+                    self.trade_log.append(
+                        {'timestamp': timestamp, 'action': 'BUY', 'price': buy_price, 'quantity': quantity})
         elif action == 2:  # Sell
-            # Sell the entire position if one exists
             if symbol in self.portfolio.positions:
                 quantity = self.portfolio.positions[symbol]["quantity"]
                 entry_price = self.portfolio.positions[symbol]["entry_price"]
-
-                # Calculate profit/loss based on the actual entry price
-                profit_loss = (sell_price - entry_price) * quantity
-
+                realized_pnl = (sell_price - entry_price) * quantity
                 self.portfolio.sell(symbol, quantity, sell_price)
-                return profit_loss  # Return the realized P&L to be used in reward shaping
+                self.trade_log.append(
+                    {'timestamp': timestamp, 'action': 'SELL', 'price': sell_price, 'quantity': quantity})
 
-        return 0  # Return 0 if no trade was executed
+        return realized_pnl

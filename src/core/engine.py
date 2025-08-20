@@ -23,12 +23,12 @@ class BacktestEngine:
         self.env = environment
         self.history = []
 
-    def run(self) -> dict:
+    def run(self, start_at_beginning: bool = False) -> dict:
         """
         Runs the backtest from start to finish.
         """
         logger.info("Starting backtest...")
-        obs, info = self.env.reset()
+        obs, info = self.env.reset(start_at_beginning=start_at_beginning)
 
         self.history.append(info)
 

@@ -1,117 +1,76 @@
-# python
-# File: src/sessions/evaluation_session.py
 import logging
-import pandas as pd
-import numpy as np
-import torch
 from pathlib import Path
-from datetime import datetime, timedelta
+import torch
+import os
+import django
 
-from src.data.preprocessor import calculate_features
+# Set up Django environment
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'trader_project.settings')
+django.setup()
+
 from src.data.yfinance_loader import YFinanceLoader
+from src.data.preprocessor import calculate_features
 from src.core.environment import TradingEnv
+from src.core.engine import BacktestEngine
 from src.models.ppo_agent import PPOAgent
 
-logger = logging.getLogger('rl_trading_backend')
+logger = logging.getLogger("rl_trading_backend")
 
 
 class EvaluationSession:
+    """
+    Handles the process of evaluating a trained agent over a specific historical period.
+    """
+
     def __init__(self, config: dict):
         self.config = config
+        logger.info(f"Initializing evaluation session with config: {self.config}")
 
-    def run(self):
-        logger.info(f"Starting evaluation for model {self.config['model_file']}...")
+    def run(self) -> dict:
+        """
+        Executes the full evaluation backtest.
+        """
+        logger.info("--- Starting Evaluation Session ---")
 
-        model_path = Path(f"saved_models/{self.config['model_file']}")
+        # 1. Load the trained agent and its configuration
+        model_path = Path("saved_models") / self.config['model_file']
         if not model_path.exists():
             raise FileNotFoundError(f"Model file not found at {model_path}")
 
         agent, model_config = PPOAgent.load_with_config(model_path)
-        agent.actor.eval()
+        agent.actor.eval()  # Set agent to evaluation mode
+        logger.info(f"Loaded model {self.config['model_file']} with training config: {model_config}")
 
-        observation_columns = model_config['features']
-        window_size = model_config['window']
-
-        user_start_date = datetime.strptime(self.config['start_date'], '%Y-%m-%d')
-        warmup_start_date = user_start_date - timedelta(days=100)
-
-        loader = YFinanceLoader(['SPY'], warmup_start_date.strftime('%Y-%m-%d'), self.config['end_date'])
+        # 2. Load the historical data for the evaluation period
+        logger.info(f"Loading data from {self.config['start_date']} to {self.config['end_date']}...")
+        loader = YFinanceLoader(
+            ['SPY'],
+            start_date=self.config['start_date'],
+            end_date=self.config['end_date']
+        )
         raw_df = loader.load_data()
         if raw_df.empty:
-            raise ValueError("Evaluation data loading failed.")
-
-        # Defensive: ensure timestamp column exists
-        if 'timestamp' not in raw_df.columns:
-            # If already indexed correctly, reset; otherwise cannot proceed
-            if isinstance(raw_df.index, pd.DatetimeIndex):
-                raw_df = raw_df.reset_index().rename(columns={'index': 'timestamp'})
-            else:
-                raise ValueError("DataFrame missing 'timestamp' column.")
-
-        # Defensive: ensure symbol column
-        if 'symbol' not in raw_df.columns:
-            sym = loader.tickers[0] if getattr(loader, 'tickers', None) else 'SPY'
-            raw_df['symbol'] = sym
-            logger.info("Inserted missing 'symbol' column for evaluation dataset.")
-
-        # Set datetime index for slicing
-        if not isinstance(raw_df['timestamp'].dtype, pd.DatetimeTZDtype) and not isinstance(raw_df.index,
-                                                                                            pd.DatetimeIndex):
-            raw_df['timestamp'] = pd.to_datetime(raw_df['timestamp'])
-        raw_df = raw_df.sort_values('timestamp').set_index('timestamp')
+            raise ValueError("No data loaded for the specified evaluation period.")
 
         featured_df = calculate_features(raw_df)
-        # After feature calc, keep symbol
-        if 'symbol' not in featured_df.columns:
-            featured_df['symbol'] = raw_df['symbol']
+        logger.info(f"Data loaded and features calculated. Shape: {featured_df.shape}")
 
-        backtest_df = featured_df.loc[self.config['start_date']:]
-        if len(backtest_df) < window_size + 1:
-            raise ValueError(f"Not enough data in range. Need {window_size + 1} days, got {len(backtest_df)}.")
-
+        # 3. Set up the environment using the model's specific parameters
         env = TradingEnv(
-            df=backtest_df,
-            observation_columns=observation_columns,
-            window_size=window_size,
-            initial_cash=100_000,
+            df=featured_df,
+            observation_columns=model_config['features'],
+            window_size=model_config['window'],
+            initial_cash=100_000,  # Standard initial cash for evaluation consistency
             transaction_cost_pct=0.001,
-            slippage_pct=0.0005
+            slippage_pct=0.0005,
         )
 
-        obs, _ = env.reset(start_at_beginning=True)
-        done = False
-        equity_curve = [env.initial_cash]
-        dates = [env.df.index[env.current_step - 1]]
+        # 4. Run the backtest from the very beginning of the loaded data
+        engine = BacktestEngine(agent=agent, environment=env)
 
-        while not done:
-            state = torch.FloatTensor(obs).to(agent.device)
-            with torch.no_grad():
-                action_probs = agent.actor(state)
-                action = torch.argmax(action_probs).item()
-            obs, reward, terminated, truncated, _ = env.step(action)
-            equity_curve.append(env.portfolio.equity)
-            dates.append(env.df.index[env.current_step - 1])
-            done = terminated or truncated
+        # --- THIS IS THE FIX ---
+        # We now explicitly tell the engine to run the test from the start.
+        report = engine.run(start_at_beginning=True)
 
-        daily_returns = pd.Series(equity_curve).pct_change().dropna()
-        total_return_pct = (equity_curve[-1] / equity_curve[0] - 1) * 100
-        sharpe_ratio = (daily_returns.mean() / daily_returns.std()) * np.sqrt(252) if daily_returns.std() > 0 else 0.0
-
-        return {
-            "total_return_pct": round(total_return_pct, 2),
-            "sharpe_ratio": round(sharpe_ratio, 2),
-            "final_equity": round(equity_curve[-1], 2),
-            "trade_log": [
-                {
-                    'timestamp': str(t['timestamp']),
-                    'action': t['action'],
-                    'symbol': t.get('symbol', 'SPY'),
-                    'quantity': round(t['quantity'], 4),
-                    'price': round(t['price'], 2)
-                } for t in env.trade_log
-            ],
-            "equity_chart": {
-                "dates": [str(d) for d in dates],
-                "equity": [round(e, 2) for e in equity_curve]
-            }
-        }
+        logger.info("--- Evaluation Session Complete ---")
+        return report
