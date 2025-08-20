@@ -76,6 +76,11 @@ class TradingSession:
         self.last_buy_time = None
         self.position_entry_times = {}
 
+        # Track session metrics
+        self.session_start_time = datetime.now()
+        self.session_trades = 0
+        self.session_equity_start = 0.0
+
         # Load model
         self.load_model()
 
@@ -100,16 +105,26 @@ class TradingSession:
             if self.should_abort():
                 return
             mins, secs = divmod(remaining, 60)
-            self.update_activity(f"Sleeping... ({mins:02d}:{secs:02d} remaining)")
+
+            # Add context to sleep message
+            if sleep_type == "market_closed":
+                next_open_mins = self.broker.get_next_market_open_minutes()
+                hours, mins_remaining = divmod(next_open_mins, 60)
+                context = f" (Market opens in {hours}h {mins_remaining}m)"
+            else:
+                context = ""
+
+            self.update_activity(f"Sleeping ({sleep_type})... ({mins:02d}:{secs:02d} remaining){context}")
             time.sleep(1)
 
     def reset_daily_counters(self):
         """Reset daily trade counter if new day"""
         today = datetime.now().date()
         if self.last_trade_date != today:
+            old_count = self.daily_trade_count
             self.daily_trade_count = 0
             self.last_trade_date = today
-            self.log.info(f"🔄 Daily counters reset for {today}")
+            self.log.info(f"🔄 Daily counters reset for {today} (Previous: {old_count} trades)")
 
     def check_position_hold_time(self, symbol, current_positions):
         """Check if position has been held long enough based on strategy"""
@@ -121,7 +136,8 @@ class TradingSession:
 
         if self.strategy_type == 'short_term':
             # For short-term, allow quick exits but prefer some holding time
-            return hold_duration >= (self.position_hold_time_minutes * 0.5)
+            min_hold = self.position_hold_time_minutes * 0.5
+            return hold_duration >= min_hold
         else:
             # For long-term, enforce minimum holding period
             return hold_duration >= self.position_hold_time_minutes
@@ -138,7 +154,10 @@ class TradingSession:
                 # Check hold time for long-term strategy
                 if self.strategy_type == 'long_term' and reason == 'PROFIT_TAKE':
                     if not self.check_position_hold_time(symbol, current_positions):
-                        self.log.info(f"⏰ Delaying profit take for {symbol} - minimum hold time not met")
+                        hold_time = (datetime.now() - self.position_entry_times.get(symbol,
+                                                                                    datetime.now())).total_seconds() / 60
+                        self.log.info(
+                            f"⏰ Delaying profit take for {symbol} - held {hold_time:.1f}min, need {self.position_hold_time_minutes}min")
                         continue
 
                 try:
@@ -147,9 +166,12 @@ class TradingSession:
                         positions_to_sell.append({
                             'symbol': symbol,
                             'reason': reason,
-                            'quantity': quantity
+                            'quantity': quantity,
+                            'market_value': float(position.market_value or 0),
+                            'unrealized_pl': float(position.unrealized_pl or 0)
                         })
-                        self.log.info(f"🎯 {symbol} marked for exit: {reason}")
+                        self.log.info(
+                            f"🎯 {symbol} marked for exit: {reason} (P&L: ${float(position.unrealized_pl or 0):.2f})")
                 except Exception as e:
                     self.log.error(f"❌ Error processing exit for {symbol}: {e}")
 
@@ -192,7 +214,9 @@ class TradingSession:
                 timestamp=datetime.now()
             )
 
-            self.log.info(f"📝 Trade logged: {side.upper()} {filled_qty:.4f} {ticker} @ ${filled_price:.2f}")
+            self.session_trades += 1
+            self.log.info(
+                f"📝 Trade logged: {side.upper()} {filled_qty:.4f} {ticker} @ ${filled_price:.2f} (Session trades: {self.session_trades})")
             return True
 
         except Exception as e:
@@ -205,6 +229,7 @@ class TradingSession:
             # Get current price for calculation
             ticker_data = self.scanner.get_ticker_data(ticker)
             if not ticker_data or 'Close' not in ticker_data:
+                self.log.warning(f"⚠️ No price data available for {ticker}")
                 return False
 
             current_price = float(ticker_data['Close'])
@@ -220,9 +245,19 @@ class TradingSession:
             quantity = notional_value / current_price
 
             self.update_activity(f"Buying {ticker} (conf: {confidence:.2f}, size: ${notional_value:.0f})")
-            order = self.broker.buy_market(ticker, quantity)
 
-            if order and order.filled_qty:
+            # Use broker's market order method with enhanced features
+            filled, order = self.broker.place_market_order(
+                symbol=ticker,
+                side='buy',
+                notional_value=notional_value,
+                wait_fill=True,
+                timeout_sec=300,
+                enable_gap_protection=True,
+                max_gap_percent=5.0
+            )
+
+            if filled and order and order.filled_qty:
                 self.log_trade(ticker, 'buy', order)
                 self.daily_trade_count += 1
                 self.last_buy_time = datetime.now()
@@ -230,10 +265,16 @@ class TradingSession:
 
                 # Log risk status
                 risk_status = self.risk_manager.get_risk_status()
-                self.log.info(f"✅ BUY: {quantity:.4f} {ticker} @ ${current_price:.2f}")
+                filled_qty = float(order.filled_qty)
+                filled_price = float(order.filled_avg_price or current_price)
+
+                self.log.info(f"✅ BUY: {filled_qty:.4f} {ticker} @ ${filled_price:.2f}")
                 self.log.info(f"📊 Risk Status: {risk_status['daily_trades_used']}/{self.max_daily_trades} trades, "
                               f"Drawdown: {risk_status['drawdown_pct']:.1f}%")
                 return True
+            else:
+                self.log.warning(f"❌ BUY order for {ticker} was not filled")
+                return False
 
         except Exception as e:
             self.log.error(f"❌ Failed to execute BUY for {ticker}: {e}")
@@ -243,25 +284,44 @@ class TradingSession:
         """Execute sell order with position validation"""
         try:
             position_qty = 0
+            position_value = 0
+            unrealized_pl = 0
+
             for pos in current_positions:
                 if pos.symbol == ticker:
                     position_qty = float(pos.qty)
+                    position_value = float(pos.market_value or 0)
+                    unrealized_pl = float(pos.unrealized_pl or 0)
                     break
 
             if position_qty <= 0:
+                self.log.warning(f"⚠️ No position to sell for {ticker}")
                 return False
 
             # For long-term strategy, check hold time
             if self.strategy_type == 'long_term':
                 if not self.check_position_hold_time(ticker, current_positions):
-                    self.log.info(f"⏰ Delaying sell for {ticker} - minimum hold time not met")
+                    hold_time = (datetime.now() - self.position_entry_times.get(ticker,
+                                                                                datetime.now())).total_seconds() / 60
+                    self.log.info(
+                        f"⏰ Delaying sell for {ticker} - held {hold_time:.1f}min, need {self.position_hold_time_minutes}min")
                     return False
 
             conf_str = f" (conf: {confidence:.2f})" if confidence else ""
-            self.update_activity(f"Selling {ticker}{conf_str}")
-            order = self.broker.sell_market(ticker, position_qty)
+            self.update_activity(f"Selling {ticker}{conf_str} (P&L: ${unrealized_pl:.2f})")
 
-            if order and order.filled_qty:
+            # Use broker's market order method
+            filled, order = self.broker.place_market_order(
+                symbol=ticker,
+                side='sell',
+                qty=position_qty,
+                wait_fill=True,
+                timeout_sec=300,
+                enable_gap_protection=True,
+                max_gap_percent=5.0
+            )
+
+            if filled and order and order.filled_qty:
                 self.log_trade(ticker, 'sell', order)
                 self.daily_trade_count += 1
 
@@ -269,8 +329,16 @@ class TradingSession:
                 if ticker in self.position_entry_times:
                     del self.position_entry_times[ticker]
 
-                self.log.info(f"✅ SELL: {position_qty:.4f} {ticker}")
+                filled_qty = float(order.filled_qty)
+                filled_price = float(order.filled_avg_price or 0)
+                realized_pl = unrealized_pl  # Approximate realized P&L
+
+                self.log.info(
+                    f"✅ SELL: {filled_qty:.4f} {ticker} @ ${filled_price:.2f} (Realized P&L: ${realized_pl:.2f})")
                 return True
+            else:
+                self.log.warning(f"❌ SELL order for {ticker} was not filled")
+                return False
 
         except Exception as e:
             self.log.error(f"❌ Failed to execute SELL for {ticker}: {e}")
@@ -285,12 +353,49 @@ class TradingSession:
             # Fewer, higher quality tickers for long-term
             return self.scanner.get_active_tickers(limit=15)
 
+    def log_session_summary(self):
+        """Log session performance summary"""
+        try:
+            current_equity = self.broker.get_equity()
+            session_duration = (datetime.now() - self.session_start_time).total_seconds() / 3600
+
+            if self.session_equity_start > 0:
+                session_return = ((current_equity - self.session_equity_start) / self.session_equity_start) * 100
+                self.log.info(f"📊 Session Summary:")
+                self.log.info(f"   Duration: {session_duration:.1f} hours")
+                self.log.info(f"   Trades: {self.session_trades}")
+                self.log.info(f"   Start Equity: ${self.session_equity_start:,.2f}")
+                self.log.info(f"   End Equity: ${current_equity:,.2f}")
+                self.log.info(f"   Return: {session_return:+.2f}%")
+
+        except Exception as e:
+            self.log.error(f"❌ Error logging session summary: {e}")
+
     def run(self):
         self.log.info(f"🚀 Trading session started - Strategy: {self.strategy_type.upper()}")
+        self.log.info(
+            f"📋 Session Config: {self.profit_target_percent}% profit target, {self.stop_loss_percent}% stop loss, max {self.max_daily_trades} trades/day")
         self.update_activity(f"Session started ({self.strategy_type} strategy)")
+
+        # Initialize session metrics
+        try:
+            self.session_equity_start = self.broker.get_equity()
+        except:
+            self.session_equity_start = 0.0
 
         try:
             while not self.should_abort():
+                # Reset daily counters if needed
+                self.reset_daily_counters()
+
+                # Check if market is open with enhanced logging
+                if not self.broker._is_market_open():
+                    next_open_mins = self.broker.get_next_market_open_minutes()
+                    self.update_activity(
+                        f"US Market closed - waiting for open (in {next_open_mins // 60}h {next_open_mins % 60}m)")
+                    self.sleep_with_countdown(min(3600, next_open_mins * 60), "market_closed")
+                    continue
+
                 # Check if risk manager kill switch is active
                 risk_status = self.risk_manager.get_risk_status()
                 if risk_status['kill_switch_active']:
@@ -310,12 +415,15 @@ class TradingSession:
                     buying_power = self.broker.get_buying_power()
                     equity = self.broker.get_equity()
 
+                    positions_value = sum(float(p.market_value or 0) for p in current_positions)
+                    unrealized_pl = sum(float(p.unrealized_pl or 0) for p in current_positions)
+
                     self.log.info(f"💰 Equity: ${equity:,.2f}, Buying Power: ${buying_power:,.2f}, "
-                                  f"Positions: {len(current_positions)} | Strategy: {self.strategy_type}")
+                                  f"Positions: {len(current_positions)} (${positions_value:,.2f}, P&L: ${unrealized_pl:+.2f}) | Strategy: {self.strategy_type}")
 
                     # Log risk status periodically
                     self.log.info(f"📊 Daily trades: {risk_status['daily_trades_used']}/{self.max_daily_trades}, "
-                                  f"Drawdown: {risk_status['drawdown_pct']:.1f}%")
+                                  f"Drawdown: {risk_status['drawdown_pct']:.1f}%, Session trades: {self.session_trades}")
 
                 except Exception as e:
                     self.log.error(f"❌ Failed to get account info: {e}")
@@ -326,15 +434,19 @@ class TradingSession:
                 positions_to_sell = self.check_risk_based_exits(current_positions)
 
                 # Execute risk-based sells
+                sells_executed = 0
                 for sell_info in positions_to_sell:
                     if not self.can_trade_today():
+                        self.log.info(
+                            f"⚠️ Daily trade limit reached, skipping remaining {len(positions_to_sell) - sells_executed} sells")
                         break
 
-                    self.execute_sell_with_risk_check(
-                        sell_info['symbol'],
-                        current_positions
-                    )
+                    if self.execute_sell_with_risk_check(sell_info['symbol'], current_positions):
+                        sells_executed += 1
                     time.sleep(2)  # Brief delay between orders
+
+                if sells_executed > 0:
+                    self.log.info(f"✅ Executed {sells_executed} risk-based sells")
 
                 # Scan for new opportunities
                 self.update_activity("Scanning for opportunities...")
@@ -345,15 +457,19 @@ class TradingSession:
                     self.sleep_with_countdown(300, "no_tickers")
                     continue
 
-                self.log.info(f"📊 Scanning {len(tickers)} tickers")
+                self.log.info(f"📊 Scanning {len(tickers)} tickers for {self.strategy_type} opportunities")
 
                 # Analyze each ticker
+                analyzed_count = 0
+                buy_signals = 0
+                sell_signals = 0
+
                 for ticker in tickers:
                     if self.should_abort() or not self.can_trade_today():
                         break
 
                     try:
-                        self.update_activity(f"Analyzing {ticker}")
+                        self.update_activity(f"Analyzing {ticker} ({analyzed_count + 1}/{len(tickers)})")
 
                         # Get data
                         df = self.scanner.get_dataframe_for_ticker(
@@ -363,6 +479,7 @@ class TradingSession:
                         )
 
                         if df is None or len(df) < self.model_config['window']:
+                            analyzed_count += 1
                             continue
 
                         # Get prediction
@@ -377,36 +494,54 @@ class TradingSession:
 
                         # Strategy-specific confidence filtering
                         if confidence < self.confidence_threshold:
+                            analyzed_count += 1
                             continue
 
                         # Execute trades based on prediction and strategy
                         if action_idx == 1:  # BUY
+                            buy_signals += 1
                             # Don't buy if we already have a position (for this implementation)
                             if self.has_position(ticker, current_positions):
+                                analyzed_count += 1
                                 continue
 
                             # Check cooldown using risk manager
                             if not self.risk_manager.check_buy_cooldown(ticker):
+                                analyzed_count += 1
                                 continue
 
                             self.execute_buy_with_risk_check(ticker, confidence)
 
                         elif action_idx == 2:  # SELL
+                            sell_signals += 1
                             if self.has_position(ticker, current_positions):
                                 self.execute_sell_with_risk_check(ticker, current_positions, confidence)
 
+                        analyzed_count += 1
                         # Brief throttle between analyses
                         time.sleep(1)
 
                     except Exception as e:
                         self.log.error(f"❌ Error analyzing {ticker}: {e}")
+                        analyzed_count += 1
                         continue
 
+                self.log.info(
+                    f"📈 Analysis complete: {analyzed_count} tickers, {buy_signals} buy signals, {sell_signals} sell signals")
+
                 # Strategy-specific sleep intervals
-                if self.strategy_type == 'short_term':
-                    interval_seconds = int(self.interval_minutes * 60)  # Original interval
+                if len(current_positions) > 0:
+                    # Has positions - more frequent monitoring
+                    if self.strategy_type == 'short_term':
+                        interval_seconds = 300  # 5 minutes
+                    else:
+                        interval_seconds = 600  # 10 minutes
                 else:
-                    interval_seconds = int(self.interval_minutes * 60 * 2)  # Longer intervals for long-term
+                    # No positions - less frequent scanning
+                    if self.strategy_type == 'short_term':
+                        interval_seconds = int(self.interval_minutes * 60)  # 15 minutes
+                    else:
+                        interval_seconds = int(self.interval_minutes * 60 * 1.5)  # 22.5 minutes
 
                 self.sleep_with_countdown(interval_seconds, "interval")
 
@@ -415,5 +550,6 @@ class TradingSession:
             self.update_activity(f"Error: {e}")
             raise
         finally:
+            self.log_session_summary()
             self.log.info("🛑 Trading session ended")
             self.update_activity("Session ended")

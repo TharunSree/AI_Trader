@@ -208,7 +208,7 @@
     });
     equityChart.render();
   }
-  // Always append a point every poll (for time continuity)
+
   function addEquityPoint(val){
     if(val==null||isNaN(val)) return;
     equitySeries.push({x:now(),y:Number(val)});
@@ -224,6 +224,7 @@
       ]
     });
   }
+
   function updatePositions(positions){
     if(!positionsTable) return;
     positionsTable.clear();
@@ -251,6 +252,7 @@
     el.className='badge '+cls+' px-3 py-2';
     el.textContent=status;
   }
+
   function setCycleBadge(mode){
     const el=document.getElementById('cycle-badge');
     el.textContent=mode;
@@ -277,6 +279,7 @@
       updateSleepBadge();
     },1000);
   }
+
   function updateSleepBadge(){
     const m=String(Math.floor(sleepSeconds/60)).padStart(2,'0');
     const s=String(sleepSeconds%60).padStart(2,'0');
@@ -287,7 +290,7 @@
   function addActivity(line,isError){
     if(!line||line===lastActivityLine) return;
     lastActivityLine=line;
-    if(/Sleeping\.\.\./.test(line)) return; // ignore repeating sleep lines
+    if(/Sleeping\.\.\./.test(line)) return;
     activityLog.unshift({t:new Date(),msg:line,err:!!isError});
     if(activityLog.length>MAX_ACTIVITY) activityLog.pop();
     document.getElementById('activity-summary').textContent=line;
@@ -304,6 +307,7 @@
     else if(/^Analyzing\s+/i.test(line)) setCycleBadge('ANALYZING');
     else if(currentStatus==='RUNNING') setCycleBadge('ACTIVE');
   }
+
   function processActivityString(s){
     if(!s) return;
     const m=s.match(/Sleeping\.\.\. \((\d{2}):(\d{2}) remaining\)/);
@@ -319,6 +323,7 @@
     if(statusTimer) clearTimeout(statusTimer);
     statusTimer=setTimeout(fetchStatus, STATUS_INTERVALS[currentStatus]||10000);
   }
+
   function scheduleActivity(){
     if(activityTimer) clearTimeout(activityTimer);
     activityTimer=setTimeout(fetchActivity, ACTIVITY_POLL_MS);
@@ -344,22 +349,23 @@
           errBox.textContent='';
         }
 
-        // Controls
         const startBtn=document.getElementById('start-btn');
         const stopBtn=document.getElementById('stop-btn');
         const modelSel=document.getElementById('model_file_select');
         if(currentStatus==='RUNNING'){
-          startBtn.disabled=true; stopBtn.disabled=false; modelSel.disabled=true;
+          startBtn.disabled=true;
+          stopBtn.disabled=false;
+          modelSel.disabled=true;
         } else {
-          startBtn.disabled=false; stopBtn.disabled=true; modelSel.disabled=false;
+          startBtn.disabled=false;
+          stopBtn.disabled=true;
+          modelSel.disabled=false;
         }
 
-        // Equity
         document.getElementById('equity-val').textContent=fmtCurrency(data.equity);
         document.getElementById('bp-val').textContent=fmtCurrency(data.buying_power);
         addEquityPoint(data.equity);
 
-        // Positions
         updatePositions(data.positions);
 
         if(currentStatus!=='RUNNING') setCycleBadge('IDLE');
@@ -373,7 +379,10 @@
   }
 
   function fetchActivity(){
-    if(currentStatus!=='RUNNING'){ scheduleActivity(); return; }
+    if(currentStatus!=='RUNNING'){
+      scheduleActivity();
+      return;
+    }
     fetch("{% url 'trader_activity_api' %}?_="+now(), {cache:'no-store'})
       .then(r=>r.json())
       .then(data=>{
@@ -385,7 +394,22 @@
 
   function wireControls(){
     document.getElementById('stop-btn').addEventListener('click',()=>{
-      document.getElementById('stop-form').submit();
+      if(confirm('Are you sure you want to stop the trading bot?')){
+        document.getElementById('stop-form').submit();
+      }
+    });
+
+    document.getElementById('start-form').addEventListener('submit',(e)=>{
+      const model=document.getElementById('model_file_select').value;
+      if(!model){
+        e.preventDefault();
+        alert('Please select a model file first.');
+        return false;
+      }
+      if(!confirm(`Start paper trading with model: ${model}?`)){
+        e.preventDefault();
+        return false;
+      }
     });
   }
 
@@ -397,6 +421,7 @@
     fetchActivity();
     tickUptime();
   }
+
   document.addEventListener('DOMContentLoaded',boot);
 })();
 </script>

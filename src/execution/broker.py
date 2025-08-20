@@ -414,3 +414,129 @@ class Broker:
         except Exception as e:
             logger.error(f"Unexpected error placing {side} order for {symbol}: {e}", exc_info=True)
             return False, None
+
+    def close_position(self, symbol: str) -> bool:
+        """
+        Close a position entirely
+        """
+        try:
+            position = self.api.get_position(symbol)
+            qty = abs(float(position.qty))
+
+            if qty <= 0:
+                logger.info(f"No position to close for {symbol}")
+                return True
+
+            side = 'sell' if float(position.qty) > 0 else 'buy'
+            logger.info(f"Closing position: {side} {qty} shares of {symbol}")
+
+            filled, order = self.place_market_order(symbol=symbol, side=side, qty=qty)
+            return filled
+
+        except APIError as e:
+            if 'position does not exist' in str(e).lower():
+                logger.info(f"No position exists for {symbol}")
+                return True
+            logger.error(f"Error closing position for {symbol}: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"Unexpected error closing position for {symbol}: {e}")
+            return False
+
+    def close_all_positions(self) -> dict:
+        """
+        Close all open positions
+        Returns dict with results
+        """
+        results = {'success': [], 'failed': []}
+
+        try:
+            positions = self.get_positions()
+
+            if not positions:
+                logger.info("No positions to close")
+                return results
+
+            logger.info(f"Closing {len(positions)} positions")
+
+            for position in positions:
+                symbol = position.symbol
+                try:
+                    if self.close_position(symbol):
+                        results['success'].append(symbol)
+                        logger.info(f"✅ Closed position: {symbol}")
+                    else:
+                        results['failed'].append(symbol)
+                        logger.error(f"❌ Failed to close position: {symbol}")
+
+                    time.sleep(1)  # Rate limiting
+
+                except Exception as e:
+                    logger.error(f"Error closing {symbol}: {e}")
+                    results['failed'].append(symbol)
+
+        except Exception as e:
+            logger.error(f"Error in close_all_positions: {e}")
+
+        logger.info(f"Position closure complete: {len(results['success'])} closed, {len(results['failed'])} failed")
+        return results
+
+    def get_account_summary(self) -> dict:
+        """
+        Get comprehensive account information
+        """
+        try:
+            account = self._refresh_account()
+            positions = self.get_positions()
+
+            return {
+                'equity': float(account.equity) if account else 0.0,
+                'buying_power': float(account.buying_power) if account else 0.0,
+                'cash': float(account.cash) if account else 0.0,
+                'portfolio_value': float(account.portfolio_value) if account else 0.0,
+                'day_trade_count': int(account.daytrade_count) if account else 0,
+                'position_count': len(positions),
+                'positions_value': sum(float(p.market_value) for p in positions),
+                'unrealized_pl': sum(float(p.unrealized_pl) for p in positions),
+                'account_status': account.status if account else 'unknown'
+            }
+        except Exception as e:
+            logger.error(f"Error getting account summary: {e}")
+            return {
+                'equity': 0.0, 'buying_power': 0.0, 'cash': 0.0,
+                'portfolio_value': 0.0, 'day_trade_count': 0,
+                'position_count': 0, 'positions_value': 0.0,
+                'unrealized_pl': 0.0, 'account_status': 'error'
+            }
+
+    def has_position(self, symbol: str) -> bool:
+        """
+        Check if we have a position in the given symbol
+        """
+        try:
+            position = self.api.get_position(symbol)
+            return abs(float(position.qty)) > 0
+        except APIError as e:
+            if 'position does not exist' in str(e).lower():
+                return False
+            logger.error(f"Error checking position for {symbol}: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"Unexpected error checking position for {symbol}: {e}")
+            return False
+
+    def get_position_value(self, symbol: str) -> float:
+        """
+        Get the market value of a position
+        """
+        try:
+            position = self.api.get_position(symbol)
+            return float(position.market_value)
+        except APIError as e:
+            if 'position does not exist' in str(e).lower():
+                return 0.0
+            logger.error(f"Error getting position value for {symbol}: {e}")
+            return 0.0
+        except Exception as e:
+            logger.error(f"Unexpected error getting position value for {symbol}: {e}")
+            return 0.0
