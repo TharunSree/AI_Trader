@@ -62,6 +62,10 @@ class Scanner:
         logger.info(f"Scan complete. Found {len(hot_list)} opportunities: {hot_list}")
         return hot_list
 
+    def get_active_tickers(self, buying_power: float) -> list:
+        """Alias for scan_for_opportunities for backward compatibility"""
+        return self.scan_for_opportunities(buying_power)
+
     def _apply_filters(self, df: pd.DataFrame, ticker: str, buying_power: float) -> bool:
         try:
             last_price = df["Close"].iloc[-1].item()
@@ -86,3 +90,24 @@ class Scanner:
         except (IndexError, TypeError, ValueError) as e:
             logger.warning(f"Not enough data or data format issue for {ticker} to apply filters. Error: {e}")
             return False
+
+    def get_filtered_universe(self, buying_power: float, max_tickers: int = 50) -> list:
+        """Get a filtered subset of the universe for faster scanning"""
+        filtered = []
+        for ticker in self.universe[:max_tickers]:  # Limit to first N tickers
+            try:
+                loader = YFinanceLoader([ticker], start_date="2024-11-01", end_date="2025-01-31")
+                df = loader.load_data()
+
+                if not df.empty and len(df) >= 20:
+                    last_price = df["Close"].iloc[-1]
+                    if self.config["min_price"] <= last_price <= self.config["max_price"]:
+                        if last_price <= (buying_power * 0.5):
+                            filtered.append(ticker)
+
+            except Exception as e:
+                logger.warning(f"Error filtering {ticker}: {e}")
+                continue
+
+        logger.info(f"Filtered universe to {len(filtered)} tickers from {max_tickers}")
+        return filtered
