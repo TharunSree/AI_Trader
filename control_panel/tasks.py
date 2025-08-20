@@ -168,10 +168,13 @@ def run_meta_trainer_task(self, meta_job_id):
     return f"Meta-Training finished with status: {meta_job.status}"
 
 
+# Add this configuration in the run_paper_trader_task function
+# Add this enhanced configuration in run_paper_trader_task
+
 @shared_task(bind=True, base=AbortableTask)
 def run_paper_trader_task(self, trader_id, model_file):
     trader = PaperTrader.objects.get(id=trader_id)
-    logger.info(f"Starting paper trader '{trader_id}' with model '{model_file}'")
+    logger.info(f"Starting enhanced paper trader '{trader_id}' with model '{model_file}'")
 
     def should_abort():
         if self.is_aborted(): return True
@@ -179,22 +182,40 @@ def run_paper_trader_task(self, trader_id, model_file):
         return trader.status != 'RUNNING'
 
     try:
-        config = {"model_file": model_file, "interval_minutes": 1, "trader_id": trader_id}
+        # Enhanced config with profit optimization
+        config = {
+            "model_file": model_file,
+            "interval_minutes": 15,  # Check every 15 minutes for quality signals
+            "trader_id": trader_id,
+            "risk_management": {
+                "max_daily_trades": 10,
+                "profit_take_pct": 0.02,  # Take profit at 2%
+                "stop_loss_pct": 0.01,  # Stop loss at 1%
+                "max_position_size": 500,  # $500 max per position
+                "buy_cooldown_minutes": 30  # 30 min cooldown between buys
+            },
+            "enable_auto_exits": True,
+            "enable_profit_taking": True
+        }
+
         session = TradingSession(config, abort_flag_callback=should_abort)
         session.task = self
         session.run()
+
     except Exception as e:
-        logger.error(f"Paper trader task for trader {trader_id} failed: {e}", exc_info=True)
-        trader.status = 'FAILED';
+        logger.error(f"Enhanced paper trader task failed: {e}", exc_info=True)
+        trader.status = 'FAILED'
         trader.error_message = str(e)
         trader.save()
+
     if trader.status != 'FAILED':
         trader.refresh_from_db()
         if trader.status == 'RUNNING':
-            trader.status = 'STOPPED';
+            trader.status = 'STOPPED'
             trader.save()
-    logger.info(f"Paper trader task for trader {trader_id} has stopped.")
-    return f"PAPER TRADER {trader_id} STOPPED"
+
+    logger.info(f"Enhanced paper trader task for trader {trader_id} has stopped.")
+    return f"ENHANCED PAPER TRADER {trader_id} STOPPED"
 
 
 @shared_task(bind=True, base=AbortableTask)

@@ -1,42 +1,110 @@
 # src/strategies.py
 
-# This file contains the "Playbook" of different configurations to test.
-# The Meta-Trainer will systematically test combinations of these settings.
-# This version has been refined to test more coherent and professional strategies.
-
 STRATEGY_PLAYBOOK = {
     "feature_sets": {
-        # Strategy focused on identifying the strength and direction of a trend.
-        "Trend": [
+        # SHORT-TERM STRATEGIES
+        "scalping_momentum": [
             "returns",
-            "SMA_50",         # Long-term trend direction
-            "MACDh_12_26_9",  # Trend and momentum
-            "ADX_14",         # Trend strength (non-directional)
+            "RSI_14",
+            "MACDh_12_26_9",
+            "STOCHk_14_3_3",
+            "BBP_20_2"
         ],
-        # Strategy focused on momentum and overbought/oversold conditions.
-        "Momentum": [
+
+        "quick_breakout": [
             "returns",
-            "RSI_14",         # Overbought/oversold indicator
-            "STOCHk_14_3_3",  # Momentum oscillator
-            "BBP_20_2",       # Breakout/mean-reversion signals
+            "ATR_14",
+            "BBP_20_2",
+            "RSI_14",
+            "volume_sma_ratio"
         ],
-        # Strategy focused on volume and volatility.
-        "VolumeVolatility": [
+
+        "intraday_reversal": [
             "returns",
-            "ATR_14",         # Volatility measure
-            "OBV",            # Volume-based trend confirmation
+            "RSI_14",
+            "Williams_%R",
+            "CCI_14",
+            "STOCHk_14_3_3"
         ],
+
+        # LONG-TERM STRATEGIES
+        "trend_following": [
+            "returns",
+            "SMA_20",
+            "SMA_50",
+            "SMA_200",
+            "ADX_14",
+            "OBV"
+        ],
+
+        "value_momentum": [
+            "returns",
+            "RSI_14",
+            "MACD_12_26_9",
+            "SMA_50",
+            "volume_sma_ratio"
+        ],
+
+        "growth_trend": [
+            "returns",
+            "SMA_20",
+            "SMA_50",
+            "MACD_12_26_9",
+            "ADX_14"
+        ]
     },
 
     "hyperparameters": {
-        # Lower learning rate for slower, more stable learning. High gamma values future rewards highly.
-        "Cautious": {"lr": 0.0003, "gamma": 0.99},
-        # A balanced approach.
-        "Balanced": {"lr": 0.001, "gamma": 0.97},
-        # Higher learning rate for faster adaptation. Lower gamma focuses on more immediate rewards.
-        "Aggressive": {"lr": 0.003, "gamma": 0.95},
+        # SHORT-TERM FOCUSED
+        "aggressive_scalping": {
+            "lr": 0.003,
+            "gamma": 0.90,  # Focus on immediate rewards
+            "profit_reward": 15.0,
+            "loss_penalty": -20.0
+        },
+
+        "quick_profit": {
+            "lr": 0.002,
+            "gamma": 0.92,
+            "profit_reward": 12.0,
+            "loss_penalty": -15.0
+        },
+
+        # LONG-TERM FOCUSED
+        "patient_growth": {
+            "lr": 0.0008,
+            "gamma": 0.98,  # Value future rewards highly
+            "profit_reward": 8.0,
+            "loss_penalty": -10.0
+        },
+
+        "trend_rider": {
+            "lr": 0.001,
+            "gamma": 0.96,
+            "profit_reward": 6.0,
+            "loss_penalty": -8.0
+        },
+
+        # BALANCED APPROACHES
+        "balanced_growth": {
+            "lr": 0.001,
+            "gamma": 0.95,
+            "profit_reward": 5.0,
+            "loss_penalty": -8.0
+        },
+
+        "risk_averse": {
+            "lr": 0.0005,
+            "gamma": 0.98,
+            "profit_reward": 3.0,
+            "loss_penalty": -5.0
+        }
     },
 
-    # Kept window sizes the same, as they are a good starting point.
-    "window_sizes": [10, 20],
+    # Strategy-specific window sizes
+    "window_sizes": {
+        "short_term": [5, 8, 10],  # Shorter windows for quick signals
+        "long_term": [15, 20, 30],  # Longer windows for trend capture
+        "balanced": [10, 15, 20]  # Mixed approach
+    }
 }
