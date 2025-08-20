@@ -309,15 +309,16 @@
   }
 
   function processActivityString(s){
-    if(!s) return;
-    const m=s.match(/Sleeping\.\.\. \((\d{2}):(\d{2}) remaining\)/);
-    if(m){
-      const sec=parseInt(m[1],10)*60+parseInt(m[2],10);
-      startSleep(sec);
-    } else {
-      addActivity(s,false);
-    }
+  if(!s) return;
+  // Updated regex to handle the actual format from trading session
+  const m=s.match(/Sleeping.*?\((\d{1,2}):(\d{2}) remaining\)/);
+  if(m){
+    const sec=parseInt(m[1],10)*60+parseInt(m[2],10);
+    startSleep(sec);
+  } else {
+    addActivity(s,false);
   }
+}
 
   function scheduleStatus(){
     if(statusTimer) clearTimeout(statusTimer);
