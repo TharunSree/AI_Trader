@@ -1,21 +1,22 @@
 import logging
 import time
 from pathlib import Path
-import torch
 from datetime import datetime, timedelta
 import os
 import django
+import torch
 
+# Django setup (only once)
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'trader_project.settings')
 django.setup()
 
+from control_panel.models import PaperTrader, TradeLog
 from src.data.preprocessor import calculate_features
+from src.data.yfinance_loader import YFinanceLoader
 from src.models.ppo_agent import PPOAgent
 from src.execution.broker import Broker
 from src.execution.risk_manager import RiskManager
 from src.execution.scanner import Scanner
-from src.data.yfinance_loader import YFinanceLoader
-from control_panel.models import PaperTrader, TradeLog
 from src.utils.logger import setup_logging
 
 
@@ -25,7 +26,7 @@ class TradingSession:
         self.log = logging.getLogger(self.__class__.__name__)
         self.config = config
         self.should_abort = abort_flag_callback or (lambda: False)
-        self.task = None
+        self.task = None  # Celery task (set by caller)
         self.last_buy_time = None
         self.buy_cooldown_minutes = 15
 
@@ -39,134 +40,171 @@ class TradingSession:
         self.scanner = Scanner()
         self.trader = PaperTrader.objects.get(id=self.config['trader_id'])
 
-    def update_activity(self, message):
+    # ---------- Utility / Activity ----------
+    def update_activity(self, message: str):
+        """Send live activity + equity to frontend via Celery task state."""
         if self.task:
-            live_equity = float(self.broker.get_equity())
-            self.task.update_state(
-                state='PROGRESS',
-                meta={
-                    'activity': message,
-                    'timestamp': datetime.now().isoformat(),
-                    'portfolio_value': f"${live_equity:,.2f}"
-                }
-            )
+            try:
+                equity = float(self.broker.get_equity())
+            except Exception:
+                equity = 0.0
+            try:
+                self.task.update_state(
+                    state='PROGRESS',
+                    meta={'activity': message, 'equity': equity}
+                )
+            except Exception as e:
+                self.log.debug(f"Non-fatal: could not update task state: {e}")
+        self.log.debug(f"ACTIVITY: {message}")
 
+    # ---------- Market Data / State ----------
     def create_state_from_live_data(self, ticker: str):
-        end_date = datetime.now()
-        start_date = end_date - timedelta(days=365)
-        loader = YFinanceLoader([ticker], start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
-        df = loader.load_data()
-        if df.empty:
+        """Fetch latest window, compute features, build state tensor."""
+        try:
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=365)
+            loader = YFinanceLoader([ticker], start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
+            df = loader.load_data()
+            if df.empty:
+                return None, None
+            featured_df = calculate_features(df)
+            window_size = self.model_config['window']
+            if len(featured_df) < window_size:
+                return None, None
+            window = featured_df.iloc[-window_size:]
+            current_price = float(window["Close"].iloc[-1])
+            obs_cols = self.model_config['features']
+            obs = window[obs_cols].values.flatten()
+            state = torch.as_tensor(obs, dtype=torch.float32, device=self.agent.device)
+            return state, current_price
+        except Exception as e:
+            self.log.warning(f"Data/state build failed for {ticker}: {e}")
             return None, None
-        featured_df = calculate_features(df)
-        window_size = self.model_config['window']
-        if len(featured_df) < window_size:
-            return None, None
-        window = featured_df.iloc[-window_size:]
-        current_price = float(window["Close"].iloc[-1])
-        obs_cols = self.model_config['features']
-        obs = window[obs_cols].values.flatten()
-        state = torch.as_tensor(obs, dtype=torch.float32, device=self.agent.device)
-        return state, current_price
 
-    def sleep_until_market_open(self):
-        """Sleep until market opens with live countdown timer"""
-        if self.broker._is_market_open():
-            return  # Market is already open
-
-        minutes_to_open = self.broker.get_next_market_open_minutes()
-        if minutes_to_open <= 0:
+    # ---------- Sleeping / Timing ----------
+    def sleep_with_countdown(self, total_seconds: int, sleep_type: str = "interval"):
+        """
+        Unified per-second countdown.
+        sleep_type: 'interval' | 'market'
+        Emits 'Sleeping... (MM:SS remaining)' or 'Market closed. Sleeping... (HH:MM remaining)'.
+        """
+        if total_seconds <= 0:
             return
+        prefix = "Market closed. Sleeping" if sleep_type == "market" else "Sleeping"
+        last_report = -1
+        while total_seconds > 0 and not self.should_abort():
+            if sleep_type == "market":
+                hours = total_seconds // 3600
+                mins = (total_seconds % 3600) // 60
+                # Display HH:MM for long market sleeps
+                display = f"{hours:02d}:{mins:02d}"
+            else:
+                mins = total_seconds // 60
+                secs = total_seconds % 60
+                display = f"{mins:02d}:{secs:02d}"
 
-        self.log.info(f"💤 Market closed. Sleeping until market opens ({minutes_to_open} minutes)")
+            # Emit every second (frontend parses)
+            if total_seconds != last_report:
+                self.update_activity(f"Sleeping... ({display} remaining)")
+                last_report = total_seconds
 
-        # Sleep in 1-minute intervals to provide live updates
-        while minutes_to_open > 0 and not self.should_abort():
-            hours = minutes_to_open // 60
-            mins = minutes_to_open % 60
+            time.sleep(1)
+            total_seconds -= 1
 
-            sleep_message = f"Sleeping... ({hours:02d}:{mins:02d} remaining)"
-            self.update_activity(sleep_message)
-            self.log.info(f"⏰ {sleep_message}")
-
-            # Sleep for 1 minute or until abort
-            for _ in range(60):  # 60 seconds
-                if self.should_abort():
-                    return
-                time.sleep(1)
-
-            minutes_to_open -= 1
-
-            # Refresh market status every 10 minutes
-            if minutes_to_open % 10 == 0:
+            # For market sleep, re-check each minute boundary
+            if sleep_type == "market" and total_seconds % 60 == 0:
                 if self.broker._is_market_open():
-                    self.log.info("🌅 Market opened early! Resuming trading...")
                     self.update_activity("Market opened - resuming trading")
                     return
 
-    def log_trade(self, ticker: str, side: str, order):
-        """Enhanced trade logging with error handling"""
+    def sleep_until_market_open(self):
+        """Sleep with countdown until market opens (HH:MM style)."""
+        if self.broker._is_market_open():
+            return
         try:
-            # Extract fill data from order
-            filled_qty = float(order.filled_qty or 0.0)
-            avg_price = float(order.filled_avg_price or 0.0)
+            minutes_to_open = self.broker.get_next_market_open_minutes()
+        except Exception as e:
+            self.log.warning(f"Could not determine next market open: {e}")
+            return
+        if minutes_to_open <= 0:
+            return
+        self.log.info(f"Market closed. Next open in {minutes_to_open} minute(s).")
+        self.sleep_with_countdown(minutes_to_open * 60, sleep_type="market")
+
+    # ---------- Trade Logging ----------
+    def log_trade(self, ticker: str, side: str, order):
+        """
+        Persist a filled trade to TradeLog.
+        Expects Alpaca order object with filled_qty / filled_avg_price.
+        """
+        try:
+            filled_qty = float(getattr(order, 'filled_qty', 0) or 0)
+            avg_price = float(getattr(order, 'filled_avg_price', 0) or 0)
 
             if filled_qty <= 0:
-                self.log.warning(f"⚠️ Cannot log trade: {ticker} filled_qty is {filled_qty}")
+                self.log.warning(f"Skip logging {ticker} {side}: no filled_qty.")
                 return False
-
             if avg_price <= 0:
-                self.log.warning(f"⚠️ Cannot log trade: {ticker} avg_price is {avg_price}")
+                self.log.warning(f"Skip logging {ticker} {side}: invalid avg_price.")
                 return False
 
             notional_filled = filled_qty * avg_price
 
-            # Create TradeLog entry
-            trade_log = TradeLog.objects.create(
+            TradeLog.objects.create(
                 trader=self.trader,
                 symbol=ticker,
                 action=side.upper(),
                 quantity=filled_qty,
                 price=avg_price,
-                notional_value=notional_filled
+                notional_value=notional_filled,
+                order_id=getattr(order, 'id', '') or getattr(order, 'client_order_id', '')
             )
-
             self.log.info(
-                f"📝 LOGGED: {side.upper()} {filled_qty} {ticker} @ ${avg_price:.2f} = ${notional_filled:.2f} [ID: {trade_log.id}]")
+                f"🧾 Logged trade | {ticker} {side.upper()} qty={filled_qty} avg={avg_price:.2f} "
+                f"notional=${notional_filled:,.2f}"
+            )
             return True
-
         except Exception as e:
-            self.log.error(f"❌ Failed to log trade for {ticker}: {e}", exc_info=True)
+            self.log.error(f"Failed to log trade {ticker} {side}: {e}", exc_info=True)
             return False
 
+    # ---------- Main Loop ----------
     def run(self):
         self.log.info("🚀 Trading session started")
         self.update_activity("Session started")
 
         try:
             while not self.should_abort():
-                # Check if market is open - if not, sleep until it opens
+                # Market open check
                 if not self.broker._is_market_open():
                     self.sleep_until_market_open()
                     if self.should_abort():
                         break
                     continue
 
-                # Cooldown check
+                # Buy cooldown
                 if self.last_buy_time and (datetime.now() - self.last_buy_time) < timedelta(
                         minutes=self.buy_cooldown_minutes):
                     self.update_activity("Buy cooldown active (sell-only)")
                     hot_list = []
                 else:
-                    bp = float(self.broker.get_buying_power())
+                    try:
+                        bp_raw = self.broker.get_buying_power()
+                        bp = float(bp_raw)
+                    except Exception:
+                        bp = 0.0
                     self.update_activity(f"Scanning for opportunities (BP ${bp:,.2f})")
                     hot_list = self.scanner.scan_for_opportunities(buying_power=bp)
 
-                current_positions = [p.symbol for p in self.broker.get_positions()]
+                # Aggregate tickers (candidates + current positions)
+                try:
+                    current_positions_objs = self.broker.get_positions()
+                    current_positions = [p.symbol for p in current_positions_objs]
+                except Exception:
+                    current_positions = []
                 tickers = list(set(hot_list + current_positions))
 
                 if not tickers:
-                    self.log.info("📊 No tickers to evaluate")
                     self.update_activity("No opportunities found")
                 else:
                     for ticker in tickers:
@@ -176,7 +214,7 @@ class TradingSession:
                         self.update_activity(f"Analyzing {ticker}")
                         state, current_price = self.create_state_from_live_data(ticker)
                         if state is None:
-                            self.log.warning(f"⚠️ Could not get data for {ticker}")
+                            self.log.debug(f"No valid state for {ticker}, skipping.")
                             continue
 
                         with torch.no_grad():
@@ -186,17 +224,16 @@ class TradingSession:
 
                         # Action mapping: 0=HOLD 1=BUY 2=SELL
                         if action_idx == 0:
-                            self.log.info(f"[{ticker}] HOLD | Price ${current_price:.2f} | Confidence {confidence:.3f}")
+                            self.log.info(f"[{ticker}] HOLD | Price ${current_price:.2f} | Conf {confidence:.3f}")
                             continue
 
                         side = "buy" if action_idx == 1 else "sell"
-                        self.log.info(
-                            f"[{ticker}] {side.upper()} signal | Price ${current_price:.2f} | Confidence {confidence:.3f}")
+                        self.log.info(f"[{ticker}] {side.upper()} signal | ${current_price:.2f} | Conf {confidence:.3f}")
 
-                        # Risk management check
-                        is_approved, notional_value = self.risk_manager.check_trade(ticker, action_idx, confidence)
-                        if not is_approved:
-                            self.log.info(f"❌ Trade rejected by risk manager: {ticker}")
+                        # Risk manager
+                        approved, notional_value = self.risk_manager.check_trade(ticker, action_idx, confidence)
+                        if not approved:
+                            self.log.info(f"Rejected by risk manager: {ticker}")
                             continue
 
                         if hasattr(notional_value, "item"):
@@ -204,53 +241,48 @@ class TradingSession:
                         else:
                             notional_value = float(notional_value)
 
-                        # Additional checks for buy orders
+                        # Additional buy constraints
                         if side == 'buy':
-                            if (self.last_buy_time and (datetime.now() - self.last_buy_time) < timedelta(
-                                    minutes=self.buy_cooldown_minutes)):
-                                self.log.info(f"⏳ Buy cooldown active for {ticker}")
+                            if self.last_buy_time and (datetime.now() - self.last_buy_time) < timedelta(
+                                    minutes=self.buy_cooldown_minutes):
+                                self.log.info(f"Buy cooldown still active: {ticker}")
                                 continue
                             if ticker in current_positions:
-                                self.log.info(f"📍 Already holding {ticker}")
+                                self.log.info(f"Already holding {ticker}")
                                 continue
 
                         self.update_activity(f"Placing {side.upper()} order for {ticker}")
-
-                        # Place order with gap protection enabled
                         filled, order = self.broker.place_market_order(
                             symbol=ticker,
                             side=side,
                             notional_value=notional_value if side == 'buy' else None,
                             enable_gap_protection=True,
-                            max_gap_percent=5.0  # 5% gap protection
+                            max_gap_percent=5.0
                         )
 
                         if not filled or order is None:
-                            self.log.warning(f"❌ Order not filled for {ticker}")
+                            self.log.warning(f"Order not filled for {ticker}")
                             continue
 
-                        # Log the trade to database
-                        logged_successfully = self.log_trade(ticker, side, order)
-
-                        if logged_successfully and side == 'buy':
+                        if self.log_trade(ticker, side, order) and side == 'buy':
                             self.last_buy_time = datetime.now()
 
-                        # Brief pause between trades
-                        time.sleep(2)
+                        # Brief throttle
+                        for _ in range(2):
+                            if self.should_abort():
+                                break
+                            time.sleep(1)
 
-                # Market hours sleep interval
-                self.update_activity(f"Sleeping {self.config['interval_minutes']} min")
-                sleep_total = int(self.config['interval_minutes'] * 60)
+                # Interval sleep (per-second countdown)
+                interval_seconds = int(float(self.config.get('interval_minutes', 1)) * 60)
+                self.sleep_with_countdown(interval_seconds, sleep_type="interval")
 
-                # Sleep in 5-second intervals to check abort flag
-                for i in range(sleep_total // 5):
-                    if self.should_abort():
-                        break
-                    time.sleep(5)
+                if self.should_abort():
+                    break
 
         except Exception as e:
             self.log.error(f"💥 Critical trading session error: {e}", exc_info=True)
-            self.update_activity(f"Error: {str(e)}")
+            self.update_activity(f"Error: {e}")
             raise
         finally:
             self.log.info("🛑 Trading session ended")
