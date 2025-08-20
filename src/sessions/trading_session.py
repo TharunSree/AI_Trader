@@ -1,4 +1,3 @@
-# src/sessions/trading_session.py
 import logging
 import time
 from pathlib import Path
@@ -33,7 +32,7 @@ class TradingSession:
         model_path = Path("saved_models") / self.config['model_file']
         self.agent, self.model_config = PPOAgent.load_with_config(model_path)
         self.agent.actor.eval()
-        self.log.info(f"Loaded model with config: {self.model_config}")
+        self.log.info(f"Loaded model config: {self.model_config}")
 
         self.broker = Broker()
         self.risk_manager = RiskManager(self.broker)
@@ -65,100 +64,119 @@ class TradingSession:
             return None, None
         window = featured_df.iloc[-window_size:]
         current_price = float(window["Close"].iloc[-1])
-        observation_cols = self.model_config['features']
-        observation = window[observation_cols].values.flatten()
-        state = torch.as_tensor(observation, dtype=torch.float32, device=self.agent.device)
+        obs_cols = self.model_config['features']
+        obs = window[obs_cols].values.flatten()
+        state = torch.as_tensor(obs, dtype=torch.float32, device=self.agent.device)
         return state, current_price
 
     def run(self):
-        self.log.info("Starting main scanning and trading loop...")
-        self.update_activity("Trading session started. Operating on live Alpaca paper account.")
+        self.log.info("Trading loop start.")
+        self.update_activity("Session started.")
         try:
             while not self.should_abort():
+                # Cooldown
                 if self.last_buy_time and (datetime.now() - self.last_buy_time) < timedelta(
                         minutes=self.buy_cooldown_minutes):
-                    self.update_activity("In buy cooldown... Checking for sell signals only.")
+                    self.update_activity("Buy cooldown active (sell-only).")
                     hot_list = []
                 else:
-                    current_buying_power = float(self.broker.get_buying_power())
-                    self.update_activity(f"Scanning market (Live BP: ${current_buying_power:,.2f})...")
-                    hot_list = self.scanner.scan_for_opportunities(buying_power=current_buying_power)
+                    bp = float(self.broker.get_buying_power())
+                    self.update_activity(f"Scanning (BP ${bp:,.2f})")
+                    hot_list = self.scanner.scan_for_opportunities(buying_power=bp)
 
                 current_positions = [p.symbol for p in self.broker.get_positions()]
-                tickers_to_evaluate = list(set(hot_list + current_positions))
+                tickers = list(set(hot_list + current_positions))
 
-                if not tickers_to_evaluate:
-                    self.log.info("No opportunities or open positions to evaluate.")
+                if not tickers:
+                    self.log.info("Nothing to evaluate.")
                 else:
-                    for ticker in tickers_to_evaluate:
+                    for ticker in tickers:
                         if self.should_abort():
                             break
-
-                        self.update_activity(f"Analyzing {ticker}...")
+                        self.update_activity(f"Analyzing {ticker}")
                         state, current_price = self.create_state_from_live_data(ticker)
                         if state is None:
                             continue
-
                         with torch.no_grad():
-                            # Ensure tensor -> probabilities vector
-                            probs = self.agent.actor(state)
-                            probs = probs.squeeze()
+                            probs = self.agent.actor(state).squeeze()
                             action_idx = int(torch.argmax(probs).item())
                             confidence = float(probs[action_idx].item())
 
+                        # Action mapping: 0=HOLD 1=BUY 2=SELL
+                        if action_idx == 0:
+                            self.log.info(f"[{ticker}] HOLD | Price ${current_price:.2f}")
+                            time.sleep(1)
+                            continue
+                        side = "buy" if action_idx == 1 else "sell"
+
                         self.log.info(
-                            f"[{ticker}] Price: ${current_price:.2f} | Action: {['HOLD', 'BUY', 'SELL'][action_idx]} | Conf: {confidence:.4f}"
+                            f"[{ticker}] Price ${current_price:.2f} Action {side.upper()} Conf {confidence:.4f}"
                         )
 
                         is_approved, notional_value = self.risk_manager.check_trade(ticker, action_idx, confidence)
+                        if not is_approved:
+                            continue
 
-                        # Normalize returned notional_value to float
                         if hasattr(notional_value, "item"):
                             notional_value = float(notional_value.item())
                         else:
                             notional_value = float(notional_value)
 
-                        if is_approved:
-                            side = "buy" if action_idx == 1 else "sell"
-                            if side == 'buy' and (
-                                    (self.last_buy_time and (datetime.now() - self.last_buy_time) < timedelta(
-                                        minutes=self.buy_cooldown_minutes))
-                                    or ticker in current_positions
-                            ):
+                        if side == 'buy':
+                            if (self.last_buy_time and (datetime.now() - self.last_buy_time) < timedelta(
+                                    minutes=self.buy_cooldown_minutes)) or ticker in current_positions:
                                 continue
 
-                            self.update_activity(f"Placing {side.upper()} order for {ticker}...")
-                            order_placed = self.broker.place_market_order(
-                                symbol=ticker,
-                                side=side,
-                                notional_value=notional_value
-                            )
+                        self.update_activity(f"Placing {side.upper()} {ticker}")
+                        filled, order = self.broker.place_market_order(
+                            symbol=ticker,
+                            side=side,
+                            notional_value=notional_value if side == 'buy' else None
+                        )
 
-                            if order_placed:
-                                if side == 'buy':
-                                    self.last_buy_time = datetime.now()
+                        if not filled or order is None:
+                            self.log.warning(f"Order not filled for {ticker}.")
+                            time.sleep(2)
+                            continue
 
-                                quantity = float(notional_value) / float(current_price)
-                                TradeLog.objects.create(
-                                    trader=self.trader,
-                                    symbol=ticker,
-                                    action=side.upper(),
-                                    quantity=quantity,
-                                    price=current_price,
-                                    notional_value=notional_value
-                                )
-                                self.log.info(f"Broker accepted order for {ticker}. Logged trade.")
-                            else:
-                                self.log.error(f"Broker REJECTED order for {ticker}. Trade not logged.")
+                        # Use actual fill data
+                        try:
+                            filled_qty = float(order.filled_qty or 0.0)
+                            avg_price = float(order.filled_avg_price or 0.0)
+                        except Exception:
+                            filled_qty = 0.0
+                            avg_price = current_price
+
+                        if filled_qty <= 0:
+                            self.log.warning(f"Filled qty 0 for {ticker}; skipping log.")
+                            time.sleep(2)
+                            continue
+
+                        notional_filled = filled_qty * avg_price
+
+                        TradeLog.objects.create(
+                            trader=self.trader,
+                            symbol=ticker,
+                            action=side.upper(),
+                            quantity=filled_qty,
+                            price=avg_price,
+                            notional_value=notional_filled
+                        )
+                        if side == 'buy':
+                            self.last_buy_time = datetime.now()
+
+                        self.log.info(
+                            f"Logged {side.upper()} {ticker} qty={filled_qty} avg_price=${avg_price:.2f} notional=${notional_filled:.2f}"
+                        )
 
                         time.sleep(2)
 
-                self.update_activity(f"Scan complete. Sleeping for {self.config['interval_minutes']} minutes...")
-                sleep_duration = int(self.config['interval_minutes'] * 60)
-                for _ in range(sleep_duration // 5):
+                self.update_activity(f"Sleeping {self.config['interval_minutes']} min")
+                sleep_total = int(self.config['interval_minutes'] * 60)
+                for _ in range(sleep_total // 5):
                     if self.should_abort():
                         break
                     time.sleep(5)
         except Exception as e:
-            self.log.error(f"A critical error occurred: {e}", exc_info=True)
+            self.log.error(f"Critical error: {e}", exc_info=True)
             raise
