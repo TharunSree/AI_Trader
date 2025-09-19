@@ -21,7 +21,7 @@ class PPOAgent:
         self.action_dim = action_dim
         self.lr = lr
 
-        # The +1 is for the sentiment score we added previously
+        # The +1 is for the sentiment score we will add to the state
         self.actor = nn.Sequential(
             nn.Linear(state_dim + 1, 128), nn.ReLU(),
             nn.Linear(128, 128), nn.ReLU(),
@@ -44,28 +44,23 @@ class PPOAgent:
 
     def get_action_and_value(self, state, action=None):
         """
-        FIX: Added this method for the trainer.
         Gets an action, its log probability, and the state value from the critic.
+        This is used during the training process.
         """
         if not isinstance(state, torch.Tensor):
             state = torch.FloatTensor(state).flatten()
         state = state.to(self.device)
 
-        # Get action probabilities from the actor network
         action_probs = self.actor(state)
-
-        # Create a categorical distribution to sample actions from
         dist = Categorical(action_probs)
 
-        # If no action is provided, sample a new one
         if action is None:
             action = dist.sample()
 
-        # Get the log probability of the action and the state value from the critic
         return action, dist.log_prob(action), dist.entropy(), self.critic(state)
 
     def predict(self, state: torch.Tensor) -> int:
-        """ Predicts an action based on the current state. Used for evaluation/backtesting. """
+        """ Predicts an action based on the current state. Used for evaluation/live trading. """
         if not isinstance(state, torch.Tensor):
             state = torch.FloatTensor(state).flatten()
         state = state.to(self.device)
@@ -79,7 +74,7 @@ class PPOAgent:
         Saves the model's state and the configuration used to train it.
         """
         if not all(k in config for k in ['features', 'window', 'params']):
-            raise ValueError("Config dictionary for saving agent must contain 'features', 'window', and 'params' keys.")
+            raise ValueError("Config dictionary must contain 'features', 'window', and 'params' keys.")
 
         path.parent.mkdir(parents=True, exist_ok=True)
         torch.save({
@@ -88,12 +83,11 @@ class PPOAgent:
             'optimizer_state_dict': self.optimizer.state_dict(),
             'config': config,
         }, path)
-        logger.info(f"Agent saved to {path} with config: {config}")
+        logger.info(f"Agent saved to {path}")
 
     def load(self, path: Path):
         """ Loads model weights from a checkpoint. """
         if not path.exists():
-            logger.error(f"Model file not found at {path}")
             raise FileNotFoundError(f"No model file at {path}")
 
         checkpoint = torch.load(path, map_location=self.device)
@@ -109,7 +103,6 @@ class PPOAgent:
         """
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         if not path.exists():
-            logger.error(f"Model file not found at {path}")
             raise FileNotFoundError(f"No model file at {path}")
 
         checkpoint = torch.load(path, map_location=device)
