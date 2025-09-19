@@ -47,8 +47,21 @@ class BacktestEngine:
         """
         Generates a performance report from the backtest history.
         """
-        if not self.history:
-            raise ValueError("Cannot generate report. Run the backtest first.")
+        # FIX: Check if history has more than one entry (initial state + at least one step)
+        if len(self.history) < 2:
+            logger.error("Backtest did not run long enough to generate a report. History is empty or contains only the initial state.")
+            # Return a default/error report
+            return {
+                "start_equity": 0,
+                "end_equity": 0,
+                "total_return_pct": 0,
+                "cagr": 0,
+                "sharpe_ratio": 0,
+                "max_drawdown_pct": 0,
+                "trade_count": 0,
+                "error": "Backtest failed to produce sufficient history for a report."
+            }
+
 
         equity_curve = pd.Series(
             [info["equity"] for info in self.history],
@@ -68,6 +81,10 @@ class BacktestEngine:
 
         logger.info(f"--- Backtest Report ---")
         for key, value in report.items():
-            logger.info(f"{key.replace('_', ' ').title()}: {value:.2f}")
+            if isinstance(value, float):
+                logger.info(f"{key.replace('_', ' ').title()}: {value:.2f}")
+            else:
+                 logger.info(f"{key.replace('_', ' ').title()}: {value}")
+
 
         return report

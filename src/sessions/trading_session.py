@@ -5,14 +5,14 @@ from datetime import datetime, timedelta
 import os
 import django
 import torch
+import pandas as pd
 
 # Django setup (only once)
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'trader_project.settings')
 django.setup()
 
 from control_panel.models import PaperTrader, TradeLog
-from src.data.preprocessor import calculate_features
-from src.data.yfinance_loader import YFinanceLoader
+from src.data.preprocessor import calculate_atr
 from src.models.ppo_agent import PPOAgent
 from src.execution.broker import Broker
 from src.execution.risk_manager import RiskManager
@@ -30,7 +30,7 @@ class TradingSession:
         # Trading parameters
         self.trader_id = config.get('trader_id', 1)
         self.interval_minutes = float(config.get('interval_minutes', 15))
-        self.position_size = float(config.get('position_size', 500))
+        self.risk_per_trade = float(config.get('risk_per_trade', 0.02))  # Risk 2% of portfolio per trade
 
         # Strategy type determines behavior
         self.strategy_type = config.get('strategy_type', 'short_term')  # 'short_term' or 'long_term'
@@ -43,6 +43,7 @@ class TradingSession:
             self.buy_cooldown_minutes = float(config.get('buy_cooldown_minutes', 15))
             self.position_hold_time_minutes = float(config.get('position_hold_time_minutes', 60))
             self.confidence_threshold = float(config.get('confidence_threshold', 0.65))
+            self.sentiment_threshold = 0.1  # Lower threshold for short-term
         else:  # long_term
             self.profit_target_percent = float(config.get('profit_target_percent', 3.0))
             self.stop_loss_percent = float(config.get('stop_loss_percent', 1.5))
@@ -50,9 +51,9 @@ class TradingSession:
             self.buy_cooldown_minutes = float(config.get('buy_cooldown_minutes', 120))
             self.position_hold_time_minutes = float(config.get('position_hold_time_minutes', 1440))  # 24 hours
             self.confidence_threshold = float(config.get('confidence_threshold', 0.75))
+            self.sentiment_threshold = 0.2  # Higher threshold for long-term
 
         self.enable_profit_taking = config.get('enable_profit_taking', True)
-        self.daily_trade_count = 0
         self.last_trade_date = None
 
         # Initialize components
@@ -64,13 +65,8 @@ class TradingSession:
         # Enhanced Risk Manager with strategy-specific settings
         self.risk_manager = RiskManager(
             broker=self.broker,
-            base_trade_usd=self.position_size,
-            max_trade_usd=self.position_size * 2,
-            max_drawdown_pct=0.10,
-            max_position_pct=0.20 if self.strategy_type == 'short_term' else 0.15,
             max_daily_trades=self.max_daily_trades,
-            profit_take_pct=self.profit_target_percent / 100,
-            stop_loss_pct=self.stop_loss_percent / 100
+            max_drawdown_pct=0.10
         )
 
         self.scanner = Scanner()
@@ -110,15 +106,7 @@ class TradingSession:
                 self.update_activity(f"Sleeping... ({mins:02d}:{secs:02d} remaining)")
             time.sleep(1)
 
-    def reset_daily_counters(self):
-        """Reset daily trade counter if new day"""
-        today = datetime.now().date()
-        if self.last_trade_date != today:
-            self.daily_trade_count = 0
-            self.last_trade_date = today
-            self.log.info(f"🔄 Daily counters reset for {today}")
-
-    def check_position_hold_time(self, symbol, current_positions):
+    def check_position_hold_time(self, symbol):
         """Check if position has been held long enough based on strategy"""
         if symbol not in self.position_entry_times:
             return True
@@ -127,44 +115,9 @@ class TradingSession:
         hold_duration = (datetime.now() - entry_time).total_seconds() / 60
 
         if self.strategy_type == 'short_term':
-            # For short-term, allow quick exits but prefer some holding time
             return hold_duration >= (self.position_hold_time_minutes * 0.5)
         else:
-            # For long-term, enforce minimum holding period
             return hold_duration >= self.position_hold_time_minutes
-
-    def check_risk_based_exits(self, current_positions):
-        """Use risk manager to check for automatic exits"""
-        positions_to_sell = []
-
-        for position in current_positions:
-            symbol = position.symbol
-            should_exit, reason = self.risk_manager.should_take_profit_or_stop_loss(symbol)
-
-            if should_exit:
-                # Check hold time for long-term strategy
-                if self.strategy_type == 'long_term' and reason == 'PROFIT_TAKE':
-                    if not self.check_position_hold_time(symbol, current_positions):
-                        self.log.info(f"⏰ Delaying profit take for {symbol} - minimum hold time not met")
-                        continue
-
-                try:
-                    quantity = float(position.qty)
-                    if quantity > 0:
-                        positions_to_sell.append({
-                            'symbol': symbol,
-                            'reason': reason,
-                            'quantity': quantity
-                        })
-                        self.log.info(f"🎯 {symbol} marked for exit: {reason}")
-                except Exception as e:
-                    self.log.error(f"❌ Error processing exit for {symbol}: {e}")
-
-        return positions_to_sell
-
-    def can_trade_today(self):
-        """Check if we can still trade today using risk manager"""
-        return self.risk_manager.check_daily_trade_limit()
 
     def get_position_value(self, ticker, current_positions):
         """Get current position value for a ticker"""
@@ -206,102 +159,95 @@ class TradingSession:
             self.log.error(f"❌ Failed to log trade: {e}")
             return False
 
-    def execute_buy_with_risk_check(self, ticker, confidence):
-        """Execute buy order with full risk management"""
+    def get_market_regime(self):
         try:
-            # Get current price for calculation
-            ticker_data = self.scanner.get_ticker_data(ticker)
-            if not ticker_data or 'Close' not in ticker_data:
-                return False
+            spy_bars = self.broker.api.get_bars("SPY", "1D", limit=201)
+            if not spy_bars or len(spy_bars) < 200:
+                return "NEUTRAL"
 
-            current_price = float(ticker_data['Close'])
+            sma_200 = sum(bar.c for bar in spy_bars[-200:]) / 200
 
-            # Use risk manager to check and size the trade
-            action = 1  # BUY
-            can_trade, notional_value = self.risk_manager.check_trade(ticker, action, confidence)
+            return "BULL" if spy_bars[-1].c > sma_200 else "BEAR"
+        except Exception as e:
+            self.log.error(f"Could not get market regime: {e}")
+            return "NEUTRAL"
 
+    def execute_buy_with_risk_check(self, ticker, confidence):
+        try:
+            # 1. Check general risk rules from the manager
+            can_trade, _ = self.risk_manager.check_trade(ticker, 1, confidence)
             if not can_trade:
                 return False
 
-            self.update_activity(f"Buying {ticker} (conf: {confidence:.2f}, size: ${notional_value:.0f})")
+            # 2. Get data for ATR calculation
+            bars = self.broker.api.get_bars(ticker, "1D", limit=20)
+            if not bars or len(bars) < 14:
+                self.log.warning(f"Not enough data for ATR calculation on {ticker}")
+                return False
 
-            # FIX: Call the correct broker method
-            filled, order = self.broker.place_market_order(
-                symbol=ticker,
-                side='buy',
-                notional_value=notional_value
-            )
+            df = pd.DataFrame([(b.h, b.l, b.c) for b in bars], columns=['High', 'Low', 'Close'])
+            atr = calculate_atr(df['High'], df['Low'], df['Close'], 14).iloc[-1]
+
+            if atr == 0:
+                self.log.warning(f"ATR for {ticker} is zero, cannot size position.")
+                return False
+
+            # 3. Calculate position size based on risk
+            stop_loss_distance = self.risk_manager.stop_loss_multiplier * atr
+            portfolio_size = self.broker.get_equity()
+            amount_to_risk = portfolio_size * self.risk_per_trade
+            quantity = amount_to_risk / stop_loss_distance
+
+            current_price = self.broker.api.get_latest_trade(ticker).p
+            notional_value = quantity * current_price
+
+            self.update_activity(f"Buying {quantity:.4f} of {ticker} (~${notional_value:,.0f})")
+
+            # 4. Place the order
+            filled, order = self.broker.place_market_order(symbol=ticker, side='buy', qty=quantity)
 
             if filled and order:
                 self.log_trade(ticker, 'buy', order)
-                self.daily_trade_count += 1
+                self.risk_manager.daily_trade_count += 1
                 self.last_buy_time = datetime.now()
                 self.position_entry_times[ticker] = datetime.now()
-
-                # Log risk status
-                risk_status = self.risk_manager.get_risk_status()
-                quantity = float(order.filled_qty or 0)
-                self.log.info(f"✅ BUY: {quantity:.4f} {ticker} @ ${current_price:.2f}")
-                self.log.info(f"📊 Risk Status: {risk_status['daily_trades_used']}/{self.max_daily_trades} trades, "
-                              f"Drawdown: {risk_status['drawdown_pct']:.1f}%")
                 return True
-            return False
-
         except Exception as e:
-            self.log.error(f"❌ Failed to execute BUY for {ticker}: {e}")
-            return False
+            self.log.error(f"Failed to execute BUY for {ticker}: {e}", exc_info=True)
+        return False
 
-    def execute_sell_with_risk_check(self, ticker, current_positions, confidence=None):
-        """Execute sell order with position validation"""
+    def execute_sell_with_risk_check(self, ticker, current_positions, confidence=None, reason="AI Signal"):
         try:
             position_qty = 0
             for pos in current_positions:
                 if pos.symbol == ticker:
                     position_qty = float(pos.qty)
                     break
+            if position_qty <= 0: return False
 
-            if position_qty <= 0:
+            if not self.check_position_hold_time(ticker):
+                self.log.info(f"⏰ Delaying sell for {ticker} - minimum hold time not met")
                 return False
 
-            # For long-term strategy, check hold time
-            if self.strategy_type == 'long_term':
-                if not self.check_position_hold_time(ticker, current_positions):
-                    self.log.info(f"⏰ Delaying sell for {ticker} - minimum hold time not met")
-                    return False
+            self.update_activity(f"Selling {position_qty:.4f} of {ticker} ({reason})")
 
-            conf_str = f" (conf: {confidence:.2f})" if confidence else ""
-            self.update_activity(f"Selling {ticker}{conf_str}")
-
-            # FIX: Call the correct broker method
-            filled, order = self.broker.place_market_order(
-                symbol=ticker,
-                side='sell',
-                qty=position_qty
-            )
+            filled, order = self.broker.place_market_order(symbol=ticker, side='sell', qty=position_qty)
 
             if filled and order:
                 self.log_trade(ticker, 'sell', order)
-                self.daily_trade_count += 1
-
-                # Clean up tracking
+                self.risk_manager.daily_trade_count += 1
                 if ticker in self.position_entry_times:
                     del self.position_entry_times[ticker]
-
-                self.log.info(f"✅ SELL: {position_qty:.4f} {ticker}")
                 return True
-            return False
-
         except Exception as e:
-            self.log.error(f"❌ Failed to execute SELL for {ticker}: {e}")
-            return False
+            self.log.error(f"Failed to execute SELL for {ticker}: {e}", exc_info=True)
+        return False
 
     def get_strategy_specific_tickers(self):
         """Get tickers based on strategy type"""
         if self.strategy_type == 'short_term':
-            # More tickers for short-term to find quick opportunities
             return self.scanner.get_active_tickers(limit=30)
         else:
-            # Fewer, higher quality tickers for long-term
             return self.scanner.get_active_tickers(limit=15)
 
     def run(self):
@@ -310,142 +256,88 @@ class TradingSession:
 
         try:
             while not self.should_abort():
-                # Check if market is open
                 if not self.broker.is_market_open():
                     minutes_to_open = self.broker.get_next_market_open_minutes()
                     self.sleep_with_countdown(minutes_to_open * 60, "market_close")
                     continue
-                # Check if risk manager kill switch is active
+
+                # --- Main Trading Loop ---
                 risk_status = self.risk_manager.get_risk_status()
                 if risk_status['kill_switch_active']:
-                    self.log.critical("🔴 KILL SWITCH ACTIVATED - Stopping trading")
-                    self.update_activity("KILL SWITCH - Trading stopped due to excessive drawdown")
+                    self.log.critical("🔴 KILL SWITCH ACTIVATED - Halting trading due to excessive drawdown.")
+                    self.update_activity("KILL SWITCH ACTIVATED - Trading Halted")
                     break
 
-                # Check daily trade limit
-                if not self.can_trade_today():
-                    self.update_activity(f"Daily trade limit reached ({self.max_daily_trades})")
-                    self.sleep_with_countdown(3600, "daily_limit")
-                    continue
+                market_regime = self.get_market_regime()
+                self.log.info(f"--- New Cycle --- Market Regime: {market_regime} ---")
 
-                # Get current positions and account info
-                try:
-                    current_positions = self.broker.get_positions()
-                    buying_power = self.broker.get_buying_power()
-                    equity = self.broker.get_equity()
+                current_positions = self.broker.get_positions()
 
-                    self.log.info(f"💰 Equity: ${equity:,.2f}, Buying Power: ${buying_power:,.2f}, "
-                                  f"Positions: {len(current_positions)} | Strategy: {self.strategy_type}")
+                # 1. Manage existing positions (TP/SL)
+                for pos in current_positions:
+                    should_exit, reason = self.risk_manager.should_take_profit_or_stop_loss(pos.symbol)
+                    if should_exit:
+                        self.log.info(f"🎯 Risk management exit for {pos.symbol} triggered due to: {reason}")
+                        self.execute_sell_with_risk_check(pos.symbol, current_positions, reason=reason)
+                        time.sleep(2)  # Stagger orders
 
-                    # Log risk status periodically
-                    self.log.info(f"📊 Daily trades: {risk_status['daily_trades_used']}/{self.max_daily_trades}, "
-                                  f"Drawdown: {risk_status['drawdown_pct']:.1f}%")
-
-                except Exception as e:
-                    self.log.error(f"❌ Failed to get account info: {e}")
-                    self.sleep_with_countdown(60, "error_recovery")
-                    continue
-
-                # Check for risk-based exits (profit taking / stop losses)
-                positions_to_sell = self.check_risk_based_exits(current_positions)
-
-                # Execute risk-based sells
-                for sell_info in positions_to_sell:
-                    if not self.can_trade_today():
-                        break
-
-                    self.execute_sell_with_risk_check(
-                        sell_info['symbol'],
-                        current_positions
-                    )
-                    time.sleep(2)  # Brief delay between orders
-
-                # Scan for new opportunities
-                self.update_activity("Scanning for opportunities...")
-                tickers = self.get_strategy_specific_tickers()
-
-                if not tickers:
-                    self.log.warning("⚠️ No active tickers found")
-                    self.sleep_with_countdown(300, "no_tickers")
-                    continue
-
-                self.log.info(f"📊 Scanning {len(tickers)} tickers")
-
-                # Analyze each ticker
-                for ticker in tickers:
-                    if self.should_abort() or not self.can_trade_today():
-                        break
-
-                    try:
-                        self.update_activity(f"Analyzing {ticker}")
-
-                        # Get data
-                        df = self.scanner.get_dataframe_for_ticker(
-                            ticker,
-                            self.model_config['features'],
-                            self.model_config['window']
-                        )
-
-                        if df is None or len(df) < self.model_config['window']:
-                            continue
-
-                        # Get sentiment score
-                        sentiment_score = self.sentiment_analyzer.get_news_sentiment(ticker)
-                        self.log.info(f"Sentiment for {ticker}: {sentiment_score:.2f}")
-
-                        # Get prediction
-                        observation = df[self.model_config['features']].tail(
-                            self.model_config['window']).values.flatten()
-                        state = torch.FloatTensor(observation).to(self.agent.device)
-
-                        # ADD SENTIMENT TO THE STATE
-                        sentiment_tensor = torch.FloatTensor([sentiment_score]).to(self.agent.device)
-                        state = torch.cat((state, sentiment_tensor))
-
-                        with torch.no_grad():
-                            action_probs = self.agent.actor(state)
-                            action_idx = torch.argmax(action_probs).item()
-                            confidence = float(action_probs[action_idx])
-
-                        # Strategy-specific confidence filtering
-                        if confidence < self.confidence_threshold:
-                            continue
-
-                        # Execute trades based on prediction and strategy
-                        if action_idx == 1:  # BUY
-                            # Don't buy if we already have a position (for this implementation)
-                            if self.has_position(ticker, current_positions):
-                                continue
-
-                            # Check cooldown using risk manager
-                            if not self.risk_manager.check_buy_cooldown(ticker):
-                                continue
-
-                            self.execute_buy_with_risk_check(ticker, confidence)
-
-                        elif action_idx == 2:  # SELL
-                            if self.has_position(ticker, current_positions):
-                                self.execute_sell_with_risk_check(ticker, current_positions, confidence)
-
-                        # Brief throttle between analyses
-                        time.sleep(1)
-
-                    except Exception as e:
-                        self.log.error(f"❌ Error analyzing {ticker}: {e}")
-                        continue
-
-                # Strategy-specific sleep intervals
-                if self.strategy_type == 'short_term':
-                    interval_seconds = int(self.interval_minutes * 60)  # Original interval
+                # 2. Scan for new opportunities if trade limit not reached
+                if not self.risk_manager.check_daily_trade_limit():
+                    self.update_activity(
+                        f"Daily trade limit reached ({self.max_daily_trades}). Scanning for exits only.")
                 else:
-                    interval_seconds = int(self.interval_minutes * 60 * 2)  # Longer intervals for long-term
+                    tickers = self.get_strategy_specific_tickers()
+                    self.log.info(f"🔎 Scanning {len(tickers)} tickers for new opportunities.")
 
-                self.sleep_with_countdown(interval_seconds, "interval")
+                    for ticker in tickers:
+                        if self.should_abort(): break
+                        try:
+                            if self.has_position(ticker, current_positions): continue
+
+                            df = self.scanner.get_dataframe_for_ticker(ticker, self.model_config['features'],
+                                                                       self.model_config['window'])
+                            if df is None or len(df) < self.model_config['window']: continue
+
+                            sentiment_score = self.sentiment_analyzer.get_news_sentiment(ticker)
+
+                            observation = df[self.model_config['features']].tail(
+                                self.model_config['window']).values.flatten()
+                            state_technical = torch.FloatTensor(observation).to(self.agent.device)
+                            sentiment_tensor = torch.FloatTensor([sentiment_score]).to(self.agent.device)
+                            state = torch.cat((state_technical, sentiment_tensor))
+
+                            with torch.no_grad():
+                                action_probs = self.agent.actor(state)
+                                action_idx = torch.argmax(action_probs).item()
+                                confidence = float(action_probs[action_idx])
+
+                            self.log.info(
+                                f"Analyzed {ticker}: Action={['HOLD', 'BUY', 'SELL'][action_idx]}, Conf={confidence:.2f}, Sent={sentiment_score:.2f}")
+
+                            if confidence < self.confidence_threshold: continue
+
+                            # --- Apply Filters for BUY Signal ---
+                            if action_idx == 1:
+                                if market_regime == "BEAR":
+                                    self.log.info(f"Skipping BUY on {ticker}: Market is in BEAR regime.")
+                                    continue
+                                if sentiment_score < self.sentiment_threshold:
+                                    self.log.info(
+                                        f"Skipping BUY on {ticker}: Sentiment ({sentiment_score:.2f}) is below threshold ({self.sentiment_threshold}).")
+                                    continue
+
+                                self.execute_buy_with_risk_check(ticker, confidence)
+                                time.sleep(2)  # Stagger orders
+
+                        except Exception as e:
+                            self.log.error(f"Error analyzing {ticker}: {e}", exc_info=True)
+
+                self.sleep_with_countdown(int(self.interval_minutes * 60))
 
         except Exception as e:
             self.log.error(f"💥 Critical trading session error: {e}", exc_info=True)
             self.update_activity(f"Error: {e}")
             raise
         finally:
-            self.log.info("🛑 Trading session ended")
-            self.update_activity("Session ended")
+            self.log.info("🛑 Trading session ended.")
+            self.update_activity("Session ended.")
