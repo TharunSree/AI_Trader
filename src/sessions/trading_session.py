@@ -18,6 +18,7 @@ from src.execution.broker import Broker
 from src.execution.risk_manager import RiskManager
 from src.execution.scanner import Scanner
 from src.utils.logger import setup_logging
+from src.sentiment.sentiment_analyzer import SentimentAnalyzer
 
 
 class TradingSession:
@@ -58,6 +59,7 @@ class TradingSession:
         self.agent = None
         self.model_config = None
         self.broker = Broker()
+        self.sentiment_analyzer = SentimentAnalyzer()
 
         # Enhanced Risk Manager with strategy-specific settings
         self.risk_manager = RiskManager(
@@ -221,13 +223,16 @@ class TradingSession:
             if not can_trade:
                 return False
 
-            # Calculate quantity based on approved notional value
-            quantity = notional_value / current_price
-
             self.update_activity(f"Buying {ticker} (conf: {confidence:.2f}, size: ${notional_value:.0f})")
-            order = self.broker.buy_market(ticker, quantity)
 
-            if order and order.filled_qty:
+            # FIX: Call the correct broker method
+            filled, order = self.broker.place_market_order(
+                symbol=ticker,
+                side='buy',
+                notional_value=notional_value
+            )
+
+            if filled and order:
                 self.log_trade(ticker, 'buy', order)
                 self.daily_trade_count += 1
                 self.last_buy_time = datetime.now()
@@ -235,10 +240,12 @@ class TradingSession:
 
                 # Log risk status
                 risk_status = self.risk_manager.get_risk_status()
+                quantity = float(order.filled_qty or 0)
                 self.log.info(f"✅ BUY: {quantity:.4f} {ticker} @ ${current_price:.2f}")
                 self.log.info(f"📊 Risk Status: {risk_status['daily_trades_used']}/{self.max_daily_trades} trades, "
                               f"Drawdown: {risk_status['drawdown_pct']:.1f}%")
                 return True
+            return False
 
         except Exception as e:
             self.log.error(f"❌ Failed to execute BUY for {ticker}: {e}")
@@ -264,9 +271,15 @@ class TradingSession:
 
             conf_str = f" (conf: {confidence:.2f})" if confidence else ""
             self.update_activity(f"Selling {ticker}{conf_str}")
-            order = self.broker.sell_market(ticker, position_qty)
 
-            if order and order.filled_qty:
+            # FIX: Call the correct broker method
+            filled, order = self.broker.place_market_order(
+                symbol=ticker,
+                side='sell',
+                qty=position_qty
+            )
+
+            if filled and order:
                 self.log_trade(ticker, 'sell', order)
                 self.daily_trade_count += 1
 
@@ -276,6 +289,7 @@ class TradingSession:
 
                 self.log.info(f"✅ SELL: {position_qty:.4f} {ticker}")
                 return True
+            return False
 
         except Exception as e:
             self.log.error(f"❌ Failed to execute SELL for {ticker}: {e}")
@@ -375,10 +389,18 @@ class TradingSession:
                         if df is None or len(df) < self.model_config['window']:
                             continue
 
+                        # Get sentiment score
+                        sentiment_score = self.sentiment_analyzer.get_news_sentiment(ticker)
+                        self.log.info(f"Sentiment for {ticker}: {sentiment_score:.2f}")
+
                         # Get prediction
                         observation = df[self.model_config['features']].tail(
                             self.model_config['window']).values.flatten()
                         state = torch.FloatTensor(observation).to(self.agent.device)
+
+                        # ADD SENTIMENT TO THE STATE
+                        sentiment_tensor = torch.FloatTensor([sentiment_score]).to(self.agent.device)
+                        state = torch.cat((state, sentiment_tensor))
 
                         with torch.no_grad():
                             action_probs = self.agent.actor(state)

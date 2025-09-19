@@ -20,15 +20,17 @@ class PPOAgent:
         self.action_dim = action_dim
         self.lr = lr
 
+        # The +1 is for the sentiment score
         self.actor = nn.Sequential(
-            nn.Linear(state_dim, 128), nn.ReLU(),
+            nn.Linear(state_dim + 1, 128), nn.ReLU(),
             nn.Linear(128, 128), nn.ReLU(),
             nn.Linear(128, action_dim),
             nn.Softmax(dim=-1)
         ).to(self.device)
 
+        # The +1 is for the sentiment score
         self.critic = nn.Sequential(
-            nn.Linear(state_dim, 128), nn.ReLU(),
+            nn.Linear(state_dim + 1, 128), nn.ReLU(),
             nn.Linear(128, 128), nn.ReLU(),
             nn.Linear(128, 1)
         ).to(self.device)
