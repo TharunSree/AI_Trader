@@ -2,6 +2,7 @@
 import torch
 import torch.nn as nn
 from torch.optim import Adam
+from torch.distributions.categorical import Categorical
 from pathlib import Path
 import logging
 
@@ -20,7 +21,7 @@ class PPOAgent:
         self.action_dim = action_dim
         self.lr = lr
 
-        # The +1 is for the sentiment score
+        # The +1 is for the sentiment score we added previously
         self.actor = nn.Sequential(
             nn.Linear(state_dim + 1, 128), nn.ReLU(),
             nn.Linear(128, 128), nn.ReLU(),
@@ -41,6 +42,28 @@ class PPOAgent:
         ])
         logger.info(f"PPOAgent initialized on device: {self.device}")
 
+    def get_action_and_value(self, state, action=None):
+        """
+        FIX: Added this method for the trainer.
+        Gets an action, its log probability, and the state value from the critic.
+        """
+        if not isinstance(state, torch.Tensor):
+            state = torch.FloatTensor(state).flatten()
+        state = state.to(self.device)
+
+        # Get action probabilities from the actor network
+        action_probs = self.actor(state)
+
+        # Create a categorical distribution to sample actions from
+        dist = Categorical(action_probs)
+
+        # If no action is provided, sample a new one
+        if action is None:
+            action = dist.sample()
+
+        # Get the log probability of the action and the state value from the critic
+        return action, dist.log_prob(action), dist.entropy(), self.critic(state)
+
     def predict(self, state: torch.Tensor) -> int:
         """ Predicts an action based on the current state. Used for evaluation/backtesting. """
         if not isinstance(state, torch.Tensor):
@@ -54,7 +77,6 @@ class PPOAgent:
     def save(self, path: Path, config: dict):
         """
         Saves the model's state and the configuration used to train it.
-        The config is crucial for ensuring consistency in production.
         """
         if not all(k in config for k in ['features', 'window', 'params']):
             raise ValueError("Config dictionary for saving agent must contain 'features', 'window', and 'params' keys.")
@@ -74,8 +96,7 @@ class PPOAgent:
             logger.error(f"Model file not found at {path}")
             raise FileNotFoundError(f"No model file at {path}")
 
-        # --- FIX: Added weights_only=False to allow loading pickled data ---
-        checkpoint = torch.load(path, map_location=self.device, weights_only=False)
+        checkpoint = torch.load(path, map_location=self.device)
         self.actor.load_state_dict(checkpoint['actor_state_dict'])
         self.critic.load_state_dict(checkpoint['critic_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
@@ -84,26 +105,21 @@ class PPOAgent:
     @staticmethod
     def load_with_config(path: Path):
         """
-        A factory method to create an agent and load its weights and config from a file.
-        This is the recommended way to instantiate an agent for live trading or evaluation.
+        Creates an agent and loads its weights and config from a file.
         """
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         if not path.exists():
             logger.error(f"Model file not found at {path}")
             raise FileNotFoundError(f"No model file at {path}")
 
-        # --- FIX: Added weights_only=False to allow loading pickled data ---
-        checkpoint = torch.load(path, map_location=device, weights_only=False)
+        checkpoint = torch.load(path, map_location=device)
 
         if 'config' not in checkpoint:
-            raise ValueError(
-                f"Model file at {path} does not contain a 'config' dictionary. It cannot be loaded safely.")
+            raise ValueError(f"Model file at {path} does not contain a 'config' dictionary.")
 
         config = checkpoint['config']
-
-        # Recreate the agent with the exact dimensions from the saved config
         state_dim = len(config['features']) * config['window']
-        action_dim = 3  # Assuming [HOLD, BUY, SELL]
+        action_dim = 3
 
         agent = PPOAgent(state_dim, action_dim, lr=config.get('params', {}).get('lr', 0.001))
         agent.actor.load_state_dict(checkpoint['actor_state_dict'])

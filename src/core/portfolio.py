@@ -1,62 +1,88 @@
 # src/core/portfolio.py
 
+import numpy as np
+import pandas as pd
 import logging
 
 logger = logging.getLogger("rl_trading_backend")
 
 
 class Portfolio:
-    def __init__(
-        self, initial_cash: float = 100_000, transaction_cost_pct: float = 0.001
-    ):
+    """
+    Manages the state of a trading account, including cash, positions, and equity.
+    """
+
+    def __init__(self, initial_cash=100000.0, transaction_cost=0.001):
         self.initial_cash = initial_cash
+        self.transaction_cost = transaction_cost
+
         self.cash = initial_cash
-        # --- UPDATED: Position dictionary now stores more detail ---
-        self.positions = {}  # Holds {'quantity': X, 'entry_price': Y}
-        self.transaction_cost_pct = transaction_cost_pct
-        self.equity = initial_cash
+        self.positions = np.zeros(1)  # Assuming single asset for now
+        self.holdings_value = 0.0
+        self.total_equity = initial_cash
+        self.trade_log = []
 
-    def buy(self, symbol: str, quantity: float, price: float):
-        trade_value = quantity * price
-        cost = trade_value * self.transaction_cost_pct
-        total_cost = trade_value + cost
+    def reset(self):
+        """ Resets the portfolio to its initial state. """
+        self.cash = self.initial_cash
+        self.positions.fill(0)
+        self.holdings_value = 0.0
+        self.total_equity = self.initial_cash
+        self.trade_log = []
 
-        if self.cash >= total_cost:
-            self.cash -= total_cost
+    def update(self, current_prices):
+        """ Updates the value of holdings and total equity based on new prices. """
+        if not isinstance(current_prices, np.ndarray):
+            current_prices = np.array([current_prices])
 
-            # Update position by averaging the entry price
-            if symbol in self.positions:
-                current_qty = self.positions[symbol]["quantity"]
-                current_value = current_qty * self.positions[symbol]["entry_price"]
+        self.holdings_value = (self.positions * current_prices).sum()
+        self.total_equity = self.cash + self.holdings_value
 
-                new_total_qty = current_qty + quantity
-                new_total_value = current_value + trade_value
+    def get_total_equity(self) -> float:
+        """
+        FIX: Ensures the returned equity is always a float, not a tensor.
+        """
+        if hasattr(self.total_equity, 'item'):
+            # If it's a tensor, extract the scalar value
+            return self.total_equity.item()
+        return float(self.total_equity)
 
-                self.positions[symbol]["entry_price"] = new_total_value / new_total_qty
-                self.positions[symbol]["quantity"] = new_total_qty
+    def execute_trade(self, action: int, quantity: int, price: float):
+        """
+        Executes a trade and updates portfolio state.
+        Action: 0=HOLD, 1=BUY, 2=SELL
+        """
+        if action == 1:  # BUY
+            cost = quantity * price
+            commission = cost * self.transaction_cost
+            total_cost = cost + commission
+
+            if self.cash >= total_cost:
+                self.cash -= total_cost
+                self.positions[0] += quantity
+                self._log_trade("BUY", quantity, price, commission)
             else:
-                # Add new position
-                self.positions[symbol] = {"quantity": quantity, "entry_price": price}
+                logger.warning("Not enough cash to execute buy order.")
 
-    def sell(self, symbol: str, quantity: float, price: float):
-        if symbol in self.positions and self.positions[symbol]["quantity"] >= quantity:
-            trade_value = quantity * price
-            cost = trade_value * self.transaction_cost_pct
-            total_proceeds = trade_value - cost
+        elif action == 2:  # SELL
+            if self.positions[0] >= quantity:
+                proceeds = quantity * price
+                commission = proceeds * self.transaction_cost
+                total_proceeds = proceeds - commission
 
-            self.cash += total_proceeds
-            self.positions[symbol]["quantity"] -= quantity
+                self.cash += total_proceeds
+                self.positions[0] -= quantity
+                self._log_trade("SELL", quantity, price, commission)
+            else:
+                logger.warning("Not enough shares to execute sell order.")
 
-            # Remove position if all shares are sold
-            if (
-                self.positions[symbol]["quantity"] < 1e-9
-            ):  # Use a small threshold for float precision
-                del self.positions[symbol]
+        self.update(price)
 
-    def get_equity(self, current_prices: dict) -> float:
-        positions_value = 0
-        for symbol, data in self.positions.items():
-            positions_value += data["quantity"] * current_prices.get(symbol, 0)
-
-        self.equity = self.cash + positions_value
-        return self.equity
+    def _log_trade(self, side, quantity, price, commission):
+        self.trade_log.append({
+            'side': side,
+            'quantity': quantity,
+            'price': price,
+            'commission': commission,
+            'equity': self.total_equity
+        })
