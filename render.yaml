@@ -1,0 +1,78 @@
+# ── Render Blueprint (Infrastructure as Code) ──
+# Deploy: Connect repo on Render dashboard → it auto-detects this file.
+
+databases:
+  - name: ai-trader-db
+    plan: free
+    databaseName: ai_trader
+    user: ai_trader_user
+
+services:
+  # ── Web Server (Django + Daphne ASGI) ──
+  - type: web
+    name: ai-trader-web
+    runtime: python
+    plan: free
+    buildCommand: "./build.sh"
+    startCommand: "daphne -b 0.0.0.0 -p $PORT trader_project.asgi:application"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ai-trader-db
+          property: connectionURI
+      - key: REDIS_URL
+        fromService:
+          name: ai-trader-redis
+          type: redis
+          property: connectionURI
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: RENDER
+        value: "true"
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: ALPACA_API_KEY
+        sync: false  # You set this manually in Render dashboard
+      - key: ALPACA_API_SECRET
+        sync: false
+      - key: ALPACA_WS_URL
+        sync: false
+
+  # ── Celery Background Worker ──
+  - type: worker
+    name: ai-trader-worker
+    runtime: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "celery -A trader_project worker --loglevel=info --concurrency=2"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ai-trader-db
+          property: connectionURI
+      - key: REDIS_URL
+        fromService:
+          name: ai-trader-redis
+          type: redis
+          property: connectionURI
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: RENDER
+        value: "true"
+      - key: ALPACA_API_KEY
+        sync: false
+      - key: ALPACA_API_SECRET
+        sync: false
+      - key: ALPACA_WS_URL
+        sync: false
+
+  # ── Redis (Celery broker + pub/sub) ──
+  - type: redis
+    name: ai-trader-redis
+    plan: free
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []  # Allow only internal access

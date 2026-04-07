@@ -14,23 +14,35 @@ from pathlib import Path
 import os
 import sys
 from dotenv import load_dotenv
-
+import dj_database_url
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / '.env')
 
+# ── Deployment Detection ──
+IS_RENDER = os.environ.get('RENDER', '') == 'true'
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-m5wcmhxo5-xme#vego5zj+xrzi0@!#^vr!h9@)(8la(2ko=z72"
+SECRET_KEY = os.environ.get(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-m5wcmhxo5-xme#vego5zj+xrzi0@!#^vr!h9@)(8la(2ko=z72'
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() != 'false'
 
 ALLOWED_HOSTS = []
+if IS_RENDER:
+    ALLOWED_HOSTS.append('.onrender.com')
+# Also support custom ALLOWED_HOSTS from env
+extra_hosts = os.environ.get('ALLOWED_HOSTS', '')
+if extra_hosts:
+    ALLOWED_HOSTS.extend(extra_hosts.split(','))
 
 
 # Application definition
@@ -48,6 +60,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # Serve static files in production
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -78,7 +91,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "trader_project.wsgi.application"
 
 
-# Database
+# ── Database ──
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
@@ -88,7 +101,14 @@ DATABASES = {
     }
 }
 
-if 'linux' in sys.platform:
+# Priority 1: DATABASE_URL env var (Render, Railway, etc.)
+if os.environ.get('DATABASE_URL'):
+    DATABASES['default'] = dj_database_url.config(
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
+# Priority 2: Platform-specific config from individual env vars
+elif 'linux' in sys.platform:
     DATABASES['default'] = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.environ.get('DB_NAME'),
@@ -97,20 +117,20 @@ if 'linux' in sys.platform:
         'HOST': os.environ.get('DB_HOST'),
         'PORT': os.environ.get('DB_PORT'),
     }
-# Check if running on Windows (for local MySQL)
 elif 'win32' in sys.platform:
-    DATABASES['default'] = {
-        'ENGINE': os.environ.get('DB_ENGINE'),
-        'NAME': os.environ.get('DB_NAME'),
-        'USER': 'root',
-        'PASSWORD': os.environ.get('DB_PASSWORD'),
-        'HOST': os.environ.get('DB_HOST'),
-        'PORT': os.environ.get('DB_PORT'),
-        # Required for mysqlclient
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
+    db_engine = os.environ.get('DB_ENGINE')
+    if db_engine:
+        DATABASES['default'] = {
+            'ENGINE': db_engine,
+            'NAME': os.environ.get('DB_NAME'),
+            'USER': 'root',
+            'PASSWORD': os.environ.get('DB_PASSWORD'),
+            'HOST': os.environ.get('DB_HOST'),
+            'PORT': os.environ.get('DB_PORT'),
+            'OPTIONS': {
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
+            }
         }
-    }
 
 
 # Password validation
@@ -144,7 +164,7 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
+# ── Static files ──
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "static/"
@@ -152,6 +172,13 @@ STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# WhiteNoise: serve static files with compression + caching in production
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # Media files (uploads)
 MEDIA_URL = "/media/"
@@ -162,15 +189,49 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+
+# ── Celery / Redis ──
+
+REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+
+CELERY_BROKER_URL = REDIS_URL
+CELERY_RESULT_BACKEND = REDIS_URL
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 
+# ── Django Channels (WebSocket layer) ──
+if IS_RENDER:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                'hosts': [REDIS_URL],
+            },
+        }
+    }
+else:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        }
+    }
+
+
+# ── Alpaca Trading ──
 
 ALPACA_API_KEY = os.environ.get('ALPACA_API_KEY')
 ALPACA_SECRET_KEY = os.environ.get('ALPACA_API_SECRET')
 ALPACA_WS_URL = os.environ.get('ALPACA_WS_URL')
 
 LOGIN_REDIRECT_URL = '/'
+
+# ── Production Security ──
+if IS_RENDER:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
