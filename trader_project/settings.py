@@ -176,7 +176,7 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # WhiteNoise: serve static files with compression + caching in production
 STORAGES = {
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
     },
 }
 
