@@ -18,5 +18,5 @@ python manage.py migrate
 
 # Create superuser from environment variables (fails silently if already exists)
 if [ "$DJANGO_SUPERUSER_USERNAME" ]; then
-  python manage.py createsuperuser --no-input || true
+  python manage.py createsuperuser --no-input --email "${DJANGO_SUPERUSER_EMAIL:-admin@example.com}" || true
 fi
