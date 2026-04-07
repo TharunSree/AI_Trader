@@ -2,75 +2,573 @@
 <!DOCTYPE html>
 {% get_current_language as LANGUAGE_CODE %}
 <html lang="{{ LANGUAGE_CODE }}" {% block html_attribute %}{% endblock html_attribute %}>
-
 <head>
-
     <meta charset="utf-8"/>
-    <title>{% block title %}{% endblock title %} | Adminto - Responsive Bootstrap 5 Admin Dashboard</title>
+    <title>{% block title %}{% endblock title %} | Jarvis Trading Matrix</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta content="A fully featured admin theme which can be used to build CRM, CMS, etc." name="description"/>
-    <meta content="Coderthemes" name="author"/>
-
-    <!-- App favicon -->
-    <link rel="shortcut icon" href="{% static 'images/favicon.ico' %}">
-    {% block css %}
-    <!-- Your stuff: Third-party CSS libraries go here -->
-    <!-- This file stores project-specific CSS -->
-
-    {% block extra_css %}{% endblock extra_css %}
-
-    <link href="{% static 'css/app.css' %}" rel="stylesheet"/>
-
-    <link href="{% static 'css/icons.css' %}" rel="stylesheet"/>
-
-    <link href="{% static 'css/vendor.min.css' %}" rel="stylesheet"/>
-
-    <script src="{% static 'js/config.js' %}"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        // Correct way to initialize offcanvas
-        const offcanvasElement = document.getElementById('offcanvasExample');
-        const offcanvas = new bootstrap.Offcanvas(offcanvasElement, {
-            backdrop: true,
-            keyboard: true,
-            scroll: false
-        });
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                900: '#020617',
+                800: '#0f172a',
+                700: '#1e293b',
+                primary: '#3b82f6',
+                accent: '#10b981',
+                danger: '#ef4444'
+              }
+            },
+            animation: { 'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite' },
+            width: { '20': '5rem' } // for collapsed sidebar
+          }
+        }
+      }
     </script>
-
-    {% endblock css %}
-
+    <style>
+      .glass {
+        background: rgba(2, 6, 23, 0.35); /* Extremely sheer */
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(59, 130, 246, 0.15); /* Slight blue border */
+        box-shadow: inset 0 0 20px rgba(59, 130, 246, 0.05);
+      }
+      body {
+        background-color: #020617;
+        color: #f8fafc;
+        overflow: hidden; /* we handle scrolling inside main */
+      }
+      /* Custom scrollbar for webkit */
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.3); border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: rgba(59, 130, 246, 0.6); }
+      #particles-js { position: absolute; width: 100%; height: 100%; z-index: -20; top: 0; left: 0; }
+      
+      /* Sidebar specific logic */
+      .sidebar-text { opacity: 1; transition: opacity 0.2s, max-width 0.3s; white-space: nowrap; max-width: 200px; display: inline-block; vertical-align: middle; overflow: hidden; }
+      .sidebar-collapsed .sidebar-text { opacity: 0; max-width: 0; margin-left: 0; pointer-events: none; border: none; padding: 0; display: none; }
+      .sidebar-collapsed nav a { padding-left: 0 !important; padding-right: 0 !important; justify-content: center !important; gap: 0 !important; }
+      .sidebar-collapsed nav a svg { margin-right: 0 !important; }
+      .sidebar-collapsed ul { padding-left: 0 !important; padding-right: 0 !important; }
+      .sidebar-collapsed form button { justify-content: center !important; padding-left: 0 !important; padding-right: 0 !important; gap: 0 !important; }
+      .sidebar-collapsed .logo-header { justify-content: center !important; padding-left: 0 !important; padding-right: 0 !important; gap: 0 !important; }
+      .sidebar-collapsed .logo-header h1 { display: none !important; }
+      form { margin-block-end: 0; }
+      
+      /* Hide number input arrows globally */
+      input::-webkit-outer-spin-button,
+      input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+      input[type=number] { -moz-appearance: textfield; }
+    </style>
+    <!-- Include ApexCharts for the dashboard -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <!-- Particles.js -->
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    
+    {% block extra_css %}{% endblock extra_css %}
 </head>
 
-<body {% block body_attribute %}{% endblock body_attribute %}>
+<body class="dark bg-brand-900 text-slate-200 min-h-screen font-sans antialiased selection:bg-brand-primary selection:text-white relative">
 
-{% block content %} {% endblock content %}
+<!-- Particle Background -->
+<div id="particles-js"></div>
 
-{% block modal %}{% endblock modal %}
+<!-- Global Jarvis Loader Overlay -->
+<div id="global-loader" class="fixed inset-0 bg-brand-900/95 backdrop-blur-xl z-[100] flex-col items-center justify-center hidden opacity-0 transition-opacity duration-300">
+    <div class="glass p-10 rounded-2xl border-brand-primary/50 border shadow-[0_0_80px_rgba(59,130,246,0.15)] flex flex-col items-center max-w-sm w-full mx-auto text-center relative overflow-hidden">
+        <!-- Sweep glow effect -->
+        <div class="absolute inset-0 bg-gradient-to-t from-transparent via-brand-primary/10 to-transparent animate-[ping_3s_ease-in-out_infinite]"></div>
+        
+        <div class="relative w-20 h-20 mb-6 flex items-center justify-center">
+            <div class="absolute inset-0 border-t-2 border-brand-accent rounded-full animate-spin"></div>
+            <div class="absolute inset-2 border-r-2 border-brand-primary rounded-full animate-[spin_2s_linear_infinite_reverse]"></div>
+            <svg class="w-8 h-8 text-brand-accent absolute animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+        </div>
+        
+        <h2 class="text-xl font-mono text-white tracking-widest uppercase mb-2 relative z-10 drop-shadow-md">Jarvis Operating</h2>
+        <p id="global-loader-text" class="text-xs font-mono text-brand-primary tracking-widest relative z-10 transition-colors">INITIALIZING BOT MATRIX...</p>
+        
+        <div class="w-full bg-slate-800/50 h-1 mt-6 rounded overflow-hidden relative z-10 shadow-inner">
+            <div id="global-loader-progress" class="bg-brand-primary h-full w-0 transition-all duration-[2000ms] ease-out shadow-[0_0_10px_rgba(59,130,246,1)]"></div>
+        </div>
+    </div>
+</div>
 
-{% block javascript %}
+<!-- Global Jarvis Shutdown Overlay -->
+<div id="global-shutdown-loader" class="fixed inset-0 bg-black/95 backdrop-blur-xl z-[100] flex-col items-center justify-center hidden opacity-0 transition-opacity duration-300">
+    <div class="glass p-10 rounded-2xl border-red-600/50 border shadow-[0_0_80px_rgba(239,68,68,0.25)] flex flex-col items-center max-w-sm w-full mx-auto text-center relative overflow-hidden">
+        <!-- Sweep glow effect -->
+        <div class="absolute inset-0 bg-gradient-to-t from-transparent via-red-600/10 to-transparent animate-[ping_3s_ease-in-out_infinite]"></div>
+        
+        <div class="relative w-20 h-20 mb-6 flex items-center justify-center">
+            <div class="absolute inset-0 border-t-2 border-red-500 rounded-full animate-spin"></div>
+            <div class="absolute inset-2 border-r-2 border-red-600 rounded-full animate-[spin_2s_linear_infinite_reverse]"></div>
+            <svg class="w-8 h-8 text-red-500 absolute animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        </div>
+        
+        <h2 class="text-xl font-mono text-red-500 tracking-widest uppercase mb-2 relative z-10 drop-shadow-[0_0_5px_rgba(239,68,68,0.8)]">SYSTEM TERMINATION</h2>
+        <p id="global-shutdown-text" class="text-xs font-mono text-red-400 tracking-widest relative z-10 transition-colors">SEVERING NEURAL LINK...</p>
+        
+        <div class="w-full bg-slate-900/80 h-1 mt-6 rounded overflow-hidden relative z-10 shadow-inner">
+            <div id="global-shutdown-progress" class="bg-red-600 h-full w-0 transition-all duration-[2000ms] ease-out shadow-[0_0_10px_rgba(239,68,68,1)]"></div>
+        </div>
+        
+        <button id="skip-shutdown-btn" class="mt-8 px-6 py-2 border border-red-500/30 text-red-500/70 text-[10px] uppercase tracking-widest hover:border-red-500 hover:text-red-500 rounded-full transition-all duration-300 relative z-20 shadow-[0_0_15px_rgba(239,68,68,0)] hover:shadow-[0_0_15px_rgba(239,68,68,0.5)]">
+            SKIP SEQUENCE
+        </button>
+    </div>
+</div>
 
+<div class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-64 bg-[#0f172a]/80 backdrop-blur-md flex-shrink-0 border-r border-slate-700/50 hidden md:flex flex-col relative z-20 transition-all duration-300 overflow-hidden">
+        <div class="h-16 flex items-center justify-between px-6 border-b border-slate-700/50 flex-shrink-0 w-full logo-header transition-all">
+            <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-3">
+                <span class="relative flex h-3 w-3 flex-shrink-0">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-accent opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3 w-3 bg-brand-accent"></span>
+                </span>
+                <span class="sidebar-text">JARVIS</span>
+            </h1>
+            <button id="sidebar-toggle" class="text-slate-400 hover:text-white transition-colors focus:outline-none hidden md:block flex-shrink-0">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+            </button>
+        </div>
+        <nav class="flex-1 py-4">
+            <ul class="space-y-2 px-4">
+                <li>
+                    <a href="{% url 'dashboard' %}" class="flex items-center px-2 py-3 rounded-lg font-medium transition-all {% if request.resolver_match.url_name == 'dashboard' %}text-brand-primary drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]{% else %}text-slate-400 hover:text-brand-primary hover:drop-shadow-[0_0_8px_rgba(59,130,246,0.4)]{% endif %}">
+                        <div class="w-8 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                        </div>
+                        <span class="sidebar-text truncate pl-2">Live Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'training' %}" class="flex items-center px-2 py-3 rounded-lg font-medium transition-all {% if request.resolver_match.url_name == 'training' %}text-brand-primary drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]{% else %}text-slate-400 hover:text-brand-primary hover:drop-shadow-[0_0_8px_rgba(59,130,246,0.4)]{% endif %}">
+                        <div class="w-8 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                        </div>
+                        <span class="sidebar-text truncate pl-2">Training Center</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'papertrading' %}" class="flex items-center px-2 py-3 rounded-lg font-medium transition-all {% if request.resolver_match.url_name == 'papertrading' %}text-brand-primary drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]{% else %}text-slate-400 hover:text-brand-primary hover:drop-shadow-[0_0_8px_rgba(59,130,246,0.4)]{% endif %}">
+                        <div class="w-8 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        </div>
+                        <span class="sidebar-text truncate pl-2">Live Terminal</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        
+        <div class="px-4 pb-2">
+            <ul class="space-y-2">
+                <li>
+                    <a href="{% url 'settings' %}" class="flex items-center px-2 py-3 rounded-lg font-medium transition-all {% if request.resolver_match.url_name == 'settings' %}text-brand-primary drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]{% else %}text-slate-400 hover:text-brand-primary hover:drop-shadow-[0_0_8px_rgba(59,130,246,0.4)]{% endif %}">
+                        <div class="w-8 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        </div>
+                        <span class="sidebar-text truncate pl-2">Settings</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="p-4 border-t border-slate-700/50 flex-shrink-0">
+            <form action="{% url 'logout' %}" method="post" id="logout-form" hx-boost="false" onsubmit="event.preventDefault(); window.launchJarvisShutdown(this, 'SEVERING NEURAL LINK...', true);">
+                {% csrf_token %}
+                <button type="submit" class="w-full flex items-center px-2 py-3 rounded-lg hover:bg-red-500/10 text-slate-400 hover:text-red-400 transition-colors group justify-center md:justify-start">
+                    <div class="w-8 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 flex-shrink-0 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    </div>
+                    <span class="sidebar-text truncate pl-2">Terminate</span>
+                </button>
+            </form>
+        </div>
+    </aside>
 
-<!-- Vendor dependencies bundled as one file -->
-<script src="{% static 'js/vendors.min.js' %}"></script>
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col overflow-hidden relative z-10 w-full max-w-full">
+        <!-- Topbar -->
+        <header class="h-16 glass flex items-center justify-between px-6 border-b border-slate-700/50 z-10 w-full backdrop-blur-md">
+            <div class="flex items-center gap-4">
+                <h2 class="text-lg font-semibold text-slate-100 tracking-wide truncate">{% block page_title %}{% endblock page_title %}</h2>
+            </div>
+            <div class="flex items-center gap-4 flex-shrink-0">
+                <button id="mute-btn" class="p-2 rounded-full hover:bg-slate-800/80 text-slate-400 hover:text-brand-primary transition-colors focus:outline-none" aria-label="Toggle Mute">
+                    <svg id="mute-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <script>
+                            if(localStorage.getItem('jarvis-muted') === 'true') {
+                                document.write('<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clip-rule="evenodd" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />');
+                            } else {
+                                document.write('<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />');
+                            }
+                        </script>
+                    </svg>
+                </button>
+                <div class="flex items-center gap-2 text-sm bg-brand-800/80 px-3 py-1.5 rounded-full border border-slate-700/50 shadow-[0_0_10px_rgba(0,0,0,0.5)]">
+                    <span class="w-2 h-2 rounded-full bg-brand-accent animate-pulse"></span>
+                    <span class="text-slate-300 font-mono text-xs hidden sm:inline-block">SYS_ONLINE</span>
+                </div>
+            </div>
+        </header>
 
-<!-- place project specific Javascript in this file -->
+        <!-- Page Content -->
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6 relative z-0">
+            <!-- Decorative Glows -->
+            <div class="absolute top-0 right-0 w-96 h-96 bg-brand-primary/10 rounded-full blur-[128px] -z-10 pointer-events-none animate-pulse-slow"></div>
+            <div class="absolute bottom-0 left-0 w-96 h-96 bg-brand-accent/5 rounded-full blur-[128px] -z-10 pointer-events-none animate-pulse-slow"></div>
+            
+            {% block page_content %}{% endblock page_content %}
+        </main>
+    </div>
+</div>
+    <!-- Global Jarvis Confirmation Modal -->
+    <div id="global-confirm-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-[2px] opacity-0 transition-opacity duration-200">
+        <div class="glass border border-red-500/50 p-6 rounded-2xl max-w-sm w-full mx-4 shadow-[0_0_30px_rgba(239,68,68,0.2)] transform scale-95 transition-transform duration-200" id="global-confirm-box">
+            <div class="flex items-center gap-3 mb-4">
+                <svg class="w-6 h-6 text-red-500 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                <h3 class="text-white font-mono uppercase tracking-widest text-lg drop-shadow-md">System Override</h3>
+            </div>
+            <p id="global-confirm-text" class="text-slate-300 text-sm mb-6 font-mono"></p>
+            <div class="flex justify-end gap-3 font-mono text-sm">
+                <button type="button" onclick="closeJarvisConfirm()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded transition-colors uppercase tracking-wider">Cancel</button>
+                <button type="button" id="global-confirm-btn" class="px-4 py-2 bg-red-600/80 hover:bg-red-500 text-white rounded transition-all shadow-[0_0_10px_rgba(239,68,68,0.5)] hover:shadow-[0_0_20px_rgba(239,68,68,0.8)] uppercase tracking-wider">Authorize</button>
+            </div>
+        </div>
+    </div>
 
-<script src="{% static 'js/app.js' %}"></script>
+<script>
+    (function() {
+        if(document.getElementById('particles-js')) {
+            particlesJS("particles-js", {
+                "particles": {
+                    "number": { "value": 50, "density": { "enable": true, "value_area": 800 } },
+                    "color": { "value": "#3b82f6" },
+                    "shape": { "type": "circle" },
+                    "opacity": { "value": 0.2, "random": true },
+                    "size": { "value": 3, "random": true },
+                    "line_linked": { "enable": true, "distance": 150, "color": "#3b82f6", "opacity": 0.1, "width": 1 },
+                    "move": { "enable": true, "speed": 1, "direction": "none", "random": true, "straight": false, "out_mode": "out", "bounce": false }
+                },
+                "interactivity": {
+                    "detect_on": "window",
+                    "events": { "onhover": { "enable": true, "mode": "grab" }, "resize": true },
+                    "modes": { "grab": { "distance": 140, "line_linked": { "opacity": 0.3 } } }
+                },
+                "retina_detect": true
+            });
+        }
+
+        // Sidebar Toggle Logic
+        const toggleBtn = document.getElementById('sidebar-toggle');
+        const sidebar = document.getElementById('sidebar');
+        
+        // Auto-load state on paint
+        if (localStorage.getItem('jarvis-sidebar-collapsed') === 'true') {
+            if(sidebar) {
+                // Suppress CSS Transitions temporarily to stop flash-shrinking on reload
+                sidebar.style.transition = 'none';
+                const texts = sidebar.querySelectorAll('.sidebar-text');
+                texts.forEach(el => el.style.transition = 'none');
+                
+                sidebar.classList.add('sidebar-collapsed', 'w-20');
+                sidebar.classList.remove('w-64');
+                
+                // Re-arm Transitions after DOM settles
+                setTimeout(() => {
+                    sidebar.style.transition = '';
+                    texts.forEach(el => el.style.transition = '');
+                }, 50);
+            }
+        }
+        
+        if(toggleBtn && sidebar) {
+            toggleBtn.addEventListener('click', () => {
+                const isCollapsed = sidebar.classList.toggle('sidebar-collapsed');
+                sidebar.classList.toggle('w-64');
+                sidebar.classList.toggle('w-20');
+                
+                localStorage.setItem('jarvis-sidebar-collapsed', isCollapsed);
+            });
+        }
+    })();
+
+    if (!window.JarvisAudio) {
+        // Jarvis Audio Engine (Authentic Web Audio + Custom MP3 Voices)
+        window.JarvisAudio = {
+            enabled: localStorage.getItem('jarvis-skip-animations') !== 'true',
+            
+            ctx: null,
+            bgmRunning: false,
+            bgmOscs: [],
+
+            sounds: {
+                logout: new Audio('/static/audio/jarvis/logout.mp3'),
+                login: new Audio('/static/audio/jarvis/login.mp3')
+            },
+
+            _ensureCtx: function() {
+                if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+                return this.ctx;
+            },
+
+            // Iron Man HUD Glass Tick (Sharp Mechanical)
+            _synthClick: function() {
+                if (localStorage.getItem('jarvis-clicks') === 'false') return;
+                const ctx = this._ensureCtx();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                // Use square wave for harsh mechanical tick
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(800, ctx.currentTime);
+                // Instant drop to make it sound like a solid tick
+                osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.015);
+
+                gain.gain.setValueAtTime(0, ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.1, ctx.currentTime + 0.002);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.025);
+
+                osc.connect(gain).connect(ctx.destination);
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + 0.03);
+            },
+
+            // Persistent Loop Track (Loaded from BGM.mp3)
+            _startBGM: function() {
+                if (this.bgmRunning || localStorage.getItem('jarvis-bgm') === 'false') return;
+                
+                if (!this.sounds.bgm) {
+                    this.sounds.bgm = new Audio('/static/audio/jarvis/bgm.mp3');
+                    this.sounds.bgm.loop = true;
+                    this.sounds.bgm.volume = localStorage.getItem('jarvis-muted') === 'true' ? 0.0 : 0.2;
+                }
+                
+                this.sounds.bgm.play().then(() => {
+                    this.bgmRunning = true;
+                }).catch(e => {
+                    console.log("Waiting for user interaction to start BGM...");
+                });
+            },
+
+            toggleMute: function() {
+                const isMuted = localStorage.getItem('jarvis-muted') === 'true';
+                localStorage.setItem('jarvis-muted', !isMuted);
+                
+                if (this.sounds.bgm) {
+                    this.sounds.bgm.volume = !isMuted ? 0.0 : 0.2;
+                }
+                
+                const icon = document.getElementById('mute-icon');
+                if (icon) {
+                    if (!isMuted) {
+                        // Turn to muted icon
+                        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clip-rule="evenodd" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />';
+                    } else {
+                        // Turn to unmuted icon
+                        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />';
+                    }
+                }
+            },
+
+            init: function() {
+                // Allow fallback if user hasn't generated login.mp3 yet
+                this.sounds.login.onerror = () => { this.sounds.login.src = '/static/audio/jarvis/welcome_home.mp3'; };
+                this.sounds.logout.onerror = () => { this.sounds.logout.src = '/static/audio/jarvis/jarvis_disconnected.mp3'; };
+
+                if (window.location.pathname !== '/login/') {
+                    const clickTracker = () => { this._startBGM(); document.body.removeEventListener('click', clickTracker); };
+                    const keyTracker = () => { this._startBGM(); document.body.removeEventListener('keydown', keyTracker); };
+                    document.body.addEventListener('click', clickTracker);
+                    document.body.addEventListener('keydown', keyTracker);
+                    
+                    // If it was already running before HTMX swap, ensure it keeps going
+                    if (this.bgmRunning && this.sounds.bgm) {
+                        this.sounds.bgm.play().catch(e=>{});
+                    } else if (!this.bgmRunning) {
+                        // Try immediately playing it if we just booted via cinematic
+                        this._startBGM();
+                    }
+                }
+            },
+
+            playLogout: function() { 
+                if (this.enabled && localStorage.getItem('jarvis-voice') !== 'false') {
+                    this.sounds.logout.currentTime = 0;
+                    this.sounds.logout.play().catch(e => {});
+                } 
+            },
+            playLogin: function() { 
+                if (this.enabled && localStorage.getItem('jarvis-voice') !== 'false') {
+                    this.sounds.login.currentTime = 0;
+                    this.sounds.login.play().catch(e => {});
+                } 
+            },
+            playNotify: function() { 
+                if (this.enabled) this._synthClick();
+            },
+            speak: function(text) {
+                // Disabled
+            }
+        };
+
+        document.addEventListener('click', (e) => {
+            const target = e.target.closest('button, a, input[type="submit"], .select-trigger, .cursor-pointer, tr[onclick], label');
+            if (target && window.JarvisAudio) window.JarvisAudio._synthClick();
+            
+            if (e.target.closest('#mute-btn') && window.JarvisAudio) {
+                window.JarvisAudio.toggleMute();
+            }
+        });
+    }
+
+    window.JarvisAudio.init();
+
+    // Original Overlay Functions
+    window.launchJarvisOverlay = function(formElement, loadingText = "CONFIGURING MODULES...", ignoreSkip = false) {
+        if (!ignoreSkip && localStorage.getItem('jarvis-skip-animations') === 'true') {
+            if(formElement) formElement.submit();
+            return;
+        }
+
+        const loader = document.getElementById('global-loader');
+        const textEl = document.getElementById('global-loader-text');
+        const progressEl = document.getElementById('global-loader-progress');
+        
+        if(textEl) textEl.textContent = loadingText;
+        window.JarvisAudio.playNotify();
+        
+        loader.classList.remove('hidden');
+        loader.classList.add('flex');
+        
+        setTimeout(() => {
+            loader.classList.remove('opacity-0');
+            loader.classList.add('opacity-100');
+            if(progressEl) progressEl.style.width = '100%';
+        }, 50);
+
+        setTimeout(() => {
+            if(formElement) formElement.submit();
+        }, 2000);
+    };
+
+    // Global Shutdown API (specifically for destructive/stop actions)
+    window.launchJarvisShutdown = function(formElement, loadingText = "SEVERING COMMAND LINK...", ignoreSkip = false) {
+        if (!ignoreSkip && localStorage.getItem('jarvis-skip-animations') === 'true') {
+            if(formElement) formElement.submit();
+            return;
+        }
+
+        const loader = document.getElementById('global-shutdown-loader');
+        const textEl = document.getElementById('global-shutdown-text');
+        const progressEl = document.getElementById('global-shutdown-progress');
+        const skipBtn = document.getElementById('skip-shutdown-btn');
+        
+        if(textEl) textEl.textContent = loadingText;
+        
+        loader.classList.remove('hidden');
+        loader.classList.add('flex');
+        
+        setTimeout(() => {
+            loader.classList.remove('opacity-0');
+            loader.classList.add('opacity-100');
+            if(progressEl) progressEl.style.width = '100%';
+        }, 50);
+
+        let didSubmit = false;
+        function doSubmit() {
+            if (!didSubmit) {
+                didSubmit = true;
+                if (window.JarvisAudio.sounds && window.JarvisAudio.sounds.logout) {
+                    window.JarvisAudio.sounds.logout.pause();
+                }
+                if(formElement) formElement.submit();
+            }
+        }
+
+        if (skipBtn) {
+            skipBtn.onclick = () => doSubmit();
+        }
+
+        if (window.JarvisAudio && window.JarvisAudio.enabled && localStorage.getItem('jarvis-voice') !== 'false') {
+            let logoutAud = window.JarvisAudio.sounds.logout;
+            logoutAud.currentTime = 0;
+            logoutAud.onended = doSubmit;
+            
+            logoutAud.play().then(() => {
+                // Wait for audio to finish, with a 15-second absolute fallback
+                setTimeout(doSubmit, 15000);
+            }).catch(e => {
+                // Autoplay blocked or missing file
+                setTimeout(doSubmit, 4000);
+            });
+        } else {
+            // Voice disabled, use standard delay
+            setTimeout(doSubmit, 4000);
+        }
+    };
+
+    window.confirmJarvisAction = function(message, callback) {
+        if (localStorage.getItem('jarvis-skip-animations') === 'true') {
+            if (confirm(message)) {
+                callback();
+            }
+            return;
+        }
+
+        const modal = document.getElementById('global-confirm-modal');
+        const box = document.getElementById('global-confirm-box');
+        const textEl = document.getElementById('global-confirm-text');
+        const confirmBtn = document.getElementById('global-confirm-btn');
+        
+        textEl.textContent = message;
+        
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        
+        // Trigger reflow
+        void modal.offsetWidth;
+        
+        modal.classList.remove('opacity-0');
+        box.classList.remove('scale-95');
+        
+        // Wipe old listeners
+        const newBtn = confirmBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+        
+        newBtn.addEventListener('click', () => {
+            window.closeJarvisConfirm();
+            callback();
+        });
+    };
+    
+    window.closeJarvisConfirm = function() {
+        const modal = document.getElementById('global-confirm-modal');
+        const box = document.getElementById('global-confirm-box');
+        
+        modal.classList.add('opacity-0');
+        box.classList.add('scale-95');
+        
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }, 200);
+    };
+    
+    // Bind the global loader to logout since the user asked for non-training stuff to use the loaders.
+    // Wait, the user specifically said "except login". "do the same when starting training bot etc (i know ui isnt important... but with the abiity to diable nimations for training and all, not for login"
+    // Actually the user said: "with the ability to to diable nimations for training and all, not for login"
+    // I won't bind it to logout to keep it clean, I'll bind it in training.html!
+</script>
 
 {% block extra_javascript %}{% endblock extra_javascript %}
-
-{% endblock javascript %}
-
-{% if messages %}
-<div style="position: absolute; top: 80px; right: 20px; z-index: 9999;">
-    {% for message in messages %}
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-    {% endfor %}
-</div>
-{% endif %}
-
 </body>
-
 </html>

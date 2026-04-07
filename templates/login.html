@@ -1,38 +1,463 @@
-{% extends "base.html" %}
 {% load static %}
-{% block title %}Log In{% endblock title %}
-{% block body_attribute %}class="auth-bg d-flex min-vh-100"{% endblock body_attribute %}
+<!DOCTYPE html>
+<html lang="en" class="dark">
 
-{% block content %}
-<div class="row g-0 justify-content-center w-100 m-3">
-    <div class="col-xxl-3 col-lg-5 col-md-6">
-        <a href="/" class="auth-brand d-flex justify-content-center mb-2">
-            <span class="logo-dark fs-22">AI Trader</span>
-        </a>
-        <div class="card overflow-hidden text-center p-xxl-4 p-3 mb-0">
-            <h4 class="fw-semibold mb-3 fs-18">Log in to your account</h4>
+<head>
+    <meta charset="utf-8" />
+    <title>Link Start | Jarvis</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 900: '#020617', 800: '#0f172a', primary: '#3b82f6', accent: '#10b981' }
+                    },
+                    animation: { 'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite' }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        body {
+            background-color: #020617;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+
+        #particles-js {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+    </style>
+    <!-- Particles.js -->
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+</head>
+
+<body class="min-h-screen flex items-center justify-center relative">
+
+    <!-- Particle Background -->
+    <div id="particles-js"></div>
+
+    <!-- Decorative Glows -->
+    <div
+        class="absolute top-1/4 left-1/4 w-96 h-96 bg-brand-primary/20 rounded-full blur-[128px] pointer-events-none animate-pulse-slow">
+    </div>
+    <div
+        class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-brand-accent/10 rounded-full blur-[128px] pointer-events-none animate-pulse-slow font-mono">
+    </div>
+
+    <div class="w-full max-w-md relative z-10 mx-4">
+        <!-- Auth Card -->
+        <div
+            class="glass-panel rounded-2xl shadow-2xl p-8 transform transition-all duration-500 hover:scale-[1.01] hover:shadow-brand-primary/20 hover:border-brand-primary/30">
+            <div class="text-center mb-8">
+                <div
+                    class="inline-flex items-center justify-center p-3 rounded-xl bg-brand-primary/10 border border-brand-primary/20 mb-4">
+                    <svg class="w-8 h-8 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
+                    </svg>
+                </div>
+                <h2 class="text-2xl font-bold tracking-wider text-white uppercase">Jarvis Matrix</h2>
+                <p class="text-slate-400 mt-2 text-sm font-mono tracking-widest">AWAITING AUTHORIZATION</p>
+            </div>
 
             {% if form.errors %}
-                <div class="alert alert-danger" role="alert">
-                    Your username and password didn't match. Please try again.
-                </div>
+            <div
+                class="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg text-sm mb-6 flex items-center gap-3">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Neural link failed. Verify credentials.
+            </div>
             {% endif %}
 
-            <form method="post" action="{% url 'login' %}" class="text-start mb-3">
+            <form method="post" action="{% url 'login' %}" class="space-y-6">
                 {% csrf_token %}
-                <div class="mb-3">
-                    <label class="form-label" for="id_username">Username</label>
-                    <input type="text" name="username" class="form-control" placeholder="Enter your username" id="id_username">
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-500 uppercase tracking-widest"
+                        for="id_username">Identifier</label>
+                    <input type="text" name="username" id="id_username"
+                        class="w-full bg-slate-900/50 border border-slate-700/50 text-slate-200 rounded-xl px-4 py-3 outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all font-mono"
+                        placeholder="Enter admin ID">
                 </div>
-                <div class="mb-3">
-                    <label class="form-label" for="id_password">Password</label>
-                    <input type="password" name="password" class="form-control" placeholder="Enter your password" id="id_password">
+
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-500 uppercase tracking-widest"
+                        for="id_password">Passcode</label>
+                    <input type="password" name="password" id="id_password"
+                        class="w-full bg-slate-900/50 border border-slate-700/50 text-slate-200 rounded-xl px-4 py-3 outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all font-mono"
+                        placeholder="••••••••">
                 </div>
-                <div class="d-grid">
-                    <button class="btn btn-primary fw-semibold" type="submit">Login</button>
-                </div>
+
+                <button type="submit"
+                    class="w-full bg-gradient-to-r from-brand-primary to-blue-600 hover:from-blue-600 hover:to-brand-primary text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] tracking-widest uppercase text-sm mt-4">
+                    SYSTEM BOOT
+                </button>
             </form>
         </div>
     </div>
-</div>
-{% endblock content %}
+
+    <!-- Jarvis Loader Overlay (Iron Man Mk 2 HUD Cinematic) -->
+    <div id="jarvis-loader" class="fixed inset-0 bg-slate-950 z-[100] hidden flex-col items-center justify-center opacity-0 transition-opacity duration-700 overflow-hidden font-mono" style="perspective: 1200px;">
+        
+        <!-- Flash Overlay (fixes the permanent white bg issue) -->
+        <div id="hud-flash" class="absolute inset-0 bg-white opacity-0 z-[200] pointer-events-none transition-opacity duration-[100ms]"></div>
+
+        <!-- Deep Space Background -->
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.05)_0%,transparent_100%)]"></div>
+
+        <!-- 3D Transform Space -->
+        <div id="core-3d-space" class="relative w-full h-full flex items-center justify-center opacity-0 transition-all duration-[4000ms] ease-[cubic-bezier(0.25,0.1,0.25,1)]" style="transform: rotateX(0deg) scale(0.5); transform-style: preserve-3d;">
+            
+            <!-- The Neural Core (Starts tiny, expands) -->
+            <div id="neural-core" class="absolute w-4 h-4 bg-white rounded-full shadow-[0_0_40px_rgba(255,255,255,1)] transition-all duration-[2000ms] flex items-center justify-center" style="transform-style: preserve-3d;">
+                
+                <!-- Pulsating internal core energy (Fades at t=6s) -->
+                <div id="core-energy" class="absolute w-12 h-12 rounded-full border border-brand-primary/80 animate-ping transition-opacity duration-1000 opacity-100" style="animation-duration: 1.5s;"></div>
+                <div id="core-energy-2" class="absolute w-20 h-20 rounded-full border border-brand-accent/50 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite] transition-opacity duration-1000 opacity-100 delay-300"></div>
+                <div id="core-energy-3" class="absolute w-32 h-32 rounded-full border border-slate-600/30 animate-[spin_4s_linear_infinite] border-dashed transition-opacity duration-1000 opacity-100"></div>
+
+                <!-- Expanded Constellation (Reveals at t=6) -->
+                <div id="constellation" class="absolute inset-[-400px] opacity-0 transition-all duration-[3000ms] flex items-center justify-center" style="transform-style: preserve-3d;">
+                    
+                    <!-- Ambient slow spinning abstract spheres 
+                         Wrapped in static 3D containers to prevent animation stuttering from transform conflicts -->
+                    <div class="absolute inset-0 flex items-center justify-center" style="transform: rotateX(70deg) rotateY(20deg);">
+                        <div class="w-[600px] h-[600px] border-[1px] border-slate-700/50 rounded-full animate-[spin_20s_linear_infinite] border-dashed"></div>
+                    </div>
+                    
+                    <div class="absolute inset-0 flex items-center justify-center" style="transform: rotateX(40deg) rotateY(-40deg);">
+                        <div class="w-[500px] h-[500px] border-[2px] border-brand-primary/20 rounded-full animate-[spin_15s_linear_infinite_reverse] border-dotted"></div>
+                    </div>
+                    
+                    <div class="absolute inset-0 flex items-center justify-center" style="transform: rotateX(80deg) rotateZ(30deg);">
+                        <div class="w-[800px] h-[800px] border-[1px] border-slate-800/60 rounded-full animate-[spin_30s_linear_infinite]"></div>
+                    </div>
+                    
+                    <div class="absolute inset-0 flex items-center justify-center" style="transform: rotateX(-20deg) rotateY(50deg);">
+                        <div class="w-[300px] h-[300px] border-[1px] border-brand-accent/30 rounded-full animate-[spin_10s_linear_infinite]"></div>
+                    </div>
+                    
+                    <!-- Floating Data Nodes -->
+                    <div class="absolute w-2 h-2 bg-brand-primary rounded-full shadow-[0_0_10px_currentColor]" style="transform: translate3d(200px, 100px, -100px);"></div>
+                    <div class="absolute w-1 h-1 bg-white rounded-full shadow-[0_0_10px_currentColor]" style="transform: translate3d(-150px, -200px, 200px);"></div>
+                    <div class="absolute w-3 h-3 bg-brand-accent rounded-full shadow-[0_0_15px_currentColor]" style="transform: translate3d(100px, -150px, 150px);"></div>
+                    <div class="absolute w-1 h-1 bg-brand-primary rounded-full shadow-[0_0_5px_currentColor]" style="transform: translate3d(-250px, 50px, -50px);"></div>
+                </div>
+
+                <!-- Data Grid (Forms at t=10) -->
+                <div id="data-grid" class="absolute inset-[-1000px] opacity-0 transition-all duration-[2000ms] bg-[linear-gradient(rgba(56,189,248,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(56,189,248,0.1)_1px,transparent_1px)] bg-[size:100px_100px]" style="transform: rotateX(90deg) translateZ(-200px);"></div>
+                
+                <!-- Actual Dashboard Wireframes (Forms at t=13) -->
+                <div id="true-dashboard" class="absolute w-[1200px] h-[700px] opacity-0 transition-opacity duration-[500ms] flex flex-col gap-6" style="transform: translateZ(150px);">
+                    
+                    <!-- Top 3 Cards -->
+                    <div class="grid grid-cols-3 gap-6 w-full h-[150px]">
+                        <!-- Card 1: Equity -->
+                        <div class="border border-brand-primary/30 rounded-2xl bg-slate-900/40 backdrop-blur-md p-6 flex flex-col justify-between relative overflow-hidden transition-all duration-[1000ms] ease-out dashboard-card opacity-0 translate-y-[-50px]">
+                            <div class="w-32 h-4 bg-brand-primary/40 rounded shadow-[0_0_10px_currentColor] text-brand-primary"></div>
+                            <div class="w-full flex justify-between items-end">
+                                <div class="w-40 h-8 bg-brand-primary/60 rounded shadow-[0_0_15px_currentColor] text-brand-primary"></div>
+                                <div class="w-20 h-10 border border-brand-primary/30 bg-brand-primary/20 rounded-xl"></div>
+                            </div>
+                        </div>
+                        <!-- Card 2: Engine Status -->
+                        <div class="border border-brand-primary/30 rounded-2xl bg-slate-900/40 backdrop-blur-md p-6 flex flex-col justify-between relative overflow-hidden transition-all duration-[1000ms] ease-out dashboard-card opacity-0 translate-y-[-50px] delay-[200ms]">
+                            <div class="w-32 h-4 bg-yellow-500/40 rounded shadow-[0_0_10px_currentColor] text-yellow-500"></div>
+                            <div class="w-full flex justify-between items-end">
+                                <div class="w-32 h-8 bg-yellow-500/60 rounded shadow-[0_0_15px_currentColor] text-yellow-500"></div>
+                                <div class="w-20 h-6 bg-yellow-500/20 border border-yellow-500/40 rounded"></div>
+                            </div>
+                        </div>
+                        <!-- Card 3: Training Pulse -->
+                        <div class="border border-brand-primary/30 rounded-2xl bg-slate-900/40 backdrop-blur-md p-6 flex flex-col justify-between relative overflow-hidden transition-all duration-[1000ms] ease-out dashboard-card opacity-0 translate-y-[-50px] delay-[400ms]">
+                            <div class="w-32 h-4 bg-brand-accent/40 rounded shadow-[0_0_10px_currentColor] text-brand-accent"></div>
+                            <div class="w-full flex flex-col gap-3">
+                                <div class="w-full h-[4px] bg-slate-800 rounded-full overflow-hidden">
+                                     <div class="h-full bg-brand-accent w-[30%] shadow-[0_0_10px_currentColor] text-brand-accent"></div>
+                                </div>
+                                <div class="w-full h-[4px] bg-slate-800 rounded-full overflow-hidden">
+                                     <div class="h-full bg-brand-primary w-[70%] shadow-[0_0_10px_currentColor] text-brand-primary"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Section -> Chart & Log -->
+                    <div class="grid grid-cols-2 gap-6 w-full flex-1">
+                        <!-- Chart -->
+                        <div class="border border-brand-primary/30 rounded-2xl bg-slate-900/40 backdrop-blur-md p-6 relative overflow-hidden transition-all duration-[1500ms] ease-out dashboard-card opacity-0 translate-y-[50px] delay-[600ms]">
+                            <div class="w-48 h-6 bg-brand-primary/40 rounded mb-4 shadow-[0_0_10px_currentColor] text-brand-primary"></div>
+                            <svg viewBox="0 0 100 100" preserveAspectRatio="none" class="w-full h-full absolute inset-0 opacity-20 top-16">
+                                 <path d="M 0 100 L 20 80 L 40 90 L 60 40 L 80 50 L 100 20 L 100 100 Z" fill="currentColor" class="text-brand-primary opacity-50"></path>
+                            </svg>
+                            <!-- Grid lines -->
+                            <div class="absolute inset-0 bg-[linear-gradient(rgba(56,189,248,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(56,189,248,0.1)_1px,transparent_1px)] bg-[size:40px_40px] opacity-20 hidden md:block"></div>
+                        </div>
+                        <!-- Log -->
+                        <div class="border border-brand-primary/30 rounded-2xl bg-slate-900/40 backdrop-blur-md p-6 relative overflow-hidden transition-all duration-[1500ms] ease-out dashboard-card opacity-0 translate-y-[50px] delay-[800ms]">
+                             <div class="w-48 h-6 bg-brand-primary/40 rounded mb-6 shadow-[0_0_10px_currentColor] text-brand-primary"></div>
+                             <div class="w-full h-4 bg-brand-primary/10 rounded mb-3 border-l-2 border-brand-primary/50 pl-2"></div>
+                             <div class="w-[85%] h-4 bg-brand-primary/10 rounded mb-3 border-l-2 border-brand-primary/50 pl-2"></div>
+                             <div class="w-[90%] h-4 bg-brand-primary/10 rounded mb-3 border-l-2 border-yellow-500/50 pl-2"></div>
+                             <div class="w-full h-4 bg-brand-primary/10 rounded mb-3 border-l-2 border-brand-primary/50 pl-2"></div>
+                             <div class="w-[70%] h-4 bg-brand-primary/10 rounded border-l-2 border-brand-primary/50 pl-2"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            
+            <!-- Minimal Typography Output -->
+            <div class="absolute bottom-20 left-1/2 -translate-x-1/2 flex flex-col items-center opacity-0 transition-opacity duration-[1000ms] z-50 text-center" id="hud-status">
+                <p id="loader-text" class="text-[11px] uppercase tracking-[0.3em] text-slate-300 font-light blur-[2px] transition-all duration-[1000ms]">INITIALIZING</p>
+                <p id="status-text" class="text-[9px] uppercase tracking-[0.4em] text-brand-primary/60 mt-4 opacity-0 transition-opacity duration-1000"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Initialize Particles & Logic -->
+    <script>
+        particlesJS("particles-js", {
+            "particles": { "number": { "value": 80 }, "color": { "value": "#3b82f6" }, "shape": { "type": "circle" }, "opacity": { "value": 0.3 }, "size": { "value": 3 }, "line_linked": { "enable": true, "distance": 150, "color": "#3b82f6", "opacity": 0.2, "width": 1 }, "move": { "enable": true, "speed": 1 } },
+            "interactivity": { "detect_on": "window", "events": { "onhover": { "enable": true, "mode": "grab" }, "resize": true } },
+            "retina_detect": true
+        });
+
+        let bgmStarted = false;
+        let droneContext = null;
+        let droneGain = null;
+
+        function startLoginBGM() {
+            if (bgmStarted || localStorage.getItem('jarvis-bgm') === 'false') return;
+            bgmStarted = true;
+            droneContext = new (window.AudioContext || window.webkitAudioContext)();
+            const drone = droneContext.createOscillator();
+            droneGain = droneContext.createGain();
+            drone.type = 'sine';
+            drone.frequency.value = 45; 
+            droneGain.gain.setValueAtTime(0, droneContext.currentTime);
+            droneGain.gain.linearRampToValueAtTime(0.08, droneContext.currentTime + 3);
+            drone.connect(droneGain).connect(droneContext.destination);
+            drone.start();
+        }
+        
+        document.addEventListener('click', startLoginBGM, {once: true});
+        document.addEventListener('keydown', startLoginBGM, {once: true});
+
+        // ====== LOGIN INTERCEPTOR ======
+        document.querySelector('form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const form = this;
+
+            if (localStorage.getItem('jarvis-boot-played') === 'true' || localStorage.getItem('jarvis-skip-animations') === 'true') {
+                form.submit();
+                return;
+            }
+
+            const submitBtn = form.querySelector('button[type="submit"]');
+            submitBtn.textContent = 'AUTHENTICATING...';
+            submitBtn.classList.add('animate-pulse');
+            submitBtn.disabled = true;
+
+            // PRE-VALIDATE CREDENTIALS VIA AJAX
+            fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form),
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            }).then(response => {
+                if (response.url.includes('/login/')) {
+                    form.submit();
+                } else {
+                    runCinematicSequence(response.url);
+                }
+            }).catch(e => {
+                form.submit(); 
+            });
+
+            function runCinematicSequence(targetUrl) {
+                const loader = document.getElementById('jarvis-loader');
+                const space3d = document.getElementById('core-3d-space');
+                const core = document.getElementById('neural-core');
+                const constellation = document.getElementById('constellation');
+                const grid = document.getElementById('data-grid');
+                const trueDashboard = document.getElementById('true-dashboard');
+                const loaderText = document.getElementById('loader-text');
+                const statusText = document.getElementById('status-text');
+
+                loader.classList.remove('hidden');
+                loader.classList.add('flex');
+
+                let redirecting = false;
+
+                function attemptRedirect() {
+                    if (!redirecting) {
+                        redirecting = true;
+                        
+                        // Extremely smooth fade to absolute black. No abrupt flashes.
+                        loader.style.transition = "background-color 1.5s ease-in-out";
+                        loader.style.backgroundColor = '#000000';
+                        space3d.style.transitionDuration = '1.5s';
+                        space3d.style.opacity = '0';
+                        
+                        setTimeout(() => {
+                            localStorage.setItem('jarvis-boot-played', 'true');
+                            window.location.href = targetUrl;
+                        }, 1500);
+                    }
+                }
+
+                if (localStorage.getItem('jarvis-voice') !== 'false') {
+                    let welcomeAudio = new Audio('/static/audio/jarvis/login.mp3');
+                    welcomeAudio.play().catch(e => {
+                        let fallback = new Audio('/static/audio/jarvis/welcome_home.mp3');
+                        fallback.play().catch(e => {});
+                    });
+                }
+
+                setTimeout(() => {
+                    loader.classList.replace('opacity-0', 'opacity-100');
+                    
+                    // T=0.0s "Allow me to introduce myself. I am Jarvis..."
+                    space3d.classList.replace('opacity-0', 'opacity-100');
+                    space3d.style.transform = 'rotateX(0deg) scale(1)';
+                    
+                    document.getElementById('hud-status').classList.replace('opacity-0', 'opacity-100');
+                    setTimeout(() => {
+                        loaderText.classList.remove('blur-[2px]');
+                        loaderText.textContent = "ALLOW ME TO INTRODUCE MYSELF. I AM JARVIS, A VIRTUAL ARTIFICIAL INTELLIGENCE";
+                    }, 500);
+
+                    // T=6.0s "...and I'm here to assist you..."
+                    setTimeout(() => {
+                        // Fade out the initial pulse rings
+                        document.getElementById('core-energy').classList.replace('opacity-100', 'opacity-0');
+                        document.getElementById('core-energy-2').classList.replace('opacity-100', 'opacity-0');
+                        document.getElementById('core-energy-3').classList.replace('opacity-100', 'opacity-0');
+
+                        core.classList.replace('bg-white', 'bg-transparent');
+                        core.classList.replace('w-4', 'w-[200px]');
+                        core.classList.replace('h-4', 'h-[200px]');
+                        core.style.boxShadow = 'none';
+
+                        constellation.classList.replace('opacity-0', 'opacity-100');
+                        space3d.style.transform = 'rotateX(20deg) rotateY(-15deg) scale(1.2)';
+                        
+                        loaderText.style.filter = 'blur(4px)';
+                        setTimeout(() => {
+                            loaderText.textContent = "AND I'M HERE TO ASSIST YOU WITH A VARIETY OF TASKS AS BEST I CAN";
+                            loaderText.style.filter = 'blur(0px)';
+                            statusText.classList.replace('opacity-0', 'opacity-100');
+                            statusText.textContent = "NEURAL CONSTELLATION MAPPED";
+                        }, 500);
+                    }, 6000);
+
+                    // T=10.0s "24 hours a day, 7 days a week."
+                    setTimeout(() => {
+                        grid.classList.replace('opacity-0', 'opacity-100');
+                        
+                        // Abrupt kinetic snap on the orbital rings!
+                        constellation.style.transitionDuration = '100ms'; // Snap instantly
+                        constellation.style.transform = 'translateZ(100px) rotateX(15deg) rotateY(-10deg) scale(1.1)';
+                        
+                        // Grab ring child divs and abruptly speed them up or reverse them
+                        const rings = constellation.querySelectorAll('.rounded-full');
+                        rings.forEach((ring, index) => {
+                            // Visceral speedup to 1s duration
+                            ring.style.animationDuration = (0.5 + (index * 0.2)) + 's';
+                            if (index % 2 === 0) ring.style.animationDirection = 'reverse';
+                        });
+                        
+                        // Pan camera to look slightly down at grid
+                        space3d.style.transitionDuration = '3000ms';
+                        space3d.style.transform = 'rotateX(30deg) rotateY(0deg) scale(0.9) translateZ(-50px)';
+                        
+                        loaderText.style.filter = 'blur(4px)';
+                        setTimeout(() => {
+                            loaderText.textContent = "24 HOURS A DAY, 7 DAYS A WEEK";
+                            loaderText.style.filter = 'blur(0px)';
+                            statusText.textContent = "ALGORITHMIC DATAGRID ONLINE";
+                        }, 500);
+                    }, 10000);
+
+                    // T=13.0s "Importing all preferences from home interface."
+                    setTimeout(() => {
+                        trueDashboard.classList.replace('opacity-0', 'opacity-100');
+                        grid.style.transform = 'rotateX(90deg) translateZ(-400px)'; // drop grid down visually
+                        
+                        // Animate each dashboard component popping in
+                        const cards = document.querySelectorAll('.dashboard-card');
+                        cards.forEach(card => {
+                             card.classList.replace('opacity-0', 'opacity-100');
+                             card.classList.replace('translate-y-[-50px]', 'translate-y-0');
+                             card.classList.replace('translate-y-[50px]', 'translate-y-0');
+                             card.classList.add('shadow-[0_0_40px_rgba(56,189,248,0.1)]');
+                        });
+
+                        // Camera pushes INTO dashboard wireframes
+                        space3d.style.transitionDuration = '4500ms';
+                        space3d.style.transform = 'rotateX(0deg) rotateY(0deg) scale(1) translateZ(100px)';
+
+                        loaderText.style.filter = 'blur(4px)';
+                        setTimeout(() => {
+                            loaderText.textContent = "IMPORTING ALL PREFERENCES FROM HOME INTERFACE";
+                            loaderText.style.filter = 'blur(0px)';
+                            statusText.textContent = "CONSTRUCTING DASHBOARD GEOMETRY";
+                        }, 500);
+                    }, 13000);
+
+                    // T=16.0s "Systems are now fully operational."
+                    setTimeout(() => {
+                        // Flash and solidify
+                        const flash = document.getElementById('hud-flash');
+                        if (flash) {
+                            flash.classList.replace('opacity-0', 'opacity-100');
+                            setTimeout(() => flash.classList.replace('opacity-100', 'opacity-0'), 100);
+                        }
+
+                        // Ignite actual borders
+                        document.querySelectorAll('.dashboard-card').forEach(card => {
+                            card.classList.replace('border-brand-primary/30', 'border-brand-primary/60');
+                            card.classList.replace('shadow-[0_0_40px_rgba(56,189,248,0.1)]', 'shadow-[0_0_60px_rgba(56,189,248,0.3)]');
+                        });
+                        
+                        // Push slowly into the dazzling UI over the remaining time
+                        space3d.style.transitionDuration = '8000ms';
+                        space3d.style.transform = 'rotateX(0deg) rotateY(0deg) scale(1.05) translateZ(150px)';
+                        
+                        loaderText.style.filter = 'blur(4px)';
+                        setTimeout(() => {
+                            loaderText.textContent = "SYSTEMS ARE NOW FULLY OPERATIONAL";
+                            loaderText.style.filter = 'blur(0px)';
+                            loaderText.classList.replace('text-slate-300', 'text-white');
+                            statusText.textContent = "READY FOR AUTHENTICATION";
+                            statusText.classList.replace('text-brand-primary/60', 'text-brand-accent');
+                        }, 500);
+                    }, 16000);
+
+                    // T=22.0s Fade out entirely to black (leaving visual time before song finishes)
+                    setTimeout(() => { attemptRedirect(); }, 22500);
+
+                    // Ultimate fallback
+                    setTimeout(() => { attemptRedirect(); }, 25000);
+                }, 100);
+            }
+        });
+    </script>
+</body>
+
+</html>

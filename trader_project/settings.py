@@ -36,6 +36,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -56,6 +57,8 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "trader_project.urls"
+
+ASGI_APPLICATION = 'trader_project.asgi.application'
 
 TEMPLATES = [
     {
@@ -166,11 +169,8 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 
 
-API_KEY = os.environ.get('API_KEY')
-SECRET_KEY_ALPACA = os.environ.get('SECRET_KEY')
-if os.environ.get('BASE_URL') == 'paper':
-     BASE_URL = 'https://paper-api.alpaca.markets'
-else:
-        BASE_URL = 'https://api.alpaca.markets'
+ALPACA_API_KEY = os.environ.get('ALPACA_API_KEY')
+ALPACA_SECRET_KEY = os.environ.get('ALPACA_API_SECRET')
+ALPACA_WS_URL = os.environ.get('ALPACA_WS_URL')
 
 LOGIN_REDIRECT_URL = '/'

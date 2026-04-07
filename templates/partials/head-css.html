@@ -10,3 +10,35 @@
 
 <!-- Icons css -->
 <link href="{% static '/css/icons.css' %}" rel="stylesheet" type="text/css" />
+
+<style>
+    /* FIX 1: Prevent text from overflowing when sidebar is shrunk */
+    body[data-sidebar-size="condensed"] .left-side-menu .menu-title,
+    body[data-sidebar-size="condensed"] .left-side-menu li > a > span,
+    body[data-sidebar-size="condensed"] .left-side-menu .badge {
+        display: none !important;
+    }
+
+    body[data-sidebar-size="condensed"] .left-side-menu li > a {
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+    /* FIX 2: Force the sidebar to turn dark when dark mode is active */
+    body[data-bs-theme="dark"] .left-side-menu,
+    body[data-layout-color="dark"] .left-side-menu,
+    .dark-mode .left-side-menu {
+        background-color: #313a46 !important; /* Adminto Dark background */
+        border-right: 1px solid #3a4451 !important;
+    }
+
+    body[data-bs-theme="dark"] .left-side-menu a,
+    body[data-layout-color="dark"] .left-side-menu a {
+        color: #8391a2 !important;
+    }
+
+    body[data-bs-theme="dark"] .left-side-menu a:hover,
+    body[data-layout-color="dark"] .left-side-menu a:hover {
+        color: #ffffff !important;
+    }
+</style>

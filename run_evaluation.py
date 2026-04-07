@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 from src.data.csv_loader import CSVLoader
 from src.data.preprocessor import calculate_features
-from src.core.environment import TradingEnv
+from src.core.environment import TradingEnvironment
 from src.core.engine import BacktestEngine
 from src.models.ppo_agent import PPOAgent
 from src.utils.logger import setup_logging
@@ -23,7 +23,7 @@ def main():
 
     # 2. Set up the environment
     OBSERVATION_COLUMNS = ["Close", "Volume", "returns", "SMA_5"]
-    env = TradingEnv(
+    env = TradingEnvironment(
         df=featured_df,
         observation_columns=OBSERVATION_COLUMNS,
         window_size=5,
@@ -32,9 +32,9 @@ def main():
         slippage_pct=0.0005,
     )
 
-    # 3. Set up the AGENT and LOAD THE TRAINED MODEL
+    # 3. Set up the agent
     state_dim = len(OBSERVATION_COLUMNS) * 5
-    action_dim = env.action_space.n
+    action_dim = env.action_space.shape[0]
 
     agent = PPOAgent(state_dim=state_dim, action_dim=action_dim)
     model_path = Path("saved_models/ppo_final.pth")

@@ -59,8 +59,8 @@ def calculate_features(df: pd.DataFrame) -> pd.DataFrame:
 
     # Fill any NaN values that might have been created
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
-    df.fillna(method="bfill", inplace=True)
-    df.fillna(method="ffill", inplace=True)
+    df.bfill(inplace=True)
+    df.ffill(inplace=True)
     df.fillna(0, inplace=True)
 
     return df

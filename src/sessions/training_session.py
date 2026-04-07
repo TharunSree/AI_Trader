@@ -9,7 +9,7 @@ django.setup()
 
 from src.data.yfinance_loader import YFinanceLoader
 from src.data.preprocessor import calculate_features
-from src.core.environment import TradingEnv
+from src.core.environment import TradingEnvironment
 from src.models.ppo_agent import PPOAgent
 from src.models.trainer import Trainer
 from src.strategies import STRATEGY_PLAYBOOK  # Import the playbook
@@ -77,7 +77,7 @@ class TrainingSession:
         featured_df = calculate_features(raw_df)
 
         # Set up Environment
-        env = TradingEnv(
+        env = TradingEnvironment(
             df=featured_df,
             observation_columns=self.config['features'],  # This will now work
             window_size=self.config.get('window', 10),
@@ -86,8 +86,8 @@ class TrainingSession:
 
         # Set up Agent
         state_dim = len(self.config['features']) * self.config['window']
-        action_dim = env.action_space.n
-        agent = PPOAgent(state_dim=state_dim, action_dim=action_dim, lr=self.config['params']['lr'])
+        action_dim = env.action_space.shape[0]
+        agent = PPOAgent(obs_dim=env.observation_space.shape[0], act_dim=action_dim, action_type="continuous", lr=self.config['params']['lr'])
 
         # Set up and run Trainer
         trainer_config = {

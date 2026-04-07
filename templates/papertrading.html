@@ -1,150 +1,200 @@
-{% extends "vertical.html" %}
+{% extends "base.html" %}
 {% load static %}
-{% block title %}Paper Trading{% endblock title %}
+{% block title %}Live Terminal{% endblock title %}
 
 {% block extra_css %}
-<link href="{% static 'vendor/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}" rel="stylesheet" type="text/css"/>
 <style>
-  .mini-badge{font-size:11px;letter-spacing:.5px}
-  .activity-log{max-height:240px;overflow-y:auto}
-  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
-  .top-panels .card{height:100%}
-  .status-badges .badge{padding:.45rem .7rem}
+  .activity-log { max-height: 240px; overflow-y: auto; }
 </style>
 {% endblock extra_css %}
 
-{% block page_title %}
-{% include 'partials/topbar.html' with topbarTitle='Paper Trading Bot' %}
-{% endblock page_title %}
+{% block page_title %}Live Trading Terminal{% endblock page_title %}
 
 {% block page_content %}
-
-<div class="row row-cols-1 row-cols-lg-4 g-3 top-panels mb-3">
-  <div class="col">
-    <div class="card h-100">
-      <div class="card-body d-flex flex-column">
-        <h5 class="mb-3">Controls</h5>
-
-        <form id="start-form" method="post" action="{% url 'start_trader' %}" class="mb-2">
-          {% csrf_token %}
-          <div class="mb-2">
-            <label for="model_file_select" class="form-label small">Select Model</label>
-            <select name="model_file" id="model_file_select" class="form-select form-select-sm" required {% if trader_status == 'RUNNING' %}disabled{% endif %}>
-              <option value="" disabled selected>Select a model to run</option>
-              {% for f in model_files %}
-              <option value="{{ f }}" {% if f == trader.model_file %}selected{% endif %}>{{ f }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <button id="start-btn" class="btn btn-success btn-sm w-100" {% if trader_status == 'RUNNING' %}disabled{% endif %}>Start</button>
-        </form>
-
-        <form id="stop-form" method="post" action="{% url 'stop_trader' %}" class="mt-auto">
-          {% csrf_token %}
-          <button id="stop-btn" type="button" class="btn btn-danger btn-sm w-100" {% if trader_status != 'RUNNING' %}disabled{% endif %}>Stop</button>
-        </form>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+  <!-- Controls -->
+  <div class="glass rounded-2xl p-6 relative overflow-hidden flex flex-col">
+    <h3 class="text-sm font-medium text-slate-400 mb-4 tracking-widest uppercase">Controls</h3>
+    <form id="start-form" method="post" action="{% url 'start_trader' %}" class="flex flex-col gap-3 mb-3">
+      {% csrf_token %}
+      <div class="custom-select-container relative w-full" id="model_select_container" data-disabled="{% if trader_status == 'RUNNING' %}true{% else %}false{% endif %}">
+        <input type="hidden" name="model_file" id="model_file_select" required value="{{ trader.model_file|default:'' }}">
+        <div class="select-trigger bg-slate-800/80 border border-slate-700 text-brand-primary text-sm rounded block w-full p-2.5 outline-none font-mono transition-all hover:border-brand-primary/50 flex justify-between items-center cursor-pointer {% if trader_status == 'RUNNING' %}opacity-50 cursor-not-allowed{% endif %}">
+            <span class="select-label-text truncate">{% if trader.model_file and trader_status == 'RUNNING' %}{{ trader.model_file }}{% else %}Select Neural Matrix{% endif %}</span>
+            <svg class="w-4 h-4 ml-2 flex-shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </div>
+        <div class="select-dropdown absolute z-50 w-full mt-1 bg-[#0f172a] border border-slate-600 rounded-lg shadow-[0_0_20px_rgba(0,0,0,0.8)] hidden">
+            <ul class="py-1 max-h-48 overflow-auto font-mono text-sm">
+                {% for f in model_files %}
+                <li class="px-4 py-3 text-slate-300 hover:bg-brand-accent/20 hover:text-brand-accent cursor-pointer transition-colors border-b border-white/5 last:border-0" data-value="{{ f }}">{{ f }}</li>
+                {% endfor %}
+            </ul>
+        </div>
       </div>
+      <button id="start-btn" type="submit" class="w-full px-4 py-2 bg-brand-accent/20 hover:bg-brand-accent/40 text-brand-accent border border-brand-accent/50 rounded transition-all font-mono uppercase tracking-wider disabled:opacity-50" {% if trader_status == 'RUNNING' %}disabled{% endif %}>Engage Protocol</button>
+    </form>
+    <form id="stop-form" method="post" action="{% url 'stop_trader' %}" class="mt-auto" onsubmit="event.preventDefault(); window.confirmJarvisAction('Execute immediate shutdown of all Live APIs?', () => { window.launchJarvisShutdown(document.getElementById('stop-form'), 'TERMINATING LIVE ENGINE...'); });">
+      {% csrf_token %}
+      <button id="stop-btn" type="submit" class="w-full px-4 py-2 bg-red-500/20 hover:bg-red-500/40 text-red-500 border border-red-500/50 rounded transition-all font-mono uppercase tracking-wider disabled:opacity-50" {% if trader_status != 'RUNNING' %}disabled{% endif %}>Terminate</button>
+    </form>
+  </div>
+
+  <!-- Bot Status -->
+  <div class="glass rounded-2xl p-6 relative overflow-hidden flex flex-col">
+    <h3 class="text-sm font-medium text-slate-400 mb-4 tracking-widest uppercase">Engine Status</h3>
+    <div class="flex flex-wrap gap-2 mb-4">
+      <span id="trader-status-badge" class="px-2 py-0.5 rounded text-xs font-bold tracking-widest bg-slate-800 text-slate-400 border border-slate-700">UNKNOWN</span>
+      <span id="cycle-badge" class="px-2 py-0.5 rounded text-xs font-bold tracking-widest bg-slate-800 text-slate-400 border border-slate-700">IDLE</span>
+      <span id="sleep-badge" class="hidden px-2 py-0.5 rounded text-xs font-bold tracking-widest bg-blue-500/20 text-blue-400 border border-blue-500/30">Sleep 00:00</span>
+      {% if clock %}
+      <span class="px-2 py-0.5 rounded text-xs font-bold tracking-widest flex items-center gap-2 whitespace-nowrap bg-slate-800 border border-slate-700 text-slate-400">
+          MARKET: <span class="{% if clock.is_open %}text-brand-accent{% else %}text-red-500 drop-shadow-[0_0_3px_rgba(239,68,68,0.5)]{% endif %}">{% if clock.is_open %}OPEN{% else %}CLOSED{% endif %}</span> 
+          <span class="opacity-30">|</span> 
+          <span id="market-timer" data-next-open="{{ clock.next_open }}" data-next-close="{{ clock.next_close }}" data-is-open="{{ clock.is_open|yesno:'true,false' }}" class="font-mono text-brand-primary opacity-90">...</span>
+      </span>
+      {% endif %}
+    </div>
+    <div class="text-xs font-mono text-slate-400 mb-2">
+      UPTIME: <span id="uptime-badge" class="text-white">00:00:00</span>
+    </div>
+    <div class="text-xs font-mono text-slate-400">
+      LAST: <span id="activity-summary" class="text-brand-accent">-</span>
+    </div>
+    <div id="status-error" class="text-xs font-mono text-red-500 mt-2 hidden"></div>
+  </div>
+
+  <!-- Equity Snapshot -->
+  <div class="glass rounded-2xl p-6 relative overflow-hidden flex flex-col">
+    <h3 class="text-sm font-medium text-slate-400 mb-4 tracking-widest uppercase">Live Equity</h3>
+    <div class="flex justify-between items-end mb-2">
+      <span class="text-xs font-mono text-slate-400 uppercase tracking-widest">Net Worth</span>
+      <span id="equity-val" class="text-2xl font-bold text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">$0.00</span>
+    </div>
+    <div class="flex justify-between items-end">
+      <span class="text-xs font-mono text-slate-400 uppercase tracking-widest">Buying Power</span>
+      <span id="bp-val" class="text-lg font-bold text-brand-primary drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]">$0.00</span>
     </div>
   </div>
 
-  <div class="col">
-    <div class="card h-100">
-      <div class="card-body d-flex flex-column">
-        <h5 class="mb-3">Bot Status</h5>
-        <div class="status-badges d-flex flex-wrap align-items-center gap-2 mb-3">
-          <span id="trader-status-badge" class="badge bg-secondary-subtle text-secondary px-3 py-2">UNKNOWN</span>
-          <span id="cycle-badge" class="badge mini-badge bg-secondary-subtle text-secondary">IDLE</span>
-          <span id="sleep-badge" class="badge mini-badge bg-info-subtle text-info d-none">Sleep 00:00</span>
-            <span class="badge mini-badge bg-dark-subtle text-dark">
-              Uptime <span id="uptime-badge" class="mono">00:00:00</span>
-            </span>
-        </div>
-        <div class="small mb-2">
-          <strong>Last:</strong> <span id="activity-summary">-</span>
-        </div>
-        <div id="status-error" class="small text-danger d-none"></div>
-        <div class="mt-auto small text-muted">
-          Status & activity refresh adapt to state.
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col">
-    <div class="card h-100">
-      <div class="card-body d-flex flex-column">
-        <h5 class="mb-3">Equity Snapshot</h5>
-        <div class="d-flex justify-content-between mb-2">
-          <span class="text-muted small">Equity</span>
-          <span id="equity-val" class="fw-semibold">$0</span>
-        </div>
-        <div class="d-flex justify-content-between mb-2">
-          <span class="text-muted small">Buying Power</span>
-          <span id="bp-val" class="fw-semibold">$0</span>
-        </div>
-        <div class="mt-auto small text-muted">Auto-updates while running</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col">
-    <div class="card h-100">
-      <div class="card-body d-flex flex-column">
-        <h5 class="mb-3">Last Activity</h5>
-        <div id="activity-summary-box" class="alert alert-info py-2 px-2 small mb-0 flex-grow-1 d-flex align-items-center">-</div>
-        <div class="mt-2 small text-muted">Full log below</div>
-      </div>
+  <!-- Activity Box -->
+  <div class="glass rounded-2xl p-6 relative overflow-hidden flex flex-col">
+    <h3 class="text-sm font-medium text-slate-400 mb-4 tracking-widest uppercase">Signal Stream</h3>
+    <div id="activity-summary-box" class="bg-brand-primary/10 border border-brand-primary/30 text-brand-primary rounded p-3 text-xs font-mono h-full overflow-hidden truncate">
+      -
     </div>
   </div>
 </div>
 
-<div class="row mb-3">
-  <div class="col-12">
-    <div class="card">
-      <div class="card-body">
-        <h5 class="mb-3">Equity Curve</h5>
-        <div id="equity-chart" style="height:360px;"></div>
-      </div>
-    </div>
+<div class="grid grid-cols-1 mb-6">
+  <div class="glass rounded-2xl p-6">
+    <h3 class="text-sm font-medium text-slate-400 mb-4 tracking-widest uppercase">Equity Matrix</h3>
+    <div id="equity-chart" style="height: 360px;"></div>
   </div>
 </div>
 
-<div class="row">
-  <div class="col-xl-6 mb-3">
-    <div class="card h-100">
-      <div class="card-body">
-        <h5 class="mb-3">Account Positions</h5>
-        <table id="positions-dt" class="table table-sm table-striped mb-0 w-100">
-          <thead>
-            <tr>
-              <th>Symbol</th>
-              <th>Qty</th>
-              <th>Value</th>
-              <th>Unrealized P/L</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+  <!-- Positions -->
+  <div class="glass rounded-2xl p-6">
+    <h3 class="text-sm font-medium text-slate-400 mb-4 tracking-widest uppercase">Active Positions</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm text-slate-300">
+        <thead class="text-xs text-slate-400 uppercase tracking-widest bg-slate-800/50">
+          <tr>
+            <th class="px-4 py-3 rounded-tl-lg font-medium">Symbol</th>
+            <th class="px-4 py-3 text-right font-medium">Qty</th>
+            <th class="px-4 py-3 text-right font-medium">Value</th>
+            <th class="px-4 py-3 text-right rounded-tr-lg font-medium">Unrealized P/L</th>
+          </tr>
+        </thead>
+        <tbody id="positions-tbody" class="divide-y divide-slate-700/50">
+        </tbody>
+      </table>
     </div>
   </div>
-  <div class="col-xl-6 mb-3">
-    <div class="card h-100">
-      <div class="card-body d-flex flex-column">
-        <h5 class="mb-3">Recent Activity</h5>
-        <ul id="activity-list" class="list-group list-group-flush activity-log small flex-grow-1"></ul>
-      </div>
-    </div>
+
+  <!-- Recent Logs -->
+  <div class="glass rounded-2xl p-6 relative overflow-hidden">
+    <h3 class="text-sm font-medium text-slate-400 mb-4 tracking-widest uppercase">Execution Log</h3>
+    <ul id="activity-list" class="activity-log space-y-2 pr-2 scrollbar-thin scrollbar-thumb-brand-primary/30 scrollbar-track-transparent"></ul>
   </div>
 </div>
-
 {% endblock page_content %}
 
 {% block extra_javascript %}
-<script src="{% static 'vendor/apexcharts/apexcharts.min.js' %}"></script>
-<script src="{% static 'vendor/datatables.net/js/dataTables.min.js' %}"></script>
-<script src="{% static 'vendor/datatables.net-bs5/js/dataTables.bootstrap5.min.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Custom Select Logic
+    const container = document.getElementById('model_select_container');
+    if (container) {
+        const trigger = container.querySelector('.select-trigger');
+        const dropdown = container.querySelector('.select-dropdown');
+        const input = container.querySelector('input[type="hidden"]');
+        const labelText = container.querySelector('.select-label-text');
+        const items = dropdown.querySelectorAll('li');
+        
+        const isDisabled = container.getAttribute('data-disabled') === 'true';
+
+        if (!isDisabled) {
+            trigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dropdown.classList.toggle('hidden');
+            });
+
+            items.forEach(item => {
+                item.addEventListener('click', () => {
+                    input.value = item.getAttribute('data-value');
+                    labelText.textContent = item.textContent;
+                    dropdown.classList.add('hidden');
+                });
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!container.contains(e.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            });
+        }
+    }
+});
+document.addEventListener('DOMContentLoaded', () => {
+    const timerElem = document.getElementById('market-timer');
+    if (!timerElem) return;
+
+    const isOpen = timerElem.getAttribute('data-is-open') === 'true';
+    const nextOpenIso = timerElem.getAttribute('data-next-open');
+    const nextCloseIso = timerElem.getAttribute('data-next-close');
+
+    // When open → count to close; when closed → count to open
+    const targetIso = isOpen ? nextCloseIso : nextOpenIso;
+    if (!targetIso) { timerElem.textContent = '--:--:--'; return; }
+
+    const targetMs = new Date(targetIso).getTime();
+
+    function tick() {
+        const now = Date.now();
+        const diff = targetMs - now;
+
+        if (diff <= 0) {
+            // Countdown expired — market state has flipped. Reload for fresh clock data.
+            timerElem.textContent = '00:00:00';
+            setTimeout(() => location.reload(), 2000);
+            return;
+        }
+
+        const totalSec = Math.floor(diff / 1000);
+        const h = Math.floor(totalSec / 3600);
+        const m = Math.floor((totalSec % 3600) / 60);
+        const s = totalSec % 60;
+
+        const label = isOpen ? 'Closes ' : 'Opens ';
+        timerElem.textContent = label + `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+    }
+
+    tick();
+    setInterval(tick, 1000);
+});
+
 (function(){
   const UPTIME_KEY='paper_trader_uptime_start';
   const ACTIVITY_POLL_MS=2500;
@@ -153,7 +203,6 @@
   const MAX_ACTIVITY=120;
 
   let currentStatus='UNKNOWN';
-  let positionsTable;
   let equityChart;
   let equitySeries=[];
   let statusTimer=null;
@@ -189,17 +238,20 @@
   }
 
   function initChart(){
-    equityChart=new ApexCharts(document.querySelector('#equity-chart'),{
-      chart:{type:'area',height:360,toolbar:{show:false},animations:{enabled:true}},
+    const trOpts = {
+      chart:{type:'area',height:360,toolbar:{show:false},animations:{enabled:true}, foreColor: '#94a3b8'},
       series:[{name:'Equity',data:[]}],
-      xaxis:{type:'datetime'},
+      xaxis:{type:'datetime', tooltip: {enabled: false}},
       yaxis:{labels:{formatter:v=>'$'+fmtNum(v)}},
       dataLabels:{enabled:false},
       stroke:{curve:'smooth',width:2},
-      colors:['#35b8e0'],
-      fill:{type:'gradient',gradient:{shadeIntensity:.4,opacityFrom:.6,opacityTo:.1,stops:[0,90,100]}},
-      noData:{text:'Waiting for data...'}
-    });
+      colors:['#3b82f6'],
+      fill:{type:'gradient',gradient:{shadeIntensity:1,opacityFrom:0.3,opacityTo:0.05,stops:[0,100]}},
+      noData:{text:'Awaiting Telemetry...', style: {color: '#94a3b8', fontSize: '14px', fontFamily: 'monospace'}},
+      grid: {borderColor: 'rgba(148, 163, 184, 0.1)'},
+      tooltip: {theme: 'dark'}
+    };
+    equityChart=new ApexCharts(document.querySelector('#equity-chart'), trOpts);
     equityChart.render();
   }
 
@@ -210,63 +262,60 @@
     equityChart.updateSeries([{name:'Equity',data:equitySeries}]);
   }
 
-  function initPositions(){
-    positionsTable=$('#positions-dt').DataTable({
-      paging:false,searching:false,info:false,order:[[2,'desc']],
-      columnDefs:[
-        {targets:[1,2,3],className:'text-end'}
-      ]
-    });
-  }
-
   function updatePositions(positions){
-    if(!positionsTable) return;
-    positionsTable.clear();
+    const tbody=document.getElementById('positions-tbody');
+    tbody.innerHTML='';
+    if(!positions || positions.length === 0){
+      tbody.innerHTML='<tr><td colspan="4" class="px-4 py-8 text-center text-slate-500 font-mono text-xs tracking-widest">NO ASSETS ACQUIRED</td></tr>';
+      return;
+    }
     (positions||[]).forEach(p=>{
       const qty=Number(p.qty||0);
       const mv=Number(p.market_value||0);
       const upl=Number(p.unrealized_pl||0);
-      const uplCls=upl>=0?'text-success':'text-danger';
-      positionsTable.row.add([
-        `<span data-order="${mv}">${escapeHtml(p.symbol)}</span>`,
-        `<span data-order="${qty}">${qty.toLocaleString()}</span>`,
-        `<span data-order="${mv}">${fmtCurrency(mv)}</span>`,
-        `<span data-order="${upl}" class="${uplCls}">${fmtCurrency(upl)}</span>`
-      ]);
+      const uplCls=upl>=0?'text-brand-accent':'text-red-500';
+      const tr = document.createElement('tr');
+      tr.className = 'hover:bg-slate-800/30 transition-colors';
+      tr.innerHTML = `
+        <td class="px-4 py-3 font-medium text-slate-200 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-brand-primary"></span>${escapeHtml(p.symbol)}</td>
+        <td class="px-4 py-3 text-right font-mono text-xs">${qty.toLocaleString(undefined, {minimumFractionDigits: 5})}</td>
+        <td class="px-4 py-3 text-right font-mono text-xs text-brand-primary">${fmtCurrency(mv)}</td>
+        <td class="px-4 py-3 text-right font-mono text-xs ${uplCls}">${fmtCurrency(upl)}</td>
+      `;
+      tbody.appendChild(tr);
     });
-    positionsTable.draw(false);
   }
 
   function setStatusBadge(status){
     const el=document.getElementById('trader-status-badge');
-    let cls='bg-secondary-subtle text-secondary';
-    if(status==='RUNNING') cls='bg-success-subtle text-success';
-    else if(status==='FAILED') cls='bg-danger-subtle text-danger';
-    else if(status==='STOPPED') cls='bg-secondary-subtle text-secondary';
-    el.className='badge '+cls+' px-3 py-2';
+    let cls='bg-slate-800 text-slate-400 border-slate-700';
+    if(status==='RUNNING') cls='bg-brand-accent/20 text-brand-accent border-brand-accent/30 drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]';
+    else if(status==='FAILED') cls='bg-red-500/20 text-red-500 border-red-500/30';
+    else if(status==='STOPPED') cls='bg-slate-800 text-slate-400 border-slate-700';
+    el.className='px-2 py-0.5 rounded text-xs font-bold tracking-widest border ' + cls;
     el.textContent=status;
   }
 
   function setCycleBadge(mode){
     const el=document.getElementById('cycle-badge');
     el.textContent=mode;
-    let cls='mini-badge bg-secondary-subtle text-secondary';
-    if(mode==='SCANNING') cls='mini-badge bg-info-subtle text-info';
-    else if(mode==='ANALYZING') cls='mini-badge bg-warning-subtle text-warning';
-    else if(mode==='ACTIVE') cls='mini-badge bg-success-subtle text-success';
-    el.className='badge '+cls;
+    let cls='bg-slate-800 text-slate-400 border-slate-700';
+    if(mode==='SCANNING') cls='bg-blue-500/20 text-blue-400 border-blue-500/30';
+    else if(mode==='ANALYZING') cls='bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+    else if(mode==='ACTIVE') cls='bg-brand-accent/20 text-brand-accent border-brand-accent/30';
+    el.className='px-2 py-0.5 rounded text-xs font-bold tracking-widest border ' + cls;
   }
 
   function startSleep(seconds, message){
     sleepSeconds=seconds;
     const el=document.getElementById('sleep-badge');
-    el.classList.remove('d-none');
+    el.classList.remove('hidden');
     updateSleepBadge(message);
     if(sleepTimerId) clearInterval(sleepTimerId);
     sleepTimerId=setInterval(()=>{
       if(sleepSeconds<=0){
         clearInterval(sleepTimerId);
-        el.classList.add('d-none');
+        el.classList.add('hidden');
         return;
       }
       sleepSeconds--;
@@ -300,8 +349,8 @@
     ul.innerHTML='';
     activityLog.forEach(a=>{
       const li=document.createElement('li');
-      li.className='list-group-item py-1 d-flex justify-content-between '+(a.err?'text-danger':'');
-      li.innerHTML=`<span class="text-truncate" style="max-width:70%">${escapeHtml(a.msg)}</span><code class="small mono">${a.t.toLocaleTimeString()}</code>`;
+      li.className='p-3 rounded bg-slate-800/50 flex justify-between items-center gap-4 '+(a.err?'text-red-400 border border-red-500/30':'text-slate-300');
+      li.innerHTML=`<span class="text-xs truncate" title="${escapeHtml(a.msg)}">${escapeHtml(a.msg)}</span><span class="text-[10px] font-mono opacity-50 px-2 py-0.5 bg-slate-900 rounded whitespace-nowrap">${a.t.toLocaleTimeString()}</span>`;
       ul.appendChild(li);
     });
     if(/Scanning for opportunities/i.test(line)) setCycleBadge('SCANNING');
@@ -311,7 +360,6 @@
 
   function processActivityString(s){
     if(!s) return;
-    // Updated regex to handle the actual format from trading session
     const sleepMatch=s.match(/Sleeping.*?\((\d{1,2}):(\d{2}) remaining\)/);
     const marketClosedMatch = s.match(/Market closed. Sleeping.*?\((\d+):(\d{2}) remaining\)/);
 
@@ -351,9 +399,9 @@
         const errBox=document.getElementById('status-error');
         if(currentStatus==='FAILED' && data.error_message){
           errBox.textContent=data.error_message;
-          errBox.classList.remove('d-none');
+          errBox.classList.remove('hidden');
         } else {
-          errBox.classList.add('d-none');
+          errBox.classList.add('hidden');
           errBox.textContent='';
         }
 
@@ -401,28 +449,25 @@
   }
 
   function wireControls(){
-    document.getElementById('stop-btn').addEventListener('click',()=>{
-      if(confirm('Are you sure you want to stop the trading bot?')){
-        document.getElementById('stop-form').submit();
-      }
-    });
-
     document.getElementById('start-form').addEventListener('submit',(e)=>{
       const model=document.getElementById('model_file_select').value;
       if(!model){
         e.preventDefault();
-        alert('Please select a model file first.');
+        alert('Please select a matrix neural loadout first.');
         return false;
       }
-      if(!confirm(`Start paper trading with model: ${model}?`)){
-        e.preventDefault();
-        return false;
-      }
+      e.preventDefault();
+      window.confirmJarvisAction(`Authorize binding ${model} neural tensor into live market routing?`, () => {
+        window.launchJarvisOverlay(null, 'INITIALIZING LIVE CONNECTION...');
+        // Let the animation start, then submit
+        setTimeout(() => {
+            e.target.submit();
+        }, 1500); 
+      });
     });
   }
 
   function boot(){
-    initPositions();
     initChart();
     wireControls();
     fetchStatus();

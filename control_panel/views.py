@@ -29,15 +29,35 @@ logger = logging.getLogger(__name__)
 
 @login_required
 def dashboard_view(request):
-    """
-    The view for the main dashboard page.
-    The context is now minimal, as data is loaded via API.
-    """
-    # We can still pass in recent jobs for the initial page load
+    try:
+        broker = Broker()
+        live_equity = broker.get_equity()
+        buying_power = broker.get_buying_power()
+        positions = broker.get_positions()
+        clock_data = broker.get_market_clock()
+    except Exception as e:
+        logger.warning(f"Could not connect to broker for dashboard: {e}")
+        live_equity = 100000.00
+        buying_power = 100000.00
+        positions = []
+        clock_data = None
+
     recent_jobs = TrainingJob.objects.filter(status='COMPLETED').order_by('-id')[:5]
+    
+    active_meta = MetaTrainingJob.objects.exclude(status__in=['COMPLETED', 'FAILED', 'STOPPED']).order_by('-id').first()
+    active_training = TrainingJob.objects.exclude(status__in=['COMPLETED', 'FAILED', 'STOPPED']).order_by('-id').first()
+    
+    trader = PaperTrader.objects.filter(id=1).first()
 
     context = {
-        'recent_jobs': recent_jobs
+        'recent_jobs': recent_jobs,
+        'live_equity': f"{live_equity:,.2f}",
+        'buying_power': f"{buying_power:,.2f}",
+        'active_positions': positions,
+        'active_meta': active_meta,
+        'active_training': active_training,
+        'trader': trader,
+        'clock': clock_data,
     }
     return render(request, 'dashboard.html', context)
 
@@ -53,8 +73,17 @@ def training_view(request):
         )
         return redirect('training')
 
-    all_jobs = TrainingJob.objects.all().order_by('-id')
-    meta_jobs = MetaTrainingJob.objects.all().order_by('-id')
+    from django.core.paginator import Paginator
+
+    all_jobs_query = TrainingJob.objects.all().order_by('-id')
+    meta_jobs_query = MetaTrainingJob.objects.all().order_by('-id')
+    
+    job_page_num = request.GET.get('job_page', 1)
+    meta_page_num = request.GET.get('meta_page', 1)
+
+    all_jobs = Paginator(all_jobs_query, 5).get_page(job_page_num)
+    meta_jobs = Paginator(meta_jobs_query, 5).get_page(meta_page_num)
+
     context = {
         'training_jobs': all_jobs,
         'meta_training_jobs': meta_jobs,
@@ -94,9 +123,24 @@ def start_training_job_view(request):
             initial_cash=request.POST.get('initial_cash', 100000)
         )
 
-        # Send to Celery worker
-        run_training_job_task.delay(job.id)
-
+        import subprocess
+        import sys
+        import os
+        from pathlib import Path
+        
+        log_dir = Path(__file__).parent.parent / "logs"
+        log_dir.mkdir(exist_ok=True)
+        log_file = log_dir / f"train_job_{job.id}.log"
+        f = open(log_file, "w")
+        
+        process = subprocess.Popen(
+            [sys.executable, "run_training.py", "--job_id", str(job.id)],
+            cwd=str(Path(__file__).parent.parent),
+            stdout=f,
+            stderr=subprocess.STDOUT
+        )
+        job.celery_task_id = str(process.pid)
+        job.save()
     return redirect('training')
 
 
@@ -105,7 +149,12 @@ def stop_job_view(request, job_id):
     if request.method == 'POST':
         job = get_object_or_404(TrainingJob, id=job_id)
         if job.celery_task_id:
-            stop_celery_task.delay(job.celery_task_id)
+            import os
+            import signal
+            try:
+                os.kill(int(job.celery_task_id), signal.SIGTERM)
+            except Exception as e:
+                logger.warning(f"Could not kill PID {job.celery_task_id}: {e}")
             job.status = 'STOPPED'
             job.save()
     return redirect('training')
@@ -115,11 +164,29 @@ def stop_job_view(request, job_id):
 def start_meta_job_view(request):
     if request.method == 'POST':
         meta_job = MetaTrainingJob.objects.create(
-            initial_cash=request.POST.get('initial_cash'),
-            target_equity=request.POST.get('target_equity'),
-            status='PENDING'
+            initial_cash=request.POST.get('initial_cash', 100000),
+            target_equity=request.POST.get('target_equity', 200000),
+            status='RUNNING'
         )
-        run_meta_trainer_task.delay(meta_job.id)
+
+        import subprocess
+        import sys
+        from pathlib import Path
+        
+        log_dir = Path(__file__).parent.parent / "logs"
+        log_dir.mkdir(exist_ok=True)
+        log_file = log_dir / f"meta_job_{meta_job.id}.log"
+        f = open(log_file, "w")
+        
+        process = subprocess.Popen(
+            [sys.executable, "run_meta_trainer.py", "--job_id", str(meta_job.id)],
+            cwd=str(Path(__file__).parent.parent),
+            stdout=f,
+            stderr=subprocess.STDOUT
+        )
+        meta_job.celery_task_id = str(process.pid)
+        meta_job.save()
+        
     return redirect('training')
 
 
@@ -140,10 +207,19 @@ def papertrading_view(request):
     saved_models_path = Path("saved_models")
     model_files = [p.name for p in saved_models_path.glob("*.pth")] if saved_models_path.exists() else []
 
+    clock_data = None
+    try:
+        from src.execution.broker import Broker
+        broker = Broker()
+        clock_data = broker.get_market_clock()
+    except Exception:
+        pass
+
     context = {
         'trader': trader,
         'trader_status': trader.status,
-        'model_files': model_files
+        'model_files': model_files,
+        'clock': clock_data
     }
     return render(request, 'papertrading.html', context)
 
@@ -155,19 +231,31 @@ def start_trader_view(request):
     """
     if request.method == 'POST':
         model_file = request.POST.get('model_file')
-        # --- REMOVED: No longer need to get initial_cash from the form ---
 
         trader, _ = PaperTrader.objects.get_or_create(id=1)
         trader.error_message = ''
 
         if trader.status in ('STOPPED', 'FAILED') and model_file:
-            # --- MODIFIED: The task call is now simpler ---
-            task = run_paper_trader_task.delay(trader.id, model_file)
+            import subprocess
+            import sys
+            import os
+            from pathlib import Path
+            
+            log_dir = Path(__file__).parent.parent / "logs"
+            log_dir.mkdir(exist_ok=True)
+            log_file_path = log_dir / f"live_trader_1.log"
+            f = open(log_file_path, "w")
+            
+            process = subprocess.Popen(
+                [sys.executable, "-m", "src.core.async_engine", "--trader_id", "1", "--model_file", model_file],
+                cwd=str(Path(__file__).parent.parent),
+                stdout=f,
+                stderr=subprocess.STDOUT
+            )
 
             trader.status = 'RUNNING'
             trader.model_file = model_file
-            # No need to save initial_cash anymore
-            trader.celery_task_id = task.id
+            trader.celery_task_id = str(process.pid)
             trader.save()
 
     return redirect('papertrading')
@@ -178,26 +266,13 @@ def stop_trader_view(request):
     if request.method == 'POST':
         trader = get_object_or_404(PaperTrader, id=1)
 
-        # try:
-        #     broker = Broker()
-        #     positions = broker.get_positions()
-        #     if positions:
-        #         logger.info(f"Stopping trader. Liquidating {len(positions)} open positions.")
-        #         for position in positions:
-        #             try:
-        #                 broker.api.close_position(position.symbol)
-        #                 time.sleep(1)  # API rate limiting
-        #             except Exception as e:
-        #                 logger.error(f"Could not close position {position.symbol}: {e}")
-        #         messages.info(request, f"Trader stopped and attempted to close {len(positions)} positions.")
-        #     else:
-        #         messages.info(request, "Trader stopped. No open positions to close.")
-        # except Exception as e:
-        #     logger.error(f"Failed to liquidate positions on stop: {e}")
-        #     messages.error(request, "Trader stopped, but failed to connect to broker to liquidate positions.")
-
         if trader.celery_task_id:
-            stop_celery_task.delay(trader.celery_task_id)
+            import os
+            import signal
+            try:
+                os.kill(int(trader.celery_task_id), signal.SIGTERM)
+            except Exception as e:
+                logger.warning(f"Could not kill PID {trader.celery_task_id}: {e}")
 
         trader.status = 'STOPPED'
         trader.celery_task_id = None
@@ -216,6 +291,17 @@ def realtrading_view(request):
         'model_files': _get_available_models(),
     }
     return render(request, 'realtrading.html', context)
+
+
+@login_required
+def settings_view(request):
+    """
+    Renders the persistent Jarvis Settings page.
+    """
+    context = {
+        'active_page': 'settings'
+    }
+    return render(request, 'settings.html', context)
 
 
 @login_required
@@ -323,6 +409,27 @@ def job_status_api(request):
         ]
     }
     return JsonResponse(data)
+
+@login_required
+def job_logs_api(request, job_type, job_id):
+    from pathlib import Path
+    log_dir = Path(__file__).parent.parent / "logs"
+    if job_type == 'meta':
+        log_file = log_dir / f"meta_job_{job_id}.log"
+    else:
+        log_file = log_dir / f"train_job_{job_id}.log"
+        
+    if not log_file.exists():
+        return JsonResponse({"logs": "System provisioning container...\nWaiting for log stream..."})
+        
+    try:
+        with open(log_file, "r") as f:
+            lines = f.readlines()
+            # Grabbing the last 200 lines to avoid blowing up memory on UI
+            logs = "".join(lines[-200:])  
+        return JsonResponse({"logs": logs})
+    except Exception as e:
+        return JsonResponse({"logs": f"Error accessing internal Matrix stream: {e}"})
 
 
 def trader_status_api(request):

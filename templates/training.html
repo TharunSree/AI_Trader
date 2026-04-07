@@ -1,215 +1,283 @@
-{% extends "vertical.html" %}
+{% extends "base.html" %}
 {% load static %}
 
 {% block title %}Training Control{% endblock title %}
-
-{% block extra_css %}
-<link href="{% static 'vendor/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}" rel="stylesheet" type="text/css"/>
-{% endblock extra_css %}
-
-{% block page_title %}
-{% include 'partials/topbar.html' with topbarTitle='AI Model Training' %}
-{% endblock page_title %}
+{% block page_title %}AI Neural Training Matrix{% endblock page_title %}
 
 {% block page_content %}
-<div class="row">
+
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
     <!-- Meta Training Launcher -->
-    <div class="col-lg-12">
-        <div class="card border-primary border">
-            <div class="card-body">
-                <h4 class="header-title text-primary">Master Coach: Find the Best Agent</h4>
-                <p class="text-muted font-14">
-                    Launch a meta-training experiment to test multiple strategies and record the best performer.
-                </p>
-                <form action="{% url 'start_meta_job' %}" method="POST">
-                    {% csrf_token %}
-                    <div class="row">
-                        <div class="col-md-5 mb-3">
-                            <label for="meta_initial_cash" class="form-label">Initial Cash ($)</label>
-                            <input type="number" id="meta_initial_cash" name="initial_cash" class="form-control"
-                                   value="100000" step="1" min="1" required>
-                        </div>
-                        <div class="col-md-5 mb-3">
-                            <label for="meta_target_equity" class="form-label">Target Equity ($)</label>
-                            <input type="number" id="meta_target_equity" name="target_equity" class="form-control"
-                                   value="200000" step="1" min="1" required>
-                        </div>
-                        <div class="col-md-2 mb-3 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary w-100">
-                                <i class="ri-instance-line me-1"></i>Launch
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
+    <div
+        class="glass rounded-2xl p-6 relative overflow-hidden group hover:border-brand-primary/50 transition-all duration-300 hover:shadow-[0_0_30px_rgba(59,130,246,0.2)]">
+        <div
+            class="absolute inset-0 bg-gradient-to-br from-brand-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
         </div>
+        <h4 class="text-lg font-mono tracking-widest text-brand-accent mb-2 relative z-10">Master Coach: Meta-Trainer
+        </h4>
+        <p class="text-sm text-slate-400 mb-6 relative z-10">
+            Launch a massive parallel experiment to test multiple strategy combinations autonomously.
+        </p>
+        <form action="{% url 'start_meta_job' %}" method="POST" id="form-meta-job" class="relative z-10"
+            onsubmit="event.preventDefault(); window.launchJarvisOverlay(this, 'SPINNING UP META-COACH PIPELINES...');">
+            {% csrf_token %}
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label for="meta_initial_cash"
+                        class="block text-xs uppercase tracking-widest text-slate-500 mb-2">Initial Cash ($)</label>
+                    <input type="number" id="meta_initial_cash" name="initial_cash"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-all"
+                        value="100000" step="1" min="1" required>
+                </div>
+                <div>
+                    <label for="meta_target_equity"
+                        class="block text-xs uppercase tracking-widest text-slate-500 mb-2">Target Equity ($)</label>
+                    <input type="number" id="meta_target_equity" name="target_equity"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-all"
+                        value="200000" step="1" min="1" required>
+                </div>
+            </div>
+            <button type="submit"
+                class="w-full bg-brand-accent/20 hover:bg-brand-accent text-white font-mono tracking-widest uppercase py-3 rounded-lg border border-brand-accent/50 hover:shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                Deploy Meta-Trainer
+            </button>
+        </form>
     </div>
 
     <!-- Single Training Job Launcher -->
-    <div class="col-lg-12">
-        <div class="card">
-            <div class="card-body">
-                <h4 class="header-title">Start New Training Job</h4>
-                <p class="text-muted font-14">
-                    Select configuration and start a single training run.
-                </p>
-                <form action="{% url 'start_training_job' %}" method="POST">
-                    {% csrf_token %}
-                    <div class="row">
-                        <div class="col-md-3 mb-3">
-                            <label for="feature_set_key" class="form-label">Feature Set</label>
-                            <select class="form-select" id="feature_set_key" name="feature_set_key">
-                                {% for key,val in playbook.feature_sets.items %}
-                                <option value="{{ key }}">{{ key|title }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="hyperparameter_key" class="form-label">Hyperparameters</label>
-                            <select class="form-select" id="hyperparameter_key" name="hyperparameter_key">
-                                {% for key,val in playbook.hyperparameters.items %}
-                                <option value="{{ key }}">{{ key|title }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <!-- Replace the window_size section in the form -->
-<div class="col-md-2 mb-3">
-    <label for="window_size" class="form-label">Window Size (days)</label>
-    <select class="form-select" id="window_size" name="window_size">
-        <option value="5">5 days (Very Short)</option>
-        <option value="8">8 days (Short)</option>
-        <option value="10" selected>10 days (Standard)</option>
-        <option value="15">15 days (Medium)</option>
-        <option value="20">20 days (Long)</option>
-        <option value="30">30 days (Very Long)</option>
-    </select>
+    <div
+        class="glass rounded-2xl p-6 relative overflow-hidden group hover:border-brand-primary/50 transition-all duration-300 hover:shadow-[0_0_30px_rgba(59,130,246,0.2)]">
+        <div
+            class="absolute inset-0 bg-gradient-to-br from-brand-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+        </div>
+        <h4 class="text-lg font-mono tracking-widest text-brand-primary mb-2 relative z-10">Single Job: Direct Node</h4>
+        <p class="text-sm text-slate-400 mb-6 relative z-10">
+            Define specific metrics and launch a solitary, targeted backpropagation protocol.
+        </p>
+        <form action="{% url 'start_training_job' %}" method="POST" id="form-single-job" class="relative z-10"
+            onsubmit="event.preventDefault(); window.launchJarvisOverlay(this, 'CONNECTING TO DEDICATED MODEL...');">
+            {% csrf_token %}
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="feature_set_key"
+                        class="block text-xs uppercase tracking-widest text-slate-500 mb-2">Feature Set</label>
+                    <select
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all appearance-none"
+                        id="feature_set_key" name="feature_set_key">
+                        {% for key,val in playbook.feature_sets.items %}
+                        <option value="{{ key }}" class="bg-slate-900 text-brand-primary font-mono py-1">{{ key|title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="hyperparameter_key"
+                        class="block text-xs uppercase tracking-widest text-slate-500 mb-2">Parameters</label>
+                    <select
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all appearance-none"
+                        id="hyperparameter_key" name="hyperparameter_key">
+                        {% for key,val in playbook.hyperparameters.items %}
+                        <option value="{{ key }}" class="bg-slate-900 text-brand-primary font-mono py-1">{{ key|title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="window_size" class="block text-xs uppercase tracking-widest text-slate-500 mb-2">Window
+                        (Days)</label>
+                    <select
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all appearance-none"
+                        id="window_size" name="window_size">
+                        <option value="5" class="bg-slate-900 text-brand-primary font-mono py-1">5 / Short</option>
+                        <option value="10" selected class="bg-slate-900 text-brand-primary font-mono py-1">10 / Std</option>
+                        <option value="20" class="bg-slate-900 text-brand-primary font-mono py-1">20 / Long</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="initial_cash"
+                        class="block text-xs uppercase tracking-widest text-slate-500 mb-2">Initial Cash ($)</label>
+                    <input type="number" id="initial_cash" name="initial_cash"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all"
+                        value="100000" step="1" min="1" required>
+                </div>
+            </div>
+            <button type="submit"
+                class="w-full bg-brand-primary/20 hover:bg-brand-primary text-white font-mono tracking-widest uppercase py-3 rounded-lg border border-brand-primary/50 hover:shadow-[0_0_15px_rgba(59,130,246,0.5)] transition-all mt-2 flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Launch Job
+            </button>
+        </form>
+    </div>
 </div>
-                        <div class="col-md-2 mb-3">
-                            <label for="initial_cash" class="form-label">Initial Cash ($)</label>
-                            <input type="number" id="initial_cash" name="initial_cash" class="form-control"
-                                   value="100000" step="1" min="1" required>
+
+<div class="grid grid-cols-1 gap-6 mb-6">
+    <!-- Training Jobs Table -->
+    <div class="glass rounded-2xl p-6 relative z-10 w-full overflow-x-auto">
+        <h4 class="text-base font-semibold text-white mb-4 tracking-widest uppercase">Training Job History</h4>
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="border-b border-slate-700/50 text-xs tracking-widest text-slate-400 uppercase font-mono">
+                    <th class="py-3 px-4 font-normal">Job ID</th>
+                    <th class="py-3 px-4 font-normal">Status</th>
+                    <th class="py-3 px-4 font-normal">Progress</th>
+                    <th class="py-3 px-4 font-normal text-right">Best Reward</th>
+                    <th class="py-3 px-4 font-normal text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for job in training_jobs %}
+                <tr class="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors cursor-pointer" onclick="toggleTerminal('train', {{ job.id }})">
+                    <td class="py-3 px-4 text-slate-300 font-mono text-sm">#{{ job.id }}</td>
+                    <td id="job-status-{{ job.id }}" class="py-3 px-4">
+                        {% if job.status == 'COMPLETED' %}
+                        <span
+                            class="px-2 py-0.5 rounded text-xs font-semibold bg-green-500/20 text-green-400 border border-green-500/30">COMPLETED</span>
+                        {% elif job.status == 'RUNNING' %}
+                        <span
+                            class="px-2 py-0.5 rounded text-xs font-semibold bg-blue-500/20 text-blue-400 border border-blue-500/30 animate-pulse">RUNNING</span>
+                        {% else %}
+                        <span class="px-2 py-0.5 rounded text-xs font-semibold bg-red-500/20 text-red-400 border border-red-500/30">{{ job.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="py-3 px-4">
+                        <div class="w-full bg-slate-800 h-1.5 rounded overflow-hidden mt-1">
+                            <div id="job-progress-{{ job.id }}" class="bg-brand-primary h-full transition-all"
+                                style="width: {{ job.progress }}%;"></div>
                         </div>
-                        <div class="col-md-2 mb-3 d-flex align-items-end">
-                            <button type="submit" class="btn btn-success w-100">
-                                <i class="ri-play-line me-1"></i>Start
-                            </button>
+                    </td>
+                    <td id="job-reward-{{ job.id }}" class="py-3 px-4 text-right text-brand-accent font-mono text-sm">
+                        ${{ job.best_reward|floatformat:2 }}</td>
+                    <td class="py-3 px-4 text-right" onclick="event.stopPropagation();">
+                        <form action="{% url 'stop_job' job.id %}" method="POST" class="inline-block"
+                            onsubmit="event.preventDefault(); window.confirmJarvisAction('Are you sure you want to terminate this neural link? All unsaved epoch weights will be purged.', () => { window.launchJarvisShutdown(this, 'ABORTING TRAINING DIRECTIVE...'); })">
+                            {% csrf_token %}
+                            <button type="submit"
+                                onclick="event.stopPropagation();"
+                                class="text-xs font-mono px-3 py-1 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded border border-red-500/50 transition-all uppercase tracking-wider disabled:opacity-30 disabled:pointer-events-none disabled:grayscale"
+                                {% if job.status != 'RUNNING' %}disabled{% endif %}>Stop</button>
+                        </form>
+                    </td>
+                </tr>
+                <!-- The Jarvis Embedded Terminal -->
+                <tr id="terminal-row-train-{{ job.id }}" class="hidden">
+                    <td colspan="5" class="p-0 border-b border-brand-primary/20">
+                        <div class="bg-black/60 font-mono text-[10px] sm:text-xs text-brand-primary p-4 max-h-64 w-full shadow-[inset_0_4px_10px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col relative">
+                            <div class="text-white/30 text-[10px] mb-2 uppercase tracking-widest flex items-center gap-2">
+                                <div class="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse"></div> Live Neural Output
+                            </div>
+                            <div class="overflow-y-auto flex-1 w-full scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+                                <pre id="terminal-content-train-{{ job.id }}" class="whitespace-pre">Connecting to Matrix Stream...</pre>
+                            </div>
                         </div>
-                    </div>
-                </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="py-6 text-center text-slate-500 font-mono text-sm">NO ARCHIVED LOGS</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <div class="flex justify-between items-center mt-4 pt-4 border-t border-slate-700/50">
+            <div class="text-xs font-mono text-slate-400">Page {{ training_jobs.number }} of {{ training_jobs.paginator.num_pages }}</div>
+            <div class="flex gap-2">
+                {% if training_jobs.has_previous %}
+                <a href="?job_page={{ training_jobs.previous_page_number }}&meta_page={{ meta_training_jobs.number }}" class="px-3 py-1 bg-brand-primary/10 hover:bg-brand-primary/30 text-brand-primary border border-brand-primary/30 rounded transition-colors text-xs font-mono uppercase tracking-wider font-semibold">Prev</a>
+                {% endif %}
+                {% if training_jobs.has_next %}
+                <a href="?job_page={{ training_jobs.next_page_number }}&meta_page={{ meta_training_jobs.number }}" class="px-3 py-1 bg-brand-primary/10 hover:bg-brand-primary/30 text-brand-primary border border-brand-primary/30 rounded transition-colors text-xs font-mono uppercase tracking-wider font-semibold">Next</a>
+                {% endif %}
             </div>
         </div>
     </div>
 
     <!-- Meta Training Jobs Table -->
-    <div class="col-lg-12">
-        <div class="card">
-            <div class="card-body">
-                <h4 class="header-title">Meta-Training Job History</h4>
-                <table id="meta-jobs-table" class="table table-striped dt-responsive nowrap w-100">
-                    <thead>
-                    <tr>
-                        <th class="text-center">Job ID</th>
-                        <th class="text-center">Status</th>
-                        <th class="text-center">Progress</th>
-                        <th class="text-center">Best Sharpe Ratio</th>
-                        <th class="text-center">Actions</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for job in meta_training_jobs %}
-                    <tr id="meta-job-row-{{ job.id }}">
-                        <td class="text-center">{{ job.id }}</td>
-                        <td id="meta-job-status-{{ job.id }}" class="text-center">
-                            {% include "partials/status_badge.html" with status=job.status %}
-                            {% if job.status == 'FAILED' and job.error_message %}
-                                <span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top"
-                                      title="{{ job.error_message }}">
-                                    <i class="ri-information-line text-danger"></i>
-                                </span>
-                            {% endif %}
-                        </td>
-                        <td class="text-center">
-                            <div class="progress progress-sm">
-                                <div id="meta-job-progress-{{ job.id }}"
-                                     class="progress-bar {% if job.status == 'RUNNING' %}progress-bar-animated{% endif %} bg-primary"
-                                     role="progressbar" style="width: {{ job.progress }}%;"></div>
+    <div class="glass rounded-2xl p-6 relative z-10 w-full overflow-x-auto">
+        <h4 class="text-base font-semibold text-white mb-4 tracking-widest uppercase">Meta-Training Logs</h4>
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="border-b border-slate-700/50 text-xs tracking-widest text-slate-400 uppercase font-mono">
+                    <th class="py-3 px-4 font-normal">Job ID</th>
+                    <th class="py-3 px-4 font-normal">Status</th>
+                    <th class="py-3 px-4 font-normal">Progress</th>
+                    <th class="py-3 px-4 font-normal text-right">Best Sharpe</th>
+                    <th class="py-3 px-4 font-normal text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for job in meta_training_jobs %}
+                <tr class="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors cursor-pointer" onclick="toggleTerminal('meta', {{ job.id }})">
+                    <td class="py-3 px-4 text-slate-300 font-mono text-sm">#M{{ job.id }}</td>
+                    <td id="meta-job-status-{{ job.id }}" class="py-3 px-4">
+                        {% if job.status == 'COMPLETED' %}
+                        <span
+                            class="px-2 py-0.5 rounded text-xs font-semibold bg-green-500/20 text-green-400 border border-green-500/30">COMPLETED</span>
+                        {% elif job.status == 'RUNNING' %}
+                        <span
+                            class="px-2 py-0.5 rounded text-xs font-semibold bg-brand-accent/20 text-brand-accent border border-brand-accent/30 animate-pulse">RUNNING</span>
+                        {% else %}
+                        <span class="px-2 py-0.5 rounded text-xs font-semibold bg-red-500/20 text-red-400 border border-red-500/30">{{ job.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="py-3 px-4">
+                        <div class="w-full bg-slate-800 h-1.5 rounded overflow-hidden mt-1">
+                            <div id="meta-job-progress-{{ job.id }}" class="bg-brand-accent h-full transition-all"
+                                style="width: {{ job.progress }}%;"></div>
+                        </div>
+                    </td>
+                    <td id="meta-job-sharpe-{{ job.id }}" class="py-3 px-4 text-right text-slate-300 font-mono text-sm">
+                        {% if job.results.sharpe_ratio %}{{ job.results.sharpe_ratio|floatformat:2 }}{% else %}-{% endif %}
+                    </td>
+                    <td class="py-3 px-4 text-right" onclick="event.stopPropagation();">
+                        <form action="{% url 'stop_meta_job' job.id %}" method="POST" class="inline-block"
+                            onsubmit="event.preventDefault(); window.confirmJarvisAction('Cancel Meta-Coach pipeline? All cross-validated performance grids will be destroyed.', () => { window.launchJarvisShutdown(this, 'ABORTING META-COACH PIPELINES...'); })">
+                            {% csrf_token %}
+                            <button type="submit"
+                                onclick="event.stopPropagation();"
+                                class="text-xs font-mono px-3 py-1 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded border border-red-500/50 transition-all uppercase tracking-wider disabled:opacity-30 disabled:pointer-events-none disabled:grayscale"
+                                {% if job.status != 'RUNNING' %}disabled{% endif %}>Stop</button>
+                        </form>
+                    </td>
+                </tr>
+                <!-- The Jarvis Embedded Terminal -->
+                <tr id="terminal-row-meta-{{ job.id }}" class="hidden">
+                    <td colspan="5" class="p-0 border-b border-brand-accent/20">
+                        <div class="bg-black/80 font-mono text-[10px] sm:text-xs text-brand-accent p-4 max-h-64 w-full shadow-[inset_0_4px_10px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col relative">
+                            <div class="text-white/30 text-[10px] mb-2 uppercase tracking-widest flex items-center gap-2">
+                                <div class="w-1.5 h-1.5 rounded-full bg-brand-accent animate-pulse"></div> Live Meta-Coach Output
                             </div>
-                        </td>
-                        <td id="meta-job-sharpe-{{ job.id }}" class="text-center">
-                            {% if job.results.sharpe_ratio %}{{ job.results.sharpe_ratio|floatformat:2 }}{% else %}-{% endif %}
-                        </td>
-                        <td class="text-center">
-                            <form action="{% url 'stop_meta_job' job.id %}" method="POST" class="d-inline">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-danger btn-sm"
-                                        {% if job.status != 'RUNNING' %}disabled{% endif %}>
-                                    <i class="ri-stop-circle-line"></i> Stop
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr><td colspan="5" class="text-center">No meta-training jobs found.</td></tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- Training Jobs Table -->
-    <div class="col-lg-12">
-        <div class="card">
-            <div class="card-body">
-                <h4 class="header-title">Training Job History</h4>
-                <table id="training-jobs-table" class="table table-striped dt-responsive nowrap w-100">
-                    <thead>
-                    <tr>
-                        <th class="text-center">Job ID</th>
-                        <th class="text-center">Status</th>
-                        <th class="text-center">Progress</th>
-                        <th class="text-center">Best Reward</th>
-                        <th class="text-center">Config</th>
-                        <th class="text-center">Actions</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for job in training_jobs %}
-                    <tr id="job-row-{{ job.id }}">
-                        <td class="text-center">{{ job.id }}</td>
-                        <td id="job-status-{{ job.id }}" class="text-center">
-                            {% include "partials/status_badge.html" with status=job.status %}
-                            {% if job.status == 'FAILED' and job.error_message %}
-                                <span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top"
-                                      title="{{ job.error_message }}">
-                                    <i class="ri-information-line text-danger"></i>
-                                </span>
-                            {% endif %}
-                        </td>
-                        <td class="text-center">
-                            <div class="progress progress-sm">
-                                <div id="job-progress-{{ job.id }}"
-                                     class="progress-bar {% if job.status == 'RUNNING' %}progress-bar-animated{% endif %} bg-success"
-                                     role="progressbar" style="width: {{ job.progress }}%;"></div>
+                            <div class="overflow-y-auto flex-1 w-full scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+                                <pre id="terminal-content-meta-{{ job.id }}" class="whitespace-pre">Booting Orchestrator Node...</pre>
                             </div>
-                        </td>
-                        <td id="job-reward-{{ job.id }}" class="text-center">${{ job.best_reward|floatformat:2 }}</td>
-                        <td class="text-center">{{ job.feature_set_key }} / {{ job.hyperparameter_key }} / {{ job.window_size }}w / ${{ job.initial_cash|floatformat:0 }}</td>
-                        <td class="text-center">
-                            <form action="{% url 'stop_job' job.id %}" method="POST" class="d-inline">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-danger btn-sm"
-                                        {% if job.status != 'RUNNING' %}disabled{% endif %}>
-                                    <i class="ri-stop-circle-line"></i> Stop
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr><td colspan="6" class="text-center">No training jobs found.</td></tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="py-6 text-center text-slate-500 font-mono text-sm">NO ARCHIVED LOGS</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <div class="flex justify-between items-center mt-4 pt-4 border-t border-slate-700/50">
+            <div class="text-xs font-mono text-slate-400">Page {{ meta_training_jobs.number }} of {{ meta_training_jobs.paginator.num_pages }}</div>
+            <div class="flex gap-2">
+                {% if meta_training_jobs.has_previous %}
+                <a href="?meta_page={{ meta_training_jobs.previous_page_number }}&job_page={{ training_jobs.number }}" class="px-3 py-1 bg-brand-primary/10 hover:bg-brand-primary/30 text-brand-primary border border-brand-primary/30 rounded transition-colors text-xs font-mono uppercase tracking-wider font-semibold">Prev</a>
+                {% endif %}
+                {% if meta_training_jobs.has_next %}
+                <a href="?meta_page={{ meta_training_jobs.next_page_number }}&job_page={{ training_jobs.number }}" class="px-3 py-1 bg-brand-primary/10 hover:bg-brand-primary/30 text-brand-primary border border-brand-primary/30 rounded transition-colors text-xs font-mono uppercase tracking-wider font-semibold">Next</a>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -217,85 +285,97 @@
 {% endblock page_content %}
 
 {% block extra_javascript %}
-<script src="{% static 'vendor/datatables.net/js/dataTables.min.js' %}"></script>
-<script src="{% static 'vendor/datatables.net-bs5/js/dataTables.bootstrap5.min.js' %}"></script>
 <script>
-(function(){
-    function escapeHtml(str){
-        return (str||'').replace(/[&<>"'`]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c]));
-    }
-    function buildStatusBadge(status){
-        let cls='bg-secondary-subtle text-secondary';
-        if(status==='COMPLETED') cls='bg-success-subtle text-success';
-        else if(status==='RUNNING') cls='bg-info-subtle text-info';
-        else if(status==='FAILED'||status==='STOPPED') cls='bg-danger-subtle text-danger';
-        return `<span class="badge ${cls}">${status}</span>`;
-    }
-    function updateTables(data){
-        let refreshTooltips=false;
-        data.training_jobs.forEach(job=>{
-            const pb=document.getElementById('job-progress-'+job.id);
-            if(pb){
-                pb.style.width=job.progress+'%';
-                pb.classList.toggle('progress-bar-animated',job.status==='RUNNING');
-            }
-            const sc=document.getElementById('job-status-'+job.id);
-            if(sc){
-                let html=buildStatusBadge(job.status);
-                if(job.status==='FAILED' && job.error_message){
-                    html+=`<span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="${escapeHtml(job.error_message)}"><i class="ri-information-line text-danger"></i></span>`;
-                    refreshTooltips=true;
-                }
-                sc.innerHTML=html;
-            }
-            const rc=document.getElementById('job-reward-'+job.id);
-            if(rc) rc.innerText='$'+Number(job.best_reward).toFixed(2);
-        });
-        data.meta_training_jobs.forEach(job=>{
-            const pb=document.getElementById('meta-job-progress-'+job.id);
-            if(pb){
-                pb.style.width=job.progress+'%';
-                pb.classList.toggle('progress-bar-animated',job.status==='RUNNING');
-            }
-            const sc=document.getElementById('meta-job-status-'+job.id);
-            if(sc){
-                let html=buildStatusBadge(job.status);
-                if(job.status==='FAILED' && job.error_message){
-                    html+=`<span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="${escapeHtml(job.error_message)}"><i class="ri-information-line text-danger"></i></span>`;
-                    refreshTooltips=true;
-                }
-                sc.innerHTML=html;
-            }
-            const sh=document.getElementById('meta-job-sharpe-'+job.id);
-            if(sh) sh.innerText = job.best_sharpe_ratio ? Number(job.best_sharpe_ratio).toFixed(2) : '-';
-        });
-        if(refreshTooltips){
-            $('[data-bs-toggle="tooltip"]').tooltip();
+
+    let activeTerminalPoller = null;
+    let activeTerminalId = null;
+    let activeTerminalType = null;
+
+    function toggleTerminal(type, id) {
+        const rowId = `terminal-row-${type}-${id}`;
+        const row = document.getElementById(rowId);
+        
+        // Collapse currently active terminal if a different row is clicked
+        if (activeTerminalId !== null && (activeTerminalId !== id || activeTerminalType !== type)) {
+            document.getElementById(`terminal-row-${activeTerminalType}-${activeTerminalId}`).classList.add('hidden');
+            if (activeTerminalPoller) clearInterval(activeTerminalPoller);
+        }
+
+        if (row.classList.contains('hidden')) {
+            row.classList.remove('hidden');
+            activeTerminalType = type;
+            activeTerminalId = id;
+            pollLogs(type, id); // initial fetch
+            activeTerminalPoller = setInterval(() => pollLogs(type, id), 1500); // Poll every 1.5s
+        } else {
+            row.classList.add('hidden');
+            if (activeTerminalPoller) clearInterval(activeTerminalPoller);
+            activeTerminalId = null;
+            activeTerminalType = null;
         }
     }
-    function fetchJobStatus(){
-        fetch('{% url "job_status_api" %}?_=' + Date.now())
-            .then(r=>r.ok?r.json():Promise.reject(r.status))
-            .then(updateTables)
-            .catch(err=>console.error('job_status_api fetch failed',err));
+
+    function pollLogs(type, id) {
+        fetch(`/api/job-logs/${type}/${id}/`)
+            .then(r => r.ok ? r.json() : Promise.reject(r))
+            .then(data => {
+                const pre = document.getElementById(`terminal-content-${type}-${id}`);
+                if (pre && data.logs && pre.innerText !== data.logs) {
+                    const wrapper = pre.parentElement;
+                    // Check if user is scrolled near the bottom
+                    const isAtBottom = (wrapper.scrollHeight - wrapper.scrollTop - wrapper.clientHeight) < 30;
+                    
+                    pre.innerText = data.logs;
+                    
+                    // Only auto-scroll if they were already at the bottom
+                    if (isAtBottom) {
+                        wrapper.scrollTop = wrapper.scrollHeight;
+                    }
+                }
+            })
+            .catch(err => console.log("Stream offline. Waiting..."));
     }
-    document.addEventListener('DOMContentLoaded',function(){
-        // Fix the ID sorting issue
-        $('#training-jobs-table').DataTable({
-            order: [[0,'desc']],
-            columnDefs: [
-                { targets: [0, 2, 3], type: 'num' }  // ID, Progress, Best Reward
-            ]
-        });
-        $('#meta-jobs-table').DataTable({
-            order: [[0,'desc']],
-            columnDefs: [
-                { targets: [0, 2, 3], type: 'num' }  // ID, Progress, Best Sharpe
-            ]
-        });
-        $('[data-bs-toggle="tooltip"]').tooltip();
-        setInterval(fetchJobStatus,5000);
-    });
-})();
+
+    // Live UI State Polling Layer
+    function updateStatusBadge(container, job) {
+        if (!container) return;
+        if(job.status === 'COMPLETED') {
+            container.innerHTML = '<span class="px-2 py-0.5 rounded text-xs font-semibold bg-green-500/20 text-green-400 border border-green-500/30">COMPLETED</span>';
+        } else if(job.status === 'RUNNING') {
+            container.innerHTML = '<span class="px-2 py-0.5 rounded text-xs font-semibold bg-brand-primary/20 text-brand-primary border border-brand-primary/30 animate-pulse">RUNNING</span>';
+        } else if(job.status === 'FAILED') {
+            container.innerHTML = `<span class="px-2 py-0.5 rounded text-xs font-semibold bg-red-500/20 text-red-500 border border-red-500/30">FAILED</span>`;
+        } else {
+            container.innerHTML = `<span class="px-2 py-0.5 rounded text-xs font-semibold bg-slate-500/20 text-slate-400 border border-slate-500/30">${job.status}</span>`;
+        }
+    }
+
+    function fetchJobStatus() {
+        fetch('{% url "job_status_api" %}?_=' + Date.now())
+            .then(r => r.ok ? r.json() : Promise.reject(r.status))
+            .then(data => {
+                data.training_jobs.forEach(job => {
+                    const statusEl = document.getElementById('job-status-' + job.id);
+                    updateStatusBadge(statusEl, job);
+                    
+                    const pb = document.getElementById('job-progress-' + job.id);
+                    if (pb) pb.style.width = job.progress + '%';
+                    const rc = document.getElementById('job-reward-' + job.id);
+                    if (rc) rc.innerText = '$' + Number(job.best_reward).toFixed(2);
+                });
+                
+                data.meta_training_jobs.forEach(job => {
+                    const statusEl = document.getElementById('meta-job-status-' + job.id);
+                    updateStatusBadge(statusEl, job);
+                    
+                    const pb = document.getElementById('meta-job-progress-' + job.id);
+                    if (pb) pb.style.width = job.progress + '%';
+                    const sh = document.getElementById('meta-job-sharpe-' + job.id);
+                    if (sh) sh.innerText = job.best_sharpe_ratio ? Number(job.best_sharpe_ratio).toFixed(2) : '-';
+                });
+            })
+            .catch(err => console.error('job_status_api fetch failed', err));
+    }
+    setInterval(fetchJobStatus, 5000);
 </script>
 {% endblock extra_javascript %}

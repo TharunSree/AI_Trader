@@ -13,7 +13,7 @@ django.setup()
 
 from src.data.preprocessor import calculate_features
 from src.data.yfinance_loader import YFinanceLoader
-from src.core.environment import TradingEnv
+from src.core.environment import TradingEnvironment
 from src.models.ppo_agent import PPOAgent
 
 logger = logging.getLogger('rl_trading_backend')
@@ -67,7 +67,7 @@ class EvaluationSession:
         if len(backtest_df) < window_size + 1:
             raise ValueError(f"Not enough data in range. Need {window_size + 1} days, got {len(backtest_df)}.")
 
-        env = TradingEnv(
+        env = TradingEnvironment(
             df=backtest_df,
             observation_columns=observation_columns,
             window_size=window_size,

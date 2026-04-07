@@ -1,123 +1,135 @@
-# src/models/ppo_agent.py
 import torch
 import torch.nn as nn
-from torch.optim import Adam
-from torch.distributions.categorical import Categorical
-from pathlib import Path
+import torch.optim as optim
+import numpy as np
 import logging
+from pathlib import Path
+from typing import Dict, List, Tuple
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("AI_Brain")
+
+# Detect if you have an NVIDIA GPU, otherwise fall back to CPU
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+class ActorCritic(nn.Module):
+    def __init__(self, state_dim: int, action_dim: int):
+        super().__init__()
+
+        # 1. THE ACTOR (The Trader)
+        self.actor = nn.Sequential(
+            nn.Linear(state_dim, 64),
+            nn.Tanh(),
+            nn.Linear(64, 64),
+            nn.Tanh(),
+            nn.Linear(64, action_dim),
+            nn.Tanh()  # Forces the output to strictly be between -1.0 and +1.0
+        )
+
+        # 2. THE CRITIC (The Evaluator)
+        self.critic = nn.Sequential(
+            nn.Linear(state_dim, 64),
+            nn.Tanh(),
+            nn.Linear(64, 64),
+            nn.Tanh(),
+            nn.Linear(64, 1)
+        )
+
+        # Action variance (Used to make the AI randomly explore new strategies early on)
+        self.action_var = torch.full((action_dim,), 0.2).to(device)
+
+    def forward(self):
+        raise NotImplementedError
+
+    def act(self, state: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Called during training to make a move and record the probability."""
+        action_mean = self.actor(state)
+        cov_mat = torch.diag(self.action_var).unsqueeze(dim=0)
+        dist = torch.distributions.MultivariateNormal(action_mean, cov_mat)
+
+        action = dist.sample()
+        action_logprob = dist.log_prob(action)
+
+        return torch.clamp(action, -1.0, 1.0).detach(), action_logprob.detach()
 
 
 class PPOAgent:
-    """
-    Proximal Policy Optimization Agent.
-    Contains the Actor (policy) and Critic (value) networks.
-    """
-
-    def __init__(self, state_dim, action_dim, lr=0.001):
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    def __init__(self, state_dim: int = 4, action_dim: int = 1, lr: float = 1e-4, gamma: float = 0.99, eps_clip: float = 0.2):
         self.state_dim = state_dim
         self.action_dim = action_dim
-        self.lr = lr
+        self.gamma = gamma
+        self.eps_clip = eps_clip
 
-        # The +1 is for the sentiment score we will add to the state
-        self.actor = nn.Sequential(
-            nn.Linear(state_dim + 1, 128), nn.ReLU(),
-            nn.Linear(128, 128), nn.ReLU(),
-            nn.Linear(128, action_dim),
-            nn.Softmax(dim=-1)
-        ).to(self.device)
+        # Initialize the Brain
+        self.policy = ActorCritic(state_dim, action_dim).to(device)
+        self.optimizer = optim.Adam(self.policy.parameters(), lr=lr)
+        
+        self.policy_old = ActorCritic(state_dim, action_dim).to(device)
+        self.policy_old.load_state_dict(self.policy.state_dict())
 
-        # The +1 is for the sentiment score
-        self.critic = nn.Sequential(
-            nn.Linear(state_dim + 1, 128), nn.ReLU(),
-            nn.Linear(128, 128), nn.ReLU(),
-            nn.Linear(128, 1)
-        ).to(self.device)
+        self.MseLoss = nn.MSELoss()
 
-        self.optimizer = Adam([
-            {'params': self.actor.parameters(), 'lr': lr},
-            {'params': self.critic.parameters(), 'lr': lr}
-        ])
-        logger.info(f"PPOAgent initialized on device: {self.device}")
-
-    def get_action_and_value(self, state, action=None):
-        """
-        Gets an action, its log probability, and the state value from the critic.
-        This is used during the training process.
-        """
-        if not isinstance(state, torch.Tensor):
-            state = torch.FloatTensor(state).flatten()
-        state = state.to(self.device)
-
-        action_probs = self.actor(state)
-        dist = Categorical(action_probs)
-
-        if action is None:
-            action = dist.sample()
-
-        return action, dist.log_prob(action), dist.entropy(), self.critic(state)
-
-    def predict(self, state: torch.Tensor) -> int:
-        """ Predicts an action based on the current state. Used for evaluation/live trading. """
-        if not isinstance(state, torch.Tensor):
-            state = torch.FloatTensor(state).flatten()
-        state = state.to(self.device)
+    def predict(self, state: np.ndarray) -> float:
+        """Called by the LIVE ENGINE. Pure execution, no exploration."""
         with torch.no_grad():
-            action_probs = self.actor(state)
-            action = torch.argmax(action_probs).item()
-        return action
+            state_tensor = torch.FloatTensor(state).unsqueeze(0).to(device)
+            action_mean = self.policy.actor(state_tensor)
+            action = torch.clamp(action_mean, -1.0, 1.0)
+            return float(action.cpu().numpy()[0][0])
 
-    def save(self, path: Path, config: dict):
-        """
-        Saves the model's state and the configuration used to train it.
-        """
-        if not all(k in config for k in ['features', 'window', 'params']):
-            raise ValueError("Config dictionary must contain 'features', 'window', and 'params' keys.")
+    def update(self, memory: Dict[str, List]):
+        """The core mathematical function where the AI actually learns from its mistakes."""
+        old_states = torch.stack(memory['states'], dim=0).detach().to(device)
+        old_actions = torch.stack(memory['actions'], dim=0).detach().to(device)
+        old_logprobs = torch.stack(memory['logprobs'], dim=0).squeeze().detach().to(device)
+        rewards = memory['rewards']
 
-        path.parent.mkdir(parents=True, exist_ok=True)
-        torch.save({
-            'actor_state_dict': self.actor.state_dict(),
-            'critic_state_dict': self.critic.state_dict(),
-            'optimizer_state_dict': self.optimizer.state_dict(),
-            'config': config,
-        }, path)
-        logger.info(f"Agent saved to {path}")
+        # Calculate Discounted Future Rewards
+        discounted_rewards = []
+        discounted_reward = 0
+        for reward, is_terminal in zip(reversed(rewards), reversed(memory['is_terminals'])):
+            if is_terminal:
+                discounted_reward = 0
+            discounted_reward = reward + (self.gamma * discounted_reward)
+            discounted_rewards.insert(0, discounted_reward)
 
-    def load(self, path: Path):
-        """ Loads model weights from a checkpoint. """
-        if not path.exists():
-            raise FileNotFoundError(f"No model file at {path}")
+        # Normalize rewards to stabilize training
+        discounted_rewards_tensor = torch.tensor(discounted_rewards, dtype=torch.float32).to(device)
+        discounted_rewards_tensor = (discounted_rewards_tensor - discounted_rewards_tensor.mean()) / (discounted_rewards_tensor.std() + 1e-7)
 
-        checkpoint = torch.load(path, map_location=self.device)
-        self.actor.load_state_dict(checkpoint['actor_state_dict'])
-        self.critic.load_state_dict(checkpoint['critic_state_dict'])
-        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        logger.info(f"Agent weights loaded from {path}")
+        # PPO Optimization
+        for _ in range(4):
+            action_mean = self.policy.actor(old_states)
+            action_var = self.policy.action_var.expand_as(action_mean)
+            cov_mat = torch.diag_embed(action_var).to(device)
+            dist = torch.distributions.MultivariateNormal(action_mean, cov_mat)
 
-    @staticmethod
-    def load_with_config(path: Path):
-        """
-        Creates an agent and loads its weights and config from a file.
-        """
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        if not path.exists():
-            raise FileNotFoundError(f"No model file at {path}")
+            logprobs = dist.log_prob(old_actions)
+            state_values = self.policy.critic(old_states).squeeze()
 
-        checkpoint = torch.load(path, map_location=device)
+            advantages = discounted_rewards_tensor - state_values.detach()
 
-        if 'config' not in checkpoint:
-            raise ValueError(f"Model file at {path} does not contain a 'config' dictionary.")
+            ratios = torch.exp(logprobs - old_logprobs)
+            surr1 = ratios * advantages
+            surr2 = torch.clamp(ratios, 1 - self.eps_clip, 1 + self.eps_clip) * advantages
 
-        config = checkpoint['config']
-        state_dim = len(config['features']) * config['window']
-        action_dim = 3
+            loss = -torch.min(surr1, surr2) + 0.5 * self.MseLoss(state_values, discounted_rewards_tensor) - 0.01 * dist.entropy()
 
-        agent = PPOAgent(state_dim, action_dim, lr=config.get('params', {}).get('lr', 0.001))
-        agent.actor.load_state_dict(checkpoint['actor_state_dict'])
-        agent.critic.load_state_dict(checkpoint['critic_state_dict'])
-        agent.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            self.optimizer.zero_grad()
+            loss.mean().backward()
+            self.optimizer.step()
 
-        logger.info(f"Agent and configuration fully loaded from {path}.")
-        return agent, config
+        self.policy_old.load_state_dict(self.policy.state_dict())
+
+    def save_weights(self, filepath: str = "best_model.pth"):
+        """Locks the combat data in the vault."""
+        torch.save(self.policy.state_dict(), filepath)
+        logger.info(f"Champion weights safely saved to: {filepath}")
+
+    def load_weights(self, filepath: str = "best_model.pth"):
+        """Loads weights. Used by the Live Engine."""
+        if not Path(filepath).exists():
+            raise FileNotFoundError(f"Weight file {filepath} not found.")
+        self.policy.load_state_dict(torch.load(filepath, map_location=device))
+        self.policy_old.load_state_dict(self.policy.state_dict())
+        logger.info(f"Loaded combat data from: {filepath}")

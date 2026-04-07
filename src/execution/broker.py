@@ -61,6 +61,18 @@ class Broker:
         acct = self._refresh_account()
         return float(acct.buying_power) if acct else 0.0
 
+    def get_market_clock(self):
+        try:
+            clock = self.api.get_clock()
+            return {
+                "is_open": clock.is_open,
+                "next_open": clock.next_open.isoformat(),
+                "next_close": clock.next_close.isoformat()
+            }
+        except Exception as e:
+            logger.warning(f"Failed to fetch market clock: {e}")
+            return None
+
     def get_positions(self) -> list:
         try:
             return self.api.list_positions()

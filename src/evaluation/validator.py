@@ -3,7 +3,7 @@
 import numpy as np
 import torch
 import pandas as pd
-from src.core.environment import TradingEnv
+from src.core.environment import TradingEnvironment
 from src.models.ppo_agent import PPOAgent
 
 
@@ -18,26 +18,28 @@ class Validator:
         Returns a dictionary of performance metrics.
         """
         # Create a new environment with the validation data
-        env = TradingEnv(
+        env = TradingEnvironment(
             df=self.validation_df,
             observation_columns=self.env_config["features"],
             window_size=self.env_config["window"],
-            initial_cash=100_000,
-            transaction_cost_pct=0.001,
-            slippage_pct=0.0005,
+            initial_balance=100000.0,
+            fee_rate=0.001,
+            slippage=0.0005,
         )
 
         obs, _ = env.reset()
         done = False
-        daily_equity = [env.initial_cash]
+        daily_equity = [env.initial_balance]
 
         while not done:
-            state = torch.FloatTensor(obs).to(agent.device)
+            device = next(agent.policy.parameters()).device
+            state_tensor = torch.FloatTensor(obs).to(device)
             with torch.no_grad():
-                action_probs = agent.actor(state)
-                action = torch.argmax(action_probs).item()
-            obs, reward, terminated, truncated, _ = env.step(action)
-            daily_equity.append(env.portfolio.equity)
+                action, _ = agent.policy.act(state_tensor)
+                
+            action_val = action.cpu().numpy()
+            obs, reward, terminated, truncated, _ = env.step(action_val)
+            daily_equity.append(env.net_worth)
             done = terminated or truncated
 
         # --- Calculate Performance Metrics ---

@@ -1,72 +1,128 @@
-# run_training.py
-
+import os
+import torch
 import logging
-from pathlib import Path
-from src.data.preprocessor import calculate_features
-from src.core.environment import TradingEnv
+import numpy as np
+import redis
+import json
+from dotenv import load_dotenv
+from typing import Dict, List
+
+from src.core.environment import TradingEnvironment
 from src.models.ppo_agent import PPOAgent
-from src.models.trainer import Trainer
-from src.utils.logger import setup_logging
-from src.data.yfinance_loader import YFinanceLoader
+from src.strategies import STRATEGY_PLAYBOOK
+
+load_dotenv()
+redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+try:
+    redis_client = redis.from_url(redis_url, decode_responses=True)
+except Exception as e:
+    redis_client = None
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+logging.basicConfig(level=logging.INFO, format='%(message)s')
+logger = logging.getLogger("Matrix_Trainer")
 
 
-def main():
-    """Main function to run the training pipeline."""
-    setup_logging()
-    log = logging.getLogger("rl_trading_backend")
+import argparse
 
-    TICKER = ["SPY"]
-    START_DATE = "2015-01-01"
-    END_DATE = "2023-12-31"
+def train_jarvis(job_id=None):
+    job = None
+    if job_id:
+        import django
+        os.environ.setdefault("DJANGO_SETTINGS_MODULE", "trader_project.settings")
+        django.setup()
+        from control_panel.models import TrainingJob
+        job = TrainingJob.objects.filter(id=job_id).first()
+        if job:
+            job.status = 'RUNNING'
+            job.save()
 
-    log.info(
-        f"Starting PERFECT EYES training for {TICKER[0]} from {START_DATE} to {END_DATE}"
+    # Determine specific architecture to run
+    feat_key = job.feature_set_key if job else "scalping_momentum"
+    param_key = job.hyperparameter_key if job else "balanced_growth"
+    window = job.window_size if job else 10
+    principal = float(job.initial_cash) if job and job.initial_cash else 100_000.0
+
+    features = STRATEGY_PLAYBOOK["feature_sets"].get(feat_key, ["Close", "Volume"])
+    params = STRATEGY_PLAYBOOK["hyperparameters"].get(param_key, {"lr": 1e-4, "gamma": 0.99})
+
+    logger.info(f"🟢 MATRIX ONLINE. Hardware: {device.type.upper()}")
+    logger.info(f"Targeting Architecture: Features={feat_key}, Params={param_key}, Window={window}")
+
+    # Load authentic financial data
+    from src.data.yfinance_loader import YFinanceLoader
+    from src.data.preprocessor import calculate_features
+    from src.models.trainer import Trainer
+
+    logger.info("Downloading historical market payload...")
+    train_df = calculate_features(
+        YFinanceLoader(["SPY"], "2015-01-01", "2021-12-31").load_data()
     )
 
-    loader = YFinanceLoader(tickers=TICKER, start_date=START_DATE, end_date=END_DATE)
-    raw_df = loader.load_data()
-
-    if raw_df.empty:
-        return
-
-    featured_df = calculate_features(raw_df)
-
-    # --- THIS IS THE MOST IMPORTANT CHANGE ---
-    # We must update the list of columns the agent will "see".
-    OBSERVATION_COLUMNS = [
-        "returns",
-        "SMA_50",
-        "RSI_14",
-        "STOCHk_14_3_3",
-        "MACDh_12_26_9",
-        "ADX_14",
-        "BBP_20_2",
-        "ATR_14",
-        "OBV",
-    ]
-
-    env = TradingEnv(
-        df=featured_df,
-        observation_columns=OBSERVATION_COLUMNS,
-        window_size=10,  # Increased window size to capture more complex patterns
-        initial_cash=100_000,
-        transaction_cost_pct=0.001,
-        slippage_pct=0.0005,
-    )
-
+    # Boot the modernized Gym
+    env = TradingEnvironment(train_df, features, window, principal, 0.001, 0.0005)
+    
+    # Auto-Calculate Tensor requirements
     state_dim = env.observation_space.shape[0]
-    action_dim = env.action_space.n
-    agent = PPOAgent(state_dim=state_dim, action_dim=action_dim, lr=0.001)
+    action_dim = env.action_space.shape[0]
 
-    trainer = Trainer(agent=agent, env=env, num_episodes=50, gamma=0.99)
+    agent = PPOAgent(state_dim, action_dim, lr=params["lr"])
 
-    trainer.train()
+    trainer_config = {
+        "num_episodes": 200,
+        "gamma": params["gamma"],
+        "update_timestep": 2048
+    }
 
-    agent.save(Path("saved_models/ppo_agent_perfect_eyes.pth"))
-    log.info(
-        "PERFECT EYES agent model saved to saved_models/ppo_agent_perfect_eyes.pth"
-    )
+    # Custom Database Sync Hook
+    def progress_callback(episode, max_episodes, reward):
+        if job:
+            job.progress = int((episode / max_episodes) * 100)
+            if reward > job.best_reward:
+                job.best_reward = float(reward)
+            job.save()
 
+    logger.info("Initiating Deep Reinforcement Learning Protocol...\n" + "-" * 50)
+    
+    # Delegate to the newly hardened orchestration module
+    trainer = Trainer(agent, env, trainer_config)
+    trained_agent = trainer.run(progress_callback=progress_callback)
 
-if __name__ == "__main__":
-    main()
+    final_net_worth = env.net_worth
+    roi = ((final_net_worth - principal) / principal) * 100
+    
+    logger.info(f"✅ Training Terminated | Final Equity: ${final_net_worth:,.2f} | ROI: {roi:+.2f}%")
+    
+    # Lock champion weights
+    safe_name = f"single_job_{job_id}_{feat_key}.pth" if job_id else "single_model.pth"
+    trained_agent.save_weights(f"saved_models/{safe_name}")
+
+    if job:
+        job.status = 'COMPLETED'
+        job.progress = 100
+        job.save()
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--job_id', type=int, default=None)
+    args, _ = parser.parse_known_args()
+    
+    try:
+        train_jarvis(job_id=args.job_id)
+    except Exception as e:
+        if args.job_id:
+            import django
+            import os
+            os.environ.setdefault("DJANGO_SETTINGS_MODULE", "trader_project.settings")
+            try:
+                django.setup()
+            except Exception:
+                pass
+            from control_panel.models import TrainingJob
+            job = TrainingJob.objects.filter(id=args.job_id).first()
+            if job:
+                job.status = 'FAILED'
+                job.error_message = f"Process Crashed: {str(e)}"
+                job.save()
+        raise e

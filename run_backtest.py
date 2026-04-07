@@ -1,61 +1,63 @@
 # run_backtest.py
-
-from pathlib import Path
-import numpy as np
-from src.data.csv_loader import CSVLoader
-from src.data.preprocessor import calculate_features
-from src.core.environment import TradingEnv
-from src.core.engine import BacktestEngine
-from src.utils.logger import setup_logging
 import logging
+from pathlib import Path
 
-
-# This is a placeholder agent. We will build a real RL agent in the next stage.
-class RandomAgent:
-    """A dummy agent that takes random actions."""
-
-    def __init__(self, action_space):
-        self.action_space = action_space
-
-    def predict(self, observation):
-        """Returns a random action."""
-        return self.action_space.sample()
-
+from src.core.environment import TradingEnvironment
+from src.core.engine import BacktestEngine
+from src.models.ppo_agent import PPOAgent
+from src.utils.logger import setup_logging
 
 def main():
-    """Main function to run the backtest."""
+    """Main function to run the deterministic evaluation on pristine unseen validation data."""
     setup_logging()
-
-    # --- THIS IS THE CORRECTED LINE ---
     log = logging.getLogger("rl_trading_backend")
 
-    log.info("Setting up backtest...")
+    log.info("Setting up Matrix Evaluation Protocol...")
 
-    # 1. Load and process data
-    loader = CSVLoader(csv_path=Path("data/sample_spy.csv"))
-    raw_df = loader.load_data()
-    featured_df = calculate_features(raw_df)
+    # 1. Ensure out-of-sample data exists
+    data_path = "data/validation_btcusd.csv"
+    if not Path(data_path).exists():
+        log.error(f"Cannot find out-of-sample data at {data_path}. Please split historical first.")
+        return
 
-    # 2. Set up the environment
-    OBSERVATION_COLUMNS = ["Close", "Volume", "returns", "SMA_5"]
-    env = TradingEnv(
-        df=featured_df,
-        observation_columns=OBSERVATION_COLUMNS,
-        window_size=5,  # Increased window_size to match SMA_5
-        initial_cash=100_000,
-        transaction_cost_pct=0.001,
-        slippage_pct=0.0005,
+    # 2. Set up the 4D Environment (Price, MA, Volume, Sentiment)
+    log.info("Loading validation matrix...")
+    env = TradingEnvironment(
+        data_path=data_path,
+        initial_balance=100_000.0
     )
 
-    # 3. Set up the agent
-    agent = RandomAgent(env.action_space)
+    # 3. Set up the Brain
+    log.info("Initializing PPO Neural Core (state_dim=4)...")
+    agent = PPOAgent(state_dim=4, action_dim=1)
+    
+    # Load the champion weights safely
+    try:
+        agent.load_weights("best_model.pth")
+    except FileNotFoundError:
+        log.error("Could not find 'best_model.pth'. Make sure training has saved a champion model.")
+        return
 
-    # 4. Run the backtest engine
+    # 4. Run the deterministic backtest engine (no backpropagation!)
+    # We must patch the BacktestEngine temporarily to support our environment loop structure
+    log.info("Executing evaluation timeline...")
     engine = BacktestEngine(agent=agent, environment=env)
-    report = engine.run()
+    
+    # We override the run method of engine temporarily to map step properly since our env is modernized
+    obs, info = env.reset()
+    engine.history.append({"equity": env.net_worth, "timestamp": env.current_step, "trade_log": []})
+    
+    done = False
+    while not done:
+        action = agent.predict(obs) # Deterministic forward pass
+        obs, reward, terminated, truncated, _ = env.step([action])
+        
+        engine.history.append({"equity": env.net_worth, "timestamp": env.current_step, "trade_log": [action] if abs(action)>0.4 else []})
+        
+        done = terminated or truncated
 
-    log.info("Backtest complete. Final report generated.")
-
+    report = engine.generate_report()
+    log.info("Evaluation complete.")
 
 if __name__ == "__main__":
     main()

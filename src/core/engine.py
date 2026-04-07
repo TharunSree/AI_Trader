@@ -1,7 +1,7 @@
 # src/core/engine.py
 
 import pandas as pd
-from src.core.environment import TradingEnv
+from src.core.environment import TradingEnvironment
 from src.core.performance import (
     calculate_cagr,
     calculate_sharpe_ratio,
@@ -18,7 +18,7 @@ class BacktestEngine:
     and generating performance reports.
     """
 
-    def __init__(self, agent, environment: TradingEnv):
+    def __init__(self, agent, environment: TradingEnvironment):
         self.agent = agent
         self.env = environment
         self.history = []

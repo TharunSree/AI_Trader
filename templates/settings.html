@@ -1,59 +1,125 @@
-{% extends "vertical.html" %}
+{% extends "base.html" %}
 {% load static %}
+{% block title %}System Settings{% endblock title %}
 
-{% block title %}Settings{% endblock title %}
-
-{% block page_title %}
-{% include 'partials/topbar.html' with topbarTitle='System Settings' %}
-{% endblock page_title %}
+{% block page_title %}System Configuration{% endblock page_title %}
 
 {% block page_content %}
-    <div class="row">
-        <div class="col-lg-8">
-            <div class="card">
-                <div class="card-body">
-                    <h4 class="header-title">Broker Configuration</h4>
-                    <p class="text-muted font-14">
-                        Enter your API credentials from Alpaca. These are stored securely and are required for paper and live trading.
-                    </p>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
+  <!-- Audio & UI Settings -->
+  <div class="glass rounded-2xl p-6 relative overflow-hidden flex flex-col">
+    <h3 class="text-sm font-medium text-slate-400 mb-6 tracking-widest uppercase">Global Preferences</h3>
+    
+    <div class="flex items-center justify-between py-4 border-b border-slate-700/50">
+      <div>
+        <h4 class="text-white font-medium mb-1">Background HUD Hum</h4>
+        <p class="text-xs text-slate-400 font-mono">Enable the continuous ambient Iron Man HUD background drone.</p>
+      </div>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" id="setting-bgm" class="sr-only peer" checked>
+        <div class="w-11 h-6 bg-slate-800 border border-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-primary"></div>
+      </label>
+    </div>
 
-                    <form action="" method="POST">
-                        {% csrf_token %}
-                        <div class="mb-3">
-                            <label for="alpaca_api_key" class="form-label">Alpaca API Key</label>
-                            <input type="text" id="alpaca_api_key" name="alpaca_api_key" class="form-control">
-                        </div>
+    <div class="flex items-center justify-between py-4 border-b border-slate-700/50">
+      <div>
+        <h4 class="text-white font-medium mb-1">UI Click Sounds</h4>
+        <p class="text-xs text-slate-400 font-mono">Enable the subtle glass click effect when interacting with the dashboard.</p>
+      </div>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" id="setting-clicks" class="sr-only peer" checked>
+        <div class="w-11 h-6 bg-slate-800 border border-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-primary"></div>
+      </label>
+    </div>
 
-                        <div class="mb-3">
-                            <label for="alpaca_secret_key" class="form-label">Alpaca Secret Key</label>
-                            <input type="password" id="alpaca_secret_key" name="alpaca_secret_key" class="form-control">
-                        </div>
+    <div class="flex items-center justify-between py-4 border-b border-slate-700/50">
+      <div>
+        <h4 class="text-white font-medium mb-1">Voice Lines (Login/Logout)</h4>
+        <p class="text-xs text-slate-400 font-mono">Enable Jarvis speech upon system entry and termination.</p>
+      </div>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" id="setting-voice" class="sr-only peer" checked>
+        <div class="w-11 h-6 bg-slate-800 border border-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-primary"></div>
+      </label>
+    </div>
 
-                        <div class="mb-3">
-                            <label for="broker_endpoint" class="form-label">Broker Endpoint</label>
-                            <select class="form-select" id="broker_endpoint" name="broker_endpoint">
-                                <option value="paper">Paper Trading (https://paper-api.alpaca.markets)</option>
-                                <option value="live">Live Trading (https://api.alpaca.markets)</option>
-                            </select>
-                        </div>
-                        
-                        <hr/>
+    <div class="flex items-center justify-between py-4 border-b border-slate-700/50">
+      <div>
+        <h4 class="text-white font-medium mb-1">Bypass Overlay Animations</h4>
+        <p class="text-xs text-slate-400 font-mono">Disable the Jarvis UI launch sequences for modules and executions.</p>
+      </div>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" id="setting-animations" class="sr-only peer">
+        <div class="w-11 h-6 bg-slate-800 border border-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-primary"></div>
+      </label>
+    </div>
 
-                        <h4 class="header-title mt-3">General Settings</h4>
+    <div class="flex items-center justify-between py-4">
+      <div>
+        <h4 class="text-white font-medium mb-1">Play Login Boot Sequence</h4>
+        <p class="text-xs text-slate-400 font-mono">Re-enable the full cinematic boot sequence on next login.</p>
+      </div>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" id="setting-boot" class="sr-only peer">
+        <div class="w-11 h-6 bg-slate-800 border border-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-primary"></div>
+      </label>
+    </div>
 
-                        <div class="mb-3">
-                            <label for="display_currency" class="form-label">Display Currency</label>
-                            <select class="form-select" id="display_currency" name="display_currency">
-                                <option value="USD">USD ($)</option>
-                                <option value="INR">INR (₹)</option>
-                            </select>
-                        </div>
-                        
-                        <div class="d-flex justify-content-end">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="ri-save-line me-1"></i> Save Settings
-                            </button>
-                        </div>
-                    </form>
+  </div>
+</div>
+{% endblock page_content %}
 
-                </div> </div> </div> </div> {% endblock page_content %}
+{% block extra_javascript %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const sBgm = document.getElementById('setting-bgm');
+    const sClicks = document.getElementById('setting-clicks');
+    const sVoice = document.getElementById('setting-voice');
+    const sAnim = document.getElementById('setting-animations');
+    const sBoot = document.getElementById('setting-boot');
+    
+    // Load config state
+    sBgm.checked = localStorage.getItem('jarvis-bgm') !== 'false';
+    sClicks.checked = localStorage.getItem('jarvis-clicks') !== 'false';
+    sVoice.checked = localStorage.getItem('jarvis-voice') !== 'false';
+    sAnim.checked = localStorage.getItem('jarvis-skip-animations') === 'true';
+    sBoot.checked = localStorage.getItem('jarvis-boot-played') !== 'true'; // If not played, it means it IS armed
+    
+    const notify = (text) => {
+        const btn = document.createElement('div');
+        btn.className = "fixed bottom-5 right-5 bg-brand-accent/20 text-brand-accent px-4 py-2 border border-brand-accent/30 rounded font-mono text-xs shadow-lg transition-opacity";
+        btn.textContent = text;
+        document.body.appendChild(btn);
+        setTimeout(() => { btn.style.opacity = '0'; setTimeout(() => btn.remove(), 500); }, 2000);
+    };
+
+    // Bind change listeners
+    sBgm.addEventListener('change', (e) => {
+        localStorage.setItem('jarvis-bgm', e.target.checked);
+        notify("SYSTEM CACHE: BGM " + (e.target.checked ? "ENABLED" : "DISABLED"));
+    });
+    sClicks.addEventListener('change', (e) => {
+        localStorage.setItem('jarvis-clicks', e.target.checked);
+        notify("SYSTEM CACHE: CLICKS " + (e.target.checked ? "ENABLED" : "DISABLED"));
+    });
+    sVoice.addEventListener('change', (e) => {
+        localStorage.setItem('jarvis-voice', e.target.checked);
+        notify("SYSTEM CACHE: VOICE " + (e.target.checked ? "ENABLED" : "DISABLED"));
+    });
+    sAnim.addEventListener('change', (e) => {
+        localStorage.setItem('jarvis-skip-animations', e.target.checked);
+        notify("SYSTEM CACHE: ANIMATIONS " + (e.target.checked ? "DISABLED" : "ENABLED"));
+    });
+
+    sBoot.addEventListener('change', (e) => {
+        if (e.target.checked) {
+            localStorage.setItem('jarvis-boot-played', 'false');
+            notify("BOOT SEQUENCE ARMED FOR NEXT LOGIN");
+        } else {
+            localStorage.setItem('jarvis-boot-played', 'true');
+            notify("BOOT SEQUENCE BYPASSED");
+        }
+    });
+});
+</script>
+{% endblock extra_javascript %}

@@ -18,6 +18,7 @@ urlpatterns = [
     path('evaluation/report/<int:job_id>/', views.evaluation_report_view, name='evaluation_report'),
 
     path('api/job-status/', views.job_status_api, name='job_status_api'),
+    path('api/job-logs/<str:job_type>/<int:job_id>/', views.job_logs_api, name='job_logs_api'),
     path('api/trader-status/', views.trader_status_api, name='trader_status_api'),
     path('api/trader-activity/', views.trader_activity_api, name='trader_activity_api'),
 
