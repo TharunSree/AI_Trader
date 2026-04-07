@@ -36,7 +36,9 @@ def train_jarvis(job_id=None):
         job = TrainingJob.objects.filter(id=job_id).first()
         if job:
             job.status = 'RUNNING'
-            job.save()
+            if job.name == 'Untitled Model':
+                job.name = f"Model {job.id} - {job.feature_set_key}"
+            job.save(update_fields=['status', 'name'])
 
     # Determine specific architecture to run
     feat_key = job.feature_set_key if job else "scalping_momentum"
@@ -99,9 +101,13 @@ def train_jarvis(job_id=None):
     trained_agent.save_weights(f"saved_models/{safe_name}")
 
     if job:
+        with open(f"saved_models/{safe_name}", "rb") as saved_model:
+            model_blob = saved_model.read()
         job.status = 'COMPLETED'
         job.progress = 100
-        job.save()
+        job.model_weights = model_blob
+        job.save(update_fields=['status', 'progress', 'model_weights'])
+        logger.info(f"Model Weights synced to Neon [id={job.id}]")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

@@ -26,7 +26,7 @@
         <div class="select-dropdown absolute z-50 w-full mt-1 bg-[#0f172a] border border-slate-600 rounded-lg shadow-[0_0_20px_rgba(0,0,0,0.8)] hidden">
             <ul class="py-1 max-h-48 overflow-auto font-mono text-sm">
                 {% for f in model_files %}
-                <li class="px-4 py-3 text-slate-300 hover:bg-brand-accent/20 hover:text-brand-accent cursor-pointer transition-colors border-b border-white/5 last:border-0" data-value="{{ f }}">{{ f }}</li>
+                <li class="px-4 py-3 text-slate-300 hover:bg-brand-accent/20 hover:text-brand-accent cursor-pointer transition-colors border-b border-white/5 last:border-0" data-value="{{ f.value }}">{{ f.label }}</li>
                 {% endfor %}
             </ul>
         </div>

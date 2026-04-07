@@ -3,10 +3,11 @@ from .models import TrainingJob, MetaTrainingJob, PaperTrader, EvaluationJob, Sy
 
 @admin.register(TrainingJob)
 class TrainingJobAdmin(admin.ModelAdmin):
-    list_display = ('id', 'status', 'progress', 'best_reward',
+    list_display = ('id', 'name', 'status', 'progress', 'best_reward',
                     'feature_set_key', 'hyperparameter_key', 'window_size', 'initial_cash')
     list_filter = ('status',)
-    search_fields = ('id',)
+    search_fields = ('id', 'name')
+    exclude = ('model_weights',)
 
 @admin.register(MetaTrainingJob)
 class MetaTrainingJobAdmin(admin.ModelAdmin):

@@ -5,9 +5,11 @@ from django.db import models
 
 
 class TrainingJob(models.Model):
+    MAX_STORED_MODELS = 20
     STATUS_CHOICES = [('PENDING', 'Pending'), ('RUNNING', 'Running'), ('COMPLETED', 'Completed'), ('FAILED', 'Failed'),
                       ('STOPPED', 'Stopped')]
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
+    name = models.CharField(max_length=100, default='Untitled Model')
 
     # Configuration from playbook
     feature_set_key = models.CharField(max_length=50, default='all_in')
@@ -19,9 +21,42 @@ class TrainingJob(models.Model):
     progress = models.IntegerField(default=0)
     best_reward = models.FloatField(default=0.0)
     error_message = models.TextField(null=True, blank=True)
+    model_weights = models.BinaryField(null=True, blank=True)
     celery_task_id = models.CharField(max_length=255, null=True, blank=True, editable=False)
 
-    def __str__(self): return f"Training Job #{self.id}"
+    def save(self, *args, **kwargs):
+        update_fields = kwargs.get('update_fields')
+        should_enforce_retention = self.model_weights and (
+            update_fields is None or 'model_weights' in update_fields
+        )
+
+        super().save(*args, **kwargs)
+
+        if should_enforce_retention:
+            self.enforce_model_retention_limit(exclude_id=self.id)
+
+    @classmethod
+    def enforce_model_retention_limit(cls, exclude_id=None):
+        retained_ids = list(
+            cls.objects.filter(model_weights__isnull=False)
+            .order_by('-id')
+            .values_list('id', flat=True)[:cls.MAX_STORED_MODELS]
+        )
+        if exclude_id and exclude_id not in retained_ids:
+            retained_ids = [exclude_id] + retained_ids[:cls.MAX_STORED_MODELS - 1]
+
+        queryset = cls.objects.filter(model_weights__isnull=False)
+        if retained_ids:
+            queryset = queryset.exclude(id__in=retained_ids)
+
+        queryset.update(model_weights=None)
+
+    @property
+    def model_reference(self):
+        return f"db:{self.id}"
+
+    def __str__(self):
+        return self.name or f"Training Job #{self.id}"
 
 
 class MetaTrainingJob(models.Model):

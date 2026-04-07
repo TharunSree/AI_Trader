@@ -3,8 +3,10 @@ from celery.result import AsyncResult
 from decimal import Decimal
 import time
 import logging
+import os
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import LoginView
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 import json
@@ -17,6 +19,8 @@ from .models import TrainingJob, MetaTrainingJob, PaperTrader, EvaluationJob, Sy
 from pathlib import Path
 from .tasks import run_training_job_task, stop_celery_task, run_meta_trainer_task, run_paper_trader_task, \
     run_evaluation_task
+from .dashboard_boot import build_dashboard_boot_payload
+from .model_registry import get_model_choices
 # Replace the existing decimal import line with:
 from decimal import Decimal, InvalidOperation
 
@@ -27,8 +31,20 @@ import yfinance as yf
 logger = logging.getLogger(__name__)
 
 
-@login_required
-def dashboard_view(request):
+def _process_is_running(pid_value):
+    try:
+        pid = int(pid_value)
+    except (TypeError, ValueError):
+        return False
+
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    return True
+
+
+def _build_dashboard_context():
     try:
         broker = Broker()
         live_equity = broker.get_equity()
@@ -43,13 +59,11 @@ def dashboard_view(request):
         clock_data = None
 
     recent_jobs = TrainingJob.objects.filter(status='COMPLETED').order_by('-id')[:5]
-    
     active_meta = MetaTrainingJob.objects.exclude(status__in=['COMPLETED', 'FAILED', 'STOPPED']).order_by('-id').first()
     active_training = TrainingJob.objects.exclude(status__in=['COMPLETED', 'FAILED', 'STOPPED']).order_by('-id').first()
-    
     trader = PaperTrader.objects.filter(id=1).first()
 
-    context = {
+    return {
         'recent_jobs': recent_jobs,
         'live_equity': f"{live_equity:,.2f}",
         'buying_power': f"{buying_power:,.2f}",
@@ -58,8 +72,30 @@ def dashboard_view(request):
         'active_training': active_training,
         'trader': trader,
         'clock': clock_data,
+        'dashboard_boot_payload': build_dashboard_boot_payload(
+            live_equity=live_equity,
+            buying_power=buying_power,
+            positions=positions,
+            clock_data=clock_data,
+            active_meta=active_meta,
+            active_training=active_training,
+            trader=trader,
+        ),
     }
-    return render(request, 'dashboard.html', context)
+
+
+class JarvisLoginView(LoginView):
+    template_name = 'login.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(_build_dashboard_context())
+        return context
+
+
+@login_required
+def dashboard_view(request):
+    return render(request, 'dashboard.html', _build_dashboard_context())
 
 
 @login_required
@@ -117,6 +153,7 @@ def start_training_job_view(request):
 
         # Create the job object
         job = TrainingJob.objects.create(
+            name=request.POST.get('name') or 'Untitled Model',
             feature_set_key=feature_set_key,
             hyperparameter_key=hyperparameter_key,
             window_size=window_size,  # Now guaranteed to be an integer
@@ -139,6 +176,7 @@ def start_training_job_view(request):
             stdout=f,
             stderr=subprocess.STDOUT
         )
+        f.close()
         job.celery_task_id = str(process.pid)
         job.save()
     return redirect('training')
@@ -191,10 +229,7 @@ def start_meta_job_view(request):
 
 
 def _get_available_models():
-    model_dir = Path("saved_models")
-    if not model_dir.exists():
-        return []
-    return [f.name for f in model_dir.iterdir() if f.suffix == '.pth']
+    return get_model_choices(include_disk=True, include_database=False)
 
 
 # --- NEW: Views to start and stop the trader ---
@@ -204,8 +239,7 @@ def papertrading_view(request):
     Displays the main paper trading page and its current state.
     """
     trader, _ = PaperTrader.objects.get_or_create(id=1)
-    saved_models_path = Path("saved_models")
-    model_files = [p.name for p in saved_models_path.glob("*.pth")] if saved_models_path.exists() else []
+    model_files = get_model_choices(include_disk=True, include_database=True)
 
     clock_data = None
     try:
@@ -247,11 +281,12 @@ def start_trader_view(request):
             f = open(log_file_path, "w")
             
             process = subprocess.Popen(
-                [sys.executable, "-m", "src.core.async_engine", "--trader_id", "1", "--model_file", model_file],
+                [sys.executable, "-m", "src.core.async_engine", "--trader_id", "1", "--model_path", model_file],
                 cwd=str(Path(__file__).parent.parent),
                 stdout=f,
                 stderr=subprocess.STDOUT
             )
+            f.close()
 
             trader.status = 'RUNNING'
             trader.model_file = model_file
@@ -388,6 +423,20 @@ def job_status_api(request):
     training_jobs = TrainingJob.objects.all()
     meta_jobs = MetaTrainingJob.objects.all()
 
+    for job in training_jobs:
+        if job.status == 'RUNNING' and job.celery_task_id and not _process_is_running(job.celery_task_id):
+            job.status = 'FAILED'
+            if not job.error_message:
+                job.error_message = "Training process stopped before completion."
+            job.save(update_fields=['status', 'error_message'])
+
+    for job in meta_jobs:
+        if job.status == 'RUNNING' and job.celery_task_id and not _process_is_running(job.celery_task_id):
+            job.status = 'FAILED'
+            if not job.error_message:
+                job.error_message = "Meta-training process stopped before completion."
+            job.save(update_fields=['status', 'error_message'])
+
     data = {
         'training_jobs': [
             {
@@ -414,12 +463,23 @@ def job_status_api(request):
 def job_logs_api(request, job_type, job_id):
     from pathlib import Path
     log_dir = Path(__file__).parent.parent / "logs"
+    job_model = MetaTrainingJob if job_type == 'meta' else TrainingJob
+    job = job_model.objects.filter(id=job_id).first()
+
     if job_type == 'meta':
         log_file = log_dir / f"meta_job_{job_id}.log"
     else:
         log_file = log_dir / f"train_job_{job_id}.log"
-        
+
+    if job and job.status == 'RUNNING' and job.celery_task_id and not _process_is_running(job.celery_task_id):
+        job.status = 'FAILED'
+        if not job.error_message:
+            job.error_message = "Training process stopped before completion."
+        job.save(update_fields=['status', 'error_message'])
+
     if not log_file.exists():
+        if job and job.status == 'FAILED' and job.error_message:
+            return JsonResponse({"logs": f"Process failed before log stream initialized.\n{job.error_message}"})
         return JsonResponse({"logs": "System provisioning container...\nWaiting for log stream..."})
         
     try:
@@ -427,6 +487,17 @@ def job_logs_api(request, job_type, job_id):
             lines = f.readlines()
             # Grabbing the last 200 lines to avoid blowing up memory on UI
             logs = "".join(lines[-200:])  
+
+        if job and job.status == 'RUNNING' and "Training Orchestration finished." in logs:
+            job.status = 'COMPLETED'
+            job.progress = 100
+            job.save(update_fields=['status', 'progress'])
+        elif job and job.status == 'RUNNING' and "Traceback" in logs:
+            job.status = 'FAILED'
+            if not job.error_message:
+                job.error_message = "Training crashed. See log stream for traceback."
+            job.save(update_fields=['status', 'error_message'])
+
         return JsonResponse({"logs": logs})
     except Exception as e:
         return JsonResponse({"logs": f"Error accessing internal Matrix stream: {e}"})

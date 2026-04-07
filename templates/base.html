@@ -181,7 +181,7 @@
         </div>
         
         <div class="p-4 border-t border-slate-700/50 flex-shrink-0">
-            <form action="{% url 'logout' %}" method="post" id="logout-form" hx-boost="false" onsubmit="event.preventDefault(); window.launchJarvisShutdown(this, 'SEVERING NEURAL LINK...', true);">
+            <form action="{% url 'logout' %}" method="post" id="logout-form" hx-boost="false" onsubmit="event.preventDefault(); window.launchJarvisShutdown(this, 'SEVERING NEURAL LINK...', true, true);">
                 {% csrf_token %}
                 <button type="submit" class="w-full flex items-center px-2 py-3 rounded-lg hover:bg-red-500/10 text-slate-400 hover:text-red-400 transition-colors group justify-center md:justify-start">
                     <div class="w-8 flex items-center justify-center flex-shrink-0">
@@ -461,7 +461,7 @@
     };
 
     // Global Shutdown API (specifically for destructive/stop actions)
-    window.launchJarvisShutdown = function(formElement, loadingText = "SEVERING COMMAND LINK...", ignoreSkip = false) {
+    window.launchJarvisShutdown = function(formElement, loadingText = "SEVERING COMMAND LINK...", ignoreSkip = false, playVoice = false) {
         if (!ignoreSkip && localStorage.getItem('jarvis-skip-animations') === 'true') {
             if(formElement) formElement.submit();
             return;
@@ -498,7 +498,7 @@
             skipBtn.onclick = () => doSubmit();
         }
 
-        if (window.JarvisAudio && window.JarvisAudio.enabled && localStorage.getItem('jarvis-voice') !== 'false') {
+        if (playVoice && window.JarvisAudio && window.JarvisAudio.enabled && localStorage.getItem('jarvis-voice') !== 'false') {
             let logoutAud = window.JarvisAudio.sounds.logout;
             logoutAud.currentTime = 0;
             logoutAud.onended = doSubmit;

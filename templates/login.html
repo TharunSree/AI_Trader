@@ -43,7 +43,7 @@
 
         #jarvis-loader {
             background:
-                radial-gradient(circle at center, rgba(56, 189, 248, 0.08) 0%, rgba(2, 6, 23, 0.94) 58%, #020617 100%);
+                radial-gradient(circle at center, rgba(56, 189, 248, 0.06) 0%, rgba(2, 6, 23, 0.985) 42%, #020617 100%);
         }
 
         #loader-text.reveal-line {
@@ -92,7 +92,7 @@
         class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-brand-accent/10 rounded-full blur-[128px] pointer-events-none animate-pulse-slow font-mono">
     </div>
 
-    <div class="w-full max-w-md relative z-10 mx-4">
+    <div id="auth-shell" class="w-full max-w-md relative z-10 mx-4 transition-all duration-700">
         <!-- Auth Card -->
         <div
             class="glass-panel rounded-2xl shadow-2xl p-8 transform transition-all duration-500 hover:scale-[1.01] hover:shadow-brand-primary/20 hover:border-brand-primary/30">
@@ -332,6 +332,7 @@
                 const trueDashboard = document.getElementById('true-dashboard');
                 const loaderText = document.getElementById('loader-text');
                 const statusText = document.getElementById('status-text');
+                const authShell = document.getElementById('auth-shell');
                 const flash = document.getElementById('hud-flash');
                 const cards = Array.from(document.querySelectorAll('.dashboard-card'));
                 let redirecting = false;
@@ -339,6 +340,9 @@
 
                 loader.classList.remove('hidden');
                 loader.classList.add('flex');
+                if (authShell) {
+                    authShell.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
+                }
 
                 function schedule(delay, callback) {
                     timeouts.push(setTimeout(callback, delay));

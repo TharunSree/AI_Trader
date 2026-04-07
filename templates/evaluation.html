@@ -25,7 +25,7 @@
                                 <label for="model_file_select" class="form-label">Select Trained Model</label>
                                 <select class="form-select" id="model_file_select" name="model_file" required>
                                     {% for model in model_files %}
-                                        <option value="{{ model }}">{{ model }}</option>
+                                        <option value="{{ model.value }}">{{ model.label }}</option>
                                     {% empty %}
                                         <option value="" disabled>No trained models found in /saved_models/</option>
                                     {% endfor %}

@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import logging
+import io
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -130,6 +131,13 @@ class PPOAgent:
         """Loads weights. Used by the Live Engine."""
         if not Path(filepath).exists():
             raise FileNotFoundError(f"Weight file {filepath} not found.")
-        self.policy.load_state_dict(torch.load(filepath, map_location=device))
+        self.policy.load_state_dict(torch.load(filepath, map_location=device, weights_only=True))
         self.policy_old.load_state_dict(self.policy.state_dict())
         logger.info(f"Loaded combat data from: {filepath}")
+
+    def load_weights_from_bytes(self, payload: bytes, source: str = "database"):
+        """Loads a serialized torch state_dict from an in-memory byte payload."""
+        buffer = io.BytesIO(payload)
+        self.policy.load_state_dict(torch.load(buffer, map_location=device, weights_only=True))
+        self.policy_old.load_state_dict(self.policy.state_dict())
+        logger.info(f"Loaded combat data from: {source}")

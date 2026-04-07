@@ -14,6 +14,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'trader_project.settings')
 django.setup()
 
 from control_panel.models import PaperTrader, TradeLog
+from control_panel.model_registry import is_database_model_reference, read_model_bytes
 from src.execution.broker import Broker
 from src.core.redis_bus import bus
 from src.models.ppo_agent import PPOAgent
@@ -31,7 +32,10 @@ class AITradingEngine:
         # Load the Neural Matrix
         logger.info(f"Loading Neural Object Tensor from {self.model_path}")
         self.agent = PPOAgent(state_dim=15, action_dim=2)  # Base dims
-        self.agent.load_weights(self.model_path)
+        if is_database_model_reference(self.model_path):
+            self.agent.load_weights_from_bytes(read_model_bytes(self.model_path), self.model_path)
+        else:
+            self.agent.load_weights(self.model_path)
         
         self.current_sentiment = 0.0
         
@@ -94,7 +98,7 @@ class AITradingEngine:
                 action=side.upper(),
                 quantity=qty,
                 price=price,
-                value=notional_value
+                notional_value=notional_value
             )
 
     async def run(self):
