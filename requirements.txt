@@ -27,7 +27,7 @@ tqdm>=4.66
 # ── Trading & Market Data ──
 alpaca-trade-api>=3.2
 yfinance>=0.2
-websockets>=11,<12
+websockets
 
 # ── NLP / Sentiment ──
 requests>=2.31
