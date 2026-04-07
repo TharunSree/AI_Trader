@@ -40,6 +40,40 @@
             height: 100%;
             z-index: -1;
         }
+
+        #jarvis-loader {
+            background:
+                radial-gradient(circle at center, rgba(56, 189, 248, 0.08) 0%, rgba(2, 6, 23, 0.94) 58%, #020617 100%);
+        }
+
+        #loader-text.reveal-line {
+            animation: loader-line-reveal 700ms cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .dashboard-card.dashboard-live {
+            opacity: 1 !important;
+            transform: translateY(0) scale(1) !important;
+            box-shadow: 0 0 40px rgba(56, 189, 248, 0.16);
+        }
+
+        .dashboard-card.dashboard-live:nth-child(odd) {
+            box-shadow: 0 0 56px rgba(56, 189, 248, 0.2);
+        }
+
+        @keyframes loader-line-reveal {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+                letter-spacing: 0.5em;
+                filter: blur(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+                letter-spacing: 0.3em;
+                filter: blur(0);
+            }
+        }
     </style>
     <!-- Particles.js -->
     <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
@@ -298,17 +332,56 @@
                 const trueDashboard = document.getElementById('true-dashboard');
                 const loaderText = document.getElementById('loader-text');
                 const statusText = document.getElementById('status-text');
+                const flash = document.getElementById('hud-flash');
+                const cards = Array.from(document.querySelectorAll('.dashboard-card'));
+                let redirecting = false;
+                const timeouts = [];
 
                 loader.classList.remove('hidden');
                 loader.classList.add('flex');
 
-                let redirecting = false;
+                function schedule(delay, callback) {
+                    timeouts.push(setTimeout(callback, delay));
+                }
+
+                function updateCopy(message, status) {
+                    loaderText.classList.remove('reveal-line');
+                    loaderText.style.opacity = '0';
+                    loaderText.style.filter = 'blur(8px)';
+                    setTimeout(() => {
+                        loaderText.textContent = message;
+                        loaderText.classList.add('reveal-line');
+                        loaderText.style.opacity = '1';
+                        loaderText.style.filter = 'blur(0)';
+                    }, 80);
+
+                    if (status) {
+                        statusText.textContent = status;
+                        statusText.classList.replace('opacity-0', 'opacity-100');
+                    }
+                }
+
+                function revealDashboardSequence() {
+                    trueDashboard.classList.replace('opacity-0', 'opacity-100');
+                    trueDashboard.style.transitionDuration = '2600ms';
+                    trueDashboard.style.transform = 'translateZ(185px) scale(1.04)';
+                    grid.style.transform = 'rotateX(90deg) translateZ(-520px) scale(1.2)';
+                    grid.style.opacity = '0.4';
+
+                    cards.forEach((card, index) => {
+                        schedule(index * 140, () => {
+                            card.classList.add('dashboard-live');
+                            card.classList.replace('translate-y-[-50px]', 'translate-y-0');
+                            card.classList.replace('translate-y-[50px]', 'translate-y-0');
+                        });
+                    });
+                }
 
                 function attemptRedirect() {
                     if (!redirecting) {
                         redirecting = true;
-                        
-                        // Extremely smooth fade to absolute black. No abrupt flashes.
+                        timeouts.forEach(clearTimeout);
+
                         loader.style.transition = "background-color 1.5s ease-in-out";
                         loader.style.backgroundColor = '#000000';
                         space3d.style.transitionDuration = '1.5s';
@@ -332,19 +405,18 @@
                 setTimeout(() => {
                     loader.classList.replace('opacity-0', 'opacity-100');
                     
-                    // T=0.0s "Allow me to introduce myself. I am Jarvis..."
                     space3d.classList.replace('opacity-0', 'opacity-100');
                     space3d.style.transform = 'rotateX(0deg) scale(1)';
                     
                     document.getElementById('hud-status').classList.replace('opacity-0', 'opacity-100');
-                    setTimeout(() => {
-                        loaderText.classList.remove('blur-[2px]');
-                        loaderText.textContent = "ALLOW ME TO INTRODUCE MYSELF. I AM JARVIS, A VIRTUAL ARTIFICIAL INTELLIGENCE";
-                    }, 500);
+                    schedule(300, () => {
+                        updateCopy(
+                            "ALLOW ME TO INTRODUCE MYSELF. I AM JARVIS, A VIRTUAL ARTIFICIAL INTELLIGENCE.",
+                            "IDENTITY MATRIX ONLINE"
+                        );
+                    });
 
-                    // T=6.0s "...and I'm here to assist you..."
-                    setTimeout(() => {
-                        // Fade out the initial pulse rings
+                    schedule(6000, () => {
                         document.getElementById('core-energy').classList.replace('opacity-100', 'opacity-0');
                         document.getElementById('core-energy-2').classList.replace('opacity-100', 'opacity-0');
                         document.getElementById('core-energy-3').classList.replace('opacity-100', 'opacity-0');
@@ -355,105 +427,66 @@
                         core.style.boxShadow = 'none';
 
                         constellation.classList.replace('opacity-0', 'opacity-100');
-                        space3d.style.transform = 'rotateX(20deg) rotateY(-15deg) scale(1.2)';
-                        
-                        loaderText.style.filter = 'blur(4px)';
-                        setTimeout(() => {
-                            loaderText.textContent = "AND I'M HERE TO ASSIST YOU WITH A VARIETY OF TASKS AS BEST I CAN";
-                            loaderText.style.filter = 'blur(0px)';
-                            statusText.classList.replace('opacity-0', 'opacity-100');
-                            statusText.textContent = "NEURAL CONSTELLATION MAPPED";
-                        }, 500);
-                    }, 6000);
+                        space3d.style.transitionDuration = '3200ms';
+                        space3d.style.transform = 'rotateX(16deg) rotateY(-12deg) scale(1.08)';
+                        updateCopy(
+                            "AND I'M HERE TO ASSIST YOU WITH A VARIETY OF TASKS AS BEST I CAN.",
+                            "ASSISTANCE SUBROUTINES SYNCHRONIZED"
+                        );
+                    });
 
-                    // T=10.0s "24 hours a day, 7 days a week."
-                    setTimeout(() => {
+                    schedule(10000, () => {
                         grid.classList.replace('opacity-0', 'opacity-100');
-                        
-                        // Abrupt kinetic snap on the orbital rings!
-                        constellation.style.transitionDuration = '100ms'; // Snap instantly
-                        constellation.style.transform = 'translateZ(100px) rotateX(15deg) rotateY(-10deg) scale(1.1)';
-                        
-                        // Grab ring child divs and abruptly speed them up or reverse them
+                        constellation.style.transitionDuration = '1800ms';
+                        constellation.style.transform = 'translateZ(70px) rotateX(10deg) rotateY(-8deg) scale(1.04)';
+
                         const rings = constellation.querySelectorAll('.rounded-full');
                         rings.forEach((ring, index) => {
-                            // Visceral speedup to 1s duration
-                            ring.style.animationDuration = (0.5 + (index * 0.2)) + 's';
+                            ring.style.animationDuration = (3 + (index * 0.7)) + 's';
                             if (index % 2 === 0) ring.style.animationDirection = 'reverse';
                         });
                         
-                        // Pan camera to look slightly down at grid
-                        space3d.style.transitionDuration = '3000ms';
-                        space3d.style.transform = 'rotateX(30deg) rotateY(0deg) scale(0.9) translateZ(-50px)';
-                        
-                        loaderText.style.filter = 'blur(4px)';
-                        setTimeout(() => {
-                            loaderText.textContent = "24 HOURS A DAY, 7 DAYS A WEEK";
-                            loaderText.style.filter = 'blur(0px)';
-                            statusText.textContent = "ALGORITHMIC DATAGRID ONLINE";
-                        }, 500);
-                    }, 10000);
+                        space3d.style.transitionDuration = '2600ms';
+                        space3d.style.transform = 'rotateX(28deg) rotateY(0deg) scale(0.9) translateZ(-40px)';
+                        updateCopy(
+                            "24 HOURS A DAY, 7 DAYS A WEEK.",
+                            "PERSISTENT AVAILABILITY CONFIRMED"
+                        );
+                    });
 
-                    // T=13.0s "Importing all preferences from home interface."
-                    setTimeout(() => {
-                        trueDashboard.classList.replace('opacity-0', 'opacity-100');
-                        grid.style.transform = 'rotateX(90deg) translateZ(-400px)'; // drop grid down visually
-                        
-                        // Animate each dashboard component popping in
-                        const cards = document.querySelectorAll('.dashboard-card');
-                        cards.forEach(card => {
-                             card.classList.replace('opacity-0', 'opacity-100');
-                             card.classList.replace('translate-y-[-50px]', 'translate-y-0');
-                             card.classList.replace('translate-y-[50px]', 'translate-y-0');
-                             card.classList.add('shadow-[0_0_40px_rgba(56,189,248,0.1)]');
-                        });
+                    schedule(13000, () => {
+                        space3d.style.transitionDuration = '4200ms';
+                        space3d.style.transform = 'rotateX(4deg) rotateY(0deg) scale(1.03) translateZ(95px)';
+                        revealDashboardSequence();
+                        updateCopy(
+                            "IMPORTING ALL PREFERENCES FROM HOME INTERFACE.",
+                            "LIVE DASHBOARD RESTORED"
+                        );
+                    });
 
-                        // Camera pushes INTO dashboard wireframes
-                        space3d.style.transitionDuration = '4500ms';
-                        space3d.style.transform = 'rotateX(0deg) rotateY(0deg) scale(1) translateZ(100px)';
-
-                        loaderText.style.filter = 'blur(4px)';
-                        setTimeout(() => {
-                            loaderText.textContent = "IMPORTING ALL PREFERENCES FROM HOME INTERFACE";
-                            loaderText.style.filter = 'blur(0px)';
-                            statusText.textContent = "CONSTRUCTING DASHBOARD GEOMETRY";
-                        }, 500);
-                    }, 13000);
-
-                    // T=16.0s "Systems are now fully operational."
-                    setTimeout(() => {
-                        // Flash and solidify
-                        const flash = document.getElementById('hud-flash');
+                    schedule(16000, () => {
                         if (flash) {
                             flash.classList.replace('opacity-0', 'opacity-100');
-                            setTimeout(() => flash.classList.replace('opacity-100', 'opacity-0'), 100);
+                            schedule(140, () => flash.classList.replace('opacity-100', 'opacity-0'));
                         }
 
-                        // Ignite actual borders
-                        document.querySelectorAll('.dashboard-card').forEach(card => {
+                        cards.forEach(card => {
                             card.classList.replace('border-brand-primary/30', 'border-brand-primary/60');
-                            card.classList.replace('shadow-[0_0_40px_rgba(56,189,248,0.1)]', 'shadow-[0_0_60px_rgba(56,189,248,0.3)]');
+                            card.style.boxShadow = '0 0 60px rgba(56, 189, 248, 0.24)';
                         });
                         
-                        // Push slowly into the dazzling UI over the remaining time
-                        space3d.style.transitionDuration = '8000ms';
-                        space3d.style.transform = 'rotateX(0deg) rotateY(0deg) scale(1.05) translateZ(150px)';
-                        
-                        loaderText.style.filter = 'blur(4px)';
-                        setTimeout(() => {
-                            loaderText.textContent = "SYSTEMS ARE NOW FULLY OPERATIONAL";
-                            loaderText.style.filter = 'blur(0px)';
-                            loaderText.classList.replace('text-slate-300', 'text-white');
-                            statusText.textContent = "READY FOR AUTHENTICATION";
-                            statusText.classList.replace('text-brand-primary/60', 'text-brand-accent');
-                        }, 500);
-                    }, 16000);
+                        space3d.style.transitionDuration = '6000ms';
+                        space3d.style.transform = 'rotateX(0deg) rotateY(0deg) scale(1.08) translateZ(170px)';
+                        loaderText.classList.replace('text-slate-300', 'text-white');
+                        statusText.classList.replace('text-brand-primary/60', 'text-brand-accent');
+                        updateCopy(
+                            "SYSTEMS ARE NOW FULLY OPERATIONAL.",
+                            "DASHBOARD READY"
+                        );
+                    });
 
-                    // T=22.0s Fade out entirely to black (leaving visual time before song finishes)
-                    setTimeout(() => { attemptRedirect(); }, 22500);
-
-                    // Ultimate fallback
-                    setTimeout(() => { attemptRedirect(); }, 25000);
+                    schedule(22000, () => { attemptRedirect(); });
+                    schedule(25000, () => { attemptRedirect(); });
                 }, 100);
             }
         });

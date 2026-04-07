@@ -15,3 +15,8 @@ python manage.py collectstatic --no-input
 
 # Run database migrations
 python manage.py migrate
+
+# Create superuser from environment variables (fails silently if already exists)
+if [ "$DJANGO_SUPERUSER_USERNAME" ]; then
+  python manage.py createsuperuser --no-input || true
+fi
