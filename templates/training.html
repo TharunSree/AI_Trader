@@ -20,7 +20,7 @@
             Launch a massive parallel experiment to test multiple strategy combinations autonomously.
         </p>
         <form action="{% url 'start_meta_job' %}" method="POST" id="form-meta-job" class="relative z-10"
-            onsubmit="event.preventDefault(); window.launchJarvisOverlay(this, 'SPINNING UP META-COACH PIPELINES...');">
+            onsubmit="event.preventDefault(); window.launchOverlay(this, 'SPINNING UP META-COACH PIPELINES...');">
             {% csrf_token %}
             <div class="grid grid-cols-2 gap-4 mb-4">
                 <div class="col-span-2">
@@ -71,7 +71,7 @@
             Define specific metrics and launch a solitary, targeted backpropagation protocol.
         </p>
         <form action="{% url 'start_training_job' %}" method="POST" id="form-single-job" class="relative z-10"
-            onsubmit="event.preventDefault(); window.launchJarvisOverlay(this, 'CONNECTING TO DEDICATED MODEL...');">
+            onsubmit="event.preventDefault(); window.launchOverlay(this, 'CONNECTING TO DEDICATED MODEL...');">
             {% csrf_token %}
             <div class="grid grid-cols-2 gap-4 mb-4">
                 <div class="col-span-2">
@@ -179,7 +179,7 @@
                         ${{ job.best_reward|floatformat:2 }}</td>
                     <td class="py-3 px-4 text-right" onclick="event.stopPropagation();">
                         <form action="{% url 'stop_job' job.id %}" method="POST" class="inline-block"
-                            onsubmit="event.preventDefault(); window.confirmJarvisAction('Are you sure you want to terminate this neural link? All unsaved epoch weights will be purged.', () => { window.launchJarvisShutdown(this, 'ABORTING TRAINING DIRECTIVE...'); })">
+                            onsubmit="event.preventDefault(); if(confirm('Are you sure you want to terminate this neural link? All unsaved epoch weights will be purged.')) { window.launchOverlay(this, 'ABORTING TRAINING DIRECTIVE...'); }">
                             {% csrf_token %}
                             <button type="submit"
                                 onclick="event.stopPropagation();"
@@ -261,7 +261,7 @@
                     </td>
                     <td class="py-3 px-4 text-right" onclick="event.stopPropagation();">
                         <form action="{% url 'stop_meta_job' job.id %}" method="POST" class="inline-block"
-                            onsubmit="event.preventDefault(); window.confirmJarvisAction('Cancel Meta-Coach pipeline? All cross-validated performance grids will be destroyed.', () => { window.launchJarvisShutdown(this, 'ABORTING META-COACH PIPELINES...'); })">
+                            onsubmit="event.preventDefault(); if(confirm('Cancel Meta-Coach pipeline? All cross-validated performance grids will be destroyed.')) { window.launchOverlay(this, 'ABORTING META-COACH PIPELINES...'); }">
                             {% csrf_token %}
                             <button type="submit"
                                 onclick="event.stopPropagation();"

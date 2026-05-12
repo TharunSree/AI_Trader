@@ -287,36 +287,15 @@ Evaluation Lab{% endblock page_title %}
 <form method="post" action="{% url 'evaluation_lab' %}
 " id="evaluation-form" class="grid grid-cols-1 gap-4 items-end mt-auto"> {% csrf_token %}
  <div class="w-full">
-<label for="model_file_select" class="block text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-2 font-mono">Model Tensor</label>
-<div class="custom-select-container relative w-full" id="evaluation_model_select_container">
-<input type="hidden" name="model_file" id="model_file_select" required value="{% if model_files %}
-{{
- model_files.0.value }}
-{% endif %}
-">
-<div class="select-trigger bg-white dark:bg-slate-900 border border-slate-800 rounded px-4 py-3 text-slate-800 dark:text-slate-200 font-mono flex justify-between items-center cursor-pointer">
-<span class="select-label-text truncate">{% if model_files %}
-{{
- model_files.0.label }}
-{% else %}
-No saved models available{% endif %}
-</span>
-<svg class="w-4 h-4 ml-2 flex-shrink-0 text-slate-500 dark:text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7">
-</path>
-</svg>
-</div>
-<div class="select-dropdown absolute z-50 w-full mt-1 bg-slate-950 border border-slate-600 rounded shadow-[0_0_20px_rgba(0,0,0,0.8)] hidden">
-<ul class="py-1 max-h-48 overflow-auto font-mono text-sm"> {% for model in model_files %}
- <li class="px-4 py-3 text-slate-600 dark:text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:bg-slate-800 hover:text-slate-800 dark:text-slate-200 cursor-pointer transition-colors border-b border-white/5 last:border-0" data-value="{{
- model.value }}
-">{{
- model.label }}
-</li> {% empty %}
- <li class="px-4 py-3 text-slate-500 dark:text-slate-400 dark:text-slate-500 cursor-not-allowed">No saved models available</li> {% endfor %}
- </ul>
-</div>
-</div>
+<label for="model_file_select" class="block text-xs uppercase tracking-widest text-slate-500 mb-2 font-mono">Model Tensor</label>
+<select name="model_file" id="model_file_select" class="w-full bg-slate-900 border border-slate-700 text-slate-300 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 block p-2.5 font-mono shadow-inner transition-colors appearance-none" required>
+    {% if not model_files %}
+    <option value="" disabled selected>No saved models available</option>
+    {% endif %}
+    {% for model in model_files %}
+    <option value="{{ model.value }}">{{ model.label }}</option>
+    {% endfor %}
+</select>
 </div>
 <div class="date-wrap">
     <label for="start_date" class="block text-xs uppercase tracking-widest text-slate-500 mb-2 font-mono">Start Date</label>

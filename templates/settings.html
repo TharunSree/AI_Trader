@@ -140,13 +140,23 @@
     </div>
 
     <!-- System Maintenance -->
-    <div class="bg-slate-900 border border-slate-800 rounded p-6">
-        <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
-            <h4 class="text-[10px] uppercase tracking-widest text-brand-accent font-mono tracking-widest">System Maintenance</h4>
+    <div class="bg-slate-900/80 backdrop-blur-sm border border-slate-700 p-6 relative overflow-hidden group">
+        <!-- Decoration -->
+        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-600 to-transparent"></div>
+        <div class="absolute right-[-20px] top-[-20px] opacity-5">
+            <i class="fas fa-server text-9xl"></i>
         </div>
-        <p class="text-xs text-slate-400 mb-6">Pull the latest framework updates directly from the master repository without SSHing into the core console.</p>
-        <button id="btn-update-platform-settings" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-white font-mono tracking-widest text-[10px] uppercase py-2 px-4 rounded border border-slate-800 w-full transition-colors flex items-center justify-center gap-2">
-            <i class="ti ti-download text-lg"></i> OVERRIDE PROTOCOL: LAUNCH UPDATE TERMINAL
+
+        <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4 relative z-10">
+            <h4 class="text-[10px] uppercase tracking-[0.2em] text-brand-400 font-mono flex items-center gap-2">
+                <i class="fas fa-network-wired text-slate-500"></i> Core Protocol Sync
+            </h4>
+            <span class="px-2 py-1 bg-slate-800 text-slate-400 text-[8px] font-mono rounded border border-slate-700">NODE: ONLINE</span>
+        </div>
+        <p class="text-xs text-slate-400 mb-6 font-mono leading-relaxed relative z-10">Initialize a remote connection to the central architecture repository. This action will pull the latest intelligence models, interface patches, and backend optimizations directly into the production environment. Database schemas will be synchronized automatically.</p>
+        
+        <button id="btn-update-platform-settings" class="relative z-10 bg-slate-950 hover:bg-brand-900/30 text-brand-400 hover:text-brand-300 font-mono tracking-[0.3em] text-[10px] uppercase py-3 px-4 border border-brand-500/50 hover:border-brand-400 w-full transition-all flex items-center justify-center gap-3 group/btn">
+            <i class="fas fa-satellite-dish group-hover/btn:animate-pulse"></i> INITIATE OVERRIDE PROTOCOL
         </button>
     </div>
 
