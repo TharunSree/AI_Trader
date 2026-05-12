@@ -43,6 +43,10 @@ class Broker:
             return 'https://paper-api.alpaca.markets'
         v = value.strip()
         l = v.lower()
+        # Reject WebSocket / stream URLs — these are NOT REST endpoints
+        if l.startswith('wss://') or l.startswith('ws://') or 'stream.data.alpaca' in l:
+            logger.warning(f"Broker received a WebSocket/stream URL as base_url: {v}. Falling back to paper API.")
+            return 'https://paper-api.alpaca.markets'
         if l.startswith(('http://', 'https://')):
             if l.endswith('/v2'):
                 return v[:-3]
@@ -242,12 +246,15 @@ class Broker:
             timeout_sec: int = 300,  # 5 minutes default
             poll_interval: float = 3.0,
             enable_gap_protection: bool = True,
-            max_gap_percent: float = 5.0
+            max_gap_percent: float = None  # Auto-detect: 15% for crypto, 5% for stocks
     ):
         """
         Place market order with gap protection and India timezone awareness.
         Returns (filled: bool, order_obj)
         """
+        # Auto-detect gap tolerance based on asset type
+        if max_gap_percent is None:
+            max_gap_percent = 15.0 if '/USD' in symbol else 5.0
         # Check market status with IST logging
         market_open = self.is_market_open()
 

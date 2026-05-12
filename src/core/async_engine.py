@@ -31,6 +31,10 @@ class AITradingEngine:
         self.symbol = "SPY"
         self.running = False
         
+        # Account data cache to reduce API calls (refreshed every 60s)
+        self._cached_account = None
+        self._account_cache_time = 0
+        
         # Phase 5: NLP State
         self.finbert = None
         self.latest_sentiment = {}
@@ -292,8 +296,8 @@ class AITradingEngine:
         await bus.connect()
         logger.info("[JARVIS] Event bus link established.")
         pubsub = bus.client.pubsub()
-        await pubsub.subscribe("market_ticks")
-        logger.info("[JARVIS] Market tick stream subscribed.")
+        await pubsub.subscribe("live_market_feed")
+        logger.info("[JARVIS] Market tick stream subscribed (channel: live_market_feed).")
         
         # Start execution loop
         while True:
@@ -307,38 +311,41 @@ class AITradingEngine:
                 continue
 
             # 1. Market Clock Sync Check
-            clock_data = await asyncio.to_thread(self.broker.get_market_clock)
-            if clock_data:
-                if not clock_data["is_open"]:
-                    next_open = datetime.fromisoformat(clock_data["next_open"])
-                    now = datetime.now(timezone.utc)
-                    if now < next_open:
-                        wait_seconds = (next_open - now).total_seconds()
-                        wait_minutes, wait_rest = divmod(int(wait_seconds), 60)
-                        logger.info(f"Market closed. Sleeping until market open ({wait_minutes}:{wait_rest:02d} remaining)")
-                        # Propagate SLEEPING state to UI
-                        await asyncio.to_thread(lambda: PaperTrader.objects.filter(id=self.trader_id).update(status='SLEEPING'))
-                        
-                        # Sleep in 1 minute chunks to still allow graceful shutdowns
-                        sleep_time = min(wait_seconds, 60)
-                        await asyncio.sleep(sleep_time)
-                        continue
-                    else:
-                        # Ensure we wake up and run
-                        if getattr(trader, 'status', None) == 'SLEEPING':
-                            await asyncio.to_thread(lambda: PaperTrader.objects.filter(id=self.trader_id).update(status='RUNNING'))
-                            # PDT restriction resets on new trading day
-                            if self.pdt_blocked:
-                                self.pdt_blocked = False
-                                logger.info("[PDT RESET] New trading day — sell orders re-enabled.")
+            # Crypto trades 24/7 — only enforce NYSE sleep for stock symbols
+            is_crypto = any(s for s in (self._affordable_tickers or [self.symbol]) if '/USD' in str(s))
+            if not is_crypto:
+                clock_data = await asyncio.to_thread(self.broker.get_market_clock)
+                if clock_data:
+                    if not clock_data["is_open"]:
+                        next_open = datetime.fromisoformat(clock_data["next_open"])
+                        now = datetime.now(timezone.utc)
+                        if now < next_open:
+                            wait_seconds = (next_open - now).total_seconds()
+                            wait_minutes, wait_rest = divmod(int(wait_seconds), 60)
+                            logger.info(f"Market closed. Sleeping until market open ({wait_minutes}:{wait_rest:02d} remaining)")
+                            await asyncio.to_thread(lambda: PaperTrader.objects.filter(id=self.trader_id).update(status='SLEEPING'))
+                            sleep_time = min(wait_seconds, 60)
+                            await asyncio.sleep(sleep_time)
+                            continue
+                        else:
+                            if getattr(trader, 'status', None) == 'SLEEPING':
+                                await asyncio.to_thread(lambda: PaperTrader.objects.filter(id=self.trader_id).update(status='RUNNING'))
+                                if self.pdt_blocked:
+                                    self.pdt_blocked = False
+                                    logger.info("[PDT RESET] New trading day — sell orders re-enabled.")
             
             logger.info("Scanning for opportunities...")
             
             # --- Profit Protection / Hard Stop Loss Barrier ---
-            # --- Profit Protection / Hard Stop Loss Barrier ---
             # We enforce this check persistently since dynamic loss mapping requires it
             if True:
-                account = await asyncio.to_thread(self.broker.api.get_account)
+                # Cache account data — refresh every 60 seconds instead of every 2s tick
+                import time as _time
+                _now = _time.time()
+                if self._cached_account is None or (_now - self._account_cache_time) > 60:
+                    self._cached_account = await asyncio.to_thread(self.broker.api.get_account)
+                    self._account_cache_time = _now
+                account = self._cached_account
                 live_equity = float(account.equity)
                 
                 trader_active = await asyncio.to_thread(lambda: PaperTrader.objects.prefetch_related('trades').get(id=self.trader_id))
@@ -408,45 +415,26 @@ class AITradingEngine:
             # make a physical REST query to keep the bot trading!
             broker = self.broker
             
-            # Phase 13: Dynamic Affordable Basket Verification
+            # Dynamic Affordable Basket — uses Alpaca's native asset list instead of CCXT
             if not hasattr(self, '_affordable_tickers'):
                 self._affordable_tickers = None
 
             if not self._affordable_tickers:
-                allocated_principal = float(getattr(trader, 'initial_cash', 100000.0)) if trader else 100000.0
-                def fetch_dynamic_crypto():
+                def fetch_alpaca_crypto():
                     try:
-                        import ccxt
-                        # Aggregate multiple exchanges (Binance, Kraken, Coinbase)
-                        b = ccxt.binance()
-                        k = ccxt.kraken()
-                        c = ccxt.coinbase()
-                        
-                        # Just a quick top volume fetch from binance to dictate market attention
-                        markets = b.load_markets()
-                        tickers = b.fetch_tickers()
-                        
-                        # Filter to standard USD/USDT pairs Alpaca usually supports
-                        valid_bases = ['BTC', 'ETH', 'SOL', 'LTC', 'BCH', 'LINK', 'DOGE', 'UNI', 'AAVE', 'AVAX', 'MATIC']
-                        active_pairs = []
-                        for base in valid_bases:
-                            symbol = f"{base}/USDT"
-                            if symbol in tickers:
-                                active_pairs.append({
-                                    'symbol': f"{base}/USD",
-                                    'vol': tickers[symbol].get('quoteVolume', 0) or 0
-                                })
-                        
-                        # Sort by volume and pick top 5 most liquid
-                        active_pairs.sort(key=lambda x: x['vol'], reverse=True)
-                        top_symbols = [p['symbol'] for p in active_pairs[:5]]
-                        return top_symbols if top_symbols else ["BTC/USD"]
+                        assets = self.broker.api.list_assets(asset_class='crypto', status='active')
+                        # Filter to tradable USD pairs and pick top symbols by name recognition
+                        preferred = ['BTC/USD', 'ETH/USD', 'SOL/USD', 'LTC/USD', 'BCH/USD',
+                                     'LINK/USD', 'DOGE/USD', 'AVAX/USD', 'UNI/USD', 'AAVE/USD']
+                        available = {a.symbol for a in assets if a.tradable}
+                        result = [s for s in preferred if s in available]
+                        return result[:5] if result else ['BTC/USD']
                     except Exception as e:
-                        logger.error(f"CCXT Crypto Fetch failed: {e}")
-                        return ["BTC/USD", "ETH/USD"]
+                        logger.error(f"Alpaca crypto asset fetch failed: {e}")
+                        return ['BTC/USD', 'ETH/USD']
 
-                self._affordable_tickers = await asyncio.to_thread(fetch_dynamic_crypto)
-                logger.info(f"[CRYPTO MATRIX] Dynamic Global API Universe: {self._affordable_tickers} | Principal: ${allocated_principal:,.2f}")
+                self._affordable_tickers = await asyncio.to_thread(fetch_alpaca_crypto)
+                logger.info(f"[CRYPTO MATRIX] Alpaca Tradable Universe: {self._affordable_tickers}")
                 
             active_symbols = self._affordable_tickers
             for sym in active_symbols:
@@ -487,9 +475,10 @@ class AITradingEngine:
                     except Exception as e:
                         logger.error(f"Inference Loop Error: {e}", exc_info=True)
                     
-            await asyncio.sleep(2)
+            # 10s REST fallback polling (pub/sub delivers faster when connected)
+            await asyncio.sleep(10)
             
-        await pubsub.unsubscribe("market_ticks")
+        await pubsub.unsubscribe("live_market_feed")
         
 async def main():
     import argparse

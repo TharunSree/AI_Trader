@@ -215,10 +215,15 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'America/New_York'
 from celery.schedules import crontab
 CELERY_BEAT_SCHEDULE = {
+    'eod_report_generation': {
+        'task': 'control_panel.tasks.generate_eod_reports',
+        # Generate EOD reports at 4:00 PM before tournament (4:15) and mutation (4:30)
+        'schedule': crontab(hour=16, minute=0),
+    },
     'nightly_ab_tournament': {
         'task': 'control_panel.tasks.run_ab_tournament',
         # Market closes at 4:00 PM EST, run evaluation at 4:15 PM Monday-Friday
-        'schedule': crontab(hour=16, minute=15), # Daily Execution
+        'schedule': crontab(hour=16, minute=15),
     },
     'auto_resurrect_watchdog': {
         'task': 'control_panel.tasks.auto_resurrect_nodes',
@@ -232,9 +237,8 @@ CELERY_BEAT_SCHEDULE = {
     },
     'daily_cognitive_mutation': {
         'task': 'control_panel.tasks.trigger_daily_cognitive_mutation',
-        # The market closes at 4:00. The Evaluation Tournament runs at 4:15.
-        # Fire the Cognitive Mutator at 4:30 PM Mon-Fri so it can read the brand new daily evaluation reports!
-        'schedule': crontab(hour=16, minute=30), # Daily Execution
+        # Fire the Cognitive Mutator at 4:30 PM Mon-Fri so it can read the fresh EOD reports
+        'schedule': crontab(hour=16, minute=30),
     },
 }
 

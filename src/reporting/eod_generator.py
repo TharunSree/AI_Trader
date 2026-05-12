@@ -125,6 +125,12 @@ def fetch_daily_metrics(report_date=None, target_bot=None):
     w_sell = float(week_trades.filter(action='SELL').aggregate(total=Coalesce(Sum('notional_value'), zero_money))['total'])
     week_net_flow = w_sell - w_buy
 
+    month_start = end_date - timedelta(days=30)
+    month_trades = TradeLog.objects.filter(trader=target_bot, timestamp__gte=month_start)
+    m_buy = float(month_trades.filter(action='BUY').aggregate(total=Coalesce(Sum('notional_value'), zero_money))['total'])
+    m_sell = float(month_trades.filter(action='SELL').aggregate(total=Coalesce(Sum('notional_value'), zero_money))['total'])
+    month_net_flow = m_sell - m_buy
+
     ai_analysis = "No AI Analysis available."
     session_summary = "Standard analytical data available in logs."
     
@@ -186,7 +192,7 @@ def fetch_daily_metrics(report_date=None, target_bot=None):
         'model_name': model_name,
         'hist_yesterday': yesterday_net_flow,
         'hist_7d': week_net_flow,
-        'hist_30d': week_net_flow,
+        'hist_30d': month_net_flow,
         'ai_analysis': ai_analysis,
         'session_summary': session_summary
     }

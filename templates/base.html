@@ -563,6 +563,7 @@
 
             // Show overlay
             overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
             setTimeout(() => overlay.classList.remove('opacity-0'), 10);
 
             let currentPct = 0;
@@ -648,7 +649,10 @@
 
         closeBtn.addEventListener('click', () => {
             overlay.classList.add('opacity-0');
-            setTimeout(() => overlay.classList.add('hidden'), 300);
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+                overlay.classList.remove('flex');
+            }, 300);
         });
 
     </script>

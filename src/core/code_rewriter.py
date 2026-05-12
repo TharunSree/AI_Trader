@@ -321,84 +321,90 @@ def orchestrate_rewrite(crash_log=None):
         print(raw_response)
         print("="*50 + "\n")
         
-        # Deploy mutation to sandbox target
-        target_path.write_text(new_code, encoding='utf-8')
-        
-        # Sandbox Protocol Phase 2: Syntax Validate
+        # Sandbox Protocol Phase 2: Syntax Validate BEFORE deploying
         try:
             compile(new_code, 'ppo_agent.py', 'exec')
-            print("[COGNITIVE REWRITER] Syntax verification passed. Mutated logic synced to core.")
-            
-            # Generate Unified Diff securely
-            diff_lines = list(difflib.unified_diff(
-                current_code.splitlines(),
-                new_code.splitlines(),
-                fromfile='ppo_agent.py.bak',
-                tofile='ppo_agent.py',
-                lineterm=''
-            ))
-            diff_str = "\n".join(diff_lines)
-            
-            print("CODEBASE DELTA (UNIFIED DIFF):")
-            print("-" * 50)
-            print(diff_str)
-            print("-" * 50 + "\n")
-            
-            # Generate Simple Summary for Email
-            simple_summary = "Strategy evolved: Thresholds and logic flow optimized based on recent session performance."
-            if genai and GEMINI_KEY:
-                try:
-                    sum_res = client.models.generate_content(
-                        model='gemini-2.5-flash',
-                        contents=f"Summarize these code changes in 2-3 simple sentences for a non-technical trader:\n\n{diff_str}"
-                    )
-                    simple_summary = sum_res.text
-                except: pass
-            
-            pdf_path = generate_mutation_pdf("ppo_agent", raw_response, diff_str, simple_summary)
-            
-            # Send Notification Mail with PDF
-            try:
-                from src.reporting.email_dispatcher import send_mutator_alert
-                send_mutator_alert(
-                    f"Mutation Complete for ppo_agent. Logic synced to core.",
-                    diff_text=None,
-                    pdf_path=pdf_path,
-                    simple_summary=simple_summary
-                )
-            except Exception as mail_err:
-                print(f"[COGNITIVE REWRITER] Failed to dispatch mutation email: {mail_err}")
-                
-            # If this was an Epoch Refinement (not a mid-day crash), automatically trigger a robust training cycle
-            if not crash_log:
-                try:
-                    from control_panel.models import TrainingJob
-                    from control_panel.views import _spawn_background_process
-                    
-                    print("[COGNITIVE REWRITER] Spawning iterative backtesting processes against mutated configurations...")
-                    for i in range(2):
-                        job = TrainingJob.objects.create(
-                            name=f"Mutant Configuration Node {i+1}",
-                            feature_set_key="standard",
-                            hyperparameter_key="standard",
-                            window_size=10, 
-                            initial_cash=100000
-                        )
-                        log_dir = Path(__file__).resolve().parent.parent.parent / "logs"
-                        log_dir.mkdir(exist_ok=True)
-                        log_file = log_dir / f"train_job_{job.id}.log"
-                        process = _spawn_background_process(
-                            [sys.executable, "run_training.py", "--job_id", str(job.id)],
-                            log_file,
-                        )
-                        job.celery_task_id = str(process.pid)
-                        job.save()
-                    print("[COGNITIVE REWRITER] Mutation Training Nodes seamlessly isolated and dispatched.")
-                except Exception as eval_e:
-                    print(f"[COGNITIVE REWRITER] Failed to spawn iteration nodes: {eval_e}")
-                
+            print("[COGNITIVE REWRITER] Syntax verification passed.")
         except SyntaxError as syntax_e:
             raise RuntimeError(f"Syntax validation failed. The LLM wrote broken code: {syntax_e}")
+        
+        # Only write to disk AFTER syntax validation passes
+        target_path.write_text(new_code, encoding='utf-8')
+        print("[COGNITIVE REWRITER] Mutated logic synced to core.")
+            
+        # Generate Unified Diff securely
+        diff_lines = list(difflib.unified_diff(
+            current_code.splitlines(),
+            new_code.splitlines(),
+            fromfile='ppo_agent.py.bak',
+            tofile='ppo_agent.py',
+            lineterm=''
+        ))
+        diff_str = "\n".join(diff_lines)
+        
+        print("CODEBASE DELTA (UNIFIED DIFF):")
+        print("-" * 50)
+        print(diff_str)
+        print("-" * 50 + "\n")
+        
+        # Generate Simple Summary for Email
+        simple_summary = "Strategy evolved: Thresholds and logic flow optimized based on recent session performance."
+        if genai and GEMINI_KEY:
+            try:
+                sum_res = client.models.generate_content(
+                    model='gemini-2.5-flash',
+                    contents=f"Summarize these code changes in 2-3 simple sentences for a non-technical trader:\n\n{diff_str}"
+                )
+                simple_summary = sum_res.text
+            except: pass
+        
+        pdf_path = generate_mutation_pdf("ppo_agent", raw_response, diff_str, simple_summary)
+        
+        # Send Notification Mail with PDF
+        try:
+            from src.reporting.email_dispatcher import send_mutator_alert
+            send_mutator_alert(
+                f"Mutation Complete for ppo_agent. Logic synced to core.",
+                diff_text=None,
+                pdf_path=pdf_path,
+                simple_summary=simple_summary
+            )
+        except Exception as mail_err:
+            print(f"[COGNITIVE REWRITER] Failed to dispatch mutation email: {mail_err}")
+            
+        # If this was an Epoch Refinement (not a mid-day crash), automatically trigger a robust training cycle
+        if not crash_log:
+            try:
+                from control_panel.models import TrainingJob
+                from control_panel.views import _spawn_background_process
+                
+                # Spawn diverse training configurations to explore the parameter space
+                mutation_configs = [
+                    ("Mutant Alpha Discovery", "alpha_discovery", "high_frequency_alpha", 10),
+                    ("Mutant Macro Trend", "macro_trend", "long_horizon_growth", 20),
+                ]
+                
+                print("[COGNITIVE REWRITER] Spawning iterative backtesting processes against mutated configurations...")
+                for name, feat_key, param_key, window in mutation_configs:
+                    job = TrainingJob.objects.create(
+                        name=name,
+                        feature_set_key=feat_key,
+                        hyperparameter_key=param_key,
+                        window_size=window, 
+                        initial_cash=100000
+                    )
+                    log_dir = Path(__file__).resolve().parent.parent.parent / "logs"
+                    log_dir.mkdir(exist_ok=True)
+                    log_file = log_dir / f"train_job_{job.id}.log"
+                    process = _spawn_background_process(
+                        [sys.executable, "run_training.py", "--job_id", str(job.id)],
+                        log_file,
+                    )
+                    job.celery_task_id = str(process.pid)
+                    job.save()
+                print("[COGNITIVE REWRITER] Mutation Training Nodes seamlessly isolated and dispatched.")
+            except Exception as eval_e:
+                print(f"[COGNITIVE REWRITER] Failed to spawn iteration nodes: {eval_e}")
 
     except Exception as e:
         print(f"[COGNITIVE REWRITER] FATAL ANOMALY: {e}")
