@@ -55,5 +55,9 @@ urlpatterns = [
     path('api/settings/toggle/<str:setting_name>/', views.toggle_setting_api, name='toggle_setting_api'),
     path('api/mutate/', views.trigger_mutation_api, name='trigger_mutation_api'),
     path('api/mutation-logs/', views.mutation_logs_api, name='mutation_logs_api'),
-    path('api/system/update/', views.system_update_api, name='system_update_api'),
+    path('api/system/check-updates/', views.check_updates_api, name='check_updates_api'),
+    path('api/system/update/stream/', views.system_update_stream, name='system_update_stream'),
+    path('api/security/status/', views.security_status_api, name='security_status_api'),
+    path('api/security/save/', views.save_security_settings_api, name='save_security_settings_api'),
+    path('api/lock/', views.lockscreen_api, name='lockscreen_api'),
 ]

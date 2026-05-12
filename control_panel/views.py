@@ -1662,20 +1662,81 @@ def trigger_mutation_api(request):
 
 
 import subprocess
+import time
+from django.http import StreamingHttpResponse
+
 @login_required
-def system_update_api(request):
-    if request.method == 'POST':
+def check_updates_api(request):
+    try:
+        subprocess.run(['git', 'fetch', 'origin'], capture_output=True, check=False)
+        result = subprocess.run(['git', 'rev-list', 'HEAD...origin/master', '--count'], capture_output=True, text=True, check=False)
+        commits_behind = int(result.stdout.strip()) if result.stdout.strip().isdigit() else 0
+        return JsonResponse({'status': 'success', 'commits_behind': commits_behind})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'error': str(e)}, status=500)
+
+@login_required
+def system_update_stream(request):
+    def event_stream():
+        yield "data: [SYSTEM] Initiating Override Protocol: Git Pull\n\n"
         try:
-            result = subprocess.run(
+            process = subprocess.Popen(
                 ['git', 'pull', 'origin', 'master'],
-                capture_output=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 text=True,
-                check=False
+                bufsize=1
             )
-            return JsonResponse({
-                'status': 'success',
-                'output': result.stdout + '\n' + result.stderr
-            })
+            for line in process.stdout:
+                yield f"data: {line}\n\n"
+            process.wait()
+            if process.returncode == 0:
+                yield "data: [SYSTEM] Update Successful. Reloading platform...\n\n"
+                yield "event: complete\ndata: \n\n"
+            else:
+                yield f"data: [ERROR] Git pull failed with code {process.returncode}\n\n"
+                yield "event: error\ndata: \n\n"
         except Exception as e:
-            return JsonResponse({'status': 'error', 'error': str(e)}, status=500)
+            yield f"data: [CRITICAL ERROR] {str(e)}\n\n"
+            yield "event: error\ndata: \n\n"
+
+    response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
+    response['Cache-Control'] = 'no-cache'
+    return response
+
+def security_status_api(request):
+    settings = SystemSettings.load()
+    return JsonResponse({
+        'status': 'success',
+        'has_password': bool(settings.lockscreen_password),
+        'idle_lock_minutes': settings.idle_lock_minutes,
+        'idle_logout_minutes': settings.idle_logout_minutes
+    })
+
+def save_security_settings_api(request):
+    if request.method == 'POST':
+        settings = SystemSettings.load()
+        
+        pw = request.POST.get('lockscreen_password', '').strip()
+        if pw:
+            settings.lockscreen_password = pw
+        elif 'lockscreen_password' in request.POST:
+            # If submitted empty, remove the password
+            settings.lockscreen_password = ''
+            
+        settings.idle_lock_minutes = int(request.POST.get('idle_lock_minutes', 5))
+        settings.idle_logout_minutes = int(request.POST.get('idle_logout_minutes', 30))
+        
+        settings.save()
+        return JsonResponse({'status': 'success', 'message': 'Security settings updated.'})
+    return JsonResponse({'error': 'Invalid method'}, status=405)
+
+def lockscreen_api(request):
+    if request.method == 'POST':
+        settings = SystemSettings.load()
+        password = request.POST.get('password', '')
+        
+        if not settings.lockscreen_password or password == settings.lockscreen_password:
+            return JsonResponse({'status': 'success'})
+        return JsonResponse({'status': 'error', 'message': 'Incorrect Passcode'})
     return JsonResponse({'error': 'Invalid method'}, status=405)

@@ -145,9 +145,41 @@
             <h4 class="text-[10px] uppercase tracking-widest text-brand-accent font-mono tracking-widest">System Maintenance</h4>
         </div>
         <p class="text-xs text-slate-400 mb-6">Pull the latest framework updates directly from the master repository without SSHing into the core console.</p>
-        <button id="btn-update-platform" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-white font-mono tracking-widest text-[10px] uppercase py-2 px-4 rounded border border-slate-800 w-full transition-colors flex items-center justify-center gap-2">
-            <i class="ti ti-download text-lg"></i> OVERRIDE PROTOCOL: GIT PULL LATEST REVISION
+        <button id="btn-update-platform-settings" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-white font-mono tracking-widest text-[10px] uppercase py-2 px-4 rounded border border-slate-800 w-full transition-colors flex items-center justify-center gap-2">
+            <i class="ti ti-download text-lg"></i> OVERRIDE PROTOCOL: LAUNCH UPDATE TERMINAL
         </button>
+    </div>
+
+    <!-- Security & Access Control -->
+    <div class="bg-slate-900 border border-slate-800 rounded p-6">
+        <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
+            <h4 class="text-[10px] uppercase tracking-widest text-emerald-500 font-mono tracking-widest flex items-center gap-2"><i class="fas fa-shield-alt"></i> Security & Access</h4>
+        </div>
+        <p class="text-xs text-slate-400 mb-6">Configure the global idle timeout lockscreen and authentication passcode.</p>
+        
+        <form id="form-security-settings" method="POST" action="{% url 'save_security_settings_api' %}">
+            {% csrf_token %}
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-[10px] uppercase tracking-widest text-slate-500 mb-2">Lockscreen Passcode</label>
+                    <input type="password" name="lockscreen_password" placeholder="Leave blank to disable passcode requirement" class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-500 transition-colors">
+                    <p class="text-[10px] text-slate-500 mt-1">If set, this PIN/Password will be required to unlock the session overlay.</p>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] uppercase tracking-widest text-slate-500 mb-2">Idle Lock (Minutes)</label>
+                        <input type="number" name="idle_lock_minutes" value="5" min="0" class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-500 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] uppercase tracking-widest text-slate-500 mb-2">Idle Logout (Minutes)</label>
+                        <input type="number" name="idle_logout_minutes" value="30" min="0" class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-500 transition-colors">
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-mono tracking-widest text-[10px] uppercase py-2 px-4 rounded transition-colors mt-2">
+                    Save Security Policies
+                </button>
+            </div>
+        </form>
     </div>
 
   </div>
@@ -184,6 +216,41 @@ document.addEventListener('DOMContentLoaded', function() {
                 }}).then(r => {
                 window.location.reload();
             });
+        });
+    }
+
+    // Security Settings Form Handler
+    const securityForm = document.getElementById('form-security-settings');
+    if(securityForm) {
+        securityForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const fd = new FormData(securityForm);
+            fetch(securityForm.action, {
+                method: 'POST',
+                body: fd,
+                headers: {'X-Requested-With': 'XMLHttpRequest'}
+            }).then(r => r.json()).then(data => {
+                if(data.status === 'success') {
+                    alert('Security Settings Saved!');
+                    window.location.reload();
+                } else {
+                    alert('Error saving settings: ' + data.message);
+                }
+            });
+        });
+    }
+
+    // Link settings update button to the topbar terminal overlay
+    const btnUpdatePlatformSettings = document.getElementById('btn-update-platform-settings');
+    if (btnUpdatePlatformSettings) {
+        btnUpdatePlatformSettings.addEventListener('click', function() {
+            // Trigger the topbar button click!
+            const topbarTrigger = document.getElementById('system-update-trigger');
+            if(topbarTrigger) {
+                topbarTrigger.click();
+            } else {
+                alert("Terminal overlay component not found.");
+            }
         });
     }
 });

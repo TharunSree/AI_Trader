@@ -99,6 +99,14 @@
                     <i class="fas fa-brain w-5 text-center"></i>
                     Intelligence Hub
                 </a>
+                <a href="{% url 'training' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {% if 'training' in request.path %}bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400{% else %}text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white{% endif %} transition-colors">
+                    <i class="fas fa-dumbbell w-5 text-center"></i>
+                    Training Center
+                </a>
+                <a href="{% url 'evaluation' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {% if 'evaluation' in request.path %}bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400{% else %}text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white{% endif %} transition-colors">
+                    <i class="fas fa-vial w-5 text-center"></i>
+                    Evaluation Lab
+                </a>
                 <a href="{% url 'papertrading' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white transition-colors">
                     <i class="fas fa-flask w-5 text-center"></i>
                     Paper Trading
@@ -147,6 +155,20 @@
                 <!-- Right Header Tools -->
                 <div class="flex items-center gap-6">
                     
+                    <!-- System Update Terminal Trigger -->
+                    <button id="system-update-trigger" type="button" class="relative text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none rounded-lg text-sm p-2 transition-colors">
+                        <i class="fas fa-satellite-dish w-5 h-5 text-center"></i>
+                        <span id="update-badge" class="absolute top-1 right-1 flex h-2 w-2 hidden">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                        </span>
+                    </button>
+
+                    <!-- Manual Lockscreen Trigger -->
+                    <button id="manual-lock-trigger" type="button" class="text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none rounded-lg text-sm p-2 transition-colors">
+                        <i id="lock-icon-inner" class="fas fa-lock w-5 h-5 text-center transition-all duration-300"></i>
+                    </button>
+
                     <!-- Dark Mode Toggle -->
                     <button id="theme-toggle" type="button" class="text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none rounded-lg text-sm p-2 transition-colors">
                         <i id="theme-toggle-dark-icon" class="fas fa-moon hidden w-5 h-5 text-center"></i>
@@ -259,6 +281,254 @@
         };
     </script>
     
+    <style>
+        /* Lockscreen Animations */
+        @keyframes float-slow {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-30px) scale(1.05); }
+        }
+        @keyframes float-medium {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-50px) scale(1.1); }
+        }
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.8; box-shadow: 0 0 40px rgba(59, 130, 246, 0.6); }
+        }
+        .animate-float-slow { animation: float-slow 8s ease-in-out infinite; }
+        .animate-float-medium { animation: float-medium 6s ease-in-out infinite; }
+        .animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+    </style>
+
+    <!-- Global Seamless Lockscreen Overlay -->
+    <div id="global-lockscreen-overlay" class="fixed inset-0 bg-[#020617]/90 backdrop-blur-3xl z-[10000] hidden flex flex-col items-center justify-center transition-all duration-700 opacity-0 scale-110 overflow-hidden">
+        
+        <!-- Animated Background Orbs -->
+        <div class="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-brand-600/20 rounded-full blur-[120px] animate-float-slow pointer-events-none mix-blend-screen"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] bg-emerald-600/20 rounded-full blur-[100px] animate-float-medium pointer-events-none mix-blend-screen" style="animation-delay: 2s;"></div>
+        <div class="absolute top-[40%] left-[40%] w-[30vw] h-[30vw] bg-purple-600/10 rounded-full blur-[90px] animate-float-slow pointer-events-none mix-blend-screen" style="animation-delay: 4s;"></div>
+        
+        <!-- Grid overlay -->
+        <div class="absolute inset-0 z-0 opacity-[0.03] pointer-events-none" style="background-image: linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px); background-size: 40px 40px;"></div>
+
+        <div class="z-10 flex flex-col items-center justify-center w-full max-w-2xl px-6">
+            
+            <!-- Massive Dynamic Clock -->
+            <div class="text-center mb-12 transform transition-transform hover:scale-105 duration-500">
+                <h1 id="lock-clock" class="text-8xl md:text-[10rem] font-mono font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white via-slate-200 to-slate-500 drop-shadow-[0_0_30px_rgba(255,255,255,0.2)] mb-2 leading-none">00:00</h1>
+                <div class="h-1 w-24 bg-gradient-to-r from-transparent via-brand-500 to-transparent mx-auto mb-6 opacity-50"></div>
+                <p id="lock-date" class="text-sm md:text-lg font-mono uppercase tracking-[0.4em] text-brand-400 font-medium">Loading Date...</p>
+            </div>
+
+            <!-- Sleek Integrated Input Panel -->
+            <div class="w-full max-w-md relative group">
+                <!-- Glowing backplate -->
+                <div class="absolute -inset-1 bg-gradient-to-r from-brand-500 to-emerald-500 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200 animate-pulse-glow"></div>
+                
+                <div class="relative bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8 shadow-2xl flex flex-col items-center">
+                    <div class="w-12 h-12 rounded-full bg-slate-800/80 flex items-center justify-center mb-4 border border-slate-600 shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+                        <i class="fas fa-lock text-slate-300"></i>
+                    </div>
+                    
+                    <h2 class="text-white font-mono tracking-widest uppercase text-sm mb-6 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-brand-500 animate-ping"></span>
+                        System Locked
+                    </h2>
+
+                    <div class="w-full" id="lock-auth-container">
+                        <form id="unlock-form" method="POST" action="{% url 'lockscreen_api' %}">
+                            {% csrf_token %}
+                            <div class="relative mb-6">
+                                <input type="password" id="pin-input" name="password" 
+                                    class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-4 text-center text-2xl tracking-[0.7em] focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/50 transition-all font-mono text-white placeholder-slate-600 shadow-inner" 
+                                    placeholder="••••" required autocomplete="off">
+                                <p id="pin-prompt" class="absolute -bottom-5 left-0 right-0 text-center text-[9px] text-slate-500 uppercase tracking-widest transition-colors">Enter Authorization Key</p>
+                            </div>
+                            
+                            <button type="submit" class="w-full relative overflow-hidden bg-slate-800 hover:bg-slate-700 text-white font-mono uppercase tracking-widest text-xs py-4 rounded-xl transition-all border border-slate-600 hover:border-brand-400 group">
+                                <span class="relative z-10 flex items-center justify-center gap-3">
+                                    <i class="fas fa-fingerprint text-brand-400 group-hover:scale-110 transition-transform"></i> Verify Identity
+                                </span>
+                                <!-- Button hover sweep effect -->
+                                <div class="absolute inset-0 h-full w-0 bg-gradient-to-r from-brand-600/20 to-transparent group-hover:w-full transition-all duration-500 ease-out z-0"></div>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Emergency Terminate -->
+            <div class="mt-12 text-center z-10">
+                <form method="POST" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="text-[10px] text-slate-500 hover:text-red-400 transition-colors uppercase tracking-[0.2em] font-mono flex items-center justify-center gap-2 group">
+                        <i class="fas fa-power-off group-hover:animate-pulse"></i> Force Terminate Session
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+    
+    <!-- Interactive Update Terminal Overlay -->
+    <div id="update-terminal-overlay" class="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[9999] hidden flex-col items-center justify-center transition-all duration-300 opacity-0">
+        <div class="w-full max-w-4xl p-6 relative">
+            <button id="close-terminal-btn" class="absolute -top-10 right-0 text-slate-500 hover:text-white transition-colors hidden">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+            <div class="mb-4">
+                <h3 class="text-xl font-mono text-white tracking-widest font-bold flex items-center gap-3">
+                    <i class="fas fa-satellite-dish text-brand-500 animate-pulse"></i> OVERRIDE PROTOCOL
+                </h3>
+                <p class="text-slate-400 font-mono text-sm uppercase tracking-widest">Live Repository Synchronization</p>
+            </div>
+            
+            <div class="bg-black/80 rounded-lg border border-slate-800 p-4 h-[60vh] overflow-y-auto shadow-[0_0_50px_rgba(37,99,235,0.15)] relative">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-brand-500 to-transparent opacity-50"></div>
+                <pre id="terminal-output" class="text-emerald-400 font-mono text-[11px] md:text-sm whitespace-pre-wrap leading-relaxed">System initialized. Awaiting stream...</pre>
+                <div class="mt-2 flex items-center gap-2 text-slate-500 font-mono text-xs">
+                    <span class="animate-pulse">_</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{% static 'js/idle_tracker.js' %}"></script>
+    <script>
+        // --- 1. Idle Telemetry Engine ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize Idle Tracker
+            window.qtIdleEngine = new IdleTelemetryEngine("{% url 'security_status_api' %}", "{% url 'logout' %}");
+
+            // Start lockscreen clock
+            function updateClock() {
+                const now = new Date();
+                const h = now.getHours().toString().padStart(2, '0');
+                const m = now.getMinutes().toString().padStart(2, '0');
+                const clk = document.getElementById('lock-clock');
+                if(clk) clk.textContent = `${h}:${m}`;
+                
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                const dt = document.getElementById('lock-date');
+                if(dt) dt.textContent = now.toLocaleDateString('en-US', options);
+            }
+            setInterval(updateClock, 1000);
+            updateClock();
+        });
+
+        // --- 2. Manual Lock Trigger ---
+        document.getElementById('manual-lock-trigger').addEventListener('click', () => {
+            if(window.qtIdleEngine) {
+                if(!window.qtIdleEngine.hasPassword) {
+                    alert("Lockscreen password is not configured. Please set one in Settings or Admin.");
+                    return;
+                }
+                window.qtIdleEngine.triggerLock();
+            }
+        });
+
+        // --- 3. Unlock Form Handler ---
+        const unlockForm = document.getElementById('unlock-form');
+        const pinInput = document.getElementById('pin-input');
+        const pinPrompt = document.getElementById('pin-prompt');
+        
+        if (unlockForm) {
+            unlockForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const fd = new FormData(unlockForm);
+                fetch(unlockForm.action, {
+                    method: 'POST',
+                    body: fd,
+                    headers: {'X-Requested-With': 'XMLHttpRequest'}
+                }).then(r => r.json()).then(data => {
+                    if (data.status === 'success') {
+                        // Unlock
+                        window.qtIdleEngine.isLocked = false;
+                        window.qtIdleEngine.lastActivity = Date.now();
+                        sessionStorage.removeItem('qt_locked');
+                        
+                        const overlay = document.getElementById('global-lockscreen-overlay');
+                        overlay.classList.add('opacity-0', 'scale-110');
+                        setTimeout(() => {
+                            overlay.classList.add('hidden');
+                            overlay.classList.remove('flex');
+                            pinInput.value = '';
+                            pinPrompt.textContent = 'Enter Authorization Key';
+                            pinPrompt.classList.remove('text-red-500');
+                            pinInput.classList.remove('border-red-500', 'ring-red-500');
+                        }, 700);
+                    } else {
+                        pinInput.value = '';
+                        pinInput.classList.add('border-red-500', 'ring-red-500');
+                        pinPrompt.textContent = 'ACCESS DENIED';
+                        pinPrompt.classList.add('text-red-500');
+                        
+                        // Shake effect
+                        pinInput.style.transform = 'translateX(-10px)';
+                        setTimeout(() => pinInput.style.transform = 'translateX(10px)', 50);
+                        setTimeout(() => pinInput.style.transform = 'translateX(-10px)', 100);
+                        setTimeout(() => pinInput.style.transform = 'translateX(10px)', 150);
+                        setTimeout(() => pinInput.style.transform = 'translateX(0)', 200);
+                    }
+                });
+            });
+        }
+
+        // --- 3. System Update Badging & Terminal Streaming ---
+        const updateBadge = document.getElementById('update-badge');
+        const triggerBtn = document.getElementById('system-update-trigger');
+        const overlay = document.getElementById('update-terminal-overlay');
+        const termOut = document.getElementById('terminal-output');
+        const closeBtn = document.getElementById('close-terminal-btn');
+
+        // Poll for updates every 5 minutes
+        function checkUpdates() {
+            fetch("{% url 'check_updates_api' %}")
+            .then(r => r.json())
+            .then(data => {
+                if (data.commits_behind > 0) {
+                    updateBadge.classList.remove('hidden');
+                } else {
+                    updateBadge.classList.add('hidden');
+                }
+            }).catch(e => console.error("Update check failed", e));
+        }
+        setInterval(checkUpdates, 300000);
+        checkUpdates();
+
+        // Launch Terminal Overlay & Stream
+        triggerBtn.addEventListener('click', () => {
+            overlay.classList.remove('hidden');
+            setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+            termOut.innerText = '';
+            closeBtn.classList.add('hidden');
+
+            const source = new EventSource("{% url 'system_update_stream' %}");
+            
+            source.onmessage = function(event) {
+                termOut.innerText += event.data + "\n";
+                termOut.parentElement.scrollTop = termOut.parentElement.scrollHeight;
+            };
+
+            source.addEventListener('complete', function(e) {
+                source.close();
+                setTimeout(() => window.location.reload(), 2000);
+            });
+
+            source.addEventListener('error', function(e) {
+                source.close();
+                termOut.innerText += "\n[SYSTEM] Stream terminated.\n";
+                closeBtn.classList.remove('hidden');
+            });
+        });
+
+        closeBtn.addEventListener('click', () => {
+            overlay.classList.add('opacity-0');
+            setTimeout(() => overlay.classList.add('hidden'), 300);
+        });
+
+    </script>
     {% block extra_javascript %}{% endblock %}
 </body>
 </html>

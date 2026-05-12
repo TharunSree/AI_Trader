@@ -165,6 +165,11 @@ class SystemSettings(models.Model):
     notify_sos = models.BooleanField(default=True)
     notify_ab_test = models.BooleanField(default=True)
     notify_start_stop = models.BooleanField(default=False)
+    
+    # Security Settings
+    lockscreen_password = models.CharField(max_length=128, blank=True, null=True, help_text="Hashed PIN or Password for lockscreen")
+    idle_lock_minutes = models.IntegerField(default=5, help_text="Minutes of inactivity before showing lockscreen (0 to disable)")
+    idle_logout_minutes = models.IntegerField(default=30, help_text="Minutes of inactivity before forcefully ending session")
 
     def save(self, *args, **kwargs):
         self.pk = 1
