@@ -80,8 +80,7 @@
                 if (status) {
                     statusText.textContent = status;
                     statusText.classList.replace('opacity-0', 'opacity-100');
-                }
-            }
+                }}
 
             if (localStorage.getItem('jarvis-voice') !== 'false') {
                 if (window.QuantTraderAudio && window.QuantTraderAudio.sounds) {
@@ -92,8 +91,7 @@
                             let fallback = new Audio('/static/audio/jarvis/welcome_home.mp3');
                             fallback.play().catch(e => {});
                         });
-                    } catch(e) {}
-                }
+                    } catch(e) {}}
             }
 
             setTimeout(() => {
@@ -113,8 +111,7 @@
                             const p = document.createElement('p'); p.textContent = lines[currentLine];
                             bootLines.appendChild(p); currentLine++;
                         }, 400);
-                    }
-                });
+                    }});
 
                 schedule(6000, () => {
                     document.getElementById('core-energy').classList.replace('opacity-100', 'opacity-0');

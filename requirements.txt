@@ -26,7 +26,8 @@ tqdm>=4.66
 psutil>=5.9
 
 # ── Trading & Market Data ──
-#alpaca-trade-api>=3.2
+alpaca-trade-api>=3.2
+ccxt>=4.2.0
 yfinance>=0.2
 websockets<15.1.0
 

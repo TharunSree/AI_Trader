@@ -229,8 +229,7 @@
                         </td>
                     </tr>
                 `;
-            }
-        };
+            }};
 
         function updatePositions(positions) {
             globalPositions = positions.filter(p => p.qty > 0);
@@ -271,16 +270,14 @@
                 } else if (payload.type === 'live_market_tick') {
                     const tick = typeof payload.data === 'string' ? JSON.parse(payload.data) : payload.data;
                     document.getElementById("live-price-display").innerText = `${tick.symbol} $${tick.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
-                }
-            };
+                }};
 
             socket.onclose = function () {
                 if (traderStatusBadge.innerText.includes('ACTIVE NODES')) {
                     traderStatusText.innerText = "DISCONNECTED";
                     traderStatusBadge.innerText = "OFFLINE";
                     traderStatusBadge.className = "px-2 py-0.5 rounded text-[10px] font-bold font-mono tracking-widest bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400";
-                }
-            }
+                }}
         });
     })();
 </script>

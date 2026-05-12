@@ -79,12 +79,15 @@ def main():
             meta_job.save()
             PRINCIPAL = float(meta_job.initial_cash) if meta_job.initial_cash else 100_000
             TARGET_EQUITY = float(meta_job.target_equity) if meta_job.target_equity else PRINCIPAL * 2
+            TICKER_SYMBOL = meta_job.ticker if hasattr(meta_job, 'ticker') else 'SPY'
+        else:
+            TICKER_SYMBOL = 'SPY'
 
     setup_logging()
     log = logging.getLogger("rl_trading_backend")
 
     # --- Configuration ---
-    TICKER = ["SPY"]
+    TICKER = [TICKER_SYMBOL]
     TRAIN_START = "2015-01-01"
     TRAIN_END = "2021-12-31"
     VALIDATION_START = "2022-01-01"

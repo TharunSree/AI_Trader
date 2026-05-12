@@ -14,6 +14,7 @@ class TrainingJob(models.Model):
     # Configuration from playbook
     feature_set_key = models.CharField(max_length=50, default='all_in')
     hyperparameter_key = models.CharField(max_length=50, default='balanced')
+    ticker = models.CharField(max_length=20, default='SPY')
     window_size = models.IntegerField(default=10)
     initial_cash = models.FloatField(default=100000.0)
 
@@ -65,6 +66,8 @@ class MetaTrainingJob(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
     start_time = models.DateTimeField(null=True, blank=True)
     end_time = models.DateTimeField(null=True, blank=True)
+
+    ticker = models.CharField(max_length=20, default='SPY')
 
     initial_cash = models.FloatField(default=100000.0)
     target_equity = models.FloatField(default=200000.0)

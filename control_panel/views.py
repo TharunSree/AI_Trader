@@ -467,7 +467,8 @@ def start_training_job_view(request):
             feature_set_key=feature_set_key,
             hyperparameter_key=hyperparameter_key,
             window_size=window_size,  # Now guaranteed to be an integer
-            initial_cash=request.POST.get('initial_cash', 100000)
+            initial_cash=request.POST.get('initial_cash', 100000),
+            ticker=request.POST.get('ticker', 'SPY')
         )
 
         import sys
@@ -505,6 +506,7 @@ def start_meta_job_view(request):
         meta_job = MetaTrainingJob.objects.create(
             initial_cash=request.POST.get('initial_cash', 100000),
             target_equity=request.POST.get('target_equity', 200000),
+            ticker=request.POST.get('ticker', 'SPY'),
             status='RUNNING'
         )
 

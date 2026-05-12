@@ -137,6 +137,19 @@
             {% endfor %}
         </div>
     </div>
+    </div>
+
+    <!-- System Maintenance -->
+    <div class="glass rounded p-6">
+        <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
+            <h4 class="text-[10px] uppercase tracking-widest text-brand-accent font-mono tracking-widest">System Maintenance</h4>
+        </div>
+        <p class="text-xs text-slate-400 mb-6">Pull the latest framework updates directly from the master repository without SSHing into the core console.</p>
+        <button id="btn-update-platform" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-white font-mono tracking-widest text-[10px] uppercase py-2 px-4 rounded border border-slate-800 w-full transition-colors flex items-center justify-center gap-2">
+            <i class="ti ti-download text-lg"></i> OVERRIDE PROTOCOL: GIT PULL LATEST REVISION
+        </button>
+    </div>
+
   </div>
 </div>
 {% endblock page_content %}
@@ -153,8 +166,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 headers: {
                     'X-CSRFToken': '{{ csrf_token }}',
                     'Content-Type': 'application/json'
-                }
-            }).then(r => {
+                }}).then(r => {
                 window.location.reload();
             });
         });
@@ -169,8 +181,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 headers: {
                     'X-CSRFToken': '{{ csrf_token }}',
                     'Content-Type': 'application/json'
+                }}).then(r => {
+                window.location.reload();
+        });
+    }
+
+    const btnUpdatePlatform = document.getElementById('btn-update-platform');
+    if(btnUpdatePlatform) {
+        btnUpdatePlatform.addEventListener('click', function() {
+            window.launchOverlay(null, 'PULLING LATEST REPOSITORY ARTIFACTS...');
+            fetch("{% url 'system_update_api' %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
                 }
-            }).then(r => {
+            })
+            .then(r => r.json())
+            .then(data => {
+                alert("UPDATE RESULTS:\n\n" + data.output);
+                window.location.reload();
+            })
+            .catch(err => {
+                alert("UPDATE FAILED: " + err);
                 window.location.reload();
             });
         });

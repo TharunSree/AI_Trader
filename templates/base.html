@@ -27,10 +27,8 @@
                             800: '#1e40af',
                             900: '#1e3a8a',
                             950: '#172554',
-                        }
-                    }
-                }
-            }
+                        }}
+                }}
         }
     </script>
     
@@ -222,16 +220,14 @@
                 } else {
                     document.documentElement.classList.remove('dark');
                     localStorage.setItem('color-theme', 'light');
-                }
-            } else {
+                }} else {
                 if (document.documentElement.classList.contains('dark')) {
                     document.documentElement.classList.remove('dark');
                     localStorage.setItem('color-theme', 'light');
                 } else {
                     document.documentElement.classList.add('dark');
                     localStorage.setItem('color-theme', 'dark');
-                }
-            }
+                }}
         });
 
         // Standardized Overlay Function
@@ -250,14 +246,12 @@
                 setTimeout(() => formOrUrl.submit(), 500);
             } else if (typeof formOrUrl === 'string') {
                 setTimeout(() => window.location.href = formOrUrl, 500);
-            }
-        };
+            }};
 
         window.confirmAction = function(msg, callback) {
             if (confirm(msg)) {
                 callback();
-            }
-        };
+            }};
     </script>
     
     {% block extra_javascript %}{% endblock %}

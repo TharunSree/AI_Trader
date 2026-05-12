@@ -45,21 +45,22 @@ def train_jarvis(job_id=None):
     param_key = job.hyperparameter_key if job else "balanced_growth"
     window = job.window_size if job else 10
     principal = float(job.initial_cash) if job and job.initial_cash else 100_000.0
+    ticker = job.ticker if job and hasattr(job, 'ticker') else "SPY"
 
     features = STRATEGY_PLAYBOOK["feature_sets"].get(feat_key, ["Close", "Volume"])
     params = STRATEGY_PLAYBOOK["hyperparameters"].get(param_key, {"lr": 1e-4, "gamma": 0.99})
 
     logger.info(f"🟢 MATRIX ONLINE. Hardware: {device.type.upper()}")
-    logger.info(f"Targeting Architecture: Features={feat_key}, Params={param_key}, Window={window}")
+    logger.info(f"Targeting Architecture: Features={feat_key}, Params={param_key}, Window={window}, Ticker={ticker}")
 
     # Load authentic financial data
     from src.data.yfinance_loader import YFinanceLoader
     from src.data.preprocessor import calculate_features
     from src.models.trainer import Trainer
 
-    logger.info("Downloading historical market payload...")
+    logger.info(f"Downloading historical market payload for {ticker}...")
     train_df = calculate_features(
-        YFinanceLoader(["SPY"], "2015-01-01", "2021-12-31").load_data()
+        YFinanceLoader([ticker], "2015-01-01", "2021-12-31").load_data()
     )
 
     # Boot the modernized Gym

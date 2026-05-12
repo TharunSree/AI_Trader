@@ -1,17 +1,10 @@
-{
-% extends "base.html" %}
- {
-% load static %}
- {
-% block title %}
-Evaluation Lab{
-% endblock title %}
- {
-% block page_title %}
-Evaluation Lab{
-% endblock page_title %}
- {
-% block extra_css %}
+{% extends "base.html" %}
+ {% load static %}
+ {% block title %}
+Evaluation Lab{% endblock title %}
+ {% block page_title %}
+Evaluation Lab{% endblock page_title %}
+ {% block extra_css %}
  <style> .evaluation-shell {
  overflow: visible;
  z-index: 40;
@@ -268,18 +261,14 @@ Evaluation Lab{
  @media (max-width: 1279px) {
  .launch-wrap .launch-btn {
  width: 100%;
- }
- }
+ }}
  @media (max-width: 640px) {
  .date-panel {
  width: min(20rem, calc(100vw - 1.5rem));
  min-width: min(20rem, calc(100vw - 1.5rem));
- }
- }
- </style> {
-% endblock extra_css %}
- {
-% block page_content %}
+ }}
+ </style> {% endblock extra_css %}
+ {% block page_content %}
  <div class="grid grid-cols-1 xl:grid-cols-2 items-stretch gap-5 mb-6">
 <div data-boot-shell="panel" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 evaluation-shell rounded p-6 h-full transition-all duration-500 relative group ">
 <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -293,33 +282,22 @@ Evaluation Lab{
 <p class="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-2">Run validation passes against saved agents, inspect deterioration curves, and export diagnostics.</p>
 </div>
 </div>
-<form method="post" action="{
-% url 'evaluation_lab' %}
-" id="evaluation-form" class="grid grid-cols-1 gap-4 items-end mt-auto"> {
-% csrf_token %}
+<form method="post" action="{% url 'evaluation_lab' %}
+" id="evaluation-form" class="grid grid-cols-1 gap-4 items-end mt-auto"> {% csrf_token %}
  <div class="w-full">
 <label for="model_file_select" class="block text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-2 font-mono">Model Tensor</label>
 <div class="custom-select-container relative w-full" id="evaluation_model_select_container">
-<input type="hidden" name="model_file" id="model_file_select" required value="{
-% if model_files %}
-{
-{
- model_files.0.value }
-}
-{
-% endif %}
+<input type="hidden" name="model_file" id="model_file_select" required value="{% if model_files %}
+{{
+ model_files.0.value }}
+{% endif %}
 ">
 <div class="select-trigger bg-white dark:bg-slate-900 border border-slate-800 rounded px-4 py-3 text-slate-800 dark:text-slate-200 font-mono flex justify-between items-center cursor-pointer">
-<span class="select-label-text truncate">{
-% if model_files %}
-{
-{
- model_files.0.label }
-}
-{
-% else %}
-No saved models available{
-% endif %}
+<span class="select-label-text truncate">{% if model_files %}
+{{
+ model_files.0.label }}
+{% else %}
+No saved models available{% endif %}
 </span>
 <svg class="w-4 h-4 ml-2 flex-shrink-0 text-slate-500 dark:text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7">
@@ -327,20 +305,13 @@ No saved models available{
 </svg>
 </div>
 <div class="select-dropdown absolute z-50 w-full mt-1 bg-slate-950 border border-slate-600 rounded shadow-[0_0_20px_rgba(0,0,0,0.8)] hidden">
-<ul class="py-1 max-h-48 overflow-auto font-mono text-sm"> {
-% for model in model_files %}
- <li class="px-4 py-3 text-slate-600 dark:text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:bg-slate-800 hover:text-slate-800 dark:text-slate-200 cursor-pointer transition-colors border-b border-white/5 last:border-0" data-value="{
-{
- model.value }
-}
-">{
-{
- model.label }
-}
-</li> {
-% empty %}
- <li class="px-4 py-3 text-slate-500 dark:text-slate-400 dark:text-slate-500 cursor-not-allowed">No saved models available</li> {
-% endfor %}
+<ul class="py-1 max-h-48 overflow-auto font-mono text-sm"> {% for model in model_files %}
+ <li class="px-4 py-3 text-slate-600 dark:text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:bg-slate-800 hover:text-slate-800 dark:text-slate-200 cursor-pointer transition-colors border-b border-white/5 last:border-0" data-value="{{
+ model.value }}
+">{{
+ model.label }}
+</li> {% empty %}
+ <li class="px-4 py-3 text-slate-500 dark:text-slate-400 dark:text-slate-500 cursor-not-allowed">No saved models available</li> {% endfor %}
  </ul>
 </div>
 </div>
@@ -384,84 +355,58 @@ No saved models available{
 <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity">
 </div>
 <div class="relative z-10 flex h-full flex-col">
-<p class="text-xs uppercase tracking-widest text-slate-800 dark:text-slate-200/80 font-mono mb-2">Latest Readout</p> {
-% if latest_job and latest_job.results %}
+<p class="text-xs uppercase tracking-widest text-slate-800 dark:text-slate-200/80 font-mono mb-2">Latest Readout</p> {% if latest_job and latest_job.results %}
  <div class="flex items-start justify-between gap-3">
 <div class="min-w-0">
-<h3 class="summary-model-title text-sm font-mono uppercase tracking-widest font-semibold">{
-{
- latest_job.model_file|cut:".pth" }
-}
+<h3 class="summary-model-title text-sm font-mono uppercase tracking-widest font-semibold">{{
+ latest_job.model_file|cut:".pth" }}
 </h3>
-<p class="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 dark:text-slate-500 font-mono mt-2">Evaluation #{
-{
- latest_job.id }
-}
+<p class="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 dark:text-slate-500 font-mono mt-2">Evaluation #{{
+ latest_job.id }}
 </p>
 </div>
-<span class="px-2 py-1 rounded text-[10px] uppercase tracking-[0.18em] {
-% if latest_job.status == 'COMPLETED' %}
-bg-green-500/20 text-green-400 border border-green-500/30{
-% elif latest_job.status == 'FAILED' %}
-bg-red-500/20 text-red-400 border border-red-500/30{
-% else %}
-bg-yellow-500/20 text-yellow-400 border border-yellow-500/30{
-% endif %}
-">{
-{
- latest_job.status }
-}
+<span class="px-2 py-1 rounded text-[10px] uppercase tracking-[0.18em] {% if latest_job.status == 'COMPLETED' %}
+bg-green-500/20 text-green-400 border border-green-500/30{% elif latest_job.status == 'FAILED' %}
+bg-red-500/20 text-red-400 border border-red-500/30{% else %}
+bg-yellow-500/20 text-yellow-400 border border-yellow-500/30{% endif %}
+">{{
+ latest_job.status }}
 </span>
 </div>
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6">
 <div class="summary-metric rounded bg-white dark:bg-slate-900/60 border border-slate-800 p-4 flex flex-col justify-between">
 <div class="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-2 font-mono">Sharpe</div>
-<div class="summary-metric-value text-sm font-mono text-slate-800 dark:text-slate-200 font-semibold">{
-{
- latest_job.results.sharpe_ratio|default_if_none:"-" }
-}
+<div class="summary-metric-value text-sm font-mono text-slate-800 dark:text-slate-200 font-semibold">{{
+ latest_job.results.sharpe_ratio|default_if_none:"-" }}
 </div>
 </div>
 <div class="summary-metric rounded bg-white dark:bg-slate-900/60 border border-slate-800 p-4 flex flex-col justify-between">
 <div class="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-2 font-mono">Return</div>
-<div class="summary-metric-value text-sm font-mono text-slate-800 dark:text-slate-200 font-semibold">{
-{
- latest_job.results.total_return_pct|default_if_none:"-" }
-}
+<div class="summary-metric-value text-sm font-mono text-slate-800 dark:text-slate-200 font-semibold">{{
+ latest_job.results.total_return_pct|default_if_none:"-" }}
 %</div>
 </div>
 <div class="summary-metric rounded bg-white dark:bg-slate-900/60 border border-slate-800 p-4 flex flex-col justify-between">
 <div class="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-2 font-mono">Final Equity</div>
-<div class="summary-metric-value text-sm font-mono text-slate-800 dark:text-slate-200 font-semibold">${
-{
- latest_job.results.final_equity|floatformat:2 }
-}
+<div class="summary-metric-value text-sm font-mono text-slate-800 dark:text-slate-200 font-semibold">${{
+ latest_job.results.final_equity|floatformat:2 }}
 </div>
 </div>
 </div>
 <div class="flex flex-wrap items-center gap-3 mt-6 text-xs font-mono uppercase tracking-[0.18em]">
-<span class="px-3 py-1 rounded-full bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 border border-slate-800">{
-{
- latest_job.start_date|date:"M. j, Y" }
-}
- / {
-{
- latest_job.end_date|date:"M. j, Y" }
-}
+<span class="px-3 py-1 rounded-full bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 border border-slate-800">{{
+ latest_job.start_date|date:"M. j, Y" }}
+ / {{
+ latest_job.end_date|date:"M. j, Y" }}
 </span>
-<span class="summary-pill px-3 py-1 rounded-full bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 border border-slate-800">{
-{
- latest_job.model_file }
-}
+<span class="summary-pill px-3 py-1 rounded-full bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 border border-slate-800">{{
+ latest_job.model_file }}
 </span>
 </div>
-<a href="{
-% url 'evaluation_report' latest_job.id %}
-" class="inline-flex mt-auto px-4 py-2 rounded border border-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:bg-slate-800/50 transition-all text-xs font-mono uppercase tracking-[0.2em] w-fit">Open Detailed Report</a> {
-% else %}
+<a href="{% url 'evaluation_report' latest_job.id %}
+" class="inline-flex mt-auto px-4 py-2 rounded border border-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:bg-slate-800/50 transition-all text-xs font-mono uppercase tracking-[0.2em] w-fit">Open Detailed Report</a> {% else %}
  <h3 class="text-sm font-mono text-slate-800 dark:text-slate-200 font-semibold">No Evaluation History Yet</h3>
-<p class="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-3">Run a validation sequence to populate the drawdown chart, Sharpe chart, and evaluation telemetry.</p> {
-% endif %}
+<p class="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-3">Run a validation sequence to populate the drawdown chart, Sharpe chart, and evaluation telemetry.</p> {% endif %}
  </div>
 </div>
 </div>
@@ -510,96 +455,57 @@ bg-yellow-500/20 text-yellow-400 border border-yellow-500/30{
 <th class="py-3 px-4 font-normal text-right">Report</th>
 </tr>
 </thead>
-<tbody> {
-% for job in evaluation_jobs %}
- <tr class="eval-job-row border-b border-slate-800/50 hover:bg-slate-100 dark:bg-slate-800/30 transition-colors cursor-pointer" data-start="{
-{
- job.start_date|date:'Y-m-d' }
-}
-" data-end="{
-{
- job.end_date|date:'Y-m-d' }
-}
-" onclick="toggleEvaluationTerminal({
-{
- job.id }
-}
+<tbody> {% for job in evaluation_jobs %}
+ <tr class="eval-job-row border-b border-slate-800/50 hover:bg-slate-100 dark:bg-slate-800/30 transition-colors cursor-pointer" data-start="{{
+ job.start_date|date:'Y-m-d' }}
+" data-end="{{
+ job.end_date|date:'Y-m-d' }}
+" onclick="toggleEvaluationTerminal({{
+ job.id }}
 )">
-<td class="py-3 px-4 text-slate-600 dark:text-slate-400 dark:text-slate-500 font-mono text-sm">#E{
-{
- job.id }
-}
+<td class="py-3 px-4 text-slate-600 dark:text-slate-400 dark:text-slate-500 font-mono text-sm">#E{{
+ job.id }}
 </td>
-<td class="py-3 px-4 text-slate-600 dark:text-slate-400 dark:text-slate-500 text-sm max-w-[260px] truncate" title="{
-{
- job.model_file }
-}
-">{
-{
- job.model_file }
-}
+<td class="py-3 px-4 text-slate-600 dark:text-slate-400 dark:text-slate-500 text-sm max-w-[260px] truncate" title="{{
+ job.model_file }}
+">{{
+ job.model_file }}
 </td>
-<td class="py-3 px-4 text-slate-500 dark:text-slate-400 dark:text-slate-500 font-mono text-xs">{
-{
- job.start_date }
-}
- to {
-{
- job.end_date }
-}
+<td class="py-3 px-4 text-slate-500 dark:text-slate-400 dark:text-slate-500 font-mono text-xs">{{
+ job.start_date }}
+ to {{
+ job.end_date }}
 </td>
 <td class="py-3 px-4">
-<span class="px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-[0.18em] {
-% if job.status == 'COMPLETED' %}
-bg-green-500/20 text-green-400 border border-green-500/30{
-% elif job.status == 'FAILED' %}
-bg-red-500/20 text-red-400 border border-red-500/30{
-% else %}
-bg-yellow-500/20 text-yellow-400 border border-yellow-500/30{
-% endif %}
-">{
-{
- job.status }
-}
+<span class="px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-[0.18em] {% if job.status == 'COMPLETED' %}
+bg-green-500/20 text-green-400 border border-green-500/30{% elif job.status == 'FAILED' %}
+bg-red-500/20 text-red-400 border border-red-500/30{% else %}
+bg-yellow-500/20 text-yellow-400 border border-yellow-500/30{% endif %}
+">{{
+ job.status }}
 </span>
 </td>
-<td class="py-3 px-4 text-right text-slate-700 dark:text-slate-300 font-mono text-sm">{
-% if job.results %}
-{
-{
- job.results.sharpe_ratio|default_if_none:"-" }
-}
-{
-% else %}
--{
-% endif %}
+<td class="py-3 px-4 text-right text-slate-700 dark:text-slate-300 font-mono text-sm">{% if job.results %}
+{{
+ job.results.sharpe_ratio|default_if_none:"-" }}
+{% else %}
+-{% endif %}
 </td>
-<td class="py-3 px-4 text-right text-slate-700 dark:text-slate-300 font-mono text-sm">{
-% if job.results %}
-{
-{
- job.results.total_return_pct|default_if_none:"-" }
-}
-%{
-% else %}
--{
-% endif %}
+<td class="py-3 px-4 text-right text-slate-700 dark:text-slate-300 font-mono text-sm">{% if job.results %}
+{{
+ job.results.total_return_pct|default_if_none:"-" }}
+%{% else %}
+-{% endif %}
 </td>
-<td class="py-3 px-4 text-right"> {
-% if job.status == 'COMPLETED' %}
- <a href="{
-% url 'evaluation_report' job.id %}
+<td class="py-3 px-4 text-right"> {% if job.status == 'COMPLETED' %}
+ <a href="{% url 'evaluation_report' job.id %}
 " class="inline-flex items-center px-3 py-1.5 rounded border border-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:bg-slate-800/50 transition-all text-[10px] font-mono uppercase tracking-[0.18em]" onclick="event.stopPropagation();
-"> Open </a> {
-% else %}
- <span class="text-slate-600 dark:text-slate-400 dark:text-slate-500 font-mono text-[10px] uppercase tracking-[0.18em]">Pending</span> {
-% endif %}
+"> Open </a> {% else %}
+ <span class="text-slate-600 dark:text-slate-400 dark:text-slate-500 font-mono text-[10px] uppercase tracking-[0.18em]">Pending</span> {% endif %}
  </td>
 </tr>
-<tr id="evaluation-terminal-row-{
-{
- job.id }
-}
+<tr id="evaluation-terminal-row-{{
+ job.id }}
 " class="hidden">
 <td colspan="7" class="p-0 border-b border-slate-800">
 <div class="bg-slate-950 font-mono text-[10px] sm:text-xs text-slate-800 dark:text-slate-200 p-4 max-h-64 w-full overflow-hidden flex flex-col relative">
@@ -607,151 +513,86 @@ bg-yellow-500/20 text-yellow-400 border border-yellow-500/30{
 <div class="w-1.5 h-1.5 rounded-full bg-slate-800 animate-pulse">
 </div> Live Evaluation Output </div>
 <div class="overflow-y-auto flex-1 w-full scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
-<pre id="terminal-content-eval-{
-{
- job.id }
-}
-" class="whitespace-pre">[QUANTTRADER] Initializing evaluation node #E{
-{
- job.id }
-}
- [QUANTTRADER] Loading model reference: {
-{
- job.model_file }
-}
- [QUANTTRADER] Synchronizing date window: {
-{
- job.start_date|date:"Y-m-d" }
-}
- -> {
-{
- job.end_date|date:"Y-m-d" }
-}
- [QUANTTRADER] Status: {
-{
- job.status }
-}
- {
-% if job.status == 'COMPLETED' and job.results %}
-[METRIC] Sharpe Ratio .......... {
-{
- job.results.sharpe_ratio|default_if_none:"-" }
-}
- [METRIC] Total Return .......... {
-{
- job.results.total_return_pct|default_if_none:"-" }
-}
-% [METRIC] Final Equity .......... ${
-{
- job.results.final_equity|floatformat:2 }
-}
- [METRIC] Max Drawdown .......... {
-{
- job.results.max_drawdown_pct|default_if_none:"-" }
-}
-% [METRIC] Total Trades .......... {
-{
- job.results.total_trades|default_if_none:"-" }
-}
- [TRACE] Avg Action ............. {
-{
- job.results.avg_action|default_if_none:"-" }
-}
- [TRACE] Max Action ............. {
-{
- job.results.max_action|default_if_none:"-" }
-}
- [TRACE] Min Action ............. {
-{
- job.results.min_action|default_if_none:"-" }
-}
- [TRACE] Buy Crossings (>0.4) ... {
-{
- job.results.buy_threshold_crossings|default_if_none:"-" }
-}
- [TRACE] Sell Crossings (<-0.4) . {
-{
- job.results.sell_threshold_crossings|default_if_none:"-" }
-}
- [QUANTTRADER] Evaluation completed. Telemetry archived to report subsystem. {
-% if job.status == 'COMPLETED' %}
-[QUANTTRADER] Report link: {
-% url 'evaluation_report' job.id %}
- {
-% endif %}
- {
-% elif job.status == 'FAILED' %}
-[ERROR] {
-{
- job.error_message|default:"Evaluation sequence terminated before metrics were produced." }
-}
- [QUANTTRADER] Failure captured for operator review. {
-% else %}
-[QUANTTRADER] Awaiting execution telemetry... {
-% endif %}
+<pre id="terminal-content-eval-{{
+ job.id }}
+" class="whitespace-pre">[QUANTTRADER] Initializing evaluation node #E{{
+ job.id }}
+ [QUANTTRADER] Loading model reference: {{
+ job.model_file }}
+ [QUANTTRADER] Synchronizing date window: {{
+ job.start_date|date:"Y-m-d" }}
+ -> {{
+ job.end_date|date:"Y-m-d" }}
+ [QUANTTRADER] Status: {{
+ job.status }}
+ {% if job.status == 'COMPLETED' and job.results %}
+[METRIC] Sharpe Ratio .......... {{
+ job.results.sharpe_ratio|default_if_none:"-" }}
+ [METRIC] Total Return .......... {{
+ job.results.total_return_pct|default_if_none:"-" }}
+% [METRIC] Final Equity .......... ${{
+ job.results.final_equity|floatformat:2 }}
+ [METRIC] Max Drawdown .......... {{
+ job.results.max_drawdown_pct|default_if_none:"-" }}
+% [METRIC] Total Trades .......... {{
+ job.results.total_trades|default_if_none:"-" }}
+ [TRACE] Avg Action ............. {{
+ job.results.avg_action|default_if_none:"-" }}
+ [TRACE] Max Action ............. {{
+ job.results.max_action|default_if_none:"-" }}
+ [TRACE] Min Action ............. {{
+ job.results.min_action|default_if_none:"-" }}
+ [TRACE] Buy Crossings (>0.4) ... {{
+ job.results.buy_threshold_crossings|default_if_none:"-" }}
+ [TRACE] Sell Crossings (<-0.4) . {{
+ job.results.sell_threshold_crossings|default_if_none:"-" }}
+ [QUANTTRADER] Evaluation completed. Telemetry archived to report subsystem. {% if job.status == 'COMPLETED' %}
+[QUANTTRADER] Report link: {% url 'evaluation_report' job.id %}
+ {% endif %}
+ {% elif job.status == 'FAILED' %}
+[ERROR] {{
+ job.error_message|default:"Evaluation sequence terminated before metrics were produced." }}
+ [QUANTTRADER] Failure captured for operator review. {% else %}
+[QUANTTRADER] Awaiting execution telemetry... {% endif %}
 </pre>
 </div>
 </div>
 </td>
-</tr> {
-% empty %}
+</tr> {% empty %}
  <tr>
 <td colspan="7" class="py-8 text-center text-slate-500 dark:text-slate-400 dark:text-slate-500 font-mono text-sm">NO EVALUATION RUNS YET</td>
-</tr> {
-% endfor %}
+</tr> {% endfor %}
  </tbody>
 </table>
-</div> {
-% if evaluation_jobs.paginator.num_pages > 1 %}
+</div> {% if evaluation_jobs.paginator.num_pages > 1 %}
  <div class="flex items-center justify-between gap-4 mt-5 pt-4 border-t border-slate-800">
-<div class="text-[11px] uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400 dark:text-slate-500 font-mono"> Page {
-{
- evaluation_jobs.number }
-}
- / {
-{
- evaluation_jobs.paginator.num_pages }
-}
+<div class="text-[11px] uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400 dark:text-slate-500 font-mono"> Page {{
+ evaluation_jobs.number }}
+ / {{
+ evaluation_jobs.paginator.num_pages }}
  </div>
-<div class="flex items-center gap-3"> {
-% if evaluation_jobs.has_previous %}
- <a href="?page={
-{
- evaluation_jobs.previous_page_number }
-}
-" class="px-3 py-2 rounded border border-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:bg-slate-800/50 transition-all text-[10px] font-mono uppercase tracking-[0.18em]">Previous</a> {
-% else %}
- <span class="px-3 py-2 rounded border border-slate-800 text-slate-600 dark:text-slate-400 dark:text-slate-500 text-[10px] font-mono uppercase tracking-[0.18em]">Previous</span> {
-% endif %}
- {
-% if evaluation_jobs.has_next %}
- <a href="?page={
-{
- evaluation_jobs.next_page_number }
-}
-" class="px-3 py-2 rounded border border-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:bg-slate-800/50 transition-all text-[10px] font-mono uppercase tracking-[0.18em]">Next</a> {
-% else %}
- <span class="px-3 py-2 rounded border border-slate-800 text-slate-600 dark:text-slate-400 dark:text-slate-500 text-[10px] font-mono uppercase tracking-[0.18em]">Next</span> {
-% endif %}
+<div class="flex items-center gap-3"> {% if evaluation_jobs.has_previous %}
+ <a href="?page={{
+ evaluation_jobs.previous_page_number }}
+" class="px-3 py-2 rounded border border-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:bg-slate-800/50 transition-all text-[10px] font-mono uppercase tracking-[0.18em]">Previous</a> {% else %}
+ <span class="px-3 py-2 rounded border border-slate-800 text-slate-600 dark:text-slate-400 dark:text-slate-500 text-[10px] font-mono uppercase tracking-[0.18em]">Previous</span> {% endif %}
+ {% if evaluation_jobs.has_next %}
+ <a href="?page={{
+ evaluation_jobs.next_page_number }}
+" class="px-3 py-2 rounded border border-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:bg-slate-800/50 transition-all text-[10px] font-mono uppercase tracking-[0.18em]">Next</a> {% else %}
+ <span class="px-3 py-2 rounded border border-slate-800 text-slate-600 dark:text-slate-400 dark:text-slate-500 text-[10px] font-mono uppercase tracking-[0.18em]">Next</span> {% endif %}
  </div>
-</div> {
-% endif %}
- </div> {
-% endblock page_content %}
- {
-% block extra_javascript %}
+</div> {% endif %}
+ </div> {% endblock page_content %}
+ {% block extra_javascript %}
  <script src="https://cdn.jsdelivr.net/npm/apexcharts">
 </script>
 <script> document.addEventListener('DOMContentLoaded', function () {
- const drawdownSeries = {
-{
- drawdown_series|safe }
-}
+ const drawdownSeries = {{
+ drawdown_series|safe }}
 ;
- const sharpeSeries = {
-{
- sharpe_series|safe }
-}
+ const sharpeSeries = {{
+ sharpe_series|safe }}
 ;
  let activeEvaluationTerminalId = null;
  let openDatePanelId = null;
@@ -800,8 +641,7 @@ id}
  }
  if (errorNode) {
  errorNode.textContent = message || '';
- }
- }
+ }}
  function clearFieldErrors() {
  Object.keys(datePickers).forEach((id) => setFieldError(id, ''));
  }
@@ -832,8 +672,7 @@ id}
  if (!selectContainer.contains(event.target)) {
  dropdown.classList.add('hidden');
  selectContainer.classList.remove('is-open');
- }
- }
+ }}
 );
  }
  function setDateValue(id, date) {
@@ -1029,8 +868,7 @@ dayButtons}
  }
  else {
  openDatePanel(input.id);
- }
- }
+ }}
 );
  }
 );
@@ -1069,8 +907,7 @@ dayButtons}
  const picker = datePickers[openDatePanelId];
  if (picker && !picker.panel.contains(event.target) && !picker.trigger.contains(event.target)) {
  closeDatePanel(openDatePanelId);
- }
- }
+ }}
 );
  window.toggleEvaluationTerminal = function (jobId) {
  const row = document.getElementById(`evaluation-terminal-row-${
@@ -1101,21 +938,18 @@ activeEvaluationTerminalId}
  curve: 'smooth', width: 2 }
 , fill: {
  type: 'gradient', gradient: {
- opacityFrom: 0.35, opacityTo: 0.04, stops: [0, 100] }
- }
+ opacityFrom: 0.35, opacityTo: 0.04, stops: [0, 100] }}
 , xaxis: {
  type: 'numeric', labels: {
  style: {
- colors: '#64748b' }
- }
+ colors: '#64748b' }}
  }
 , yaxis: {
  reversed: true, min: 0, labels: {
  formatter: (v) => `${
 v}
 %`, style: {
- colors: '#64748b' }
- }
+ colors: '#64748b' }}
  }
 , grid: {
  borderColor: '#334155', strokeDashArray: 4 }
@@ -1123,8 +957,7 @@ v}
  mode: 'dark' }
 , noData: {
  text: 'Awaiting Telemetry...', style: {
- color: '#94a3b8', fontSize: '14px', fontFamily: 'monospace' }
- }
+ color: '#94a3b8', fontSize: '14px', fontFamily: 'monospace' }}
  }
 ).render();
  new ApexCharts(document.querySelector("#sharpe-chart"), {
@@ -1143,14 +976,12 @@ v}
 , xaxis: {
  type: 'category', labels: {
  style: {
- colors: '#64748b' }
- }
+ colors: '#64748b' }}
  }
 , yaxis: {
  labels: {
  style: {
- colors: '#64748b' }
- }
+ colors: '#64748b' }}
  }
 , grid: {
  borderColor: '#334155', strokeDashArray: 4 }
@@ -1158,8 +989,7 @@ v}
  mode: 'dark' }
 , noData: {
  text: 'Awaiting Telemetry...', style: {
- color: '#94a3b8', fontSize: '14px', fontFamily: 'monospace' }
- }
+ color: '#94a3b8', fontSize: '14px', fontFamily: 'monospace' }}
  }
 ).render();
  const tabBtns = document.querySelectorAll('.eval-tab-btn');
@@ -1193,8 +1023,7 @@ v}
  row.style.display = show ? '' : 'none';
  if (!show && termRow && termRow.id.startsWith('evaluation-terminal-row-')) {
  termRow.classList.add('hidden');
- }
- }
+ }}
 );
  }
 );
@@ -1202,6 +1031,5 @@ v}
 );
  }
 );
- </script> {
-% endblock extra_javascript %}
+ </script> {% endblock extra_javascript %}
  

@@ -55,4 +55,5 @@ urlpatterns = [
     path('api/settings/toggle/<str:setting_name>/', views.toggle_setting_api, name='toggle_setting_api'),
     path('api/mutate/', views.trigger_mutation_api, name='trigger_mutation_api'),
     path('api/mutation-logs/', views.mutation_logs_api, name='mutation_logs_api'),
+    path('api/system/update/', views.system_update_api, name='system_update_api'),
 ]
