@@ -1680,6 +1680,7 @@ def system_update_stream(request):
     def event_stream():
         yield "data: [SYSTEM] Initiating Override Protocol: Git Pull\n\n"
         try:
+            # 1. GIT PULL
             process = subprocess.Popen(
                 ['git', 'pull', 'origin', 'master'],
                 stdout=subprocess.PIPE,
@@ -1690,12 +1691,31 @@ def system_update_stream(request):
             for line in process.stdout:
                 yield f"data: {line}\n\n"
             process.wait()
-            if process.returncode == 0:
-                yield "data: [SYSTEM] Update Successful. Reloading platform...\n\n"
-                yield "event: complete\ndata: \n\n"
-            else:
+            if process.returncode != 0:
                 yield f"data: [ERROR] Git pull failed with code {process.returncode}\n\n"
                 yield "event: error\ndata: \n\n"
+                return
+
+            yield "data: [SYSTEM] Synchronizing Database Schema...\n\n"
+            
+            # 2. RUN MIGRATIONS
+            mig_process = subprocess.Popen(
+                [sys.executable, 'manage.py', 'migrate'],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1
+            )
+            for line in mig_process.stdout:
+                yield f"data: {line}\n\n"
+            mig_process.wait()
+            if mig_process.returncode != 0:
+                yield f"data: [ERROR] Migration failed with code {mig_process.returncode}\n\n"
+                yield "event: error\ndata: \n\n"
+                return
+
+            yield "data: [SYSTEM] Update Successful. Reloading platform...\n\n"
+            yield "event: complete\ndata: \n\n"
         except Exception as e:
             yield f"data: [CRITICAL ERROR] {str(e)}\n\n"
             yield "event: error\ndata: \n\n"

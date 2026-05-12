@@ -262,6 +262,7 @@
             textElem.innerText = messageText;
             
             overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
             // small delay to allow display block to apply before animating opacity
             setTimeout(() => {
                 overlay.classList.remove('opacity-0');

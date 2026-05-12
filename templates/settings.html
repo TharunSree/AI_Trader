@@ -231,10 +231,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 headers: {'X-Requested-With': 'XMLHttpRequest'}
             }).then(r => r.json()).then(data => {
                 if(data.status === 'success') {
-                    alert('Security Settings Saved!');
-                    window.location.reload();
+                    window.launchOverlay(null, 'SECURITY SETTINGS SAVED & APPLIED.');
+                    setTimeout(() => window.location.reload(), 1500);
                 } else {
-                    alert('Error saving settings: ' + data.message);
+                    window.launchOverlay(null, 'ERROR SAVING SETTINGS: ' + data.message);
+                    setTimeout(() => document.getElementById('standard-overlay').classList.add('hidden'), 2000);
                 }
             });
         });
