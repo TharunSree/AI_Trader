@@ -13,8 +13,13 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import os
 import sys
+import importlib.util
 from dotenv import load_dotenv
-import dj_database_url
+
+try:
+    import dj_database_url
+except ImportError:
+    dj_database_url = None
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -22,7 +27,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / '.env')
 
 # ── Deployment Detection ──
-IS_RENDER = os.environ.get('RENDER', '') == 'true'
+USE_REDIS_CHANNEL_LAYER = os.environ.get('USE_REDIS_CHANNEL_LAYER', '').lower() == 'true'
+TRUST_X_FORWARDED_PROTO = os.environ.get('TRUST_X_FORWARDED_PROTO', '').lower() == 'true'
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -36,9 +42,7 @@ SECRET_KEY = os.environ.get(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() != 'false'
 
-ALLOWED_HOSTS = []
-if IS_RENDER:
-    ALLOWED_HOSTS.append('.onrender.com')
+ALLOWED_HOSTS = ['*'] if DEBUG else []
 # Also support custom ALLOWED_HOSTS from env
 extra_hosts = os.environ.get('ALLOWED_HOSTS', '')
 if extra_hosts:
@@ -47,8 +51,12 @@ if extra_hosts:
 
 # Application definition
 
+ENABLE_DAPHNE_RUNSERVER = os.environ.get('ENABLE_DAPHNE_RUNSERVER', '').lower() == 'true'
+HAS_DAPHNE = importlib.util.find_spec("daphne") is not None and (
+    ENABLE_DAPHNE_RUNSERVER or not (DEBUG and sys.platform == 'win32')
+)
+
 INSTALLED_APPS = [
-    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -57,6 +65,9 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "control_panel",  # Custom app for control panel
 ]
+
+if HAS_DAPHNE:
+    INSTALLED_APPS.insert(0, "daphne")
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -101,14 +112,14 @@ DATABASES = {
     }
 }
 
-# Priority 1: DATABASE_URL env var (Render, Railway, etc.)
-if os.environ.get('DATABASE_URL'):
+# Priority 1: DATABASE_URL env var
+if os.environ.get('DATABASE_URL') and dj_database_url:
     DATABASES['default'] = dj_database_url.config(
         conn_max_age=600,
         conn_health_checks=True,
     )
-# Priority 2: Platform-specific config from individual env vars
-elif 'linux' in sys.platform:
+# Priority 2: Explicit platform-specific config from individual env vars
+elif all(os.environ.get(key) for key in ('DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT')) and 'linux' in sys.platform:
     DATABASES['default'] = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.environ.get('DB_NAME'),
@@ -117,20 +128,21 @@ elif 'linux' in sys.platform:
         'HOST': os.environ.get('DB_HOST'),
         'PORT': os.environ.get('DB_PORT'),
     }
-elif 'win32' in sys.platform:
+elif os.environ.get('DB_ENGINE') and 'win32' in sys.platform:
     db_engine = os.environ.get('DB_ENGINE')
-    if db_engine:
-        DATABASES['default'] = {
-            'ENGINE': db_engine,
-            'NAME': os.environ.get('DB_NAME'),
-            'USER': 'root',
-            'PASSWORD': os.environ.get('DB_PASSWORD'),
-            'HOST': os.environ.get('DB_HOST'),
-            'PORT': os.environ.get('DB_PORT'),
-            'OPTIONS': {
-                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
-            }
+    DATABASES['default'] = {
+        'ENGINE': db_engine,
+        'NAME': os.environ.get('DB_NAME'),
+        'USER': os.environ.get('DB_USER') or 'root',
+        'PASSWORD': os.environ.get('DB_PASSWORD'),
+        'HOST': os.environ.get('DB_HOST'),
+        'PORT': os.environ.get('DB_PORT'),
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
         }
+    }
+
+
 
 
 # Password validation
@@ -200,8 +212,34 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 
+CELERY_TIMEZONE = 'America/New_York'
+from celery.schedules import crontab
+CELERY_BEAT_SCHEDULE = {
+    'nightly_ab_tournament': {
+        'task': 'control_panel.tasks.run_ab_tournament',
+        # Market closes at 4:00 PM EST, run evaluation at 4:15 PM Monday-Friday
+        'schedule': crontab(hour=16, minute=15), # Daily Execution
+    },
+    'auto_resurrect_watchdog': {
+        'task': 'control_panel.tasks.auto_resurrect_nodes',
+        # Sweep for FAILED autonomous nodes every 5 minutes and reliably reboot them
+        'schedule': crontab(minute='*/5'),
+    },
+    'system_log_purge': {
+        'task': 'control_panel.tasks.purge_decayed_logs',
+        # Purge dead logs aggressively once per day at 3:00 AM outside of peak compute hours
+        'schedule': crontab(hour=3, minute=0),
+    },
+    'daily_cognitive_mutation': {
+        'task': 'control_panel.tasks.trigger_daily_cognitive_mutation',
+        # The market closes at 4:00. The Evaluation Tournament runs at 4:15.
+        # Fire the Cognitive Mutator at 4:30 PM Mon-Fri so it can read the brand new daily evaluation reports!
+        'schedule': crontab(hour=16, minute=30), # Daily Execution
+    },
+}
+
 # ── Django Channels (WebSocket layer) ──
-if IS_RENDER:
+if USE_REDIS_CHANNEL_LAYER:
     CHANNEL_LAYERS = {
         'default': {
             'BACKEND': 'channels_redis.core.RedisChannelLayer',
@@ -227,7 +265,7 @@ ALPACA_WS_URL = os.environ.get('ALPACA_WS_URL')
 LOGIN_REDIRECT_URL = '/'
 
 # ── Production Security ──
-if IS_RENDER:
+if TRUST_X_FORWARDED_PROTO:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
@@ -235,3 +273,14 @@ if IS_RENDER:
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+
+# ── SMTP Configuration (Phase 14 Email Dispatch) ──
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+
+
+os.environ.setdefault('HF_TOKEN', os.getenv('HF_TOKEN', ''))

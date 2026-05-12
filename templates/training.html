@@ -10,11 +10,11 @@
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
     <!-- Meta Training Launcher -->
     <div
-        class="glass rounded-2xl p-6 relative overflow-hidden group hover:border-brand-primary/50 transition-all duration-300 hover:shadow-[0_0_30px_rgba(59,130,246,0.2)]">
+        class="glass rounded p-6 relative overflow-hidden group  transition-all duration-300 hover:shadow-[0_0_30px_rgba(59,130,246,0.2)]">
         <div
-            class="absolute inset-0 bg-gradient-to-br from-brand-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+            class="absolute inset-0  opacity-0 group-hover:opacity-100 transition-opacity">
         </div>
-        <h4 class="text-lg font-mono tracking-widest text-brand-accent mb-2 relative z-10">Master Coach: Meta-Trainer
+        <h4 class="text-[10px] uppercase tracking-widest font-mono tracking-widest text-slate-800 dark:text-slate-200 mb-2 relative z-10">Master Coach: Meta-Trainer
         </h4>
         <p class="text-sm text-slate-400 mb-6 relative z-10">
             Launch a massive parallel experiment to test multiple strategy combinations autonomously.
@@ -27,19 +27,19 @@
                     <label for="meta_initial_cash"
                         class="block text-xs uppercase tracking-widest text-slate-500 mb-2">Initial Cash ($)</label>
                     <input type="number" id="meta_initial_cash" name="initial_cash"
-                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-all"
+                        class="w-full bg-slate-900 border border-slate-800 rounded px-4 py-2 text-white focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-all"
                         value="100000" step="1" min="1" required>
                 </div>
                 <div>
                     <label for="meta_target_equity"
                         class="block text-xs uppercase tracking-widest text-slate-500 mb-2">Target Equity ($)</label>
                     <input type="number" id="meta_target_equity" name="target_equity"
-                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-all"
+                        class="w-full bg-slate-900 border border-slate-800 rounded px-4 py-2 text-white focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-all"
                         value="200000" step="1" min="1" required>
                 </div>
             </div>
             <button type="submit"
-                class="w-full bg-brand-accent/20 hover:bg-brand-accent text-white font-mono tracking-widest uppercase py-3 rounded-lg border border-brand-accent/50 hover:shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all flex items-center justify-center gap-2">
+                class="w-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-white font-mono tracking-widest uppercase py-3 rounded border border-slate-800 hover:shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all flex items-center justify-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
@@ -51,11 +51,11 @@
 
     <!-- Single Training Job Launcher -->
     <div
-        class="glass rounded-2xl p-6 relative overflow-hidden group hover:border-brand-primary/50 transition-all duration-300 hover:shadow-[0_0_30px_rgba(59,130,246,0.2)]">
+        class="glass rounded p-6 relative overflow-hidden group  transition-all duration-300 hover:shadow-[0_0_30px_rgba(59,130,246,0.2)]">
         <div
-            class="absolute inset-0 bg-gradient-to-br from-brand-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+            class="absolute inset-0  opacity-0 group-hover:opacity-100 transition-opacity">
         </div>
-        <h4 class="text-lg font-mono tracking-widest text-brand-primary mb-2 relative z-10">Single Job: Direct Node</h4>
+        <h4 class="text-[10px] uppercase tracking-widest font-mono tracking-widest text-slate-800 dark:text-slate-200 mb-2 relative z-10">Single Job: Direct Node</h4>
         <p class="text-sm text-slate-400 mb-6 relative z-10">
             Define specific metrics and launch a solitary, targeted backpropagation protocol.
         </p>
@@ -67,10 +67,10 @@
                     <label for="feature_set_key"
                         class="block text-xs uppercase tracking-widest text-slate-500 mb-2">Feature Set</label>
                     <select
-                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all appearance-none"
+                        class="w-full bg-slate-900 border border-slate-800 rounded px-4 py-2 text-white focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all appearance-none"
                         id="feature_set_key" name="feature_set_key">
                         {% for key,val in playbook.feature_sets.items %}
-                        <option value="{{ key }}" class="bg-slate-900 text-brand-primary font-mono py-1">{{ key|title }}</option>
+                        <option value="{{ key }}" class="bg-slate-900 text-slate-800 dark:text-slate-200 font-mono py-1">{{ key|title }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -78,10 +78,10 @@
                     <label for="hyperparameter_key"
                         class="block text-xs uppercase tracking-widest text-slate-500 mb-2">Parameters</label>
                     <select
-                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all appearance-none"
+                        class="w-full bg-slate-900 border border-slate-800 rounded px-4 py-2 text-white focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all appearance-none"
                         id="hyperparameter_key" name="hyperparameter_key">
                         {% for key,val in playbook.hyperparameters.items %}
-                        <option value="{{ key }}" class="bg-slate-900 text-brand-primary font-mono py-1">{{ key|title }}</option>
+                        <option value="{{ key }}" class="bg-slate-900 text-slate-800 dark:text-slate-200 font-mono py-1">{{ key|title }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -89,23 +89,23 @@
                     <label for="window_size" class="block text-xs uppercase tracking-widest text-slate-500 mb-2">Window
                         (Days)</label>
                     <select
-                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all appearance-none"
+                        class="w-full bg-slate-900 border border-slate-800 rounded px-4 py-2 text-white focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all appearance-none"
                         id="window_size" name="window_size">
-                        <option value="5" class="bg-slate-900 text-brand-primary font-mono py-1">5 / Short</option>
-                        <option value="10" selected class="bg-slate-900 text-brand-primary font-mono py-1">10 / Std</option>
-                        <option value="20" class="bg-slate-900 text-brand-primary font-mono py-1">20 / Long</option>
+                        <option value="5" class="bg-slate-900 text-slate-800 dark:text-slate-200 font-mono py-1">5 / Short</option>
+                        <option value="10" selected class="bg-slate-900 text-slate-800 dark:text-slate-200 font-mono py-1">10 / Std</option>
+                        <option value="20" class="bg-slate-900 text-slate-800 dark:text-slate-200 font-mono py-1">20 / Long</option>
                     </select>
                 </div>
                 <div>
                     <label for="initial_cash"
                         class="block text-xs uppercase tracking-widest text-slate-500 mb-2">Initial Cash ($)</label>
                     <input type="number" id="initial_cash" name="initial_cash"
-                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all"
+                        class="w-full bg-slate-900 border border-slate-800 rounded px-4 py-2 text-white focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all"
                         value="100000" step="1" min="1" required>
                 </div>
             </div>
             <button type="submit"
-                class="w-full bg-brand-primary/20 hover:bg-brand-primary text-white font-mono tracking-widest uppercase py-3 rounded-lg border border-brand-primary/50 hover:shadow-[0_0_15px_rgba(59,130,246,0.5)] transition-all mt-2 flex items-center justify-center gap-2">
+                class="w-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-white font-mono tracking-widest uppercase py-3 rounded border border-slate-800 hover:shadow-[0_0_15px_rgba(59,130,246,0.5)] transition-all mt-2 flex items-center justify-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
@@ -120,11 +120,11 @@
 
 <div class="grid grid-cols-1 gap-6 mb-6">
     <!-- Training Jobs Table -->
-    <div class="glass rounded-2xl p-6 relative z-10 w-full overflow-x-auto">
-        <h4 class="text-base font-semibold text-white mb-4 tracking-widest uppercase">Training Job History</h4>
+    <div class="glass rounded p-6 relative z-10 w-full overflow-x-auto">
+        <h4 class="text-[10px] uppercase tracking-widest font-semibold text-white mb-4 tracking-widest uppercase">Training Job History</h4>
         <table class="w-full text-left border-collapse">
             <thead>
-                <tr class="border-b border-slate-700/50 text-xs tracking-widest text-slate-400 uppercase font-mono">
+                <tr class="border-b border-slate-800 text-xs tracking-widest text-slate-400 uppercase font-mono">
                     <th class="py-3 px-4 font-normal">Job ID</th>
                     <th class="py-3 px-4 font-normal">Status</th>
                     <th class="py-3 px-4 font-normal">Progress</th>
@@ -149,11 +149,11 @@
                     </td>
                     <td class="py-3 px-4">
                         <div class="w-full bg-slate-800 h-1.5 rounded overflow-hidden mt-1">
-                            <div id="job-progress-{{ job.id }}" class="bg-brand-primary h-full transition-all"
+                            <div id="job-progress-{{ job.id }}" class="bg-slate-800 h-full transition-all"
                                 style="width: {{ job.progress }}%;"></div>
                         </div>
                     </td>
-                    <td id="job-reward-{{ job.id }}" class="py-3 px-4 text-right text-brand-accent font-mono text-sm">
+                    <td id="job-reward-{{ job.id }}" class="py-3 px-4 text-right text-slate-800 dark:text-slate-200 font-mono text-sm">
                         ${{ job.best_reward|floatformat:2 }}</td>
                     <td class="py-3 px-4 text-right" onclick="event.stopPropagation();">
                         <form action="{% url 'stop_job' job.id %}" method="POST" class="inline-block"
@@ -168,10 +168,10 @@
                 </tr>
                 <!-- The Jarvis Embedded Terminal -->
                 <tr id="terminal-row-train-{{ job.id }}" class="hidden">
-                    <td colspan="5" class="p-0 border-b border-brand-primary/20">
-                        <div class="bg-black/60 font-mono text-[10px] sm:text-xs text-brand-primary p-4 max-h-64 w-full shadow-[inset_0_4px_10px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col relative">
+                    <td colspan="5" class="p-0 border-b border-slate-800">
+                        <div class="bg-slate-950 font-mono text-[10px] sm:text-xs text-slate-800 dark:text-slate-200 p-4 max-h-64 w-full  overflow-hidden flex flex-col relative">
                             <div class="text-white/30 text-[10px] mb-2 uppercase tracking-widest flex items-center gap-2">
-                                <div class="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse"></div> Live Neural Output
+                                <div class="w-1.5 h-1.5 rounded-full bg-slate-800 animate-pulse"></div> Live Neural Output
                             </div>
                             <div class="overflow-y-auto flex-1 w-full scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
                                 <pre id="terminal-content-train-{{ job.id }}" class="whitespace-pre">Connecting to Matrix Stream...</pre>
@@ -187,25 +187,25 @@
             </tbody>
         </table>
         
-        <div class="flex justify-between items-center mt-4 pt-4 border-t border-slate-700/50">
+        <div class="flex justify-between items-center mt-4 pt-4 border-t border-slate-800">
             <div class="text-xs font-mono text-slate-400">Page {{ training_jobs.number }} of {{ training_jobs.paginator.num_pages }}</div>
             <div class="flex gap-2">
                 {% if training_jobs.has_previous %}
-                <a href="?job_page={{ training_jobs.previous_page_number }}&meta_page={{ meta_training_jobs.number }}" class="px-3 py-1 bg-brand-primary/10 hover:bg-brand-primary/30 text-brand-primary border border-brand-primary/30 rounded transition-colors text-xs font-mono uppercase tracking-wider font-semibold">Prev</a>
+                <a href="?job_page={{ training_jobs.previous_page_number }}&meta_page={{ meta_training_jobs.number }}" class="px-3 py-1 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-800 rounded transition-colors text-xs font-mono uppercase tracking-wider font-semibold">Prev</a>
                 {% endif %}
                 {% if training_jobs.has_next %}
-                <a href="?job_page={{ training_jobs.next_page_number }}&meta_page={{ meta_training_jobs.number }}" class="px-3 py-1 bg-brand-primary/10 hover:bg-brand-primary/30 text-brand-primary border border-brand-primary/30 rounded transition-colors text-xs font-mono uppercase tracking-wider font-semibold">Next</a>
+                <a href="?job_page={{ training_jobs.next_page_number }}&meta_page={{ meta_training_jobs.number }}" class="px-3 py-1 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-800 rounded transition-colors text-xs font-mono uppercase tracking-wider font-semibold">Next</a>
                 {% endif %}
             </div>
         </div>
     </div>
 
     <!-- Meta Training Jobs Table -->
-    <div class="glass rounded-2xl p-6 relative z-10 w-full overflow-x-auto">
-        <h4 class="text-base font-semibold text-white mb-4 tracking-widest uppercase">Meta-Training Logs</h4>
+    <div class="glass rounded p-6 relative z-10 w-full overflow-x-auto">
+        <h4 class="text-[10px] uppercase tracking-widest font-semibold text-white mb-4 tracking-widest uppercase">Meta-Training Logs</h4>
         <table class="w-full text-left border-collapse">
             <thead>
-                <tr class="border-b border-slate-700/50 text-xs tracking-widest text-slate-400 uppercase font-mono">
+                <tr class="border-b border-slate-800 text-xs tracking-widest text-slate-400 uppercase font-mono">
                     <th class="py-3 px-4 font-normal">Job ID</th>
                     <th class="py-3 px-4 font-normal">Status</th>
                     <th class="py-3 px-4 font-normal">Progress</th>
@@ -223,14 +223,14 @@
                             class="px-2 py-0.5 rounded text-xs font-semibold bg-green-500/20 text-green-400 border border-green-500/30">COMPLETED</span>
                         {% elif job.status == 'RUNNING' %}
                         <span
-                            class="px-2 py-0.5 rounded text-xs font-semibold bg-brand-accent/20 text-brand-accent border border-brand-accent/30 animate-pulse">RUNNING</span>
+                            class="px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-800 animate-pulse">RUNNING</span>
                         {% else %}
                         <span class="px-2 py-0.5 rounded text-xs font-semibold bg-red-500/20 text-red-400 border border-red-500/30">{{ job.status }}</span>
                         {% endif %}
                     </td>
                     <td class="py-3 px-4">
                         <div class="w-full bg-slate-800 h-1.5 rounded overflow-hidden mt-1">
-                            <div id="meta-job-progress-{{ job.id }}" class="bg-brand-accent h-full transition-all"
+                            <div id="meta-job-progress-{{ job.id }}" class="bg-slate-800 h-full transition-all"
                                 style="width: {{ job.progress }}%;"></div>
                         </div>
                     </td>
@@ -250,10 +250,10 @@
                 </tr>
                 <!-- The Jarvis Embedded Terminal -->
                 <tr id="terminal-row-meta-{{ job.id }}" class="hidden">
-                    <td colspan="5" class="p-0 border-b border-brand-accent/20">
-                        <div class="bg-black/80 font-mono text-[10px] sm:text-xs text-brand-accent p-4 max-h-64 w-full shadow-[inset_0_4px_10px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col relative">
+                    <td colspan="5" class="p-0 border-b border-slate-800">
+                        <div class="bg-slate-950 font-mono text-[10px] sm:text-xs text-slate-800 dark:text-slate-200 p-4 max-h-64 w-full  overflow-hidden flex flex-col relative">
                             <div class="text-white/30 text-[10px] mb-2 uppercase tracking-widest flex items-center gap-2">
-                                <div class="w-1.5 h-1.5 rounded-full bg-brand-accent animate-pulse"></div> Live Meta-Coach Output
+                                <div class="w-1.5 h-1.5 rounded-full bg-slate-800 animate-pulse"></div> Live Meta-Coach Output
                             </div>
                             <div class="overflow-y-auto flex-1 w-full scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
                                 <pre id="terminal-content-meta-{{ job.id }}" class="whitespace-pre">Booting Orchestrator Node...</pre>
@@ -269,14 +269,14 @@
             </tbody>
         </table>
         
-        <div class="flex justify-between items-center mt-4 pt-4 border-t border-slate-700/50">
+        <div class="flex justify-between items-center mt-4 pt-4 border-t border-slate-800">
             <div class="text-xs font-mono text-slate-400">Page {{ meta_training_jobs.number }} of {{ meta_training_jobs.paginator.num_pages }}</div>
             <div class="flex gap-2">
                 {% if meta_training_jobs.has_previous %}
-                <a href="?meta_page={{ meta_training_jobs.previous_page_number }}&job_page={{ training_jobs.number }}" class="px-3 py-1 bg-brand-primary/10 hover:bg-brand-primary/30 text-brand-primary border border-brand-primary/30 rounded transition-colors text-xs font-mono uppercase tracking-wider font-semibold">Prev</a>
+                <a href="?meta_page={{ meta_training_jobs.previous_page_number }}&job_page={{ training_jobs.number }}" class="px-3 py-1 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-800 rounded transition-colors text-xs font-mono uppercase tracking-wider font-semibold">Prev</a>
                 {% endif %}
                 {% if meta_training_jobs.has_next %}
-                <a href="?meta_page={{ meta_training_jobs.next_page_number }}&job_page={{ training_jobs.number }}" class="px-3 py-1 bg-brand-primary/10 hover:bg-brand-primary/30 text-brand-primary border border-brand-primary/30 rounded transition-colors text-xs font-mono uppercase tracking-wider font-semibold">Next</a>
+                <a href="?meta_page={{ meta_training_jobs.next_page_number }}&job_page={{ training_jobs.number }}" class="px-3 py-1 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-800 rounded transition-colors text-xs font-mono uppercase tracking-wider font-semibold">Next</a>
                 {% endif %}
             </div>
         </div>
@@ -342,7 +342,7 @@
         if(job.status === 'COMPLETED') {
             container.innerHTML = '<span class="px-2 py-0.5 rounded text-xs font-semibold bg-green-500/20 text-green-400 border border-green-500/30">COMPLETED</span>';
         } else if(job.status === 'RUNNING') {
-            container.innerHTML = '<span class="px-2 py-0.5 rounded text-xs font-semibold bg-brand-primary/20 text-brand-primary border border-brand-primary/30 animate-pulse">RUNNING</span>';
+            container.innerHTML = '<span class="px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-800 animate-pulse">RUNNING</span>';
         } else if(job.status === 'FAILED') {
             container.innerHTML = `<span class="px-2 py-0.5 rounded text-xs font-semibold bg-red-500/20 text-red-500 border border-red-500/30">FAILED</span>`;
         } else {

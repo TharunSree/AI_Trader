@@ -1,0 +1,1207 @@
+{
+% extends "base.html" %}
+ {
+% load static %}
+ {
+% block title %}
+Evaluation Lab{
+% endblock title %}
+ {
+% block page_title %}
+Evaluation Lab{
+% endblock page_title %}
+ {
+% block extra_css %}
+ <style> .evaluation-shell {
+ overflow: visible;
+ z-index: 40;
+ background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 30%), linear-gradient(180deg, rgba(2, 6, 23, 0.4), rgba(2, 6, 23, 0.18));
+ }
+ .custom-select-container .select-trigger, .date-trigger, .launch-btn {
+ height: 52px;
+ min-height: 52px;
+ box-sizing: border-box;
+ }
+ .custom-select-container {
+ z-index: 140;
+ }
+ .custom-select-container.is-open {
+ z-index: 620;
+ }
+ .custom-select-container .select-dropdown {
+ max-height: 17rem;
+ overflow-x: hidden;
+ overflow-y: auto;
+ }
+ .custom-select-container .select-dropdown li {
+ word-break: break-word;
+ }
+ .date-wrap {
+ position: relative;
+ z-index: 120;
+ }
+ .date-wrap.is-open {
+ z-index: 500;
+ }
+ .date-input {
+ display: none;
+ }
+ .date-trigger {
+ width: 100%;
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+ gap: 0.75rem;
+ background: rgba(15, 23, 42, 0.95);
+ border: 1px solid rgba(51, 65, 85, 1);
+ border-radius: 0.5rem;
+ padding: 0.75rem 1rem;
+ color: white;
+ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+ transition: all 180ms ease;
+ }
+ .custom-select-container .select-trigger:hover, .date-trigger:hover, .custom-select-container .select-trigger:focus-visible, .date-trigger:focus-visible {
+ outline: none;
+ border-color: rgba(59, 130, 246, 0.85);
+ box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.7);
+ }
+ .date-trigger-text {
+ overflow: hidden;
+ text-overflow: ellipsis;
+ white-space: nowrap;
+ }
+ .date-trigger-text.is-placeholder {
+ color: #94a3b8;
+ }
+ .date-panel {
+ position: absolute;
+ top: calc(100% + 0.5rem);
+ left: 0;
+ z-index: 220;
+ width: 20rem;
+ min-width: 20rem;
+ max-width: min(20rem, calc(100vw - 2rem));
+ padding: 1rem;
+ border-radius: 1rem;
+ border: 1px solid rgba(59, 130, 246, 0.18);
+ background: radial-gradient(circle at top right, rgba(16, 185, 129, 0.08), transparent 30%), rgba(2, 6, 23, 0.97);
+ box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+ box-sizing: border-box;
+ }
+ .date-panel[hidden] {
+ display: none;
+ }
+ .date-grid {
+ display: grid;
+ grid-template-columns: repeat(7, minmax(0, 1fr));
+ gap: 0.35rem;
+ margin-top: 0.8rem;
+ }
+ .date-weekday {
+ text-align: center;
+ font-size: 0.66rem;
+ color: #64748b;
+ letter-spacing: 0.18em;
+ text-transform: uppercase;
+ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+ }
+ .date-cell, .date-nav, .date-quick, .date-year-select, .date-month-select {
+ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+ }
+ .date-nav {
+ width: 1.85rem;
+ height: 1.85rem;
+ border-radius: 9999px;
+ border: none;
+ background: transparent;
+ color: #60a5fa;
+ transition: all 160ms ease;
+ display: inline-flex;
+ align-items: center;
+ justify-content: center;
+ }
+ .date-nav:hover, .date-quick:hover {
+ color: white;
+ background: rgba(30, 41, 59, 0.75);
+ }
+ .date-quick {
+ border-radius: 9999px;
+ border: 1px solid rgba(59, 130, 246, 0.2);
+ background: rgba(15, 23, 42, 0.9);
+ color: #94a3b8;
+ padding: 0.35rem 0.7rem;
+ font-size: 0.64rem;
+ letter-spacing: 0.18em;
+ text-transform: uppercase;
+ }
+ .date-year-select {
+ appearance: none;
+ border-radius: 9999px;
+ border: 1px solid rgba(59, 130, 246, 0.18);
+ background: rgba(15, 23, 42, 0.92);
+ color: #e2e8f0;
+ padding: 0.45rem 2rem 0.45rem 0.85rem;
+ font-size: 0.68rem;
+ letter-spacing: 0.22em;
+ text-transform: uppercase;
+ min-width: 5.75rem;
+ box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+ outline: none;
+ transition: border-color 160ms ease, box-shadow 160ms ease, color 160ms ease;
+ }
+ .date-month-select {
+ appearance: none;
+ border-radius: 9999px;
+ border: none;
+ background: transparent;
+ color: #e2e8f0;
+ padding: 0.45rem 1.5rem 0.45rem 0.1rem;
+ font-size: 0.78rem;
+ letter-spacing: 0.26em;
+ text-transform: uppercase;
+ outline: none;
+ }
+ .date-year-select:hover, .date-year-select:focus {
+ border-color: rgba(59, 130, 246, 0.4);
+ box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.24);
+ color: #ffffff;
+ }
+ .date-year-wrap, .date-month-wrap {
+ position: relative;
+ }
+ .date-year-wrap::after, .date-month-wrap::after {
+ content: "";
+ position: absolute;
+ top: 50%;
+ width: 0.45rem;
+ height: 0.45rem;
+ border-right: 2px solid rgba(148, 163, 184, 0.9);
+ border-bottom: 2px solid rgba(148, 163, 184, 0.9);
+ transform: translateY(-65%) rotate(45deg);
+ pointer-events: none;
+ }
+ .date-year-wrap::after {
+ right: 0.8rem;
+ }
+ .date-month-wrap::after {
+ right: 0.35rem;
+ }
+ .date-cell {
+ height: 2.2rem;
+ border-radius: 0.65rem;
+ border: 1px solid transparent;
+ background: transparent;
+ color: #cbd5e1;
+ font-size: 0.78rem;
+ transition: all 160ms ease;
+ }
+ .date-cell:hover {
+ border-color: rgba(59, 130, 246, 0.45);
+ background: rgba(30, 41, 59, 0.8);
+ }
+ .date-cell.is-outside {
+ color: rgba(100, 116, 139, 0.55);
+ }
+ .date-cell.is-selected {
+ color: #60a5fa;
+ background: rgba(59, 130, 246, 0.18);
+ border-color: rgba(59, 130, 246, 0.55);
+ box-shadow: 0 0 18px rgba(59, 130, 246, 0.18);
+ }
+ .date-cell.is-today {
+ border-color: rgba(16, 185, 129, 0.45);
+ color: #34d399;
+ }
+ .date-cell.is-disabled {
+ color: rgba(100, 116, 139, 0.35);
+ opacity: 0.45;
+ cursor: not-allowed;
+ pointer-events: none;
+ }
+ .date-trigger.has-error {
+ border-color: rgba(239, 68, 68, 0.8);
+ box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.28);
+ }
+ .date-trigger.has-error .date-trigger-text {
+ color: #fca5a5;
+ }
+ .field-error {
+ min-height: 1rem;
+ margin-top: 0.45rem;
+ color: #f87171;
+ font-size: 0.68rem;
+ letter-spacing: 0.12em;
+ text-transform: uppercase;
+ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+ }
+ .launch-btn {
+ display: inline-flex;
+ align-items: center;
+ justify-content: center;
+ padding: 0 1rem;
+ }
+ .summary-metric {
+ min-height: 7.75rem;
+ }
+ .summary-metric-value {
+ overflow-wrap: normal;
+ word-break: keep-all;
+ white-space: nowrap;
+ line-height: 1.1;
+ max-width: 100%;
+ overflow: hidden;
+ text-overflow: ellipsis;
+ }
+ .summary-pill {
+ max-width: 100%;
+ overflow: hidden;
+ text-overflow: ellipsis;
+ white-space: nowrap;
+ }
+ .summary-model-title {
+ color: #60a5fa;
+ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+ letter-spacing: 0.08em;
+ text-transform: uppercase;
+ word-break: break-word;
+ }
+ @media (max-width: 1279px) {
+ .launch-wrap .launch-btn {
+ width: 100%;
+ }
+ }
+ @media (max-width: 640px) {
+ .date-panel {
+ width: min(20rem, calc(100vw - 1.5rem));
+ min-width: min(20rem, calc(100vw - 1.5rem));
+ }
+ }
+ </style> {
+% endblock extra_css %}
+ {
+% block page_content %}
+ <div class="grid grid-cols-1 xl:grid-cols-2 items-stretch gap-5 mb-6">
+<div data-boot-shell="panel" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 evaluation-shell rounded p-6 h-full transition-all duration-500 relative group ">
+<div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity">
+</div>
+<div class="relative z-10 flex h-full flex-col gap-5">
+<div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+<div class="max-w-3xl">
+<p class="text-xs uppercase tracking-widest text-slate-800 dark:text-slate-200/80 font-mono mb-2">Forward Test Control</p>
+<h3 class="text-sm font-mono uppercase tracking-widest text-slate-800 dark:text-slate-200 font-semibold tracking-wide" style="line-height: 1.2;
+">Out-Of-Sample Evaluation System</h3>
+<p class="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-2">Run validation passes against saved agents, inspect deterioration curves, and export diagnostics.</p>
+</div>
+</div>
+<form method="post" action="{
+% url 'evaluation_lab' %}
+" id="evaluation-form" class="grid grid-cols-1 gap-4 items-end mt-auto"> {
+% csrf_token %}
+ <div class="w-full">
+<label for="model_file_select" class="block text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-2 font-mono">Model Tensor</label>
+<div class="custom-select-container relative w-full" id="evaluation_model_select_container">
+<input type="hidden" name="model_file" id="model_file_select" required value="{
+% if model_files %}
+{
+{
+ model_files.0.value }
+}
+{
+% endif %}
+">
+<div class="select-trigger bg-white dark:bg-slate-900 border border-slate-800 rounded px-4 py-3 text-slate-800 dark:text-slate-200 font-mono flex justify-between items-center cursor-pointer">
+<span class="select-label-text truncate">{
+% if model_files %}
+{
+{
+ model_files.0.label }
+}
+{
+% else %}
+No saved models available{
+% endif %}
+</span>
+<svg class="w-4 h-4 ml-2 flex-shrink-0 text-slate-500 dark:text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7">
+</path>
+</svg>
+</div>
+<div class="select-dropdown absolute z-50 w-full mt-1 bg-slate-950 border border-slate-600 rounded shadow-[0_0_20px_rgba(0,0,0,0.8)] hidden">
+<ul class="py-1 max-h-48 overflow-auto font-mono text-sm"> {
+% for model in model_files %}
+ <li class="px-4 py-3 text-slate-600 dark:text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:bg-slate-800 hover:text-slate-800 dark:text-slate-200 cursor-pointer transition-colors border-b border-white/5 last:border-0" data-value="{
+{
+ model.value }
+}
+">{
+{
+ model.label }
+}
+</li> {
+% empty %}
+ <li class="px-4 py-3 text-slate-500 dark:text-slate-400 dark:text-slate-500 cursor-not-allowed">No saved models available</li> {
+% endfor %}
+ </ul>
+</div>
+</div>
+</div>
+<div class="date-wrap">
+<label for="start_date" class="block text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-2 font-mono">Start Date</label>
+<input type="text" class="date-input" id="start_date" name="start_date" readonly>
+<button type="button" class="date-trigger" data-date-trigger="start_date" aria-haspopup="dialog" aria-expanded="false">
+<span class="date-trigger-text is-placeholder">SELECT DATE</span>
+<svg class="w-5 h-5 text-slate-500 dark:text-slate-400 dark:text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10m-11 9h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v11a2 2 0 002 2z" />
+</svg>
+</button>
+<div class="date-panel" data-date-panel="start_date" hidden>
+</div>
+<div class="field-error" data-error-for="start_date">
+</div>
+</div>
+<div class="date-wrap">
+<label for="end_date" class="block text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-2 font-mono">End Date</label>
+<input type="text" class="date-input" id="end_date" name="end_date" readonly>
+<button type="button" class="date-trigger" data-date-trigger="end_date" aria-haspopup="dialog" aria-expanded="false">
+<span class="date-trigger-text is-placeholder">SELECT DATE</span>
+<svg class="w-5 h-5 text-slate-500 dark:text-slate-400 dark:text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10m-11 9h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v11a2 2 0 002 2z" />
+</svg>
+</button>
+<div class="date-panel" data-date-panel="end_date" hidden>
+</div>
+<div class="field-error" data-error-for="end_date">
+</div>
+</div>
+<div class="launch-wrap flex flex-col">
+<span class="block text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-2 font-mono opacity-0 select-none pointer-events-none">Launch</span>
+<button type="submit" class="launch-btn w-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono tracking-widest uppercase px-5 rounded border border-slate-800 transition-all text-xs whitespace-nowrap"> Launch </button>
+</div>
+</form>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 evaluation-shell rounded p-6 h-full transition-all duration-500 relative overflow-hidden group ">
+<div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity">
+</div>
+<div class="relative z-10 flex h-full flex-col">
+<p class="text-xs uppercase tracking-widest text-slate-800 dark:text-slate-200/80 font-mono mb-2">Latest Readout</p> {
+% if latest_job and latest_job.results %}
+ <div class="flex items-start justify-between gap-3">
+<div class="min-w-0">
+<h3 class="summary-model-title text-sm font-mono uppercase tracking-widest font-semibold">{
+{
+ latest_job.model_file|cut:".pth" }
+}
+</h3>
+<p class="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 dark:text-slate-500 font-mono mt-2">Evaluation #{
+{
+ latest_job.id }
+}
+</p>
+</div>
+<span class="px-2 py-1 rounded text-[10px] uppercase tracking-[0.18em] {
+% if latest_job.status == 'COMPLETED' %}
+bg-green-500/20 text-green-400 border border-green-500/30{
+% elif latest_job.status == 'FAILED' %}
+bg-red-500/20 text-red-400 border border-red-500/30{
+% else %}
+bg-yellow-500/20 text-yellow-400 border border-yellow-500/30{
+% endif %}
+">{
+{
+ latest_job.status }
+}
+</span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6">
+<div class="summary-metric rounded bg-white dark:bg-slate-900/60 border border-slate-800 p-4 flex flex-col justify-between">
+<div class="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-2 font-mono">Sharpe</div>
+<div class="summary-metric-value text-sm font-mono text-slate-800 dark:text-slate-200 font-semibold">{
+{
+ latest_job.results.sharpe_ratio|default_if_none:"-" }
+}
+</div>
+</div>
+<div class="summary-metric rounded bg-white dark:bg-slate-900/60 border border-slate-800 p-4 flex flex-col justify-between">
+<div class="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-2 font-mono">Return</div>
+<div class="summary-metric-value text-sm font-mono text-slate-800 dark:text-slate-200 font-semibold">{
+{
+ latest_job.results.total_return_pct|default_if_none:"-" }
+}
+%</div>
+</div>
+<div class="summary-metric rounded bg-white dark:bg-slate-900/60 border border-slate-800 p-4 flex flex-col justify-between">
+<div class="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-2 font-mono">Final Equity</div>
+<div class="summary-metric-value text-sm font-mono text-slate-800 dark:text-slate-200 font-semibold">${
+{
+ latest_job.results.final_equity|floatformat:2 }
+}
+</div>
+</div>
+</div>
+<div class="flex flex-wrap items-center gap-3 mt-6 text-xs font-mono uppercase tracking-[0.18em]">
+<span class="px-3 py-1 rounded-full bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 border border-slate-800">{
+{
+ latest_job.start_date|date:"M. j, Y" }
+}
+ / {
+{
+ latest_job.end_date|date:"M. j, Y" }
+}
+</span>
+<span class="summary-pill px-3 py-1 rounded-full bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 border border-slate-800">{
+{
+ latest_job.model_file }
+}
+</span>
+</div>
+<a href="{
+% url 'evaluation_report' latest_job.id %}
+" class="inline-flex mt-auto px-4 py-2 rounded border border-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:bg-slate-800/50 transition-all text-xs font-mono uppercase tracking-[0.2em] w-fit">Open Detailed Report</a> {
+% else %}
+ <h3 class="text-sm font-mono text-slate-800 dark:text-slate-200 font-semibold">No Evaluation History Yet</h3>
+<p class="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-3">Run a validation sequence to populate the drawdown chart, Sharpe chart, and evaluation telemetry.</p> {
+% endif %}
+ </div>
+</div>
+</div>
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded p-6 border border-slate-800 relative overflow-hidden group transition-all duration-500 ">
+<h3 class="text-[10px] uppercase tracking-widest font-semibold text-slate-800 dark:text-slate-200 mb-4 tracking-widest flex items-center gap-2 uppercase">
+<svg class="w-5 h-5 text-slate-800 dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+</svg> Drawdown Isolation </h3>
+<div id="drawdown-chart" class="h-[320px]">
+</div>
+</div>
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded p-6 border border-slate-800 relative overflow-hidden group transition-all duration-500 ">
+<h3 class="text-[10px] uppercase tracking-widest font-semibold text-slate-800 dark:text-slate-200 mb-4 tracking-widest flex items-center gap-2 uppercase">
+<svg class="w-5 h-5 text-slate-800 dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+</svg> Sharpe Stability </h3>
+<div id="sharpe-chart" class="h-[320px]">
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded p-6 border border-slate-800">
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+<div class="flex flex-col">
+<h3 class="text-[10px] uppercase tracking-widest font-semibold text-slate-800 dark:text-slate-200 tracking-widest uppercase">Evaluation Job History</h3>
+<span class="px-3 py-1 mt-2 inline-block rounded-full text-[10px] uppercase tracking-widest bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 border border-slate-800 font-mono w-max">Forward Validation Ledger</span>
+</div>
+<div class="flex gap-2">
+<button class="eval-tab-btn active px-3 py-1 text-[10px] font-mono tracking-widest uppercase rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-800" data-filter="all">All</button>
+<button class="eval-tab-btn px-3 py-1 text-[10px] font-mono tracking-widest uppercase rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:bg-slate-700 transition-all border border-transparent" data-filter="daily">Daily</button>
+<button class="eval-tab-btn px-3 py-1 text-[10px] font-mono tracking-widest uppercase rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:bg-slate-700 transition-all border border-transparent" data-filter="weekly">Weekly</button>
+<button class="eval-tab-btn px-3 py-1 text-[10px] font-mono tracking-widest uppercase rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:bg-slate-700 transition-all border border-transparent" data-filter="monthly">Monthly</button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-slate-800 text-xs tracking-widest text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase font-mono">
+<th class="py-3 px-4 font-normal">Job ID</th>
+<th class="py-3 px-4 font-normal">Model</th>
+<th class="py-3 px-4 font-normal">Range</th>
+<th class="py-3 px-4 font-normal">Status</th>
+<th class="py-3 px-4 font-normal text-right">Sharpe</th>
+<th class="py-3 px-4 font-normal text-right">Return</th>
+<th class="py-3 px-4 font-normal text-right">Report</th>
+</tr>
+</thead>
+<tbody> {
+% for job in evaluation_jobs %}
+ <tr class="eval-job-row border-b border-slate-800/50 hover:bg-slate-100 dark:bg-slate-800/30 transition-colors cursor-pointer" data-start="{
+{
+ job.start_date|date:'Y-m-d' }
+}
+" data-end="{
+{
+ job.end_date|date:'Y-m-d' }
+}
+" onclick="toggleEvaluationTerminal({
+{
+ job.id }
+}
+)">
+<td class="py-3 px-4 text-slate-600 dark:text-slate-400 dark:text-slate-500 font-mono text-sm">#E{
+{
+ job.id }
+}
+</td>
+<td class="py-3 px-4 text-slate-600 dark:text-slate-400 dark:text-slate-500 text-sm max-w-[260px] truncate" title="{
+{
+ job.model_file }
+}
+">{
+{
+ job.model_file }
+}
+</td>
+<td class="py-3 px-4 text-slate-500 dark:text-slate-400 dark:text-slate-500 font-mono text-xs">{
+{
+ job.start_date }
+}
+ to {
+{
+ job.end_date }
+}
+</td>
+<td class="py-3 px-4">
+<span class="px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-[0.18em] {
+% if job.status == 'COMPLETED' %}
+bg-green-500/20 text-green-400 border border-green-500/30{
+% elif job.status == 'FAILED' %}
+bg-red-500/20 text-red-400 border border-red-500/30{
+% else %}
+bg-yellow-500/20 text-yellow-400 border border-yellow-500/30{
+% endif %}
+">{
+{
+ job.status }
+}
+</span>
+</td>
+<td class="py-3 px-4 text-right text-slate-700 dark:text-slate-300 font-mono text-sm">{
+% if job.results %}
+{
+{
+ job.results.sharpe_ratio|default_if_none:"-" }
+}
+{
+% else %}
+-{
+% endif %}
+</td>
+<td class="py-3 px-4 text-right text-slate-700 dark:text-slate-300 font-mono text-sm">{
+% if job.results %}
+{
+{
+ job.results.total_return_pct|default_if_none:"-" }
+}
+%{
+% else %}
+-{
+% endif %}
+</td>
+<td class="py-3 px-4 text-right"> {
+% if job.status == 'COMPLETED' %}
+ <a href="{
+% url 'evaluation_report' job.id %}
+" class="inline-flex items-center px-3 py-1.5 rounded border border-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:bg-slate-800/50 transition-all text-[10px] font-mono uppercase tracking-[0.18em]" onclick="event.stopPropagation();
+"> Open </a> {
+% else %}
+ <span class="text-slate-600 dark:text-slate-400 dark:text-slate-500 font-mono text-[10px] uppercase tracking-[0.18em]">Pending</span> {
+% endif %}
+ </td>
+</tr>
+<tr id="evaluation-terminal-row-{
+{
+ job.id }
+}
+" class="hidden">
+<td colspan="7" class="p-0 border-b border-slate-800">
+<div class="bg-slate-950 font-mono text-[10px] sm:text-xs text-slate-800 dark:text-slate-200 p-4 max-h-64 w-full overflow-hidden flex flex-col relative">
+<div class="text-slate-800 dark:text-slate-200/30 text-[10px] mb-2 uppercase tracking-widest flex items-center gap-2">
+<div class="w-1.5 h-1.5 rounded-full bg-slate-800 animate-pulse">
+</div> Live Evaluation Output </div>
+<div class="overflow-y-auto flex-1 w-full scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+<pre id="terminal-content-eval-{
+{
+ job.id }
+}
+" class="whitespace-pre">[QUANTTRADER] Initializing evaluation node #E{
+{
+ job.id }
+}
+ [QUANTTRADER] Loading model reference: {
+{
+ job.model_file }
+}
+ [QUANTTRADER] Synchronizing date window: {
+{
+ job.start_date|date:"Y-m-d" }
+}
+ -> {
+{
+ job.end_date|date:"Y-m-d" }
+}
+ [QUANTTRADER] Status: {
+{
+ job.status }
+}
+ {
+% if job.status == 'COMPLETED' and job.results %}
+[METRIC] Sharpe Ratio .......... {
+{
+ job.results.sharpe_ratio|default_if_none:"-" }
+}
+ [METRIC] Total Return .......... {
+{
+ job.results.total_return_pct|default_if_none:"-" }
+}
+% [METRIC] Final Equity .......... ${
+{
+ job.results.final_equity|floatformat:2 }
+}
+ [METRIC] Max Drawdown .......... {
+{
+ job.results.max_drawdown_pct|default_if_none:"-" }
+}
+% [METRIC] Total Trades .......... {
+{
+ job.results.total_trades|default_if_none:"-" }
+}
+ [TRACE] Avg Action ............. {
+{
+ job.results.avg_action|default_if_none:"-" }
+}
+ [TRACE] Max Action ............. {
+{
+ job.results.max_action|default_if_none:"-" }
+}
+ [TRACE] Min Action ............. {
+{
+ job.results.min_action|default_if_none:"-" }
+}
+ [TRACE] Buy Crossings (>0.4) ... {
+{
+ job.results.buy_threshold_crossings|default_if_none:"-" }
+}
+ [TRACE] Sell Crossings (<-0.4) . {
+{
+ job.results.sell_threshold_crossings|default_if_none:"-" }
+}
+ [QUANTTRADER] Evaluation completed. Telemetry archived to report subsystem. {
+% if job.status == 'COMPLETED' %}
+[QUANTTRADER] Report link: {
+% url 'evaluation_report' job.id %}
+ {
+% endif %}
+ {
+% elif job.status == 'FAILED' %}
+[ERROR] {
+{
+ job.error_message|default:"Evaluation sequence terminated before metrics were produced." }
+}
+ [QUANTTRADER] Failure captured for operator review. {
+% else %}
+[QUANTTRADER] Awaiting execution telemetry... {
+% endif %}
+</pre>
+</div>
+</div>
+</td>
+</tr> {
+% empty %}
+ <tr>
+<td colspan="7" class="py-8 text-center text-slate-500 dark:text-slate-400 dark:text-slate-500 font-mono text-sm">NO EVALUATION RUNS YET</td>
+</tr> {
+% endfor %}
+ </tbody>
+</table>
+</div> {
+% if evaluation_jobs.paginator.num_pages > 1 %}
+ <div class="flex items-center justify-between gap-4 mt-5 pt-4 border-t border-slate-800">
+<div class="text-[11px] uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400 dark:text-slate-500 font-mono"> Page {
+{
+ evaluation_jobs.number }
+}
+ / {
+{
+ evaluation_jobs.paginator.num_pages }
+}
+ </div>
+<div class="flex items-center gap-3"> {
+% if evaluation_jobs.has_previous %}
+ <a href="?page={
+{
+ evaluation_jobs.previous_page_number }
+}
+" class="px-3 py-2 rounded border border-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:bg-slate-800/50 transition-all text-[10px] font-mono uppercase tracking-[0.18em]">Previous</a> {
+% else %}
+ <span class="px-3 py-2 rounded border border-slate-800 text-slate-600 dark:text-slate-400 dark:text-slate-500 text-[10px] font-mono uppercase tracking-[0.18em]">Previous</span> {
+% endif %}
+ {
+% if evaluation_jobs.has_next %}
+ <a href="?page={
+{
+ evaluation_jobs.next_page_number }
+}
+" class="px-3 py-2 rounded border border-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:bg-slate-800/50 transition-all text-[10px] font-mono uppercase tracking-[0.18em]">Next</a> {
+% else %}
+ <span class="px-3 py-2 rounded border border-slate-800 text-slate-600 dark:text-slate-400 dark:text-slate-500 text-[10px] font-mono uppercase tracking-[0.18em]">Next</span> {
+% endif %}
+ </div>
+</div> {
+% endif %}
+ </div> {
+% endblock page_content %}
+ {
+% block extra_javascript %}
+ <script src="https://cdn.jsdelivr.net/npm/apexcharts">
+</script>
+<script> document.addEventListener('DOMContentLoaded', function () {
+ const drawdownSeries = {
+{
+ drawdown_series|safe }
+}
+;
+ const sharpeSeries = {
+{
+ sharpe_series|safe }
+}
+;
+ let activeEvaluationTerminalId = null;
+ let openDatePanelId = null;
+ const MONTH_NAMES = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+ const WEEKDAY_NAMES = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+ const datePickers = {
+}
+;
+ function formatIsoDate(date) {
+ const year = date.getFullYear();
+ const month = String(date.getMonth() + 1).padStart(2, '0');
+ const day = String(date.getDate()).padStart(2, '0');
+ return `${
+year}
+-${
+month}
+-${
+day}
+`;
+ }
+ function formatDisplayDate(date) {
+ const day = String(date.getDate()).padStart(2, '0');
+ const month = String(date.getMonth() + 1).padStart(2, '0');
+ const year = date.getFullYear();
+ return `${
+day}
+ / ${
+month}
+ / ${
+year}
+`;
+ }
+ function parseIsoDate(value) {
+ if (!value) return null;
+ const parts = value.split('-').map(Number);
+ if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+ return new Date(parts[0], parts[1] - 1, parts[2]);
+ }
+ function setFieldError(id, message) {
+ const picker = datePickers[id];
+ const errorNode = document.querySelector(`[data-error-for="${
+id}
+"]`);
+ if (picker) {
+ picker.trigger.classList.toggle('has-error', Boolean(message));
+ }
+ if (errorNode) {
+ errorNode.textContent = message || '';
+ }
+ }
+ function clearFieldErrors() {
+ Object.keys(datePickers).forEach((id) => setFieldError(id, ''));
+ }
+ const selectContainer = document.getElementById('evaluation_model_select_container');
+ if (selectContainer) {
+ const trigger = selectContainer.querySelector('.select-trigger');
+ const dropdown = selectContainer.querySelector('.select-dropdown');
+ const input = selectContainer.querySelector('input[type="hidden"]');
+ const labelText = selectContainer.querySelector('.select-label-text');
+ const items = dropdown.querySelectorAll('li[data-value]');
+ trigger.addEventListener('click', function (event) {
+ event.stopPropagation();
+ dropdown.classList.toggle('hidden');
+ selectContainer.classList.toggle('is-open', !dropdown.classList.contains('hidden'));
+ }
+);
+ items.forEach((item) => {
+ item.addEventListener('click', function () {
+ input.value = item.getAttribute('data-value');
+ labelText.textContent = item.textContent;
+ dropdown.classList.add('hidden');
+ selectContainer.classList.remove('is-open');
+ }
+);
+ }
+);
+ document.addEventListener('click', function (event) {
+ if (!selectContainer.contains(event.target)) {
+ dropdown.classList.add('hidden');
+ selectContainer.classList.remove('is-open');
+ }
+ }
+);
+ }
+ function setDateValue(id, date) {
+ const picker = datePickers[id];
+ if (!picker) return;
+ picker.selectedDate = date;
+ picker.input.value = date ? formatIsoDate(date) : '';
+ picker.label.textContent = date ? formatDisplayDate(date) : 'SELECT DATE';
+ picker.label.classList.toggle('is-placeholder', !date);
+ }
+ function buildCalendar(id) {
+ const picker = datePickers[id];
+ if (!picker) return;
+ const panel = picker.panel;
+ const viewDate = picker.viewDate;
+ const month = viewDate.getMonth();
+ const year = viewDate.getFullYear();
+ const firstOfMonth = new Date(year, month, 1);
+ const firstWeekday = firstOfMonth.getDay();
+ const daysInMonth = new Date(year, month + 1, 0).getDate();
+ const daysInPrevMonth = new Date(year, month, 0).getDate();
+ const today = new Date();
+ const maxAllowedYear = today.getFullYear();
+ const todayIso = formatIsoDate(today);
+ const selectedIso = picker.selectedDate ? formatIsoDate(picker.selectedDate) : null;
+ const cells = [];
+ for (let i = firstWeekday - 1;
+ i >= 0;
+ i -= 1) {
+ cells.push(new Date(year, month - 1, daysInPrevMonth - i));
+ }
+ for (let day = 1;
+ day <= daysInMonth;
+ day += 1) {
+ cells.push(new Date(year, month, day));
+ }
+ while (cells.length < 42) {
+ const lastDate = cells[cells.length - 1];
+ cells.push(new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate() + 1));
+ }
+ const yearOptions = [];
+ for (let optionYear = 2000;
+ optionYear <= maxAllowedYear;
+ optionYear += 1) {
+ yearOptions.push( `<option value="${
+optionYear}
+" ${
+optionYear === year ? 'selected' : ''}
+>${
+optionYear}
+</option>` );
+ }
+ const monthOptions = MONTH_NAMES.map((name, index) => ( `<option value="${
+index}
+" ${
+(index === month) ? 'selected' : ''}
+>${
+name}
+</option>` )).join('');
+ const weekdayRow = WEEKDAY_NAMES.map((name) => `<div class="date-weekday">${
+name}
+</div>`).join('');
+ const dayButtons = cells.map((date) => {
+ const dateIso = formatIsoDate(date);
+ const isFuture = date > new Date(today.getFullYear(), today.getMonth(), today.getDate());
+ const classNames = [ 'date-cell', date.getMonth() !== month ? 'is-outside' : '', dateIso === selectedIso ? 'is-selected' : '', dateIso === todayIso ? 'is-today' : '', isFuture ? 'is-disabled' : '', ].filter(Boolean).join(' ');
+ return `<button type="button" class="${
+classNames}
+" data-date-value="${
+dateIso}
+" ${
+isFuture ? 'disabled' : ''}
+>${
+date.getDate()}
+</button>`;
+ }
+).join('');
+ panel.innerHTML = ` <div class="grid grid-cols-[auto_1fr_auto] items-center gap-2">
+<button type="button" class="date-nav" data-nav="-1">&#8249;
+</button>
+<div class="flex items-center justify-center gap-2 min-w-0">
+<div class="date-month-wrap">
+<select class="date-month-select" data-month-select>${
+monthOptions}
+</select>
+</div>
+<div class="date-year-wrap">
+<select class="date-year-select" data-year-select>${
+yearOptions.join('')}
+</select>
+</div>
+</div>
+<button type="button" class="date-nav" data-nav="1">&#8250;
+</button>
+</div>
+<div class="flex items-center justify-between gap-2 mt-4">
+<button type="button" class="date-quick" data-quick="today">Today</button>
+<button type="button" class="date-quick" data-quick="clear">Clear</button>
+</div>
+<div class="date-grid">${
+weekdayRow}
+${
+dayButtons}
+</div> `;
+ panel.addEventListener('click', function (event) {
+ event.stopPropagation();
+ }
+);
+ panel.querySelectorAll('[data-nav]').forEach((button) => {
+ button.addEventListener('click', function () {
+ const offset = Number(this.getAttribute('data-nav'));
+ const candidateDate = new Date(year, month + offset, 1);
+ if (candidateDate.getFullYear() > maxAllowedYear) {
+ return;
+ }
+ picker.viewDate = candidateDate;
+ buildCalendar(id);
+ }
+);
+ }
+);
+ panel.querySelector('[data-year-select]').addEventListener('change', function () {
+ const selectedYear = Math.min(Number(this.value), maxAllowedYear);
+ picker.viewDate = new Date(selectedYear, month, 1);
+ buildCalendar(id);
+ }
+);
+ panel.querySelector('[data-month-select]').addEventListener('change', function () {
+ const selectedMonth = Number(this.value);
+ picker.viewDate = new Date(year, selectedMonth, 1);
+ buildCalendar(id);
+ }
+);
+ panel.querySelectorAll('[data-date-value]').forEach((button) => {
+ button.addEventListener('click', function () {
+ const date = parseIsoDate(this.getAttribute('data-date-value'));
+ setDateValue(id, date);
+ setFieldError(id, '');
+ closeDatePanel(id);
+ }
+);
+ }
+);
+ panel.querySelector('[data-quick="today"]').addEventListener('click', function () {
+ picker.viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
+ setDateValue(id, today);
+ setFieldError(id, '');
+ closeDatePanel(id);
+ }
+);
+ panel.querySelector('[data-quick="clear"]').addEventListener('click', function () {
+ setDateValue(id, null);
+ buildCalendar(id);
+ }
+);
+ }
+ function closeDatePanel(id) {
+ const picker = datePickers[id];
+ if (!picker) return;
+ picker.panel.hidden = true;
+ picker.trigger.setAttribute('aria-expanded', 'false');
+ picker.wrap.classList.remove('is-open');
+ if (openDatePanelId === id) openDatePanelId = null;
+ }
+ function openDatePanel(id) {
+ Object.keys(datePickers).forEach((pickerId) => {
+ if (pickerId !== id) closeDatePanel(pickerId);
+ }
+);
+ const picker = datePickers[id];
+ if (!picker) return;
+ buildCalendar(id);
+ picker.panel.hidden = false;
+ picker.trigger.setAttribute('aria-expanded', 'true');
+ picker.wrap.classList.add('is-open');
+ openDatePanelId = id;
+ }
+ document.querySelectorAll('.date-wrap').forEach((wrap) => {
+ const input = wrap.querySelector('.date-input');
+ const trigger = wrap.querySelector('[data-date-trigger]');
+ const panel = wrap.querySelector('[data-date-panel]');
+ const label = trigger ? trigger.querySelector('.date-trigger-text') : null;
+ if (!input || !trigger || !panel || !label) return;
+ datePickers[input.id] = {
+ input, trigger, panel, label, wrap, selectedDate: parseIsoDate(input.value), viewDate: parseIsoDate(input.value) || new Date(), }
+;
+ setDateValue(input.id, datePickers[input.id].selectedDate);
+ trigger.addEventListener('click', function (event) {
+ event.stopPropagation();
+ setFieldError(input.id, '');
+ if (openDatePanelId === input.id) {
+ closeDatePanel(input.id);
+ }
+ else {
+ openDatePanel(input.id);
+ }
+ }
+);
+ }
+);
+ const evaluationForm = document.getElementById('evaluation-form');
+ if (evaluationForm) {
+ evaluationForm.addEventListener('submit', function (event) {
+ clearFieldErrors();
+ const startInput = document.getElementById('start_date');
+ const endInput = document.getElementById('end_date');
+ const startDate = parseIsoDate(startInput?.value);
+ const endDate = parseIsoDate(endInput?.value);
+ let hasError = false;
+ if (!startDate) {
+ setFieldError('start_date', 'Start Date Required');
+ hasError = true;
+ }
+ if (!endDate) {
+ setFieldError('end_date', 'End Date Required');
+ hasError = true;
+ }
+ if (!hasError && startDate > endDate) {
+ setFieldError('end_date', 'End Date Must Be After Start');
+ hasError = true;
+ }
+ if (hasError) {
+ event.preventDefault();
+ return;
+ }
+ event.preventDefault();
+ window.launchQuantTraderOverlay(this, 'RUNNING OUT-OF-SAMPLE VALIDATION...');
+ }
+);
+ }
+ document.addEventListener('click', function (event) {
+ if (!openDatePanelId) return;
+ const picker = datePickers[openDatePanelId];
+ if (picker && !picker.panel.contains(event.target) && !picker.trigger.contains(event.target)) {
+ closeDatePanel(openDatePanelId);
+ }
+ }
+);
+ window.toggleEvaluationTerminal = function (jobId) {
+ const row = document.getElementById(`evaluation-terminal-row-${
+jobId}
+`);
+ if (!row) return;
+ if (activeEvaluationTerminalId && activeEvaluationTerminalId !== jobId) {
+ const previousRow = document.getElementById(`evaluation-terminal-row-${
+activeEvaluationTerminalId}
+`);
+ if (previousRow) previousRow.classList.add('hidden');
+ }
+ const shouldOpen = row.classList.contains('hidden');
+ row.classList.toggle('hidden', !shouldOpen);
+ activeEvaluationTerminalId = shouldOpen ? jobId : null;
+ }
+;
+ new ApexCharts(document.querySelector("#drawdown-chart"), {
+ chart: {
+ type: 'area', height: 320, toolbar: {
+ show: false }
+, background: 'transparent' }
+, series: [{
+ name: 'Drawdown %', data: drawdownSeries }
+], colors: ['#ef4444'], dataLabels: {
+ enabled: false }
+, stroke: {
+ curve: 'smooth', width: 2 }
+, fill: {
+ type: 'gradient', gradient: {
+ opacityFrom: 0.35, opacityTo: 0.04, stops: [0, 100] }
+ }
+, xaxis: {
+ type: 'numeric', labels: {
+ style: {
+ colors: '#64748b' }
+ }
+ }
+, yaxis: {
+ reversed: true, min: 0, labels: {
+ formatter: (v) => `${
+v}
+%`, style: {
+ colors: '#64748b' }
+ }
+ }
+, grid: {
+ borderColor: '#334155', strokeDashArray: 4 }
+, theme: {
+ mode: 'dark' }
+, noData: {
+ text: 'Awaiting Telemetry...', style: {
+ color: '#94a3b8', fontSize: '14px', fontFamily: 'monospace' }
+ }
+ }
+).render();
+ new ApexCharts(document.querySelector("#sharpe-chart"), {
+ chart: {
+ type: 'line', height: 320, toolbar: {
+ show: false }
+, background: 'transparent' }
+, series: [{
+ name: 'Sharpe', data: sharpeSeries }
+], colors: ['#3b82f6'], dataLabels: {
+ enabled: false }
+, stroke: {
+ curve: 'smooth', width: 3 }
+, markers: {
+ size: 4 }
+, xaxis: {
+ type: 'category', labels: {
+ style: {
+ colors: '#64748b' }
+ }
+ }
+, yaxis: {
+ labels: {
+ style: {
+ colors: '#64748b' }
+ }
+ }
+, grid: {
+ borderColor: '#334155', strokeDashArray: 4 }
+, theme: {
+ mode: 'dark' }
+, noData: {
+ text: 'Awaiting Telemetry...', style: {
+ color: '#94a3b8', fontSize: '14px', fontFamily: 'monospace' }
+ }
+ }
+).render();
+ const tabBtns = document.querySelectorAll('.eval-tab-btn');
+ const evalRows = document.querySelectorAll('.eval-job-row');
+ tabBtns.forEach(btn => {
+ btn.addEventListener('click', () => {
+ tabBtns.forEach(b => {
+ b.classList.remove('bg-slate-100 dark:bg-slate-800', 'text-slate-800 dark:text-slate-200', 'border-slate-800', 'active');
+ b.classList.add('bg-slate-100 dark:bg-slate-800', 'text-slate-500 dark:text-slate-400 dark:text-slate-500', 'border-transparent');
+ }
+);
+ btn.classList.add('bg-slate-100 dark:bg-slate-800', 'text-slate-800 dark:text-slate-200', 'border-slate-800', 'active');
+ btn.classList.remove('bg-slate-100 dark:bg-slate-800', 'text-slate-500 dark:text-slate-400 dark:text-slate-500', 'border-transparent');
+ const filter = btn.dataset.filter;
+ evalRows.forEach(row => {
+ const startStr = row.dataset.start;
+ const endStr = row.dataset.end;
+ const termRow = row.nextElementSibling;
+ let show = false;
+ if (!startStr || !endStr || filter === 'all') {
+ show = true;
+ }
+ else {
+ const start = new Date(startStr);
+ const end = new Date(endStr);
+ const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+ if (filter === 'daily' && diffDays <= 3) show = true;
+ else if (filter === 'weekly' && diffDays > 3 && diffDays <= 14) show = true;
+ else if (filter === 'monthly' && diffDays > 14) show = true;
+ }
+ row.style.display = show ? '' : 'none';
+ if (!show && termRow && termRow.id.startsWith('evaluation-terminal-row-')) {
+ termRow.classList.add('hidden');
+ }
+ }
+);
+ }
+);
+ }
+);
+ }
+);
+ </script> {
+% endblock extra_javascript %}
+ 

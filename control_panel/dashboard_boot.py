@@ -16,6 +16,7 @@ def build_dashboard_boot_payload(
         [
             {
                 'symbol': getattr(position, 'symbol', ''),
+                'quantity': getattr(position, 'qty', getattr(position, 'quantity', '0')),
                 'market_value': float(getattr(position, 'market_value', 0) or 0),
             }
             for position in (positions or [])
@@ -58,7 +59,8 @@ def build_dashboard_boot_payload(
                 'id': 'engine-status',
                 'kind': 'status',
                 'title': 'Engine Status',
-                'value': getattr(trader, 'status', 'STANDBY') if trader else 'STANDBY',
+                'value': 'ONLINE' if getattr(trader, 'status', '') == 'RUNNING' else 'STANDBY',
+                'badge': getattr(trader, 'status', 'STOPPED') if trader else 'STOPPED',
                 'meta': trader_model_label,
             },
             {
@@ -67,12 +69,19 @@ def build_dashboard_boot_payload(
                 'title': 'AI Training Pulse',
                 'value': training_mode,
                 'progress': int(training_progress),
+                'badge': 'META ACTIVE' if active_meta and active_meta.status == 'RUNNING' else 'ROI: 0%' if active_training and active_training.status == 'RUNNING' else 'AWAITING BATCH',
             },
             {
                 'id': 'equity-timeline',
                 'kind': 'chart',
                 'title': 'Equity Timeline',
                 'points': [18, 24, 21, 35, 31, 46, 42, 58],
+            },
+            {
+                'id': 'reward-optimization',
+                'kind': 'chart',
+                'title': 'Neural Reward Optimization',
+                'points': [14, 18, 22, 25, 29, 33, 36, 41],
             },
             {
                 'id': 'live-positions',

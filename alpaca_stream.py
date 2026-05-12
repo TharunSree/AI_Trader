@@ -13,7 +13,7 @@ logger = logging.getLogger("AlpacaStreamer")
 
 API_KEY = os.getenv('ALPACA_API_KEY')
 API_SECRET = os.getenv('ALPACA_API_SECRET')
-WS_URL = os.getenv('ALPACA_WS_URL', "wss://stream.data.alpaca.markets/v2/iex")
+WS_URL = os.getenv('ALPACA_WS_URL', "wss://stream.data.alpaca.markets/v1beta3/crypto/us")
 REDIS_URL = os.getenv('REDIS_URL', "redis://127.0.0.1:6379/0")
 
 try:
@@ -44,7 +44,7 @@ async def stream_market_data():
         # 2. Subscribe to trades
         sub_message = {
             "action": "subscribe",
-            "trades": ["SPY"]
+            "trades": ["BTC/USD", "ETH/USD", "SOL/USD", "LTC/USD", "BCH/USD"]
         }
         await websocket.send(json.dumps(sub_message))
         

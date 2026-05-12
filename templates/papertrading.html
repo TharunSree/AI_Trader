@@ -1,200 +1,129 @@
 {% extends "base.html" %}
 {% load static %}
+
 {% block title %}Live Terminal{% endblock title %}
 
-{% block extra_css %}
+{% block extra_head %}
 <style>
-  .activity-log { max-height: 240px; overflow-y: auto; }
+  /* Local scrollbar for terminal logs */
+  .terminal-log { max-height: calc(100vh - 280px); overflow-y: auto; }
 </style>
-{% endblock extra_css %}
+{% endblock extra_head %}
 
-{% block page_title %}Live Trading Terminal{% endblock page_title %}
+{% block page_title %}Paper Trading Terminal{% endblock page_title %}
 
 {% block page_content %}
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-  <!-- Controls -->
-  <div class="glass rounded-2xl p-6 relative overflow-hidden flex flex-col">
-    <h3 class="text-sm font-medium text-slate-400 mb-4 tracking-widest uppercase">Controls</h3>
-    <form id="start-form" method="post" action="{% url 'start_trader' %}" class="flex flex-col gap-3 mb-3">
-      {% csrf_token %}
-      <div class="custom-select-container relative w-full" id="model_select_container" data-disabled="{% if trader_status == 'RUNNING' %}true{% else %}false{% endif %}">
-        <input type="hidden" name="model_file" id="model_file_select" required value="{{ trader.model_file|default:'' }}">
-        <div class="select-trigger bg-slate-800/80 border border-slate-700 text-brand-primary text-sm rounded block w-full p-2.5 outline-none font-mono transition-all hover:border-brand-primary/50 flex justify-between items-center cursor-pointer {% if trader_status == 'RUNNING' %}opacity-50 cursor-not-allowed{% endif %}">
-            <span class="select-label-text truncate">{% if trader.model_file and trader_status == 'RUNNING' %}{{ trader.model_file }}{% else %}Select Neural Matrix{% endif %}</span>
-            <svg class="w-4 h-4 ml-2 flex-shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+<!-- TOP ROW: Quick Stats -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded p-4 flex justify-between items-center shadow-sm">
+        <div class="text-[10px] uppercase font-mono text-slate-500 tracking-widest">Net Worth</div>
+        <div class="text-xl font-bold font-mono text-slate-900 dark:text-white" id="equity-val">$0.00</div>
+    </div>
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded p-4 flex justify-between items-center shadow-sm">
+        <div class="text-[10px] uppercase font-mono text-slate-500 tracking-widest">Buying Power</div>
+        <div class="text-xl font-bold font-mono text-brand-600 dark:text-brand-400" id="bp-val">$0.00</div>
+    </div>
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded p-4 flex justify-between items-center shadow-sm">
+        <div class="text-[10px] uppercase font-mono text-slate-500 tracking-widest">System Uptime</div>
+        <div class="text-lg font-mono text-slate-700 dark:text-slate-300" id="uptime-badge">00:00:00</div>
+    </div>
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded p-4 flex justify-between items-center shadow-sm">
+        <div class="text-[10px] uppercase font-mono text-slate-500 tracking-widest">Engine Status</div>
+        <div class="text-sm font-bold font-mono px-2 py-1 rounded bg-slate-100 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700" id="trader-status-badge">UNKNOWN</div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-4 h-[calc(100vh-160px)]">
+    
+    <!-- COLUMN 1: CONTROLS & STATE (3 cols) -->
+    <div class="xl:col-span-3 flex flex-col gap-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded shadow-sm p-4">
+            <h3 class="text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 pb-2 mb-4">Command Deck</h3>
+            
+            <form id="start-form" method="post" action="{% url 'start_trader' %}" class="flex flex-col gap-3">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1.5">Selected Chassis</label>
+                    <select name="model_file" id="model_file_select" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-xs font-mono rounded px-3 py-2 outline-none focus:border-brand-500 transition-colors" {% if trader_status == 'RUNNING' %}disabled{% endif %}>
+                        <option value="">-- SELECT TENSOR --</option>
+                        {% for f in model_files %}
+                        <option value="{{ f.value }}" {% if trader.model_file == f.value %}selected{% endif %}>{{ f.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <button id="start-btn" type="submit" class="w-full px-4 py-2 mt-2 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 rounded text-xs font-mono uppercase font-bold tracking-widest transition-colors disabled:opacity-50" {% if trader_status == 'RUNNING' %}disabled{% endif %}>
+                    Engage Protocol
+                </button>
+            </form>
+            
+            <form id="stop-form" method="post" action="{% url 'stop_trader' %}" class="mt-3">
+                {% csrf_token %}
+                <button id="stop-btn" type="button" class="w-full px-4 py-2 bg-slate-50 hover:bg-red-50 dark:bg-slate-800 dark:hover:bg-red-900/20 text-slate-500 hover:text-red-500 dark:text-slate-400 dark:hover:text-red-400 border border-slate-200 hover:border-red-200 dark:border-slate-700 dark:hover:border-red-500/30 rounded text-xs font-mono uppercase font-bold tracking-widest transition-colors disabled:opacity-50" {% if trader_status != 'RUNNING' %}disabled{% endif %}>
+                    Terminate
+                </button>
+            </form>
+
+            <div id="status-error" class="text-[10px] font-mono text-red-500 mt-3 p-2 bg-red-50 dark:bg-red-500/10 rounded hidden"></div>
         </div>
-        <div class="select-dropdown absolute z-50 w-full mt-1 bg-[#0f172a] border border-slate-600 rounded-lg shadow-[0_0_20px_rgba(0,0,0,0.8)] hidden">
-            <ul class="py-1 max-h-48 overflow-auto font-mono text-sm">
-                {% for f in model_files %}
-                <li class="px-4 py-3 text-slate-300 hover:bg-brand-accent/20 hover:text-brand-accent cursor-pointer transition-colors border-b border-white/5 last:border-0" data-value="{{ f.value }}">{{ f.label }}</li>
-                {% endfor %}
+
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded shadow-sm p-4 flex-1">
+            <h3 class="text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 pb-2 mb-4">Live Execution Portfolio</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="text-[9px] uppercase tracking-widest text-slate-400 dark:text-slate-500 font-mono">
+                            <th class="pb-2">Asset</th>
+                            <th class="pb-2 text-right">Holdings</th>
+                            <th class="pb-2 text-right">Mkt Val</th>
+                        </tr>
+                    </thead>
+                    <tbody id="positions-tbody" class="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-mono">
+                        <tr>
+                            <td colspan="3" class="py-4 text-center text-slate-400 text-[10px]">AWAITING TELEMETRY</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- COLUMN 2: CHART STAGE (6 cols) -->
+    <div class="xl:col-span-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded shadow-sm flex flex-col overflow-hidden">
+        <div class="flex justify-between items-center p-4 border-b border-slate-100 dark:border-slate-800">
+            <h3 class="text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest">Equity Trajectory</h3>
+            <span class="text-[9px] font-mono tracking-widest px-1.5 py-0.5 rounded bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400 border border-brand-200 dark:border-brand-500/30">REAL-TIME</span>
+        </div>
+        <div class="flex-1 p-2">
+            <div id="equity-chart" class="w-full h-full"></div>
+        </div>
+    </div>
+
+    <!-- COLUMN 3: LOGS & SIGNALS (3 cols) -->
+    <div class="xl:col-span-3 flex flex-col gap-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded shadow-sm flex flex-col flex-1 overflow-hidden">
+            <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                <h3 class="text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest">Signal Stream</h3>
+                <span id="cycle-badge" class="px-2 py-0.5 rounded text-[9px] font-bold tracking-widest bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700">IDLE</span>
+            </div>
+            
+            <div class="p-2 border-b border-slate-50 dark:border-slate-800/50 bg-slate-50 dark:bg-slate-900">
+                <div id="activity-summary-box" class="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-brand-600 dark:text-brand-400 rounded px-2 py-1.5 text-[10px] font-mono truncate">
+                    Awaiting initialization...
+                </div>
+            </div>
+
+            <ul id="activity-list" class="terminal-log p-2 space-y-1 bg-slate-50/50 dark:bg-slate-950/50 flex-1">
+                <!-- Logs will be injected here -->
             </ul>
         </div>
-      </div>
-      <button id="start-btn" type="submit" class="w-full px-4 py-2 bg-brand-accent/20 hover:bg-brand-accent/40 text-brand-accent border border-brand-accent/50 rounded transition-all font-mono uppercase tracking-wider disabled:opacity-50" {% if trader_status == 'RUNNING' %}disabled{% endif %}>Engage Protocol</button>
-    </form>
-    <form id="stop-form" method="post" action="{% url 'stop_trader' %}" class="mt-auto" onsubmit="event.preventDefault(); window.confirmJarvisAction('Execute immediate shutdown of all Live APIs?', () => { window.launchJarvisShutdown(document.getElementById('stop-form'), 'TERMINATING LIVE ENGINE...'); });">
-      {% csrf_token %}
-      <button id="stop-btn" type="submit" class="w-full px-4 py-2 bg-red-500/20 hover:bg-red-500/40 text-red-500 border border-red-500/50 rounded transition-all font-mono uppercase tracking-wider disabled:opacity-50" {% if trader_status != 'RUNNING' %}disabled{% endif %}>Terminate</button>
-    </form>
-  </div>
-
-  <!-- Bot Status -->
-  <div class="glass rounded-2xl p-6 relative overflow-hidden flex flex-col">
-    <h3 class="text-sm font-medium text-slate-400 mb-4 tracking-widest uppercase">Engine Status</h3>
-    <div class="flex flex-wrap gap-2 mb-4">
-      <span id="trader-status-badge" class="px-2 py-0.5 rounded text-xs font-bold tracking-widest bg-slate-800 text-slate-400 border border-slate-700">UNKNOWN</span>
-      <span id="cycle-badge" class="px-2 py-0.5 rounded text-xs font-bold tracking-widest bg-slate-800 text-slate-400 border border-slate-700">IDLE</span>
-      <span id="sleep-badge" class="hidden px-2 py-0.5 rounded text-xs font-bold tracking-widest bg-blue-500/20 text-blue-400 border border-blue-500/30">Sleep 00:00</span>
-      {% if clock %}
-      <span class="px-2 py-0.5 rounded text-xs font-bold tracking-widest flex items-center gap-2 whitespace-nowrap bg-slate-800 border border-slate-700 text-slate-400">
-          MARKET: <span class="{% if clock.is_open %}text-brand-accent{% else %}text-red-500 drop-shadow-[0_0_3px_rgba(239,68,68,0.5)]{% endif %}">{% if clock.is_open %}OPEN{% else %}CLOSED{% endif %}</span> 
-          <span class="opacity-30">|</span> 
-          <span id="market-timer" data-next-open="{{ clock.next_open }}" data-next-close="{{ clock.next_close }}" data-is-open="{{ clock.is_open|yesno:'true,false' }}" class="font-mono text-brand-primary opacity-90">...</span>
-      </span>
-      {% endif %}
     </div>
-    <div class="text-xs font-mono text-slate-400 mb-2">
-      UPTIME: <span id="uptime-badge" class="text-white">00:00:00</span>
-    </div>
-    <div class="text-xs font-mono text-slate-400">
-      LAST: <span id="activity-summary" class="text-brand-accent">-</span>
-    </div>
-    <div id="status-error" class="text-xs font-mono text-red-500 mt-2 hidden"></div>
-  </div>
-
-  <!-- Equity Snapshot -->
-  <div class="glass rounded-2xl p-6 relative overflow-hidden flex flex-col">
-    <h3 class="text-sm font-medium text-slate-400 mb-4 tracking-widest uppercase">Live Equity</h3>
-    <div class="flex justify-between items-end mb-2">
-      <span class="text-xs font-mono text-slate-400 uppercase tracking-widest">Net Worth</span>
-      <span id="equity-val" class="text-2xl font-bold text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">$0.00</span>
-    </div>
-    <div class="flex justify-between items-end">
-      <span class="text-xs font-mono text-slate-400 uppercase tracking-widest">Buying Power</span>
-      <span id="bp-val" class="text-lg font-bold text-brand-primary drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]">$0.00</span>
-    </div>
-  </div>
-
-  <!-- Activity Box -->
-  <div class="glass rounded-2xl p-6 relative overflow-hidden flex flex-col">
-    <h3 class="text-sm font-medium text-slate-400 mb-4 tracking-widest uppercase">Signal Stream</h3>
-    <div id="activity-summary-box" class="bg-brand-primary/10 border border-brand-primary/30 text-brand-primary rounded p-3 text-xs font-mono h-full overflow-hidden truncate">
-      -
-    </div>
-  </div>
-</div>
-
-<div class="grid grid-cols-1 mb-6">
-  <div class="glass rounded-2xl p-6">
-    <h3 class="text-sm font-medium text-slate-400 mb-4 tracking-widest uppercase">Equity Matrix</h3>
-    <div id="equity-chart" style="height: 360px;"></div>
-  </div>
-</div>
-
-<div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-  <!-- Positions -->
-  <div class="glass rounded-2xl p-6">
-    <h3 class="text-sm font-medium text-slate-400 mb-4 tracking-widest uppercase">Active Positions</h3>
-    <div class="overflow-x-auto">
-      <table class="w-full text-left text-sm text-slate-300">
-        <thead class="text-xs text-slate-400 uppercase tracking-widest bg-slate-800/50">
-          <tr>
-            <th class="px-4 py-3 rounded-tl-lg font-medium">Symbol</th>
-            <th class="px-4 py-3 text-right font-medium">Qty</th>
-            <th class="px-4 py-3 text-right font-medium">Value</th>
-            <th class="px-4 py-3 text-right rounded-tr-lg font-medium">Unrealized P/L</th>
-          </tr>
-        </thead>
-        <tbody id="positions-tbody" class="divide-y divide-slate-700/50">
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- Recent Logs -->
-  <div class="glass rounded-2xl p-6 relative overflow-hidden">
-    <h3 class="text-sm font-medium text-slate-400 mb-4 tracking-widest uppercase">Execution Log</h3>
-    <ul id="activity-list" class="activity-log space-y-2 pr-2 scrollbar-thin scrollbar-thumb-brand-primary/30 scrollbar-track-transparent"></ul>
-  </div>
 </div>
 {% endblock page_content %}
 
 {% block extra_javascript %}
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    // Custom Select Logic
-    const container = document.getElementById('model_select_container');
-    if (container) {
-        const trigger = container.querySelector('.select-trigger');
-        const dropdown = container.querySelector('.select-dropdown');
-        const input = container.querySelector('input[type="hidden"]');
-        const labelText = container.querySelector('.select-label-text');
-        const items = dropdown.querySelectorAll('li');
-        
-        const isDisabled = container.getAttribute('data-disabled') === 'true';
-
-        if (!isDisabled) {
-            trigger.addEventListener('click', (e) => {
-                e.stopPropagation();
-                dropdown.classList.toggle('hidden');
-            });
-
-            items.forEach(item => {
-                item.addEventListener('click', () => {
-                    input.value = item.getAttribute('data-value');
-                    labelText.textContent = item.textContent;
-                    dropdown.classList.add('hidden');
-                });
-            });
-
-            document.addEventListener('click', (e) => {
-                if (!container.contains(e.target)) {
-                    dropdown.classList.add('hidden');
-                }
-            });
-        }
-    }
-});
-document.addEventListener('DOMContentLoaded', () => {
-    const timerElem = document.getElementById('market-timer');
-    if (!timerElem) return;
-
-    const isOpen = timerElem.getAttribute('data-is-open') === 'true';
-    const nextOpenIso = timerElem.getAttribute('data-next-open');
-    const nextCloseIso = timerElem.getAttribute('data-next-close');
-
-    // When open → count to close; when closed → count to open
-    const targetIso = isOpen ? nextCloseIso : nextOpenIso;
-    if (!targetIso) { timerElem.textContent = '--:--:--'; return; }
-
-    const targetMs = new Date(targetIso).getTime();
-
-    function tick() {
-        const now = Date.now();
-        const diff = targetMs - now;
-
-        if (diff <= 0) {
-            // Countdown expired — market state has flipped. Reload for fresh clock data.
-            timerElem.textContent = '00:00:00';
-            setTimeout(() => location.reload(), 2000);
-            return;
-        }
-
-        const totalSec = Math.floor(diff / 1000);
-        const h = Math.floor(totalSec / 3600);
-        const m = Math.floor((totalSec % 3600) / 60);
-        const s = totalSec % 60;
-
-        const label = isOpen ? 'Closes ' : 'Opens ';
-        timerElem.textContent = label + `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-    }
-
-    tick();
-    setInterval(tick, 1000);
-});
-
 (function(){
   const UPTIME_KEY='paper_trader_uptime_start';
   const ACTIVITY_POLL_MS=2500;
@@ -208,8 +137,6 @@ document.addEventListener('DOMContentLoaded', () => {
   let statusTimer=null;
   let activityTimer=null;
   let lastActivityLine='';
-  let sleepSeconds=0;
-  let sleepTimerId=null;
 
   function fmtNum(n){return Number(n||0).toLocaleString();}
   function fmtCurrency(v){return '$'+Number(v||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
@@ -238,20 +165,25 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function initChart(){
+    // Determine colors based on active theme
+    const isDark = document.documentElement.classList.contains('dark');
+    const textColor = isDark ? '#94a3b8' : '#64748b';
+    const gridColor = isDark ? '#334155' : '#e2e8f0';
+
     const trOpts = {
-      chart:{type:'area',height:360,toolbar:{show:false},animations:{enabled:true}, foreColor: '#94a3b8'},
-      series:[{name:'Equity',data:[]}],
-      xaxis:{type:'datetime', tooltip: {enabled: false}},
-      yaxis:{labels:{formatter:v=>'$'+fmtNum(v)}},
-      dataLabels:{enabled:false},
-      stroke:{curve:'smooth',width:2},
-      colors:['#3b82f6'],
-      fill:{type:'gradient',gradient:{shadeIntensity:1,opacityFrom:0.3,opacityTo:0.05,stops:[0,100]}},
-      noData:{text:'Awaiting Telemetry...', style: {color: '#94a3b8', fontSize: '14px', fontFamily: 'monospace'}},
-      grid: {borderColor: 'rgba(148, 163, 184, 0.1)'},
-      tooltip: {theme: 'dark'}
+      chart: { type: 'area', height: '100%', toolbar: { show: false }, animations: { enabled: true }, foreColor: textColor },
+      series: [{ name: 'Equity', data: [] }],
+      xaxis: { type: 'datetime', tooltip: { enabled: false }, axisBorder: { show: false }, axisTicks: { show: false } },
+      yaxis: { labels: { formatter: v => '$' + fmtNum(v), style: { fontSize: '10px', fontFamily: 'Roboto Mono' } } },
+      dataLabels: { enabled: false },
+      stroke: { curve: 'smooth', width: 2 },
+      colors: ['#3b82f6'],
+      fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.0, stops: [0, 100] } },
+      noData: { text: 'AWAITING TELEMETRY', style: { color: textColor, fontSize: '10px', fontFamily: 'Roboto Mono' } },
+      grid: { borderColor: gridColor, strokeDashArray: 4 },
+      tooltip: { theme: isDark ? 'dark' : 'light' }
     };
-    equityChart=new ApexCharts(document.querySelector('#equity-chart'), trOpts);
+    equityChart = new ApexCharts(document.querySelector('#equity-chart'), trOpts);
     equityChart.render();
   }
 
@@ -266,21 +198,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const tbody=document.getElementById('positions-tbody');
     tbody.innerHTML='';
     if(!positions || positions.length === 0){
-      tbody.innerHTML='<tr><td colspan="4" class="px-4 py-8 text-center text-slate-500 font-mono text-xs tracking-widest">NO ASSETS ACQUIRED</td></tr>';
+      tbody.innerHTML='<tr><td colspan="3" class="py-4 text-center text-slate-400 dark:text-slate-500 font-mono text-[10px] uppercase tracking-widest">NO ACTIVE ASSETS</td></tr>';
       return;
     }
     (positions||[]).forEach(p=>{
       const qty=Number(p.qty||0);
       const mv=Number(p.market_value||0);
       const upl=Number(p.unrealized_pl||0);
-      const uplCls=upl>=0?'text-brand-accent':'text-red-500';
+      const uplCls=upl>=0?'text-emerald-600 dark:text-emerald-400':'text-red-500';
       const tr = document.createElement('tr');
-      tr.className = 'hover:bg-slate-800/30 transition-colors';
+      tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors border-b border-slate-50 dark:border-slate-800/50 last:border-0';
       tr.innerHTML = `
-        <td class="px-4 py-3 font-medium text-slate-200 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-brand-primary"></span>${escapeHtml(p.symbol)}</td>
-        <td class="px-4 py-3 text-right font-mono text-xs">${qty.toLocaleString(undefined, {minimumFractionDigits: 5})}</td>
-        <td class="px-4 py-3 text-right font-mono text-xs text-brand-primary">${fmtCurrency(mv)}</td>
-        <td class="px-4 py-3 text-right font-mono text-xs ${uplCls}">${fmtCurrency(upl)}</td>
+        <td class="py-2 text-slate-800 dark:text-slate-200 font-bold">${escapeHtml(p.symbol)}</td>
+        <td class="py-2 text-right text-slate-600 dark:text-slate-400">${qty.toLocaleString(undefined, {minimumFractionDigits: 5})}</td>
+        <td class="py-2 text-right text-slate-800 dark:text-slate-200">
+            <div>${fmtCurrency(mv)}</div>
+            <div class="text-[9px] ${uplCls}">${upl>=0?'+':''}${fmtCurrency(upl)}</div>
+        </td>
       `;
       tbody.appendChild(tr);
     });
@@ -288,52 +222,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function setStatusBadge(status){
     const el=document.getElementById('trader-status-badge');
-    let cls='bg-slate-800 text-slate-400 border-slate-700';
-    if(status==='RUNNING') cls='bg-brand-accent/20 text-brand-accent border-brand-accent/30 drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]';
-    else if(status==='FAILED') cls='bg-red-500/20 text-red-500 border-red-500/30';
-    else if(status==='STOPPED') cls='bg-slate-800 text-slate-400 border-slate-700';
-    el.className='px-2 py-0.5 rounded text-xs font-bold tracking-widest border ' + cls;
+    let cls='bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
+    if(status==='RUNNING') cls='bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30';
+    else if(status==='FAILED') cls='bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/30';
+    el.className='text-xs font-bold font-mono px-2 py-1 rounded border tracking-widest ' + cls;
     el.textContent=status;
   }
 
   function setCycleBadge(mode){
     const el=document.getElementById('cycle-badge');
     el.textContent=mode;
-    let cls='bg-slate-800 text-slate-400 border-slate-700';
-    if(mode==='SCANNING') cls='bg-blue-500/20 text-blue-400 border-blue-500/30';
-    else if(mode==='ANALYZING') cls='bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-    else if(mode==='ACTIVE') cls='bg-brand-accent/20 text-brand-accent border-brand-accent/30';
-    el.className='px-2 py-0.5 rounded text-xs font-bold tracking-widest border ' + cls;
-  }
-
-  function startSleep(seconds, message){
-    sleepSeconds=seconds;
-    const el=document.getElementById('sleep-badge');
-    el.classList.remove('hidden');
-    updateSleepBadge(message);
-    if(sleepTimerId) clearInterval(sleepTimerId);
-    sleepTimerId=setInterval(()=>{
-      if(sleepSeconds<=0){
-        clearInterval(sleepTimerId);
-        el.classList.add('hidden');
-        return;
-      }
-      sleepSeconds--;
-      updateSleepBadge(message);
-    },1000);
-  }
-
-  function updateSleepBadge(message){
-    const h = String(Math.floor(sleepSeconds / 3600)).padStart(2, '0');
-    const m=String(Math.floor((sleepSeconds % 3600) / 60)).padStart(2,'0');
-    const s=String(sleepSeconds%60).padStart(2,'0');
-    let timeStr = '';
-    if (parseInt(h) > 0) {
-      timeStr = `${h}:${m}:${s}`;
-    } else {
-      timeStr = `${m}:${s}`;
-    }
-    document.getElementById('sleep-badge').textContent=`${message} ${timeStr}`;
+    let cls='bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
+    if(mode==='SCANNING') cls='bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/30';
+    else if(mode==='ANALYZING') cls='bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30';
+    else if(mode==='ACTIVE') cls='bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30';
+    el.className='px-2 py-0.5 rounded text-[9px] font-bold tracking-widest border ' + cls;
   }
 
   const activityLog=[];
@@ -343,14 +246,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if(/Sleeping\.\.\./.test(line)) return;
     activityLog.unshift({t:new Date(),msg:line,err:!!isError});
     if(activityLog.length>MAX_ACTIVITY) activityLog.pop();
-    document.getElementById('activity-summary').textContent=line;
     document.getElementById('activity-summary-box').textContent=line;
     const ul=document.getElementById('activity-list');
     ul.innerHTML='';
     activityLog.forEach(a=>{
       const li=document.createElement('li');
-      li.className='p-3 rounded bg-slate-800/50 flex justify-between items-center gap-4 '+(a.err?'text-red-400 border border-red-500/30':'text-slate-300');
-      li.innerHTML=`<span class="text-xs truncate" title="${escapeHtml(a.msg)}">${escapeHtml(a.msg)}</span><span class="text-[10px] font-mono opacity-50 px-2 py-0.5 bg-slate-900 rounded whitespace-nowrap">${a.t.toLocaleTimeString()}</span>`;
+      li.className='p-2 rounded bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/50 flex flex-col gap-1 '+(a.err?'border-red-200 dark:border-red-500/30':'');
+      li.innerHTML=`
+        <span class="text-[9px] font-mono text-slate-400 dark:text-slate-500">${a.t.toLocaleTimeString()}</span>
+        <span class="text-[10px] font-mono ${a.err?'text-red-500 dark:text-red-400':'text-slate-700 dark:text-slate-300'} break-words leading-tight">${escapeHtml(a.msg)}</span>
+      `;
       ul.appendChild(li);
     });
     if(/Scanning for opportunities/i.test(line)) setCycleBadge('SCANNING');
@@ -360,20 +265,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function processActivityString(s){
     if(!s) return;
-    const sleepMatch=s.match(/Sleeping.*?\((\d{1,2}):(\d{2}) remaining\)/);
-    const marketClosedMatch = s.match(/Market closed. Sleeping.*?\((\d+):(\d{2}) remaining\)/);
-
-    if (marketClosedMatch) {
-      const mins = parseInt(marketClosedMatch[1], 10);
-      const secs = parseInt(marketClosedMatch[2], 10);
-      startSleep(mins * 60 + secs, "Market Closed: ");
-    } else if (sleepMatch) {
-      const sec = parseInt(sleepMatch[1], 10) * 60 + parseInt(sleepMatch[2], 10);
-      startSleep(sec, "Sleep");
-    } else {
-      addActivity(s, false);
-    }
-}
+    addActivity(s, false);
+  }
 
   function scheduleStatus(){
     if(statusTimer) clearTimeout(statusTimer);
@@ -402,7 +295,6 @@ document.addEventListener('DOMContentLoaded', () => {
           errBox.classList.remove('hidden');
         } else {
           errBox.classList.add('hidden');
-          errBox.textContent='';
         }
 
         const startBtn=document.getElementById('start-btn');
@@ -421,11 +313,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('equity-val').textContent=fmtCurrency(data.equity);
         document.getElementById('bp-val').textContent=fmtCurrency(data.buying_power);
         addEquityPoint(data.equity);
-
         updatePositions(data.positions);
 
         if(currentStatus!=='RUNNING') setCycleBadge('IDLE');
-
         scheduleStatus();
       })
       .catch(()=>{
@@ -453,17 +343,22 @@ document.addEventListener('DOMContentLoaded', () => {
       const model=document.getElementById('model_file_select').value;
       if(!model){
         e.preventDefault();
-        alert('Please select a matrix neural loadout first.');
+        alert('Please select a neural chassis first.');
         return false;
       }
       e.preventDefault();
-      window.confirmJarvisAction(`Authorize binding ${model} neural tensor into live market routing?`, () => {
-        window.launchJarvisOverlay(null, 'INITIALIZING LIVE CONNECTION...');
-        // Let the animation start, then submit
-        setTimeout(() => {
-            e.target.submit();
-        }, 1500); 
+      window.confirmAction(`Bind chassis [${model}] to live paper stream?`, () => {
+        window.launchOverlay(null, 'INITIALIZING STREAM...');
+        setTimeout(() => e.target.submit(), 1000); 
       });
+    });
+
+    document.getElementById('stop-btn').addEventListener('click', (e) => {
+        e.preventDefault();
+        window.confirmAction('Terminate all live execution threads?', () => {
+            window.launchOverlay(null, 'TERMINATING...');
+            setTimeout(() => document.getElementById('stop-form').submit(), 1000);
+        });
     });
   }
 

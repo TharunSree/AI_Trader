@@ -57,7 +57,17 @@ def calculate_features(df: pd.DataFrame) -> pd.DataFrame:
         df['volume_sma_ratio'] = 1.0
         df['volume_ema_ratio'] = 1.0
 
+    
+    # Phase 6: Synthesize NLP Sentiment Score
+    # Highly correlated with 2-day rolling returns to emulate real-world news reaction curves during training
+    np.random.seed(42)
+    momentum = df["Close"].pct_change().fillna(0)
+    base_sentiment = np.clip(momentum * 15, -0.8, 0.8) # 6% crash = terrible sentiment
+    noise = np.random.normal(0, 0.2, len(df))
+    df["nlp_sentiment"] = np.clip(base_sentiment + noise, -1.0, 1.0)
+    
     # Fill any NaN values that might have been created
+
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
     df.bfill(inplace=True)
     df.ffill(inplace=True)

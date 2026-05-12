@@ -11,14 +11,20 @@ logger = logging.getLogger("rl_trading_backend")
 
 
 class Broker:
-    def __init__(self):
-        api_key = getattr(settings, 'ALPACA_API_KEY', None) or getattr(settings, 'API_KEY', None)
-        secret_key = (
-                getattr(settings, 'ALPACA_SECRET_KEY', None)
-                or getattr(settings, 'SECRET_KEY_ALPACA', None)
-                or getattr(settings, 'SECRET_KEY', None)
-        )
-        raw_base = getattr(settings, 'BASE_URL', 'paper')
+    def __init__(self, account=None):
+        if account:
+            api_key = account.api_key
+            secret_key = account.secret_key
+            raw_base = account.base_url
+        else:
+            api_key = getattr(settings, 'ALPACA_API_KEY', None) or getattr(settings, 'API_KEY', None)
+            secret_key = (
+                    getattr(settings, 'ALPACA_SECRET_KEY', None)
+                    or getattr(settings, 'SECRET_KEY_ALPACA', None)
+                    or getattr(settings, 'SECRET_KEY', None)
+            )
+            raw_base = getattr(settings, 'BASE_URL', 'paper')
+            
         if not api_key or not secret_key:
             raise ValueError("Missing Alpaca credentials (API_KEY / SECRET_KEY).")
         base_url = self._normalize_base_url(raw_base)
@@ -38,6 +44,10 @@ class Broker:
         v = value.strip()
         l = v.lower()
         if l.startswith(('http://', 'https://')):
+            if l.endswith('/v2'):
+                return v[:-3]
+            elif l.endswith('/v2/'):
+                return v[:-4]
             return v
         if l == 'paper':
             return 'https://paper-api.alpaca.markets'
@@ -130,6 +140,15 @@ class Broker:
             logger.warning(f"Could not get latest trade for {symbol}: {e}")
             return None
 
+    def get_current_price(self, symbol: str) -> float:
+        """Get the absolute current market active price for the REST fallback."""
+        try:
+            latest_trade = self.api.get_latest_trade(symbol)
+            return float(latest_trade.price)
+        except Exception as e:
+            logger.warning(f"Could not fetch current live price for {symbol}: {e}")
+            return 0.0
+
     def _check_gap_protection(self, symbol: str, side: str, max_gap_percent: float = 5.0) -> tuple:
         """
         Check if current price gaps too much from last close.
@@ -144,8 +163,7 @@ class Broker:
             last_close = self._get_last_close_price(symbol)
 
             if last_close is None:
-                logger.warning(
-                    f"⚠️ Gap protection: Could not get last close for {symbol}, proceeding without protection")
+                logger.warning(f"[GAP CHECK] Could not get last close for {symbol}, proceeding without protection")
                 return True, current_price, None, 0.0
 
             # Calculate gap percentage
@@ -157,13 +175,12 @@ class Broker:
             gap_direction = "UP" if current_price > last_close else "DOWN"
 
             if not is_safe:
-                logger.warning(f"🚨 GAP PROTECTION TRIGGERED: {symbol}")
-                logger.warning(f"📊 Last Close: ${last_close:.2f} | Current: ${current_price:.2f}")
-                logger.warning(f"📈 Gap: {gap_percent:.2f}% {gap_direction} (max allowed: {max_gap_percent}%)")
-                logger.warning(f"❌ {side.upper()} order blocked due to excessive gap")
+                logger.warning(f"[GAP CHECK] PROTECTION TRIGGERED: {symbol}")
+                logger.warning(f"[GAP CHECK] Last Close: ${last_close:.2f} | Current: ${current_price:.2f}")
+                logger.warning(f"[GAP CHECK] Gap: {gap_percent:.2f}% {gap_direction} (max allowed: {max_gap_percent}%)")
+                logger.warning(f"[GAP CHECK] {side.upper()} order blocked due to excessive gap")
             else:
-                logger.info(
-                    f"✅ Gap check passed: {symbol} gap {gap_percent:.2f}% {gap_direction} (limit: {max_gap_percent}%)")
+                logger.info(f"[GAP CHECK] Passed: {symbol} gap {gap_percent:.2f}% {gap_direction} (limit: {max_gap_percent}%)")
 
             return is_safe, current_price, last_close, gap_percent
 
@@ -178,14 +195,8 @@ class Broker:
                 return True, 0.0, None, 0.0
 
     def is_market_open(self) -> bool:
-        """Check if US market is currently open (with IST logging)"""
-        try:
-            clock = self.api.get_clock()
-            return clock.is_open
-        except Exception as e:
-            logger.warning(f"Could not check market status: {e}")
-            # Fallback to manual calculation
-            return self._is_market_open_manual()
+        """Check if market is currently open (Crypto is 24/7)"""
+        return True # Crypto never sleeps
 
     def _is_market_open_manual(self) -> bool:
         times = self._get_market_times_ist()
@@ -289,7 +300,7 @@ class Broker:
                     symbol=symbol,
                     side='buy',
                     type='market',
-                    time_in_force='day',
+                    time_in_force='gtc',
                     qty=qty
                 )
 
@@ -312,19 +323,31 @@ class Broker:
                     symbol=symbol,
                     side='sell',
                     type='market',
-                    time_in_force='day',
+                    time_in_force='gtc',
                     qty=qty
                 )
             else:
                 logger.warning(f"Invalid side {side}")
                 return False, None
 
-            logger.info(f"🚀 Submitting {side_l.upper()} order: {submit_args}")
-            order = self.api.submit_order(**submit_args)
-            logger.info(f"📋 Order submitted: {order.id} status={order.status} qty={getattr(order, 'qty', 'N/A')}")
+            logger.info(f"[ORDER] Submitting {side_l.upper()} order: {submit_args}")
+            try:
+                order = self.api.submit_order(**submit_args)
+                logger.info(f"[ORDER] Order submitted: {order.id} status={order.status} qty={getattr(order, 'qty', 'N/A')}")
+            except Exception as e:
+                err_str = str(e).lower()
+                if 'insufficient buying power' in err_str:
+                    logger.warning(f"Market rejection on {side_l.upper()} routing: insufficient buying power (Broker locked).")
+                    return False, None
+                elif 'pattern day trading' in err_str:
+                    logger.error(f"PDT RESTRICTION: {e}")
+                    return False, {'pdt_blocked': True}
+                else:
+                    logger.error(f"Alpaca API Error during {side_l.upper()} ordering: {e}")
+                    return False, None
 
             if not wait_fill:
-                logger.info(f"📤 Order submitted successfully (not waiting for fill due to market status)")
+                logger.info(f"[ORDER] Order submitted successfully (not waiting for fill due to market status)")
                 return True, order
 
             # Enhanced polling with market-aware logic
@@ -342,26 +365,23 @@ class Broker:
                     filled_qty = float(current_order.filled_qty or 0)
 
                     if status != last_status:
-                        logger.info(
-                            f"📊 Poll {poll_count}: Order {current_order.id} status: {last_status} -> {status} (filled_qty={filled_qty})")
+                        logger.info(f"[POLL] {poll_count}: Order {current_order.id} status: {last_status} -> {status} (filled_qty={filled_qty})")
                         last_status = status
 
                     # Success states
                     if status == 'filled':
-                        logger.info(
-                            f"✅ Order {current_order.id} FILLED: qty={current_order.filled_qty} avg_price=${current_order.filled_avg_price}")
+                        logger.info(f"[FILLED] Order {current_order.id} FILLED: qty={current_order.filled_qty} avg_price=${current_order.filled_avg_price}")
                         return True, current_order
 
                     # Failure states
                     elif status in ('canceled', 'rejected', 'expired'):
-                        logger.error(f"❌ Order {current_order.id} FAILED: status={status}")
+                        logger.error(f"[FAILED] Order {current_order.id} FAILED: status={status}")
                         return False, current_order
 
                     # Market closed but order pending - treat as success
                     elif not market_open and status in ('new', 'accepted'):
                         if poll_count >= 3:  # Give it a few polls then accept
-                            logger.info(
-                                f"📈 Order {current_order.id} pending (US market closed) - will fill when market opens")
+                            logger.info(f"[PENDING] Order {current_order.id} pending (US market closed) - will fill when market opens")
                             return True, current_order
 
                     # Processing states - continue waiting
@@ -370,11 +390,11 @@ class Broker:
 
                     # Partial fills
                     elif status == 'partially_filled':
-                        logger.info(f"📊 Order {current_order.id} partially filled: {filled_qty}")
+                        logger.info(f"[PARTIAL] Order {current_order.id} partially filled: {filled_qty}")
                         continue
 
                     else:
-                        logger.warning(f"⚠️ Order {current_order.id} unknown status: {status}")
+                        logger.warning(f"[UNKNOWN] Order {current_order.id} unknown status: {status}")
                         continue
 
                 except Exception as e:

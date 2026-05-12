@@ -20,6 +20,7 @@ class TrainingJob(models.Model):
     # Status Tracking
     progress = models.IntegerField(default=0)
     best_reward = models.FloatField(default=0.0)
+    is_live_trading_ready = models.BooleanField(default=False, help_text="Checked after successful evaluation")
     error_message = models.TextField(null=True, blank=True)
     model_weights = models.BinaryField(null=True, blank=True)
     celery_task_id = models.CharField(max_length=255, null=True, blank=True, editable=False)
@@ -80,10 +81,23 @@ class MetaTrainingJob(models.Model):
         return f"Meta-Training Job #{self.id} - {self.status}"
 
 
+
+class BrokerAccount(models.Model):
+    name = models.CharField(max_length=100, help_text="e.g. 'Main Alpaca Account'")
+    is_live = models.BooleanField(default=False, help_text="Distinguish real-money accounts from Sandbox")
+    api_key = models.CharField(max_length=255)
+    secret_key = models.CharField(max_length=255)
+    base_url = models.CharField(max_length=255, default='https://paper-api.alpaca.markets')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
 class PaperTrader(models.Model):
     STATUS_CHOICES = [
         ('STOPPED', 'Stopped'),
         ('RUNNING', 'Running'),
+        ('PAUSED', 'Paused'),
         ('FAILED', 'Failed'),
     ]
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='STOPPED')
@@ -91,6 +105,12 @@ class PaperTrader(models.Model):
     celery_task_id = models.CharField(max_length=255, null=True, blank=True, editable=False)
     error_message = models.TextField(null=True, blank=True)
     initial_cash = models.DecimalField(max_digits=15, decimal_places=2, default=100000.00)
+    goal_amount = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    stop_loss_amount = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    high_water_mark = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    is_live = models.BooleanField(default=False)
+    account = models.ForeignKey(BrokerAccount, on_delete=models.SET_NULL, null=True, blank=True, related_name='instances')
+    live_net_profit = models.FloatField(default=0.0)
 
     def __str__(self):
         return f"Paper Trading Bot - Status: {self.status}"
@@ -127,6 +147,7 @@ class TradeLog(models.Model):
     quantity = models.DecimalField(max_digits=15, decimal_places=8)
     price = models.DecimalField(max_digits=15, decimal_places=2)
     notional_value = models.DecimalField(max_digits=15, decimal_places=2)
+    sentiment_score = models.FloatField(default=0.0, null=True, blank=True, help_text="FinBERT Sentiment Score at time of trade")
     trader = models.ForeignKey(PaperTrader, on_delete=models.CASCADE, related_name='trades')
 
     def __str__(self):
@@ -137,6 +158,10 @@ class SystemSettings(models.Model):
     CURRENCY_CHOICES = [('USD', 'USD ($)'), ('INR', 'INR (₹)')]
     singleton_id = models.IntegerField(primary_key=True, default=1, editable=False)
     display_currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default='USD')
+    notify_eod = models.BooleanField(default=True)
+    notify_sos = models.BooleanField(default=True)
+    notify_ab_test = models.BooleanField(default=True)
+    notify_start_stop = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         self.pk = 1
@@ -146,3 +171,40 @@ class SystemSettings(models.Model):
     def load(cls):
         obj, created = cls.objects.get_or_create(pk=1)
         return obj
+
+class TradingReport(models.Model):
+    REPORT_TYPES = [
+        ('DAILY', 'Daily Summary'),
+        ('WEEKLY', 'Weekly Rolling Analysis'),
+        ('MONTHLY', 'Monthly Performance'),
+    ]
+    report_type = models.CharField(max_length=15, choices=REPORT_TYPES)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    markdown_path = models.CharField(max_length=255)
+    pdf_path = models.CharField(max_length=255, null=True, blank=True)
+    total_revenue = models.DecimalField(max_digits=15, decimal_places=2, default=0.0)
+    total_trades = models.IntegerField(default=0)
+    win_rate = models.FloatField(default=0.0)
+
+    def __str__(self):
+        return f"{self.report_type} Report - {self.timestamp.strftime('%Y-%m-%d')}"
+
+class SystemAlert(models.Model):
+    ALERT_TYPES = [
+        ('INFO', 'Information'),
+        ('WARNING', 'Warning'),
+        ('CRITICAL', 'Critical Level'),
+        ('AB_SWAP', 'A/B Test Swap Request'),
+    ]
+    level = models.CharField(max_length=15, choices=ALERT_TYPES, default='INFO')
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+    
+    # Used for ping persistence in A/B Engine
+    insist_count = models.IntegerField(default=0)
+    related_model_reference = models.CharField(max_length=255, null=True, blank=True)
+    
+    def __str__(self):
+        return f"[{self.level}] {self.title}"

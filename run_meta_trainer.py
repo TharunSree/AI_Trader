@@ -20,6 +20,44 @@ from src.evaluation.validator import Validator
 import argparse
 import os
 
+
+def _persist_meta_best_artifact(meta_job, best_strategy, best_agent, principal, sorted_results):
+    from control_panel.models import TrainingJob
+
+    feature_key = best_strategy["feat_key"]
+    param_key = best_strategy["param_key"]
+    window = int(best_strategy["window"])
+    safe_name = f"meta_best_{meta_job.id if meta_job else 'manual'}_{feature_key}_w{window}.pth"
+
+    save_dir = Path("saved_models")
+    save_dir.mkdir(parents=True, exist_ok=True)
+    save_path = save_dir / safe_name
+    best_agent.save_weights(str(save_path))
+
+    model_blob = save_path.read_bytes()
+    artifact_job = TrainingJob.objects.create(
+        name=f"Meta Best - {feature_key} / {param_key} / W{window}",
+        feature_set_key=feature_key,
+        hyperparameter_key=param_key,
+        window_size=window,
+        initial_cash=float(principal),
+        status='COMPLETED',
+        progress=100,
+        best_reward=float(sorted_results.iloc[0]["sharpe_ratio"]),
+        model_weights=model_blob,
+    )
+
+    return {
+        "training_job_id": artifact_job.id,
+        "model_reference": artifact_job.model_reference,
+        "disk_model_file": safe_name,
+        "feature_set_key": feature_key,
+        "hyperparameter_key": param_key,
+        "window_size": window,
+        "sharpe_ratio": float(sorted_results.iloc[0]["sharpe_ratio"]),
+        "return_pct": float(sorted_results.iloc[0]["return_pct"]),
+    }
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--job_id", type=int, help="Django MetaTrainingJob ID to update DOM progress.")
@@ -173,22 +211,38 @@ def main():
 
     # Find the best agent and save it
     best_strategy_id = sorted_results.iloc[0]["strategy_id"]
-    save_dir = Path("saved_models")
-    save_dir.mkdir(parents=True, exist_ok=True)
-    
+    artifact_info = None
+
     for s in successful_strategies:
         if s["id"] == best_strategy_id:
             best_agent = s["agent"]
-            best_agent.save_weights(str(save_dir / "best_agent_by_sharpe.pth"))
-            log.info(
-                f"Saved the best overall agent (Strategy #{best_strategy_id}) to 'best_agent_by_sharpe.pth'"
-            )
+            if meta_job:
+                artifact_info = _persist_meta_best_artifact(meta_job, s, best_agent, PRINCIPAL, sorted_results)
+                log.info(
+                    f"Saved modern meta-training artifact as {artifact_info['model_reference']} and {artifact_info['disk_model_file']}"
+                )
+            else:
+                save_dir = Path("saved_models")
+                save_dir.mkdir(parents=True, exist_ok=True)
+                save_name = f"best_agent_by_sharpe__{s['feat_key']}__w{s['window']}.pth"
+                best_agent.save_weights(str(save_dir / save_name))
+                artifact_info = {
+                    "disk_model_file": save_name,
+                    "feature_set_key": s["feat_key"],
+                    "hyperparameter_key": s["param_key"],
+                    "window_size": int(s["window"]),
+                    "sharpe_ratio": float(sorted_results.iloc[0]["sharpe_ratio"]),
+                    "return_pct": float(sorted_results.iloc[0]["return_pct"]),
+                }
+                log.info(
+                    f"Saved the best overall agent (Strategy #{best_strategy_id}) to '{save_name}'"
+                )
             break
 
     if meta_job:
         meta_job.status = 'COMPLETED'
         meta_job.progress = 100
-        meta_job.results = {"sharpe_ratio": float(sorted_results.iloc[0]["sharpe_ratio"])}
+        meta_job.results = artifact_info or {"sharpe_ratio": float(sorted_results.iloc[0]["sharpe_ratio"])}
         meta_job.save()
 
 if __name__ == "__main__":

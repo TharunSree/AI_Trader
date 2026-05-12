@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Report Viewer{% endblock title %}
+{% block page_title %}Report Viewer{% endblock page_title %}
+
+{% block page_content %}
+<div class="grid grid-cols-1 xl:grid-cols-[1.35fr_0.65fr] gap-6 mb-6">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-6 border border-slate-700/40">
+        <p class="text-xs uppercase tracking-[0.32em] text-brand-accent/80 font-mono mb-2">QuantTrader Archive</p>
+        <h2 class="text-2xl font-semibold text-slate-800 dark:text-slate-200">End-Of-Day Intelligence Report</h2>
+        <p class="mt-3 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 font-mono">{{ report_date|date:"Y-m-d" }}</p>
+    </div>
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-6 border border-slate-700/40">
+        <p class="text-xs uppercase tracking-[0.32em] text-brand-primary/80 font-mono mb-4">Export Controls</p>
+        <div class="flex flex-wrap gap-3">
+            <a href="{% url 'generate_report' %}" target="_blank" class="px-4 py-2 rounded-xl border border-brand-primary/30 text-brand-primary hover:bg-brand-primary/10 transition-all text-xs font-mono uppercase tracking-[0.2em] text-center">Open Raw MD</a>
+            <a href="{% url 'generate_report' %}?format=pdf" class="px-4 py-2 rounded-xl border border-brand-accent/30 text-brand-accent hover:bg-brand-accent/10 transition-all text-xs font-mono uppercase tracking-[0.2em] text-center">Download PDF</a>
+        </div>
+    </div>
+</div>
+
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl border border-slate-700/40 overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-700/40 flex items-center justify-between gap-4">
+        <div>
+            <p class="text-xs uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400 dark:text-slate-500 font-mono">Markdown Viewer</p>
+            <p class="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">Rendered directly from the generated QuantTrader report artifact.</p>
+        </div>
+    </div>
+    <div class="px-6 py-8">
+        <article class="report-prose max-w-none">{{ report_html|safe }}</article>
+    </div>
+</div>
+{% endblock page_content %}
+
+{% block extra_css %}
+<style>
+    .report-prose {
+        color: #d7e2f0;
+        line-height: 1.75;
+        font-size: 0.98rem;
+    }
+    .report-prose h1,
+    .report-prose h2,
+    .report-prose h3 {
+        color: #f8fafc;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+    }
+    .report-prose h1 {
+        font-size: 2.1rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.8rem;
+        border-bottom: 1px solid rgba(59, 130, 246, 0.35);
+    }
+    .report-prose h2 {
+        font-size: 1.1rem;
+        margin-top: 2rem;
+        margin-bottom: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.24em;
+        color: #60a5fa;
+    }
+    .report-prose h3 {
+        font-size: 1rem;
+        margin-top: 1.35rem;
+        margin-bottom: 0.5rem;
+        color: #34d399;
+    }
+    .report-prose p,
+    .report-prose li {
+        color: #cbd5e1;
+    }
+    .report-prose blockquote {
+        margin: 1rem 0 1.25rem 0;
+        padding: 0.9rem 1rem;
+        border-left: 3px solid rgba(16, 185, 129, 0.75);
+        background: rgba(15, 23, 42, 0.85);
+        color: #93c5fd;
+    }
+    .report-prose code {
+        color: #93c5fd;
+        background: rgba(15, 23, 42, 0.9);
+        padding: 0.1rem 0.35rem;
+        border-radius: 0.35rem;
+        font-size: 0.9em;
+    }
+    .report-prose hr {
+        border: 0;
+        border-top: 1px solid rgba(51, 65, 85, 0.9);
+        margin: 1.5rem 0;
+    }
+    .report-prose table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1rem 0 1.5rem 0;
+        overflow: hidden;
+        border-radius: 1rem;
+        background: rgba(2, 6, 23, 0.82);
+        border: 1px solid rgba(51, 65, 85, 0.65);
+    }
+    .report-prose thead {
+        background: rgba(15, 23, 42, 0.95);
+    }
+    .report-prose th,
+    .report-prose td {
+        padding: 0.85rem 0.95rem;
+        text-align: left;
+        vertical-align: top;
+        border-bottom: 1px solid rgba(30, 41, 59, 0.9);
+    }
+    .report-prose th {
+        color: #f8fafc;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .report-prose td {
+        color: #dbeafe;
+    }
+    .report-prose tr:last-child td {
+        border-bottom: 0;
+    }
+</style>
+{% endblock extra_css %}

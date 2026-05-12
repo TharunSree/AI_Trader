@@ -108,6 +108,17 @@ def train_jarvis(job_id=None):
         job.model_weights = model_blob
         job.save(update_fields=['status', 'progress', 'model_weights'])
         logger.info(f"Model Weights synced to Neon [id={job.id}]")
+        
+        try:
+            from src.reporting.email_dispatcher import send_node_status_email
+            send_node_status_email(
+                node_type="Training Orchestrator",
+                identifier=f"Job #{job.id}",
+                status="COMPLETED",
+                message=f"Neural network has compiled to {safe_name}. Ready for Forward Evaluation."
+            )
+        except Exception as mail_err:
+            logger.error(f"Failed to transmit completion hook: {mail_err}")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

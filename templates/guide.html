@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}QuantTrader Operations Guide{% endblock title %}
+{% block page_title %}Platform Documentation System{% endblock page_title %}
+
+{% block page_content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    
+    <!-- Left Column: Navigation / Quick Links -->
+    <div class="lg:col-span-1 space-y-6">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-6 relative overflow-hidden group">
+            <h3 class="text-sm font-mono tracking-widest text-brand-primary mb-4 uppercase">Table of Contents</h3>
+            <ul class="space-y-3 font-mono text-xs tracking-wider text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                <li><a href="#section-arch" class="hover:text-brand-accent transition-colors flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-slate-600"></div> System Architecture</a></li>
+                <li><a href="#section-train" class="hover:text-brand-accent transition-colors flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-slate-600"></div> Neural Training Protocols</a></li>
+                <li><a href="#section-exec" class="hover:text-brand-accent transition-colors flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-slate-600"></div> Autonomous Execution</a></li>
+                <li><a href="#section-heal" class="hover:text-brand-accent transition-colors flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse"></div> Cognitive Mutator & Auto-Heal</a></li>
+                <li><a href="#section-models" class="hover:text-brand-accent transition-colors flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-slate-600"></div> The Models Hub</a></li>
+            </ul>
+        </div>
+        
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-6 border-l-4 border-brand-accent bg-brand-accent/5">
+            <h3 class="text-xs font-mono tracking-widest text-brand-accent mb-2 uppercase">Status Monitor</h3>
+            <p class="text-sm text-slate-600 dark:text-slate-400 dark:text-slate-500">All deployment configurations are securely bounded. Cloud connectivity is established with background scaling modules enabled.</p>
+        </div>
+    </div>
+
+    <!-- Right Column: Content -->
+    <div class="lg:col-span-2 space-y-6">
+        
+        <!-- Architecture -->
+        <div id="section-arch" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-8 relative overflow-hidden">
+            <h2 class="text-xl font-semibold text-slate-800 dark:text-slate-200 mb-4 tracking-widest uppercase border-b border-slate-700/50 pb-4">System Architecture</h2>
+            <p class="text-slate-600 dark:text-slate-400 dark:text-slate-500 text-sm leading-relaxed mb-4">
+                You are operating a tier-1 autonomous hedge fund Node. The framework utilizes deep reinforcement learning (PPO) paired with mathematically rigorous boundary engines to generate high-frequency alphanumeric alpha execution across the simulated Alpaca matrix.
+            </p>
+            <div class="grid grid-cols-2 gap-4 mt-6">
+                <div class="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 border border-slate-800">
+                    <div class="text-brand-primary font-mono text-[10px] uppercase mb-1">State Logic</div>
+                    <div class="text-slate-800 dark:text-slate-200 text-sm">PyTorch PPO Agent</div>
+                </div>
+                <div class="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 border border-slate-800">
+                    <div class="text-brand-primary font-mono text-[10px] uppercase mb-1">Market Interface</div>
+                    <div class="text-slate-800 dark:text-slate-200 text-sm">Alpaca WebSocket V2</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Training Protocols -->
+        <div id="section-train" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-8 relative overflow-hidden">
+            <h2 class="text-xl font-semibold text-slate-800 dark:text-slate-200 mb-4 tracking-widest uppercase border-b border-slate-700/50 pb-4">Neural Training Protocols</h2>
+            <p class="text-slate-600 dark:text-slate-400 dark:text-slate-500 text-sm leading-relaxed mb-6">
+                Training operations build the core intuition of the neural network. Generating optimal weights requires feeding the agent historical epochs across calculated momentum windows.
+            </p>
+            
+            <div class="space-y-4">
+                <div class="p-4 bg-slate-100 dark:bg-slate-800/20 border border-slate-700/50 rounded-lg">
+                    <h4 class="text-brand-primary font-mono text-sm mb-2">Parallel Execution Engine</h4>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Because QuantTrader uses isolated `subprocess.Popen` protocols in the background, you can dispatch unrestricted and concurrent Reinforcement Learning jobs simultaneously without thread locking. Scaling is bounded strictly by your physical CPU limits.</p>
+                </div>
+                <div class="p-4 bg-slate-100 dark:bg-slate-800/20 border border-slate-700/50 rounded-lg">
+                    <h4 class="text-brand-accent font-mono text-sm mb-2">Background A/B Tournaments</h4>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Every night precisely at 4:15 PM EST (post-market), QuantTrader will automatically run background A/B tournament evaluations to rank all training jobs against real-world test sets while the stock market is closed.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Execution -->
+        <div id="section-exec" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-8 relative overflow-hidden">
+            <h2 class="text-xl font-semibold text-slate-800 dark:text-slate-200 mb-4 tracking-widest uppercase border-b border-slate-700/50 pb-4">Autonomous Execution & Strict Bounding</h2>
+            <p class="text-slate-600 dark:text-slate-400 dark:text-slate-500 text-sm leading-relaxed mb-4">
+                When a compiled model is launched into the <strong>Runner Fleet</strong>, it subscribes directly to live market ticks. The engine uses strict mathematical overrides to protect you:
+            </p>
+                <li><strong>Partition Limits:</strong> A model given a $1,000 budget will never exceed $1,000 in notional exposure. Execution dynamically queries the TradeLog array to summarize valid liquidity margins.</li>
+                <li><strong>Dynamic Hard-Loss Caps (12%):</strong> Instead of relying on manual &lt;input&gt; limits, the backend autonomously establishes a maximum 12% portfolio downside barrier based on initial equity upon boot. If the algorithmic cluster plummets past this 12% peak draw threshold, all sockets are permanently severed to protect the primary capital.</li>
+                <li><strong>1-Cent Defensive Mechanics:</strong> The execution wrapper algorithmically forces an absolute sell condition if the global Alpaca state crosses exactly $0.01 threshold per share to immediately secure trailing profits dynamically.</li>
+            </ul>
+        </div>
+
+        <!-- Mutator & Auto Heal -->
+        <div id="section-heal" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-8 relative overflow-hidden border border-brand-primary/20">
+            <div class="absolute top-0 right-0 p-4">
+                <span class="relative flex h-3 w-3">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-primary opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3 w-3 bg-brand-primary"></span>
+                </span>
+            </div>
+            <h2 class="text-xl font-semibold text-slate-800 dark:text-slate-200 mb-4 tracking-widest uppercase border-b border-slate-700/50 pb-4 flex items-center gap-2">Cognitive Mutator & Auto-Heal</h2>
+            <p class="text-slate-600 dark:text-slate-400 dark:text-slate-500 text-sm leading-relaxed mb-4">
+                QuantTrader features a bleeding-edge Self-Healing infrastructure powered by Google's Gemini 2.5 Pro architecture.
+            </p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                <div class="bg-blue-900/10 p-5 rounded-xl border border-blue-500/20">
+                    <h5 class="text-blue-400 font-mono text-xs uppercase mb-2 block">1. S.O.S Traceback Triage</h5>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">If Alpaca APIs update or mathematically unrecoverable states trigger Python exceptions, the system intercepts the death spiral, isolates the Traceback anomaly, routes it to Gemini, patches `ppo_agent.py` in milliseconds, and re-initializes.</p>
+                </div>
+                <div class="bg-purple-900/10 p-5 rounded-xl border border-purple-500/20">
+                    <h5 class="text-purple-400 font-mono text-xs uppercase mb-2 block">2. Manual Mutator Forcing</h5>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Clicking [ FIRE MUTATOR ] on the Dashboard aggregates end-of-day markdown logs and forces Gemini to rewrite hyperparameters to adapt to the most recent 7-day trailing volatility signatures.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Models Hub & Vault -->
+        <div id="section-models" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-8 relative overflow-hidden">
+            <h2 class="text-xl font-semibold text-slate-800 dark:text-slate-200 mb-4 tracking-widest uppercase border-b border-slate-700/50 pb-4">The Models Hub & Intelligence Vault</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                <div class="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-xl border border-slate-700/50">
+                    <h5 class="text-brand-primary font-mono text-xs uppercase mb-2 block">1. Tactical Command (Models Hub)</h5>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">The primary Models Hub tracks PyTorch binaries physically serialized to your Neon Server. Models must reach an exact certification via the Auto-Heal engine before they unlock the `<span class="text-brand-accent">LIVE TRADE</span>` readiness ping.</p>
+                </div>
+                <div class="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-xl border border-slate-700/50">
+                    <h5 class="text-brand-accent font-mono text-xs uppercase mb-2 block">2. Historical Telemetry (Intelligence Vault)</h5>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Your End-of-Day PDF markdown evaluations and A/B neural test results are routed to the <b>Intelligence Vault</b>. You can review offline strategy executions chronologically, complete with generated Matplotlib delta signals.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock page_content %}

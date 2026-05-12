@@ -1,0 +1,202 @@
+<!-- QuantTrader Loader Overlay (Iron Man Mk 2 HUD Cinematic) -->
+<div id="jarvis-loader" class="fixed inset-0 bg-slate-950 z-[9999] hidden flex-col items-center justify-center opacity-0 transition-opacity duration-700 overflow-hidden font-mono" style="perspective: 1200px;">
+    <!-- Flash Overlay -->
+    <div id="hud-flash" class="absolute inset-0 bg-white dark:bg-slate-900 opacity-0 z-[200] pointer-events-none transition-opacity duration-[100ms]"></div>
+    <!-- Deep Space Background -->
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.05)_0%,transparent_100%)]"></div>
+
+    <!-- 3D Transform Space -->
+    <div id="core-3d-space" class="relative w-full h-full flex items-center justify-center opacity-0 transition-all duration-[4000ms] ease-[cubic-bezier(0.25,0.1,0.25,1)]" style="transform: rotateX(0deg) scale(0.5); transform-style: preserve-3d;">
+        <!-- The Neural Core -->
+        <div id="neural-core" class="absolute w-4 h-4 bg-white dark:bg-slate-900 rounded-full shadow-[0_0_40px_rgba(255,255,255,1)] transition-all duration-[2000ms] flex items-center justify-center" style="transform-style: preserve-3d;">
+            <!-- Pulsating internal core energy -->
+            <div id="core-energy" class="absolute w-12 h-12 rounded-full border border-brand-primary/80 animate-ping transition-opacity duration-1000 opacity-100" style="animation-duration: 1.5s;"></div>
+            <div id="core-energy-2" class="absolute w-20 h-20 rounded-full border border-brand-accent/50 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite] transition-opacity duration-1000 opacity-100 delay-300"></div>
+            <div id="core-energy-3" class="absolute w-32 h-32 rounded-full border border-slate-600/30 animate-[spin_4s_linear_infinite] border-dashed transition-opacity duration-1000 opacity-100"></div>
+
+            <!-- Expanded Constellation -->
+            <div id="constellation" class="absolute inset-[-400px] opacity-0 transition-all duration-[3000ms] flex items-center justify-center" style="transform-style: preserve-3d;">
+                <div class="absolute inset-0 flex items-center justify-center" style="transform: rotateX(70deg) rotateY(20deg);">
+                    <div class="w-[600px] h-[600px] border-[1px] border-slate-700/50 rounded-full animate-[spin_20s_linear_infinite] border-dashed"></div>
+                </div>
+                <div class="absolute inset-0 flex items-center justify-center" style="transform: rotateX(40deg) rotateY(-40deg);">
+                    <div class="w-[500px] h-[500px] border-[2px] border-brand-primary/20 rounded-full animate-[spin_15s_linear_infinite_reverse] border-dotted"></div>
+                </div>
+                <div class="absolute inset-0 flex items-center justify-center" style="transform: rotateX(80deg) rotateZ(30deg);">
+                    <div class="w-[800px] h-[800px] border-[1px] border-slate-800/60 rounded-full animate-[spin_30s_linear_infinite]"></div>
+                </div>
+                <div class="absolute inset-0 flex items-center justify-center" style="transform: rotateX(-20deg) rotateY(50deg);">
+                    <div class="w-[300px] h-[300px] border-[1px] border-brand-accent/30 rounded-full animate-[spin_10s_linear_infinite]"></div>
+                </div>
+                <div class="absolute w-2 h-2 bg-brand-primary rounded-full shadow-[0_0_10px_currentColor]" style="transform: translate3d(200px, 100px, -100px);"></div>
+                <div class="absolute w-1 h-1 bg-white dark:bg-slate-900 rounded-full shadow-[0_0_10px_currentColor]" style="transform: translate3d(-150px, -200px, 200px);"></div>
+                <div class="absolute w-3 h-3 bg-brand-accent rounded-full shadow-[0_0_15px_currentColor]" style="transform: translate3d(100px, -150px, 150px);"></div>
+                <div class="absolute w-1 h-1 bg-brand-primary rounded-full shadow-[0_0_5px_currentColor]" style="transform: translate3d(-250px, 50px, -50px);"></div>
+                
+                <div id="data-grid" class="absolute inset-[-1000px] opacity-0 transition-all duration-[2000ms] bg-[linear-gradient(rgba(56,189,248,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(56,189,248,0.1)_1px,transparent_1px)] bg-[size:100px_100px]" style="transform: rotateX(90deg) translateZ(-200px);"></div>
+                <div id="boot-terminal-lines" class="absolute left-6 bottom-6 max-w-sm text-xs text-brand-primary opacity-0 flex flex-col items-start gap-1 font-mono z-[150] transition-opacity duration-1000"></div>
+            </div>
+        </div>
+        <div class="absolute bottom-20 left-1/2 -translate-x-1/2 flex flex-col items-center opacity-0 transition-opacity duration-[1000ms] z-50 text-center" id="hud-status">
+            <p id="loader-text" class="text-[11px] uppercase tracking-[0.3em] text-slate-600 dark:text-slate-400 dark:text-slate-500 font-light blur-[2px] transition-all duration-[1000ms]">INITIALIZING</p>
+            <p id="status-text" class="text-[9px] uppercase tracking-[0.4em] text-brand-primary/60 mt-4 opacity-0 transition-opacity duration-1000"></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    if (localStorage.getItem('jarvis-dashboard-boot-pending') === 'true') {
+        const loader = document.getElementById('jarvis-loader');
+        loader.classList.remove('hidden');
+        loader.classList.add('flex');
+        // Force opacity immediately to block dashboard from showing underneath
+        loader.style.opacity = '1';
+
+        window.addEventListener('load', () => {
+            const space3d = document.getElementById('core-3d-space');
+            const core = document.getElementById('neural-core');
+            const constellation = document.getElementById('constellation');
+            const grid = document.getElementById('data-grid');
+            const loaderText = document.getElementById('loader-text');
+            const statusText = document.getElementById('status-text');
+            const flash = document.getElementById('hud-flash');
+            const timeouts = [];
+
+            function schedule(delay, callback) {
+                timeouts.push(setTimeout(callback, delay));
+            }
+
+            function updateCopy(message, status) {
+                loaderText.classList.remove('reveal-line');
+                loaderText.style.opacity = '0';
+                loaderText.style.filter = 'blur(8px)';
+                setTimeout(() => {
+                    loaderText.textContent = message;
+                    loaderText.classList.add('reveal-line');
+                    loaderText.style.opacity = '1';
+                    loaderText.style.filter = 'blur(0)';
+                }, 80);
+
+                if (status) {
+                    statusText.textContent = status;
+                    statusText.classList.replace('opacity-0', 'opacity-100');
+                }
+            }
+
+            if (localStorage.getItem('jarvis-voice') !== 'false') {
+                if (window.QuantTraderAudio && window.QuantTraderAudio.sounds) {
+                    // Start the login audio via global scope!
+                    try {
+                        window.QuantTraderAudio.sounds.login.currentTime = 0;
+                        window.QuantTraderAudio.sounds.login.play().catch(e => {
+                            let fallback = new Audio('/static/audio/jarvis/welcome_home.mp3');
+                            fallback.play().catch(e => {});
+                        });
+                    } catch(e) {}
+                }
+            }
+
+            setTimeout(() => {
+                space3d.classList.replace('opacity-0', 'opacity-100');
+                space3d.style.transform = 'rotateX(0deg) scale(1)';
+                
+                document.getElementById('hud-status').classList.replace('opacity-0', 'opacity-100');
+                schedule(300, () => {
+                    updateCopy("ALLOW ME TO INTRODUCE MYSELF. I AM QUANTTRADER, A VIRTUAL ARTIFICIAL INTELLIGENCE.", "IDENTITY SYSTEM ONLINE");
+                    const bootLines = document.getElementById('boot-terminal-lines');
+                    if (bootLines) {
+                        bootLines.classList.replace('opacity-0', 'opacity-100');
+                        const lines = ["[+] INITIALIZING KERNEL...", "[+] LOADING PREFERENCES FROM HUB...", "[+] CONNECTING SECURE NEURAL LINK...", "[+] BYPASSING FIREWALLS...", "[+] AUTHENTICATING ROOT ACCESS...", "[+] HANDSHAKE SUCCESS.", "WELCOME SEC-COM."];
+                        let currentLine = 0;
+                        const lineInterval = setInterval(() => {
+                            if (currentLine >= lines.length) { clearInterval(lineInterval); return; }
+                            const p = document.createElement('p'); p.textContent = lines[currentLine];
+                            bootLines.appendChild(p); currentLine++;
+                        }, 400);
+                    }
+                });
+
+                schedule(6000, () => {
+                    document.getElementById('core-energy').classList.replace('opacity-100', 'opacity-0');
+                    document.getElementById('core-energy-2').classList.replace('opacity-100', 'opacity-0');
+                    document.getElementById('core-energy-3').classList.replace('opacity-100', 'opacity-0');
+
+                    core.classList.replace('bg-white dark:bg-slate-900', 'bg-transparent');
+                    core.classList.replace('w-4', 'w-[200px]');
+                    core.classList.replace('h-4', 'h-[200px]');
+                    core.style.boxShadow = 'none';
+
+                    constellation.classList.replace('opacity-0', 'opacity-100');
+                    space3d.style.transitionDuration = '3200ms';
+                    space3d.style.transform = 'rotateX(16deg) rotateY(-12deg) scale(1.08)';
+                    updateCopy("AND I'M HERE TO ASSIST YOU WITH A VARIETY OF TASKS AS BEST I CAN.", "ASSISTANCE SUBROUTINES SYNCHRONIZED");
+                });
+
+                schedule(10000, () => {
+                    grid.classList.replace('opacity-0', 'opacity-100');
+                    constellation.style.transitionDuration = '1800ms';
+                    constellation.style.transform = 'translateZ(70px) rotateX(10deg) rotateY(-8deg) scale(1.04)';
+                    const rings = constellation.querySelectorAll('.rounded-full');
+                    rings.forEach((ring, index) => {
+                        ring.style.animationDuration = (3 + (index * 0.7)) + 's';
+                        if (index % 2 === 0) ring.style.animationDirection = 'reverse';
+                    });
+                    space3d.style.transitionDuration = '2600ms';
+                    space3d.style.transform = 'rotateX(28deg) rotateY(0deg) scale(0.9) translateZ(-40px)';
+                    updateCopy("24 HOURS A DAY, 7 DAYS A WEEK.", "PERSISTENT AVAILABILITY CONFIRMED");
+                });
+
+                schedule(13000, () => {
+                    space3d.style.transitionDuration = '4200ms';
+                    space3d.style.transform = 'rotateX(4deg) rotateY(0deg) scale(1.03) translateZ(95px)';
+                    updateCopy("INITIALIZING SYSTEM CONTROL PANEL.", "LIVE DASHBOARD ASSEMBLED");
+                });
+
+                schedule(15500, () => {
+                    if (flash) {
+                        flash.classList.replace('opacity-0', 'opacity-100');
+                        schedule(140, () => flash.classList.replace('opacity-100', 'opacity-0'));
+                    }
+                    space3d.style.transitionDuration = '6000ms';
+                    space3d.style.transform = 'rotateX(0deg) rotateY(0deg) scale(1.08) translateZ(170px)';
+                    loaderText.classList.replace('text-slate-600 dark:text-slate-400 dark:text-slate-500', 'text-slate-800 dark:text-slate-200');
+                    statusText.classList.replace('text-brand-primary/60', 'text-brand-accent');
+                    updateCopy("SYSTEMS ARE NOW FULLY OPERATIONAL.", "DASHBOARD READY");
+                    
+                    // Fading out the loader to reveal the real dashboard!
+                    schedule(1500, () => {
+                        loader.style.transitionDuration = '1000ms';
+                        loader.style.opacity = '0';
+                        
+                        // FOUC wipe and build animation of the dashboard panels behind it
+                        const els = document.querySelectorAll('.jarvis-booting .glass, .jarvis-booting .content-page .col-xl-3, .jarvis-booting .content-page .col-xl-4, .jarvis-booting .content-page .col-xl-6, .jarvis-booting .content-page .col-xl-8, .jarvis-booting .content-page .col-12, .jarvis-booting .content-page .col-md-6, .jarvis-booting .card');
+                        els.forEach((el, i) => {
+                            // Stage 1: Wipe the boundaries in
+                            el.style.transition = 'opacity 0.1s, clip-path 0.9s cubic-bezier(0.8, 0, 0.2, 1), transform 1.2s cubic-bezier(0.16, 1, 0.3, 1), filter 1.5s linear, box-shadow 1s linear';
+                            setTimeout(() => {
+                                el.style.opacity = '1';
+                                el.style.boxShadow = '0 0 30px rgba(56, 189, 248, 0.6) inset';
+                                el.style.clipPath = 'inset(0 0 0 0)';
+                                
+                                // Stage 2: Evolve from purely synthetic blue to the actual module's true colors
+                                setTimeout(() => {
+                                    el.style.transform = 'translateY(0) scale(1)';
+                                    el.style.filter = 'brightness(1) contrast(1) sepia(0) hue-rotate(0deg) saturate(1)';
+                                    el.style.boxShadow = ''; // Fade outline out natively
+                                }, 300);
+                            }, i * 160 + 200); 
+                        });
+                        
+                        setTimeout(() => {
+                            localStorage.setItem('jarvis-boot-played', 'true');
+                            localStorage.removeItem('jarvis-dashboard-boot-pending');
+                            document.documentElement.classList.remove('jarvis-booting');
+                            loader.classList.add('hidden');
+                            loader.classList.remove('flex');
+                        }, 2000);
+                    });
+                });
+            }, 100);
+        });
+    }
+</script>
