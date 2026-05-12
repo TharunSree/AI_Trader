@@ -367,42 +367,67 @@
         </div>
     </div>
     
-    <!-- Interactive Update Terminal Overlay -->
-    <div id="update-terminal-overlay" class="fixed inset-0 bg-[#020617]/95 backdrop-blur-3xl z-[10000] hidden flex-col items-center justify-center transition-all duration-500 opacity-0 font-mono">
-        <!-- Scanline Effect -->
-        <div class="absolute inset-0 z-0 pointer-events-none opacity-20" style="background: repeating-linear-gradient(0deg, transparent, transparent 2px, #0ea5e9 2px, #0ea5e9 4px); background-size: 100% 4px;"></div>
+    <!-- System Update Progress Overlay (Lockscreen-themed) -->
+    <div id="update-terminal-overlay" class="fixed inset-0 bg-[#0a0f18]/95 backdrop-blur-md z-[10000] hidden flex-col items-center justify-center transition-all duration-300 opacity-0 overflow-hidden font-mono">
         
-        <div class="w-full max-w-4xl p-6 relative z-10">
-            <div class="flex items-center justify-between mb-4 border-b border-brand-500/30 pb-3">
-                <div class="flex items-center gap-4">
-                    <i class="fas fa-satellite-dish text-brand-400 animate-pulse text-2xl"></i>
-                    <div>
-                        <h3 class="text-brand-400 font-bold uppercase tracking-[0.2em] text-lg leading-none">Global Deployment Protocol</h3>
-                        <p class="text-xs text-slate-500 uppercase tracking-widest mt-1">Establishing Secure Connection to Central Repository...</p>
+        <!-- Technical Grid (matches lockscreen) -->
+        <div class="absolute inset-0 z-0 opacity-10 pointer-events-none" style="background-image: linear-gradient(rgba(100,116,139,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(100,116,139,0.4) 1px, transparent 1px); background-size: 20px 20px;"></div>
+        
+        <!-- Scanline (matches lockscreen) -->
+        <div class="absolute inset-0 w-full h-[20vh] bg-gradient-to-b from-transparent via-brand-500/5 to-transparent z-0 opacity-50 animate-scanline pointer-events-none mix-blend-screen"></div>
+
+        <div class="z-10 flex flex-col items-center justify-center w-full max-w-lg px-6">
+            
+            <!-- Phase Icon -->
+            <div class="mb-10 text-center">
+                <div id="update-icon-container" class="relative inline-block">
+                    <i id="update-phase-icon" class="fas fa-satellite-dish text-brand-400 text-4xl animate-pulse"></i>
+                </div>
+                <h2 class="text-slate-100 uppercase tracking-[0.3em] text-sm mt-6 font-semibold" id="update-phase-title">Deployment Protocol</h2>
+                <p class="text-[10px] text-slate-500 uppercase tracking-[0.4em] mt-1" id="update-phase-subtitle">Initializing secure connection...</p>
+            </div>
+
+            <!-- Progress Panel -->
+            <div class="w-full relative">
+                <div class="relative bg-transparent border border-slate-700 p-8 shadow-2xl">
+                    <!-- Corner Accents (matches lockscreen) -->
+                    <div class="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-slate-400"></div>
+                    <div class="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-slate-400"></div>
+                    <div class="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-slate-400"></div>
+                    <div class="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-slate-400"></div>
+
+                    <!-- Header -->
+                    <div class="w-full flex justify-between items-center mb-6 border-b border-slate-800 pb-2">
+                        <h3 class="text-slate-300 tracking-[0.2em] uppercase text-[10px] flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 bg-brand-500 rounded-sm animate-pulse" id="update-pulse-dot"></span>
+                            <span id="update-header-label">System Update Active</span>
+                        </h3>
+                        <span class="text-slate-600 text-[9px] tracking-widest uppercase" id="update-pct-text">0%</span>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="w-full h-1 bg-slate-800 rounded-full overflow-hidden mb-6 relative">
+                        <div id="update-progress-bar" class="h-full rounded-full transition-all duration-700 ease-out" style="width: 0%; background: linear-gradient(90deg, #10b981, #0ea5e9);"></div>
+                        <!-- Glow effect underneath bar -->
+                        <div id="update-progress-glow" class="absolute top-0 left-0 h-full rounded-full blur-sm opacity-50 transition-all duration-700 ease-out" style="width: 0%; background: linear-gradient(90deg, #10b981, #0ea5e9);"></div>
+                    </div>
+
+                    <!-- Status Line -->
+                    <div class="flex items-center gap-2 min-h-[20px]">
+                        <span class="text-slate-600 text-xs">></span>
+                        <p id="update-status-text" class="text-slate-400 text-xs tracking-widest uppercase truncate transition-all duration-300">Awaiting instruction...</p>
+                        <span class="w-1.5 h-4 bg-brand-500 animate-blink flex-shrink-0"></span>
                     </div>
                 </div>
-                <button id="close-terminal-btn" class="text-slate-500 hover:text-white transition-colors bg-slate-900 border border-slate-700 px-3 py-1 text-xs uppercase tracking-widest hidden group">
-                    <span class="group-hover:hidden">[ Working ]</span>
-                    <span class="hidden group-hover:inline text-brand-400">[ Acknowledge ]</span>
+            </div>
+
+            <!-- Close / Acknowledge Button -->
+            <div class="mt-10 text-center">
+                <button id="close-terminal-btn" class="text-[9px] text-slate-600 hover:text-brand-400 transition-colors uppercase tracking-[0.3em] font-mono hidden">
+                    [ Acknowledge &amp; Close ]
                 </button>
             </div>
-            
-            <div class="bg-[#0f172a] border border-slate-700 p-6 shadow-2xl h-[60vh] flex flex-col relative overflow-hidden group">
-                <!-- Terminal decorative corners -->
-                <div class="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-brand-500"></div>
-                <div class="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-brand-500"></div>
-                <div class="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-brand-500"></div>
-                <div class="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-brand-500"></div>
-                
-                <div class="flex-1 overflow-y-auto font-mono text-[11px] md:text-sm text-brand-400 whitespace-pre-wrap leading-relaxed relative z-10 custom-scrollbar pr-4" id="terminal-output">
-                    <!-- Logs stream here -->
-                    <div class="animate-pulse">> AWAITING INSTRUCTION...</div>
-                </div>
-                <div class="mt-4 pt-4 border-t border-slate-800 text-[10px] text-slate-600 flex justify-between items-center z-10">
-                    <span>> VER_3.1.04_BETA</span>
-                    <span class="flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-brand-500 animate-ping"></div> ENCRYPTED TUNNEL ACTIVE</span>
-                </div>
-            </div>
+
         </div>
     </div>
 
@@ -486,12 +511,20 @@
             });
         }
 
-        // --- 3. System Update Badging & Terminal Streaming ---
+        // --- 3. System Update Badging & Progress Bar Streaming ---
         const updateBadge = document.getElementById('update-badge');
         const triggerBtn = document.getElementById('system-update-trigger');
         const overlay = document.getElementById('update-terminal-overlay');
-        const termOut = document.getElementById('terminal-output');
         const closeBtn = document.getElementById('close-terminal-btn');
+        const progressBar = document.getElementById('update-progress-bar');
+        const progressGlow = document.getElementById('update-progress-glow');
+        const pctText = document.getElementById('update-pct-text');
+        const statusText = document.getElementById('update-status-text');
+        const phaseTitle = document.getElementById('update-phase-title');
+        const phaseSubtitle = document.getElementById('update-phase-subtitle');
+        const phaseIcon = document.getElementById('update-phase-icon');
+        const headerLabel = document.getElementById('update-header-label');
+        const pulseDot = document.getElementById('update-pulse-dot');
 
         // Poll for updates every 5 minutes
         function checkUpdates() {
@@ -508,29 +541,108 @@
         setInterval(checkUpdates, 300000);
         checkUpdates();
 
-        // Launch Terminal Overlay & Stream
+        function setProgress(pct) {
+            const clamped = Math.min(100, Math.max(0, pct));
+            progressBar.style.width = clamped + '%';
+            progressGlow.style.width = clamped + '%';
+            pctText.textContent = Math.round(clamped) + '%';
+        }
+
+        // Launch Progress Overlay & Stream
         triggerBtn.addEventListener('click', () => {
+            // Reset state
+            setProgress(0);
+            statusText.textContent = 'Establishing connection...';
+            phaseTitle.textContent = 'Deployment Protocol';
+            phaseSubtitle.textContent = 'Initializing secure connection...';
+            phaseIcon.className = 'fas fa-satellite-dish text-brand-400 text-4xl animate-pulse';
+            headerLabel.textContent = 'System Update Active';
+            pulseDot.classList.remove('bg-green-500', 'bg-red-500');
+            pulseDot.classList.add('bg-brand-500', 'animate-pulse');
+            closeBtn.classList.add('hidden');
+
+            // Show overlay
             overlay.classList.remove('hidden');
             setTimeout(() => overlay.classList.remove('opacity-0'), 10);
-            termOut.innerText = '';
-            closeBtn.classList.add('hidden');
+
+            let currentPct = 0;
 
             const source = new EventSource("{% url 'system_update_stream' %}");
             
             source.onmessage = function(event) {
-                termOut.innerText += event.data + "\n";
-                termOut.parentElement.scrollTop = termOut.parentElement.scrollHeight;
+                const msg = event.data.trim();
+                if (!msg) return;
+
+                // Update the single status line
+                // Clean up the message for display
+                let displayMsg = msg.replace(/^\[SYSTEM\]\s*/i, '').replace(/^\[ERROR\]\s*/i, '').replace(/^\[CRITICAL ERROR\]\s*/i, '');
+                statusText.textContent = displayMsg;
+
+                // Keyword-based progress anchoring
+                const lower = msg.toLowerCase();
+
+                if (lower.includes('git pull') || lower.includes('override protocol')) {
+                    currentPct = 10;
+                    phaseSubtitle.textContent = 'Fetching latest from repository...';
+                    phaseIcon.className = 'fas fa-code-branch text-brand-400 text-4xl animate-pulse';
+                } else if (lower.includes('already up to date') || lower.includes('up-to-date')) {
+                    currentPct = 45;
+                    phaseSubtitle.textContent = 'Repository is current';
+                } else if (lower.includes('fast-forward') || lower.includes('files changed') || lower.includes('updating')) {
+                    currentPct = 40;
+                    phaseSubtitle.textContent = 'Applying changes...';
+                } else if (lower.includes('synchronizing database') || lower.includes('migrate')) {
+                    currentPct = 50;
+                    phaseSubtitle.textContent = 'Running database migrations...';
+                    phaseIcon.className = 'fas fa-database text-brand-400 text-4xl animate-pulse';
+                } else if (lower.includes('applying') || lower.includes('no migrations')) {
+                    currentPct = Math.min(currentPct + 5, 85);
+                    phaseSubtitle.textContent = 'Synchronizing schema...';
+                } else if (lower.includes('update successful') || lower.includes('reloading')) {
+                    currentPct = 100;
+                    phaseTitle.textContent = 'Update Complete';
+                    phaseSubtitle.textContent = 'Platform will reload momentarily...';
+                    phaseIcon.className = 'fas fa-check-circle text-green-400 text-4xl';
+                    headerLabel.textContent = 'Deployment Successful';
+                    pulseDot.classList.remove('bg-brand-500', 'animate-pulse');
+                    pulseDot.classList.add('bg-green-500');
+                } else if (lower.includes('error') || lower.includes('critical')) {
+                    phaseTitle.textContent = 'Update Failed';
+                    phaseSubtitle.textContent = 'An error occurred during deployment';
+                    phaseIcon.className = 'fas fa-exclamation-triangle text-red-400 text-4xl';
+                    headerLabel.textContent = 'Deployment Error';
+                    pulseDot.classList.remove('bg-brand-500', 'animate-pulse');
+                    pulseDot.classList.add('bg-red-500');
+                    statusText.classList.add('text-red-400');
+                    statusText.classList.remove('text-slate-400');
+                } else {
+                    // Gentle drift for unrecognized lines
+                    currentPct = Math.min(currentPct + 2, 90);
+                }
+
+                setProgress(currentPct);
             };
 
             source.addEventListener('complete', function(e) {
                 source.close();
+                setProgress(100);
                 setTimeout(() => window.location.reload(), 2000);
             });
 
             source.addEventListener('error', function(e) {
                 source.close();
-                termOut.innerText += "\n[SYSTEM] Stream terminated.\n";
                 closeBtn.classList.remove('hidden');
+                if (currentPct < 100) {
+                    statusText.textContent = 'Stream connection lost';
+                    phaseTitle.textContent = 'Connection Error';
+                    phaseSubtitle.textContent = 'Update stream terminated unexpectedly';
+                    phaseIcon.className = 'fas fa-unlink text-red-400 text-4xl';
+                    headerLabel.textContent = 'Stream Interrupted';
+                    pulseDot.classList.remove('bg-brand-500', 'animate-pulse');
+                    pulseDot.classList.add('bg-red-500');
+                    statusText.classList.add('text-red-400');
+                    statusText.classList.remove('text-slate-400');
+                }
             });
         });
 
