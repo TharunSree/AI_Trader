@@ -22,7 +22,18 @@
         <form action="{% url 'start_meta_job' %}" method="POST" id="form-meta-job" class="relative z-10"
             onsubmit="event.preventDefault(); window.launchJarvisOverlay(this, 'SPINNING UP META-COACH PIPELINES...');">
             {% csrf_token %}
-            <div class="grid grid-cols-2 gap-4 mb-6">
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div class="col-span-2">
+                    <label for="meta_ticker" class="block text-xs uppercase tracking-widest text-slate-500 mb-2">Asset Target</label>
+                    <select id="meta_ticker" name="ticker"
+                        class="w-full bg-slate-900 border border-slate-800 rounded px-4 py-2 text-white focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-all appearance-none">
+                        <option value="SPY">SPY (S&P 500)</option>
+                        <option value="QQQ">QQQ (Nasdaq)</option>
+                        <option value="BTC-USD">BTC-USD (Bitcoin)</option>
+                        <option value="ETH-USD">ETH-USD (Ethereum)</option>
+                        <option value="SOL-USD">SOL-USD (Solana)</option>
+                    </select>
+                </div>
                 <div>
                     <label for="meta_initial_cash"
                         class="block text-xs uppercase tracking-widest text-slate-500 mb-2">Initial Cash ($)</label>
@@ -63,6 +74,17 @@
             onsubmit="event.preventDefault(); window.launchJarvisOverlay(this, 'CONNECTING TO DEDICATED MODEL...');">
             {% csrf_token %}
             <div class="grid grid-cols-2 gap-4 mb-4">
+                <div class="col-span-2">
+                    <label for="single_ticker" class="block text-xs uppercase tracking-widest text-slate-500 mb-2">Asset Target</label>
+                    <select id="single_ticker" name="ticker"
+                        class="w-full bg-slate-900 border border-slate-800 rounded px-4 py-2 text-white focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all appearance-none">
+                        <option value="SPY">SPY (S&P 500)</option>
+                        <option value="QQQ">QQQ (Nasdaq)</option>
+                        <option value="BTC-USD">BTC-USD (Bitcoin)</option>
+                        <option value="ETH-USD">ETH-USD (Ethereum)</option>
+                        <option value="SOL-USD">SOL-USD (Solana)</option>
+                    </select>
+                </div>
                 <div>
                     <label for="feature_set_key"
                         class="block text-xs uppercase tracking-widest text-slate-500 mb-2">Feature Set</label>
@@ -312,8 +334,7 @@
             if (activeTerminalPoller) clearInterval(activeTerminalPoller);
             activeTerminalId = null;
             activeTerminalType = null;
-        }
-    }
+        }}
 
     function pollLogs(type, id) {
         fetch(`/api/job-logs/${type}/${id}/`)

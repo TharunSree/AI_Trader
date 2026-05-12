@@ -146,8 +146,7 @@
   function ensureUptimeStart(){
     if(!localStorage.getItem(UPTIME_KEY)){
       localStorage.setItem(UPTIME_KEY,String(now()));
-    }
-  }
+    }}
   function clearUptime(){
     localStorage.removeItem(UPTIME_KEY);
     document.getElementById('uptime-badge').textContent='00:00:00';

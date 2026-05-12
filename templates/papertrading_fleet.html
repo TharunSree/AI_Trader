@@ -401,8 +401,7 @@
             let prefix = val > 0 ? '+' : (val < 0 ? '-' : '');
             prof.className = (val >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400') + ' text-lg font-bold font-mono';
             prof.textContent = prefix + '$' + Math.abs(val).toFixed(2);
-        }
-      })
+        }})
       .catch(() => {})
       .finally(() => { statusRequestInFlight = false; });
   }

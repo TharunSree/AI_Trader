@@ -212,8 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
                    for(let line of lines) {
                        if (line.trim() !== "") {
                            html += "<div>" + formatLogLine(line) + "</div>";
-                       }
-                   }
+                       }}
                    termOpt.innerHTML = html || "<span class='text-slate-500 dark:text-slate-400 dark:text-slate-500'>Awaiting engine boot Sequence...</span>";
                    
                    if(autoScroll) {
@@ -263,8 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const goalEl = document.getElementById("dyn-live-pnl-goal");
                     if (goalEl && traderData.goal_amount) {
                          goalEl.textContent = ` / $${parseFloat(traderData.goal_amount).toFixed(2)} GOAL`;
-                    }
-                }
+                    }}
                 
                 // Update active positions grid across cluster if available
                 if (data.positions) {
@@ -329,7 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (document.querySelector("#model-profit-chart")) {
         const eqOpts = {
-            chart: { type: 'area', height: 200, toolbar: { show: false }, background: 'transparent', animations: { enabled: false } },
+            chart: { type: 'area', height: 200, toolbar: { show: false }, background: 'transparent', animations: { enabled: false }},
             dataLabels: { enabled: false },
             stroke: { curve: 'stepline', width: 2 },
             xaxis: { type: 'datetime', labels: { style: { colors: '#64748b' } }, axisBorder: { show: false }, axisTicks: { show: false } },

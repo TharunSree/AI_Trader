@@ -116,8 +116,8 @@
 
             var options = {
                 chart: { height: 380, type: 'area' },
-                series: [{ name: 'Equity', data: {{ equity_data|safe }} }],
-                xaxis: { type: 'datetime', categories: {{ equity_dates|safe }} },
+                series: [{ name: 'Equity', data: {{ equity_data|safe }}}],
+                xaxis: { type: 'datetime', categories: {{ equity_dates|safe }}},
                 yaxis: { labels: { formatter: (val) => { return "$" + val.toLocaleString() } } },
                 dataLabels: { enabled: false },
                 stroke: { curve: 'smooth', width: 2 },
