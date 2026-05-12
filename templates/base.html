@@ -282,75 +282,71 @@
     </script>
     
     <style>
-        /* Lockscreen Animations */
-        @keyframes float-slow {
-            0%, 100% { transform: translateY(0px) scale(1); }
-            50% { transform: translateY(-30px) scale(1.05); }
+        /* Professional Terminal Animations */
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100vh); }
         }
-        @keyframes float-medium {
-            0%, 100% { transform: translateY(0px) scale(1); }
-            50% { transform: translateY(-50px) scale(1.1); }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
         }
-        @keyframes pulse-glow {
-            0%, 100% { opacity: 0.4; }
-            50% { opacity: 0.8; box-shadow: 0 0 40px rgba(59, 130, 246, 0.6); }
-        }
-        .animate-float-slow { animation: float-slow 8s ease-in-out infinite; }
-        .animate-float-medium { animation: float-medium 6s ease-in-out infinite; }
-        .animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+        .animate-scanline { animation: scanline 8s linear infinite; }
+        .animate-blink { animation: blink 1s step-end infinite; }
     </style>
 
     <!-- Global Seamless Lockscreen Overlay -->
-    <div id="global-lockscreen-overlay" class="fixed inset-0 bg-[#020617]/90 backdrop-blur-3xl z-[10000] hidden flex flex-col items-center justify-center transition-all duration-700 opacity-0 scale-110 overflow-hidden">
+    <div id="global-lockscreen-overlay" class="fixed inset-0 bg-[#0a0f18]/95 backdrop-blur-md z-[10000] hidden flex flex-col items-center justify-center transition-all duration-300 opacity-0 overflow-hidden font-mono">
         
-        <!-- Animated Background Orbs -->
-        <div class="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-brand-600/20 rounded-full blur-[120px] animate-float-slow pointer-events-none mix-blend-screen"></div>
-        <div class="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] bg-emerald-600/20 rounded-full blur-[100px] animate-float-medium pointer-events-none mix-blend-screen" style="animation-delay: 2s;"></div>
-        <div class="absolute top-[40%] left-[40%] w-[30vw] h-[30vw] bg-purple-600/10 rounded-full blur-[90px] animate-float-slow pointer-events-none mix-blend-screen" style="animation-delay: 4s;"></div>
+        <!-- Technical Grid -->
+        <div class="absolute inset-0 z-0 opacity-10 pointer-events-none" style="background-image: linear-gradient(rgba(100,116,139,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(100,116,139,0.4) 1px, transparent 1px); background-size: 20px 20px;"></div>
         
-        <!-- Grid overlay -->
-        <div class="absolute inset-0 z-0 opacity-[0.03] pointer-events-none" style="background-image: linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px); background-size: 40px 40px;"></div>
+        <!-- Scanline -->
+        <div class="absolute inset-0 w-full h-[20vh] bg-gradient-to-b from-transparent via-brand-500/5 to-transparent z-0 opacity-50 animate-scanline pointer-events-none mix-blend-screen"></div>
 
         <div class="z-10 flex flex-col items-center justify-center w-full max-w-2xl px-6">
             
-            <!-- Massive Dynamic Clock -->
-            <div class="text-center mb-12 transform transition-transform hover:scale-105 duration-500">
-                <h1 id="lock-clock" class="text-8xl md:text-[10rem] font-mono font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white via-slate-200 to-slate-500 drop-shadow-[0_0_30px_rgba(255,255,255,0.2)] mb-2 leading-none">00:00</h1>
-                <div class="h-1 w-24 bg-gradient-to-r from-transparent via-brand-500 to-transparent mx-auto mb-6 opacity-50"></div>
-                <p id="lock-date" class="text-sm md:text-lg font-mono uppercase tracking-[0.4em] text-brand-400 font-medium">Loading Date...</p>
+            <!-- Sharp Technical Clock -->
+            <div class="text-center mb-16">
+                <h1 id="lock-clock" class="text-7xl md:text-9xl font-bold tracking-tight text-slate-100 mb-1 leading-none drop-shadow-md">00:00</h1>
+                <div class="h-[1px] w-full max-w-xs bg-slate-700 mx-auto mb-4"></div>
+                <p id="lock-date" class="text-xs md:text-sm uppercase tracking-[0.5em] text-slate-400">Loading Date...</p>
             </div>
 
-            <!-- Sleek Integrated Input Panel -->
-            <div class="w-full max-w-md relative group">
-                <!-- Glowing backplate -->
-                <div class="absolute -inset-1 bg-gradient-to-r from-brand-500 to-emerald-500 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200 animate-pulse-glow"></div>
-                
-                <div class="relative bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8 shadow-2xl flex flex-col items-center">
-                    <div class="w-12 h-12 rounded-full bg-slate-800/80 flex items-center justify-center mb-4 border border-slate-600 shadow-[0_0_15px_rgba(0,0,0,0.5)]">
-                        <i class="fas fa-lock text-slate-300"></i>
-                    </div>
+            <!-- Minimal Auth Panel -->
+            <div class="w-full max-w-md relative">
+                <!-- Outer sharp border -->
+                <div class="relative bg-transparent border border-slate-700 p-8 shadow-2xl flex flex-col items-center">
+                    <!-- Corner Accents -->
+                    <div class="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-slate-400"></div>
+                    <div class="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-slate-400"></div>
+                    <div class="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-slate-400"></div>
+                    <div class="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-slate-400"></div>
                     
-                    <h2 class="text-white font-mono tracking-widest uppercase text-sm mb-6 flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-brand-500 animate-ping"></span>
-                        System Locked
-                    </h2>
+                    <div class="w-full flex justify-between items-center mb-8 border-b border-slate-800 pb-2">
+                        <h2 class="text-slate-300 tracking-[0.2em] uppercase text-[10px] flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 bg-brand-500 rounded-sm animate-pulse"></span>
+                            System Terminal Locked
+                        </h2>
+                        <i class="fas fa-lock text-slate-500 text-xs"></i>
+                    </div>
 
                     <div class="w-full" id="lock-auth-container">
                         <form id="unlock-form" method="POST" action="{% url 'lockscreen_api' %}">
                             {% csrf_token %}
-                            <div class="relative mb-6">
-                                <input type="password" id="pin-input" name="password" 
-                                    class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-4 text-center text-2xl tracking-[0.7em] focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/50 transition-all font-mono text-white placeholder-slate-600 shadow-inner" 
-                                    placeholder="••••" required autocomplete="off">
-                                <p id="pin-prompt" class="absolute -bottom-5 left-0 right-0 text-center text-[9px] text-slate-500 uppercase tracking-widest transition-colors">Enter Authorization Key</p>
+                            <div class="relative mb-8">
+                                <label class="block text-[9px] text-slate-500 uppercase tracking-widest mb-2" id="pin-prompt">Authentication Required</label>
+                                <div class="flex items-center border-b border-slate-600 focus-within:border-brand-500 transition-colors">
+                                    <span class="text-slate-500 mr-2">></span>
+                                    <input type="password" id="pin-input" name="password" 
+                                        class="w-full bg-transparent border-none px-2 py-2 text-xl tracking-[0.5em] focus:outline-none focus:ring-0 text-slate-200 placeholder-slate-700" 
+                                        placeholder="••••" required autocomplete="off">
+                                    <span class="w-2 h-5 bg-brand-500 animate-blink ml-2"></span>
+                                </div>
                             </div>
                             
-                            <button type="submit" class="w-full relative overflow-hidden bg-slate-800 hover:bg-slate-700 text-white font-mono uppercase tracking-widest text-xs py-4 rounded-xl transition-all border border-slate-600 hover:border-brand-400 group">
-                                <span class="relative z-10 flex items-center justify-center gap-3">
-                                    <i class="fas fa-fingerprint text-brand-400 group-hover:scale-110 transition-transform"></i> Verify Identity
-                                </span>
-                                <!-- Button hover sweep effect -->
-                                <div class="absolute inset-0 h-full w-0 bg-gradient-to-r from-brand-600/20 to-transparent group-hover:w-full transition-all duration-500 ease-out z-0"></div>
+                            <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-slate-300 font-mono uppercase tracking-[0.3em] text-[10px] py-3 transition-colors border border-slate-700 hover:border-slate-500 hover:text-white">
+                                [ Execute Authorization ]
                             </button>
                         </form>
                     </div>
@@ -358,11 +354,11 @@
             </div>
 
             <!-- Emergency Terminate -->
-            <div class="mt-12 text-center z-10">
+            <div class="mt-16 text-center z-10">
                 <form method="POST" action="{% url 'logout' %}">
                     {% csrf_token %}
-                    <button type="submit" class="text-[10px] text-slate-500 hover:text-red-400 transition-colors uppercase tracking-[0.2em] font-mono flex items-center justify-center gap-2 group">
-                        <i class="fas fa-power-off group-hover:animate-pulse"></i> Force Terminate Session
+                    <button type="submit" class="text-[9px] text-slate-600 hover:text-red-500 transition-colors uppercase tracking-[0.3em] font-mono flex items-center justify-center gap-2 group">
+                        [ Terminate Session ]
                     </button>
                 </form>
             </div>
@@ -449,18 +445,16 @@
                         sessionStorage.removeItem('qt_locked');
                         
                         const overlay = document.getElementById('global-lockscreen-overlay');
-                        overlay.classList.add('opacity-0', 'scale-110');
+                        overlay.classList.add('opacity-0');
                         setTimeout(() => {
                             overlay.classList.add('hidden');
                             overlay.classList.remove('flex');
                             pinInput.value = '';
-                            pinPrompt.textContent = 'Enter Authorization Key';
+                            pinPrompt.textContent = 'Authentication Required';
                             pinPrompt.classList.remove('text-red-500');
-                            pinInput.classList.remove('border-red-500', 'ring-red-500');
-                        }, 700);
+                        }, 300);
                     } else {
                         pinInput.value = '';
-                        pinInput.classList.add('border-red-500', 'ring-red-500');
                         pinPrompt.textContent = 'ACCESS DENIED';
                         pinPrompt.classList.add('text-red-500');
                         
