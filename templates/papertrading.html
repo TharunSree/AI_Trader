@@ -146,7 +146,8 @@
   function ensureUptimeStart(){
     if(!localStorage.getItem(UPTIME_KEY)){
       localStorage.setItem(UPTIME_KEY,String(now()));
-    }}
+    }
+  }
   function clearUptime(){
     localStorage.removeItem(UPTIME_KEY);
     document.getElementById('uptime-badge').textContent='00:00:00';
@@ -172,15 +173,16 @@
     const trOpts = {
       chart: { type: 'area', height: '100%', toolbar: { show: false }, animations: { enabled: true }, foreColor: textColor },
       series: [{ name: 'Equity', data: [] }],
-      xaxis: { type: 'datetime', tooltip: { enabled: false }, axisBorder: { show: false }, axisTicks: { show: false }},
-      yaxis: { labels: { formatter: v => '$' + fmtNum(v), style: { fontSize: '10px', fontFamily: 'Roboto Mono' }} },
+      xaxis: { type: 'datetime', tooltip: { enabled: false }, axisBorder: { show: false }, axisTicks: { show: false } },
+      yaxis: { labels: { formatter: v => '$' + fmtNum(v), style: { fontSize: '10px', fontFamily: 'Roboto Mono' } } },
       dataLabels: { enabled: false },
       stroke: { curve: 'smooth', width: 2 },
       colors: ['#3b82f6'],
-      fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.0, stops: [0, 100] }},
-      noData: { text: 'AWAITING TELEMETRY', style: { color: textColor, fontSize: '10px', fontFamily: 'Roboto Mono' }},
+      fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.0, stops: [0, 100] } },
+      noData: { text: 'AWAITING TELEMETRY', style: { color: textColor, fontSize: '10px', fontFamily: 'Roboto Mono' } },
       grid: { borderColor: gridColor, strokeDashArray: 4 },
-      tooltip: { theme: isDark ? 'dark' : 'light' }};
+      tooltip: { theme: isDark ? 'dark' : 'light' }
+    };
     equityChart = new ApexCharts(document.querySelector('#equity-chart'), trOpts);
     equityChart.render();
   }

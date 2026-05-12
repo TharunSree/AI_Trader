@@ -212,13 +212,16 @@ document.addEventListener('DOMContentLoaded', () => {
                    for(let line of lines) {
                        if (line.trim() !== "") {
                            html += "<div>" + formatLogLine(line) + "</div>";
-                       }}
+                       }
+                   }
                    termOpt.innerHTML = html || "<span class='text-slate-500 dark:text-slate-400 dark:text-slate-500'>Awaiting engine boot Sequence...</span>";
                    
                    if(autoScroll) {
                        termOpt.scrollTop = termOpt.scrollHeight;
-                   }}
-            }})
+                   }
+               }
+            }
+          })
           .catch(e => console.error(e));
       }
       pollTerminal();
@@ -260,7 +263,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const goalEl = document.getElementById("dyn-live-pnl-goal");
                     if (goalEl && traderData.goal_amount) {
                          goalEl.textContent = ` / $${parseFloat(traderData.goal_amount).toFixed(2)} GOAL`;
-                    }}
+                    }
+                }
                 
                 // Update active positions grid across cluster if available
                 if (data.positions) {
@@ -283,8 +287,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </tr>`;
                                 tbody.insertAdjacentHTML('beforeend', row);
                             });
-                        }}
-                }}).catch(e => console.error("Telemetry Error", e));
+                        }
+                    }
+                }
+            }).catch(e => console.error("Telemetry Error", e));
     }
     
     // Auto sync dashboard data 
@@ -308,7 +314,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     btn.innerHTML = originalHtml;
                     btn.className = originalColor;
                 }, 2000);
-            }});
+            }
+        });
     };
     
     window.clearLogs = function() {
@@ -322,18 +329,20 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (document.querySelector("#model-profit-chart")) {
         const eqOpts = {
-            chart: { type: 'area', height: 200, toolbar: { show: false }, background: 'transparent', animations: { enabled: false }},
+            chart: { type: 'area', height: 200, toolbar: { show: false }, background: 'transparent', animations: { enabled: false } },
             dataLabels: { enabled: false },
             stroke: { curve: 'stepline', width: 2 },
-            xaxis: { type: 'datetime', labels: { style: { colors: '#64748b' }}, axisBorder: { show: false }, axisTicks: { show: false }},
-            grid: { borderColor: '#334155', strokeDashArray: 4, xaxis: { lines: { show: false }} },
+            xaxis: { type: 'datetime', labels: { style: { colors: '#64748b' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+            grid: { borderColor: '#334155', strokeDashArray: 4, xaxis: { lines: { show: false } } },
             theme: { mode: 'dark' },
             series: [{ name: 'Accumulated Profit', data: mappedSeries }],
             colors: ['#10b981'],
-            fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.05, stops: [0, 100] }},
-            yaxis: { labels: { formatter: v => "$" + Number(v).toLocaleString(undefined, { maximumFractionDigits: 0 }), style: { colors: '#64748b' }} }};
+            fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.05, stops: [0, 100] } },
+            yaxis: { labels: { formatter: v => "$" + Number(v).toLocaleString(undefined, { maximumFractionDigits: 0 }), style: { colors: '#64748b' } } }
+        };
         const profitChart = new ApexCharts(document.querySelector("#model-profit-chart"), eqOpts);
         profitChart.render();
-    }});
+    }
+});
 </script>
 {% endblock extra_javascript %}
