@@ -1660,3 +1660,22 @@ def trigger_mutation_api(request):
     return redirect('models_hub')
 
 
+
+import subprocess
+@login_required
+def system_update_api(request):
+    if request.method == 'POST':
+        try:
+            result = subprocess.run(
+                ['git', 'pull', 'origin', 'master'],
+                capture_output=True,
+                text=True,
+                check=False
+            )
+            return JsonResponse({
+                'status': 'success',
+                'output': result.stdout + '\n' + result.stderr
+            })
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'error': str(e)}, status=500)
+    return JsonResponse({'error': 'Invalid method'}, status=405)
