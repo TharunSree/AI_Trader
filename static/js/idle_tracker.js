@@ -13,6 +13,8 @@ class IdleTelemetryEngine {
         // Defaults, will be overridden by fetch
         this.lockThreshold = 0;
         this.logoutThreshold = 0;
+        
+        this.isLoggingOut = false;
 
         this.initListeners();
         this.fetchConfig();
@@ -69,6 +71,8 @@ class IdleTelemetryEngine {
 
     startEngine() {
         setInterval(() => {
+            if (this.isLoggingOut) return;
+            
             const idleTime = Date.now() - this.lastActivity;
 
             // Phase 2: Complete Logout
@@ -106,6 +110,9 @@ class IdleTelemetryEngine {
     }
 
     triggerLogout() {
+        if (this.isLoggingOut) return;
+        this.isLoggingOut = true;
+        
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = this.logoutUrl;
@@ -113,7 +120,16 @@ class IdleTelemetryEngine {
         const csrfInput = document.createElement('input');
         csrfInput.type = 'hidden';
         csrfInput.name = 'csrfmiddlewaretoken';
-        csrfInput.value = document.cookie.split('; ').find(row => row.startsWith('csrftoken=')).split('=')[1];
+        
+        // Handle case where cookie might not exist or be structured differently
+        const cookieRow = document.cookie.split('; ').find(row => row.startsWith('csrftoken='));
+        if (cookieRow) {
+            csrfInput.value = cookieRow.split('=')[1];
+        } else {
+            // Fallback: look for csrf token in DOM
+            const domCsrf = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (domCsrf) csrfInput.value = domCsrf.value;
+        }
         
         form.appendChild(csrfInput);
         document.body.appendChild(form);
