@@ -1690,8 +1690,25 @@ def system_update_stream(request):
                 text=True,
                 bufsize=1
             )
-            for line in process.stdout:
+            
+            # Read line by line with a heartbeat fallback
+            import time as _time
+            last_heartbeat = _time.time()
+
+            while True:
+                line = process.stdout.readline()
+                if not line:
+                    if process.poll() is not None:
+                        break
+                    # Send a heartbeat every 5 seconds of silence to keep proxies alive
+                    if _time.time() - last_heartbeat > 5:
+                        yield ": ping\n\n"
+                        last_heartbeat = _time.time()
+                    _time.sleep(0.1) # Small sleep to prevent CPU spiking
+                    continue
                 yield f"data: {line}\n\n"
+                last_heartbeat = _time.time()
+
             process.wait()
             if process.returncode != 0:
                 yield f"data: [ERROR] Git pull failed with code {process.returncode}\n\n"
@@ -1708,8 +1725,21 @@ def system_update_stream(request):
                 text=True,
                 bufsize=1
             )
-            for line in mig_process.stdout:
+            
+            last_heartbeat = _time.time()
+            while True:
+                line = mig_process.stdout.readline()
+                if not line:
+                    if mig_process.poll() is not None:
+                        break
+                    if _time.time() - last_heartbeat > 5:
+                        yield ": ping\n\n"
+                        last_heartbeat = _time.time()
+                    _time.sleep(0.1)
+                    continue
                 yield f"data: {line}\n\n"
+                last_heartbeat = _time.time()
+
             mig_process.wait()
             if mig_process.returncode != 0:
                 yield f"data: [ERROR] Migration failed with code {mig_process.returncode}\n\n"
@@ -1724,6 +1754,7 @@ def system_update_stream(request):
 
     response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
     response['Cache-Control'] = 'no-cache'
+    response['X-Accel-Buffering'] = 'no'  # Disable NGINX buffering
     return response
 
 def security_status_api(request):
