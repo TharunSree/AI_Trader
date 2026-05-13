@@ -313,7 +313,7 @@ class AITradingEngine:
 
             # 1. Market Clock Sync Check
             # Crypto trades 24/7 — only enforce NYSE sleep for stock symbols
-            is_crypto = any(s for s in (self._affordable_tickers or [self.symbol]) if '/USD' in str(s))
+            is_crypto = any(s for s in (self._affordable_tickers or [self.symbol]) if '/USD' in str(s) or '-USD' in str(s))
             if not is_crypto:
                 clock_data = await asyncio.to_thread(self.broker.get_market_clock)
                 if clock_data:

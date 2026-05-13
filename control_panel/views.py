@@ -949,44 +949,23 @@ def evaluation_view(request):
             end_date=request.POST.get('end_date'),
             status='PENDING'
         )
-        from src.sessions.evaluation_session import EvaluationSession
-        try:
-            results = EvaluationSession({
-                'model_file': job.model_file,
-                'start_date': str(job.start_date),
-                'end_date': str(job.end_date),
-            }).run()
-            job.results = results
-            job.status = 'COMPLETED'
-            job.save(update_fields=['results', 'status'])
-            
-            try:
-                from src.reporting.email_dispatcher import send_node_status_email
-                send_node_status_email(
-                    node_type="Evaluation Engine",
-                    identifier=f"Eval #{job.id}",
-                    status="COMPLETED",
-                    message=f"Model execution metrics successfully parsed. Sharpe: {results.get('sharpe_ratio', '-')}, ROI: {results.get('total_return_pct', '-')}%. Open the analytics terminal to view detail."
-                )
-            except Exception:
-                pass
-            
-            messages.success(request, f"Evaluation #{job.id} completed.")
-        except Exception as exc:
-            job.status = 'FAILED'
-            job.error_message = str(exc)
-            job.save(update_fields=['status', 'error_message'])
-            try:
-                from src.reporting.email_dispatcher import send_node_status_email
-                send_node_status_email(
-                    node_type="Evaluation Engine",
-                    identifier=f"Eval #{job.id}",
-                    status="FAILED",
-                    message=f"Traceback fault: {exc}"
-                )
-            except Exception:
-                pass
-            messages.error(request, f"Evaluation failed: {exc}")
+        
+        import sys
+        from pathlib import Path
+        
+        log_dir = Path(__file__).parent.parent / "logs"
+        log_dir.mkdir(exist_ok=True)
+        log_file = log_dir / f"eval_job_{job.id}.log"
+        
+        process = _spawn_background_process(
+            [sys.executable, "run_evaluation_job.py", "--job_id", str(job.id)],
+            log_file,
+        )
+        
+        job.celery_task_id = str(process.pid)
+        job.save(update_fields=['celery_task_id'])
+        
+        messages.success(request, f"Evaluation sequence #E{job.id} initiated in background.")
         return redirect('evaluation_lab')
 
     return redirect('evaluation_lab')
@@ -1050,6 +1029,7 @@ def evaluation_report_view(request, job_id):
 def job_status_api(request):
     training_jobs = TrainingJob.objects.exclude(name__startswith='Meta Best')
     meta_jobs = MetaTrainingJob.objects.all()
+    evaluation_jobs = EvaluationJob.objects.all()
 
     for job in training_jobs:
         if job.status == 'RUNNING' and job.celery_task_id and not _process_is_running(job.celery_task_id):
@@ -1063,6 +1043,13 @@ def job_status_api(request):
             job.status = 'FAILED'
             if not job.error_message:
                 job.error_message = "Meta-training process stopped before completion."
+            job.save(update_fields=['status', 'error_message'])
+
+    for job in evaluation_jobs:
+        if job.status == 'RUNNING' and job.celery_task_id and not _process_is_running(job.celery_task_id):
+            job.status = 'FAILED'
+            if not job.error_message:
+                job.error_message = "Evaluation process stopped before completion."
             job.save(update_fields=['status', 'error_message'])
 
     data = {
@@ -1083,19 +1070,36 @@ def job_status_api(request):
                 'best_sharpe_ratio': job.results.get('sharpe_ratio', 0.0) if job.results else 0.0,
                 'error_message': job.error_message or ''
             } for job in meta_jobs
+        ],
+        'evaluation_jobs': [
+            {
+                'id': job.id,
+                'status': job.status,
+                'progress': 100 if job.status == 'COMPLETED' else 0,
+                'sharpe_ratio': job.results.get('sharpe_ratio', 0.0) if job.results else 0.0,
+                'error_message': job.error_message or ''
+            } for job in evaluation_jobs
         ]
     }
     return JsonResponse(data)
 
 @login_required
 def job_logs_api(request, job_type, job_id):
-    from pathlib import Path
+    from control_panel.models import EvaluationJob
     log_dir = Path(__file__).parent.parent / "logs"
-    job_model = MetaTrainingJob if job_type == 'meta' else TrainingJob
+    if job_type == 'meta':
+        job_model = MetaTrainingJob
+    elif job_type == 'eval':
+        job_model = EvaluationJob
+    else:
+        job_model = TrainingJob
+        
     job = job_model.objects.filter(id=job_id).first()
 
     if job_type == 'meta':
         log_file = log_dir / f"meta_job_{job_id}.log"
+    elif job_type == 'eval':
+        log_file = log_dir / f"eval_job_{job_id}.log"
     else:
         log_file = log_dir / f"train_job_{job_id}.log"
 

@@ -21,6 +21,7 @@
                         brand: {
                             50: '#eff6ff',
                             100: '#dbeafe',
+                            400: '#60a5fa',
                             500: '#3b82f6',
                             600: '#2563eb',
                             700: '#1d4ed8',
@@ -68,10 +69,10 @@
         #app-sidebar.collapsed nav a { justify-content: center; padding-left: 0; padding-right: 0; }
         #app-sidebar.collapsed nav a i { margin: 0; }
         #app-sidebar.collapsed .sidebar-logo { justify-content: center; padding-left: 0; padding-right: 0; }
-        #app-sidebar.collapsed .sidebar-logo .flex-shrink-0:first-child { display: none; }
-        #app-sidebar.collapsed .sidebar-logo > div { justify-content: center; width: 100%; }
-        #app-sidebar.collapsed #sidebar-collapse-btn { margin-left: 0; }
-        #app-sidebar.collapsed .sidebar-footer { justify-content: center; }
+        #app-sidebar.collapsed .sidebar-logo > div { justify-content: center; width: auto; gap: 0; }
+        #app-sidebar.collapsed #sidebar-collapse-btn { position: absolute; right: -12px; top: 20px; background: white; border: 1px solid #e2e8f0; width: 24px; height: 24px; z-index: 60; }
+        .dark #app-sidebar.collapsed #sidebar-collapse-btn { background: #1e293b; border-color: #334155; }
+        #app-sidebar.collapsed #sidebar-collapse-btn i { margin-left: 2px; }
         #app-sidebar.collapsed .sidebar-footer button { justify-content: center; padding-left: 0; padding-right: 0; }
 
         /* Mobile off-canvas */
@@ -100,11 +101,11 @@
         <aside id="app-sidebar" class="w-64 flex-shrink-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-colors duration-300 z-50">
             <!-- Logo Area -->
             <div class="h-16 flex items-center px-4 border-b border-slate-200 dark:border-slate-800 sidebar-logo">
-                <div class="flex items-center gap-3 w-full">
+                <div class="flex items-center justify-between w-full">
                     <div class="w-8 h-8 rounded bg-brand-600 flex items-center justify-center text-white font-bold font-mono flex-shrink-0">Q</div>
                     <span class="sidebar-logo-text text-sm font-bold tracking-tight text-slate-900 dark:text-white uppercase">QuantTrader</span>
                     <!-- Collapse toggle (desktop only) -->
-                    <button id="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" class="ml-auto hidden md:flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300 transition-colors flex-shrink-0" title="Collapse sidebar">
+                    <button id="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" class="hidden md:flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300 transition-colors flex-shrink-0" title="Collapse sidebar">
                         <i class="fas fa-angles-left text-xs" id="collapse-icon"></i>
                     </button>
                     <!-- Close button (mobile only) -->
