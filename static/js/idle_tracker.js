@@ -15,6 +15,7 @@ class IdleTelemetryEngine {
         this.logoutThreshold = 0;
         
         this.isLoggingOut = false;
+        console.log("[SECURITY] IdleTelemetryEngine initializing (status=" + statusUrl + ")");
 
         this.initListeners();
         this.fetchConfig();

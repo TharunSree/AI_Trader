@@ -1758,7 +1758,16 @@ def lockscreen_api(request):
         settings = SystemSettings.load()
         password = request.POST.get('password', '')
         
-        if not settings.lockscreen_password or password == settings.lockscreen_password:
+        # Support both hashed (from admin) and plain text (legacy/simple)
+        is_correct = False
+        if settings.lockscreen_password:
+            from django.contrib.auth.hashers import check_password
+            if check_password(password, settings.lockscreen_password):
+                is_correct = True
+            elif password == settings.lockscreen_password:
+                is_correct = True
+        
+        if not settings.lockscreen_password or is_correct:
             return JsonResponse({'status': 'success'})
         return JsonResponse({'status': 'error', 'message': 'Incorrect Passcode'})
     return JsonResponse({'error': 'Invalid method'}, status=405)

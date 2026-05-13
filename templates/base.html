@@ -549,11 +549,19 @@
             unlockForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 const fd = new FormData(unlockForm);
+                const csrfToken = fd.get('csrfmiddlewaretoken');
+                
                 fetch(unlockForm.action, {
                     method: 'POST',
                     body: fd,
-                    headers: {'X-Requested-With': 'XMLHttpRequest'}
-                }).then(r => r.json()).then(data => {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken
+                    }
+                }).then(r => {
+                    if (!r.ok) throw new Error("Network Response Fail");
+                    return r.json();
+                }).then(data => {
                     if (data.status === 'success') {
                         // Unlock
                         window.qtIdleEngine.isLocked = false;

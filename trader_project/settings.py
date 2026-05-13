@@ -277,6 +277,14 @@ if TRUST_X_FORWARDED_PROTO:
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+    
+    # GCloud / Production Trusted Origins
+    trusted_origins = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
+    if trusted_origins:
+        CSRF_TRUSTED_ORIGINS = trusted_origins.split(',')
+    else:
+        # Default fallback for common GCloud domains if not specified
+        CSRF_TRUSTED_ORIGINS = ['https://*.a.run.app', 'https://*.appspot.com']
 
 # ── SMTP Configuration (Phase 14 Email Dispatch) ──
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
