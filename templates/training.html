@@ -22,8 +22,8 @@
         <form action="{% url 'start_meta_job' %}" method="POST" id="form-meta-job" class="relative z-10"
             onsubmit="event.preventDefault(); window.launchOverlay(this, 'SPINNING UP META-COACH PIPELINES...');">
             {% csrf_token %}
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                <div class="col-span-2">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div class="sm:col-span-2">
                     <label for="meta_ticker" class="block text-xs uppercase tracking-widest text-slate-500 mb-2">Asset Target</label>
                     <select id="meta_ticker" name="ticker"
                         class="w-full bg-slate-900 border border-slate-800 rounded px-4 py-2 text-white focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-all appearance-none">
@@ -73,8 +73,8 @@
         <form action="{% url 'start_training_job' %}" method="POST" id="form-single-job" class="relative z-10"
             onsubmit="event.preventDefault(); window.launchOverlay(this, 'CONNECTING TO DEDICATED MODEL...');">
             {% csrf_token %}
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                <div class="col-span-2">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div class="sm:col-span-2">
                     <label for="single_ticker" class="block text-xs uppercase tracking-widest text-slate-500 mb-2">Asset Target</label>
                     <select id="single_ticker" name="ticker"
                         class="w-full bg-slate-900 border border-slate-800 rounded px-4 py-2 text-white focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all appearance-none">
