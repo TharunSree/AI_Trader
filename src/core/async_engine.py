@@ -61,6 +61,7 @@ class AITradingEngine:
         self.agent.load_weights_from_bytes(read_model_bytes(self.model_path), self.model_path)
         
         self.current_sentiment = 0.0
+        self._affordable_tickers = None
 
     def _read_checkpoint_shape(self):
         checkpoint = torch.load(
@@ -416,9 +417,6 @@ class AITradingEngine:
             broker = self.broker
             
             # Dynamic Affordable Basket — uses Alpaca's native asset list instead of CCXT
-            if not hasattr(self, '_affordable_tickers'):
-                self._affordable_tickers = None
-
             if not self._affordable_tickers:
                 def fetch_alpaca_crypto():
                     try:
