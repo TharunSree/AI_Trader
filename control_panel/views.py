@@ -200,6 +200,7 @@ def _get_trader_stats(trader):
         'trade_count': trade_count,
         'total_notional': float(total_notional or 0),
         'live_net_profit': float(sell_notional - buy_notional),
+        'active_principal': active_principal,
         'goal_amount': float(trader.goal_amount or 0.0),
         'initial_cash': float(trader.initial_cash or 0.0),
         'account_id': trader.account_id,
@@ -207,8 +208,6 @@ def _get_trader_stats(trader):
         'last_trade_at': last_trade.timestamp.isoformat() if last_trade else '',
         'last_symbol': last_trade.symbol if last_trade else '',
         'error_message': trader.error_message or '',
-        'initial_cash': float(trader.initial_cash or 0),
-        'active_principal': float(active_principal),
     }
 
 
@@ -556,7 +555,7 @@ def papertrading_view(request):
     except Exception:
         live_equity = 100000.00
         buying_power = 100000.00
-        clock_data = {}
+        clock_data = {"is_open": False, "is_crypto_open": True}
         pass
 
     # Advanced Tracing Metrics for Live Nodes
@@ -621,7 +620,7 @@ def model_detail_view(request, trader_id):
     
     # We must traverse the full unpaginated QS for global math totals
     for trade in trades_qs:
-        notional = float(getattr(trade, 'notional_value', float(trade.quantity) * float(trade.price)))
+        notional = float(getattr(trade, 'notional_value', float(trade.quantity or 0) * float(trade.price or 0)))
         if trade.action == 'BUY':
             capital_spent += notional
         elif trade.action == 'SELL':
@@ -635,7 +634,7 @@ def model_detail_view(request, trader_id):
     run_rec = 0.0
     chronological_trades = trader.trades.all().order_by('timestamp')
     for ct in chronological_trades:
-        nv = float(getattr(ct, 'notional_value', float(ct.quantity) * float(ct.price)))
+        nv = float(getattr(ct, 'notional_value', float(ct.quantity or 0) * float(ct.price or 0)))
         if ct.action == 'BUY': run_spend += nv
         if ct.action == 'SELL': run_rec += nv
         net = run_rec - run_spend if run_rec > 0 else -run_spend

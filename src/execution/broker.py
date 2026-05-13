@@ -81,7 +81,8 @@ class Broker:
             return {
                 "is_open": clock.is_open,
                 "next_open": clock.next_open.isoformat(),
-                "next_close": clock.next_close.isoformat()
+                "next_close": clock.next_close.isoformat(),
+                "is_crypto_open": True
             }
         except Exception as e:
             logger.warning(f"Failed to fetch market clock: {e}")
