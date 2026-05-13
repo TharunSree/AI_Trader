@@ -1049,7 +1049,7 @@ def evaluation_report_view(request, job_id):
 # control_panel/views.py (update job_status_api)
 @login_required
 def job_status_api(request):
-    training_jobs = TrainingJob.objects.all()
+    training_jobs = TrainingJob.objects.exclude(name__startswith='Meta Best')
     meta_jobs = MetaTrainingJob.objects.all()
 
     for job in training_jobs:

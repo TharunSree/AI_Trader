@@ -232,7 +232,7 @@ def main():
             if meta_job:
                 artifact_info = _persist_meta_best_artifact(meta_job, s, best_agent, PRINCIPAL, sorted_results)
                 log.info(
-                    f"Saved modern meta-training artifact as {artifact_info['model_reference']} and {artifact_info['disk_model_file']}"
+                    f"Saved meta-training artifact as {artifact_info['model_reference']} (DB-only, no disk file)"
                 )
             else:
                 save_dir = Path("saved_models")
