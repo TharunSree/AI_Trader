@@ -64,7 +64,8 @@ class Broker:
     def _refresh_account(self):
         try:
             return self.api.get_account()
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Account refresh failed: {e}")
             return None
 
     def get_equity(self) -> float:
@@ -91,9 +92,9 @@ class Broker:
     def get_positions(self) -> list:
         try:
             return self.api.list_positions()
-        except APIError as e:
+        except Exception as e:
             logger.error(f"Get positions failed: {e}")
-            return []
+            return None
 
     def _get_market_times_ist(self) -> dict:
         """Get market times in both ET and IST"""

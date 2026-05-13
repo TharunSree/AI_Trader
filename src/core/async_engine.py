@@ -133,6 +133,10 @@ class AITradingEngine:
     async def execute_trade(self, action, current_price):
         # Position awareness
         positions = await asyncio.to_thread(self.broker.get_positions)
+        if positions is None:
+            logger.warning(f"[JARVIS] Could not verify positions for {self.symbol}. Skipping trade cycle.")
+            return
+            
         held_qty = 0.0
         avg_entry = 0.0
         for p in positions:
@@ -344,9 +348,23 @@ class AITradingEngine:
                 import time as _time
                 _now = _time.time()
                 if self._cached_account is None or (_now - self._account_cache_time) > 60:
-                    self._cached_account = await asyncio.to_thread(self.broker.api.get_account)
-                    self._account_cache_time = _now
+                    try:
+                        # Wrap in a robust thread call to handle transient RemoteDisconnected errors
+                        self._cached_account = await asyncio.to_thread(self.broker.api.get_account)
+                        self._account_cache_time = _now
+                    except Exception as api_err:
+                        logger.warning(f"[JARVIS] Alpaca Telemetry Drop: {api_err}. Re-using stale cache.")
+                        if self._cached_account is None:
+                            # Critical on first run: if we can't even get initial equity, we must wait
+                            logger.error("[JARVIS] Initial account sync failed. Postponing cycle...")
+                            await asyncio.sleep(5)
+                            continue
+
                 account = self._cached_account
+                if account is None:
+                    await asyncio.sleep(2)
+                    continue
+                    
                 live_equity = float(account.equity)
                 
                 trader_active = await asyncio.to_thread(lambda: PaperTrader.objects.prefetch_related('trades').get(id=self.trader_id))
