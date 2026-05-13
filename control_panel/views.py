@@ -426,7 +426,8 @@ def onboarding_view(request):
 def training_view(request):
     from django.core.paginator import Paginator
 
-    all_jobs_query = TrainingJob.objects.all().order_by('-id')
+    # Exclude meta-generated artifact jobs (these show in Models Hub, not here)
+    all_jobs_query = TrainingJob.objects.exclude(name__startswith='Meta Best').order_by('-id')
     meta_jobs_query = MetaTrainingJob.objects.all().order_by('-id')
     
     job_page_num = request.GET.get('job_page', 1)

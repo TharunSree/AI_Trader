@@ -179,6 +179,12 @@ class PPOAgent:
         torch.save(self.policy.state_dict(), filepath)
         logger.info(f"Champion weights safely saved to: {filepath}")
 
+    def save_weights_to_buffer(self, buffer):
+        """Serializes weights to a BytesIO buffer (no disk write needed)."""
+        torch.save(self.policy.state_dict(), buffer)
+        buffer.seek(0)
+        logger.info("Champion weights serialized to memory buffer.")
+
     def load_weights(self, filepath: str = "best_model.pth"):
         """Loads weights. Used by the Live Engine."""
         if not Path(filepath).exists():

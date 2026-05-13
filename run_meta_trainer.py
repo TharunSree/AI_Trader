@@ -23,18 +23,28 @@ import os
 
 def _persist_meta_best_artifact(meta_job, best_strategy, best_agent, principal, sorted_results):
     from control_panel.models import TrainingJob
+    import io
 
     feature_key = best_strategy["feat_key"]
     param_key = best_strategy["param_key"]
     window = int(best_strategy["window"])
-    safe_name = f"meta_best_{meta_job.id if meta_job else 'manual'}_{feature_key}_w{window}.pth"
 
-    save_dir = Path("saved_models")
-    save_dir.mkdir(parents=True, exist_ok=True)
-    save_path = save_dir / safe_name
-    best_agent.save_weights(str(save_path))
+    # Serialize weights to memory buffer (no disk file — DB is the single source of truth)
+    buffer = io.BytesIO()
+    best_agent.save_weights_to_buffer(buffer)
+    model_blob = buffer.getvalue()
 
-    model_blob = save_path.read_bytes()
+    # If save_weights_to_buffer doesn't exist, fall back to temp disk save
+    if not model_blob:
+        save_dir = Path("saved_models")
+        save_dir.mkdir(parents=True, exist_ok=True)
+        safe_name = f"meta_best_{meta_job.id if meta_job else 'manual'}_{feature_key}_w{window}.pth"
+        save_path = save_dir / safe_name
+        best_agent.save_weights(str(save_path))
+        model_blob = save_path.read_bytes()
+        # Clean up disk copy since DB is authoritative
+        save_path.unlink(missing_ok=True)
+
     artifact_job = TrainingJob.objects.create(
         name=f"Meta Best - {feature_key} / {param_key} / W{window}",
         feature_set_key=feature_key,
@@ -50,7 +60,7 @@ def _persist_meta_best_artifact(meta_job, best_strategy, best_agent, principal, 
     return {
         "training_job_id": artifact_job.id,
         "model_reference": artifact_job.model_reference,
-        "disk_model_file": safe_name,
+        "disk_model_file": None,  # DB is the single source of truth
         "feature_set_key": feature_key,
         "hyperparameter_key": param_key,
         "window_size": window,
