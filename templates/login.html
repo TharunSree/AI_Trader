@@ -31,9 +31,10 @@
                         }
                     },
                     animation: {
-                        'fade-in': 'fadeIn 0.8s ease-out forwards',
+                        'fade-in': 'fadeIn 1s ease-out forwards',
                         'slide-up': 'slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'glow': 'glow 4s ease-in-out infinite alternate',
                     },
                     keyframes: {
                         fadeIn: {
@@ -41,8 +42,16 @@
                             '100%': { opacity: '1' },
                         },
                         slideUp: {
-                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '0%': { opacity: '0', transform: 'translateY(30px)' },
                             '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        glow: {
+                            '0%': { boxShadow: '0 0 15px rgba(125,196,228,0.1)' },
+                            '100%': { boxShadow: '0 0 30px rgba(125,196,228,0.4)' },
                         }
                     }
                 }
@@ -58,90 +67,90 @@
             color: #cad3f5; /* text */
             font-family: 'JetBrains Mono', monospace;
         }
-        .bg-grid-pattern {
-            background-size: 40px 40px;
-            background-image: linear-gradient(to right, rgba(202, 211, 245, 0.03) 1px, transparent 1px),
-                              linear-gradient(to bottom, rgba(202, 211, 245, 0.03) 1px, transparent 1px);
-        }
         .glass-panel {
-            background: rgba(30, 32, 48, 0.6); /* mantle */
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(54, 58, 79, 0.5); /* surface0 */
+            background: rgba(30, 32, 48, 0.4); /* mantle with high transparency */
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(138, 173, 244, 0.2); /* blue border */
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .input-glass {
+            background: rgba(24, 25, 38, 0.5); /* crust */
+            backdrop-filter: blur(8px);
         }
     </style>
 </head>
-<body class="min-h-screen flex overflow-hidden">
+<body class="min-h-screen flex items-center justify-end overflow-hidden relative">
     
-    <!-- Left Side: Artwork -->
-    <div class="hidden lg:block lg:w-1/2 relative bg-macchiato-mantle overflow-hidden animate-fade-in">
-        <div class="absolute inset-0 bg-macchiato-crust/20 z-10"></div>
-        <img src="{% static 'img/login_art.png' %}" alt="Algorithmic Trading Neural Web" class="absolute inset-0 w-full h-full object-cover opacity-90 scale-105 transform hover:scale-110 transition-transform duration-[20s] ease-out">
-        <div class="absolute inset-0 bg-gradient-to-r from-transparent to-macchiato-crust z-20 pointer-events-none"></div>
+    <!-- Full Screen Background Image -->
+    <div class="absolute inset-0 z-0 bg-macchiato-crust overflow-hidden">
+        <!-- The image will display sharply. User can replace 'login_art.jpg' with their own high-res asset -->
+        <img src="{% static 'img/login_art.jpg' %}" alt="Algorithmic Trading Background" class="w-full h-full object-cover opacity-60 scale-105 transform hover:scale-110 transition-transform duration-[30s] ease-out mix-blend-screen">
         
-        <!-- Artwork Overlay Text -->
-        <div class="absolute bottom-12 left-12 z-30 max-w-md">
-            <h1 class="text-3xl font-bold tracking-tight text-white mb-2 shadow-sm">Institutional Grade <br><span class="text-macchiato-sapphire">Neural Execution</span></h1>
-            <p class="text-macchiato-subtext0 text-sm leading-relaxed">Powered by proprietary reinforcement learning protocols, securing alpha dynamically across volatile asset classes.</p>
-        </div>
+        <!-- Gradient Overlay to ensure text readability and smooth blending to the form side -->
+        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-macchiato-crust/50 to-macchiato-crust z-10 pointer-events-none"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-macchiato-crust via-transparent to-macchiato-crust/50 z-10 pointer-events-none"></div>
+    </div>
+    
+    <!-- Floating Text on the left side -->
+    <div class="absolute left-16 bottom-16 z-20 max-w-lg hidden lg:block animate-fade-in">
+        <h1 class="text-5xl font-bold tracking-tight text-white mb-4 drop-shadow-lg">Institutional Grade <br><span class="text-transparent bg-clip-text bg-gradient-to-r from-macchiato-sapphire to-macchiato-blue">Neural Execution</span></h1>
+        <p class="text-macchiato-text text-base leading-relaxed drop-shadow-md">Securing dynamic alpha through proprietary deep reinforcement learning protocols across volatile asset classes.</p>
     </div>
 
-    <!-- Right Side: Login Panel -->
-    <div class="w-full lg:w-1/2 flex items-center justify-center relative bg-macchiato-crust bg-grid-pattern">
-        
-        <!-- Ambient glow -->
-        <div class="absolute top-1/4 -right-20 w-96 h-96 bg-macchiato-blue/10 rounded-full blur-[100px] pointer-events-none animate-pulse-slow"></div>
-        
-        <div class="w-full max-w-md px-6 relative z-10">
-            <div class="glass-panel shadow-2xl rounded-2xl p-10 animate-slide-up">
+    <!-- Login Panel -->
+    <div class="w-full lg:w-[500px] px-6 relative z-30 lg:mr-32 animate-slide-up">
+        <div class="glass-panel rounded-3xl p-10 animate-float">
+            
+            <!-- Logo Header -->
+            <div class="flex flex-col items-center mb-10 justify-center">
+                <div class="w-16 h-16 rounded-2xl bg-macchiato-sapphire/10 border border-macchiato-sapphire/30 flex items-center justify-center text-macchiato-sapphire font-bold text-3xl mb-4 animate-glow">
+                    Q
+                </div>
+                <h2 class="text-2xl font-bold tracking-tight text-white uppercase text-center">QuantTrader</h2>
+                <p class="text-xs text-macchiato-blue tracking-[0.3em] uppercase mt-1 text-center font-bold">Node Access</p>
+            </div>
+
+            {% if form.errors %}
+            <div class="bg-macchiato-red/10 border border-macchiato-red/30 text-macchiato-red px-4 py-3 rounded-xl text-xs uppercase tracking-widest mb-8 flex items-center gap-3 animate-fade-in shadow-sm backdrop-blur-md">
+                <i class="fas fa-exclamation-circle text-sm"></i>
+                Access Denied. Verify Credentials.
+            </div>
+            {% endif %}
+
+            <form method="post" action="{% url 'login' %}" class="space-y-6">
+                {% csrf_token %}
                 
-                <div class="flex items-center gap-4 mb-10 justify-center">
-                    <div class="w-12 h-12 rounded-xl bg-macchiato-sapphire/10 border border-macchiato-sapphire/30 flex items-center justify-center text-macchiato-sapphire font-bold text-2xl shadow-[0_0_15px_rgba(125,196,228,0.2)]">Q</div>
-                    <div>
-                        <h2 class="text-2xl font-bold tracking-tight text-white uppercase shadow-sm">QuantTrader</h2>
-                        <p class="text-[11px] text-macchiato-overlay0 tracking-[0.2em] uppercase mt-0.5">Control Interface</p>
+                <div class="space-y-2 group relative">
+                    <label class="block text-[10px] font-bold text-macchiato-subtext0 uppercase tracking-[0.2em] transition-colors group-focus-within:text-macchiato-sapphire ml-1" for="id_username">Operator ID</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i class="fas fa-user-astronaut text-macchiato-overlay0 group-focus-within:text-macchiato-sapphire transition-colors text-lg"></i>
+                        </div>
+                        <input type="text" name="username" id="id_username" class="input-glass w-full border border-macchiato-surface0/50 text-white rounded-xl pl-12 pr-4 py-3.5 text-sm outline-none focus:border-macchiato-sapphire focus:ring-1 focus:ring-macchiato-sapphire transition-all placeholder-macchiato-surface1 shadow-inner" placeholder="Enter identifier">
                     </div>
                 </div>
 
-                {% if form.errors %}
-                <div class="bg-macchiato-red/10 border border-macchiato-red/30 text-macchiato-red px-4 py-3 rounded-lg text-xs uppercase tracking-widest mb-8 flex items-center gap-3 animate-fade-in shadow-sm">
-                    <i class="fas fa-exclamation-circle text-sm"></i>
-                    Access Denied. Verify Credentials.
+                <div class="space-y-2 group relative">
+                    <label class="block text-[10px] font-bold text-macchiato-subtext0 uppercase tracking-[0.2em] transition-colors group-focus-within:text-macchiato-sapphire ml-1" for="id_password">Neural Passcode</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i class="fas fa-fingerprint text-macchiato-overlay0 group-focus-within:text-macchiato-sapphire transition-colors text-lg"></i>
+                        </div>
+                        <input type="password" name="password" id="id_password" class="input-glass w-full border border-macchiato-surface0/50 text-white rounded-xl pl-12 pr-4 py-3.5 text-sm outline-none focus:border-macchiato-sapphire focus:ring-1 focus:ring-macchiato-sapphire transition-all placeholder-macchiato-surface1 shadow-inner" placeholder="••••••••••••">
+                    </div>
                 </div>
-                {% endif %}
 
-                <form method="post" action="{% url 'login' %}" class="space-y-6">
-                    {% csrf_token %}
-                    
-                    <div class="space-y-1.5 group">
-                        <label class="block text-[10px] font-bold text-macchiato-overlay0 uppercase tracking-[0.15em] transition-colors group-focus-within:text-macchiato-sapphire" for="id_username">Operator ID</label>
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                                <i class="fas fa-user-astronaut text-macchiato-surface1 group-focus-within:text-macchiato-sapphire transition-colors"></i>
-                            </div>
-                            <input type="text" name="username" id="id_username" class="w-full bg-macchiato-base border border-macchiato-surface0 text-macchiato-text rounded-lg pl-10 pr-4 py-3 text-sm outline-none focus:border-macchiato-sapphire focus:ring-1 focus:ring-macchiato-sapphire transition-all shadow-inner placeholder-macchiato-surface1" placeholder="Enter identifier">
-                        </div>
-                    </div>
-
-                    <div class="space-y-1.5 group">
-                        <label class="block text-[10px] font-bold text-macchiato-overlay0 uppercase tracking-[0.15em] transition-colors group-focus-within:text-macchiato-sapphire" for="id_password">Neural Passcode</label>
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                                <i class="fas fa-finger-print text-macchiato-surface1 group-focus-within:text-macchiato-sapphire transition-colors"></i>
-                            </div>
-                            <input type="password" name="password" id="id_password" class="w-full bg-macchiato-base border border-macchiato-surface0 text-macchiato-text rounded-lg pl-10 pr-4 py-3 text-sm outline-none focus:border-macchiato-sapphire focus:ring-1 focus:ring-macchiato-sapphire transition-all shadow-inner placeholder-macchiato-surface1" placeholder="••••••••••••">
-                        </div>
-                    </div>
-
-                    <button type="submit" class="w-full bg-macchiato-surface0 hover:bg-macchiato-surface1 text-white font-bold text-xs py-3.5 px-4 rounded-lg transition-all duration-300 uppercase tracking-[0.2em] mt-4 border border-macchiato-surface1 hover:border-macchiato-sapphire/50 hover:shadow-[0_0_20px_rgba(125,196,228,0.15)] hover:-translate-y-0.5 active:translate-y-0">
-                        Establish Uplink
+                <div class="pt-4">
+                    <button type="submit" class="w-full bg-gradient-to-r from-macchiato-blue to-macchiato-sapphire hover:from-macchiato-sapphire hover:to-macchiato-blue text-macchiato-crust font-bold text-xs py-4 px-4 rounded-xl transition-all duration-500 uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(138,173,244,0.3)] hover:shadow-[0_0_30px_rgba(125,196,228,0.5)] transform hover:-translate-y-1">
+                        Initialize Link
                     </button>
-                </form>
-                
-                <div class="mt-10 pt-6 border-t border-macchiato-surface0 flex flex-col items-center justify-center gap-2">
-                    <i class="fas fa-shield-halved text-macchiato-surface1 text-lg mb-1"></i>
-                    <p class="text-[9px] text-macchiato-overlay0 uppercase tracking-[0.2em] text-center">Encrypted connection.<br>Unauthorized access strictly prohibited.</p>
                 </div>
+            </form>
+            
+            <div class="mt-8 flex flex-col items-center justify-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
+                <i class="fas fa-shield-halved text-macchiato-surface1 text-xl"></i>
+                <p class="text-[9px] text-macchiato-subtext0 uppercase tracking-[0.2em] text-center">Encrypted TCP/IP connection.<br>Unauthorized access logged.</p>
             </div>
         </div>
     </div>
