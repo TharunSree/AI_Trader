@@ -176,13 +176,28 @@ class Broker:
             is_crypto = '-' in symbol or '/' in symbol or 'USD' in symbol.upper()
             
             if is_crypto:
-                formatted_symbol = symbol.replace("-", "/")
-                logger.info(f"Fetching {limit} historical daily crypto bars for {formatted_symbol}")
-                bars = self.api.get_crypto_bars(
-                    formatted_symbol,
-                    TimeFrame.Day,
-                    limit=limit
-                )
+                logger.info(f"Fetching {limit} historical daily crypto bars for {symbol} via YFinanceLoader")
+                from src.data.yfinance_loader import YFinanceLoader
+                import datetime
+                
+                # Calculate date window to ensure we get enough bars
+                start_date = (datetime.date.today() - datetime.timedelta(days=int(limit*1.5))).strftime('%Y-%m-%d')
+                end_date = (datetime.date.today() + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+                
+                # symbol format should be BTC-USD for YF
+                yf_symbol = symbol.replace("/", "-") 
+                
+                yf_df = YFinanceLoader([yf_symbol], start_date, end_date).load_data()
+                
+                if yf_df.empty:
+                    logger.warning(f"No bars returned for {symbol} via YFinanceLoader")
+                    return pd.DataFrame()
+                    
+                yf_df['symbol'] = symbol
+                
+                # take the last `limit` rows
+                df = yf_df.tail(limit).reset_index(drop=True)
+                return df
             else:
                 logger.info(f"Fetching {limit} historical daily stock bars for {symbol}")
                 bars = self.api.get_bars(
@@ -191,30 +206,30 @@ class Broker:
                     limit=limit
                 )
                 
-            if not bars:
-                logger.warning(f"No bars returned for {symbol} (limit={limit})")
-                return pd.DataFrame()
-                
-            df = pd.DataFrame([
-                {
-                    "timestamp": getattr(bar, "t", getattr(bar, "timestamp", None)),
-                    "Open": float(bar.o),
-                    "High": float(bar.h),
-                    "Low": float(bar.l),
-                    "Close": float(bar.c),
-                    "Volume": float(bar.v),
-                    "symbol": symbol
-                }
-                for bar in bars
-            ])
-            
-            if not df.empty:
-                df = df.drop_duplicates(subset=["timestamp"]).reset_index(drop=True)
-                if "timestamp" in df.columns:
-                    df = df.drop(columns=["timestamp"])
+                if not bars:
+                    logger.warning(f"No bars returned for {symbol} (limit={limit})")
+                    return pd.DataFrame()
                     
-            df = df.dropna()
-            return df
+                df = pd.DataFrame([
+                    {
+                        "timestamp": getattr(bar, "t", getattr(bar, "timestamp", None)),
+                        "Open": float(bar.o),
+                        "High": float(bar.h),
+                        "Low": float(bar.l),
+                        "Close": float(bar.c),
+                        "Volume": float(bar.v),
+                        "symbol": symbol
+                    }
+                    for bar in bars
+                ])
+                
+                if not df.empty:
+                    df = df.drop_duplicates(subset=["timestamp"]).reset_index(drop=True)
+                    if "timestamp" in df.columns:
+                        df = df.drop(columns=["timestamp"])
+                        
+                df = df.dropna()
+                return df
         except Exception as e:
             logger.error(f"Failed to fetch historical bars for {symbol}: {e}", exc_info=True)
             return pd.DataFrame()

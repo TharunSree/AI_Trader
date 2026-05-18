@@ -300,23 +300,29 @@ class AITradingEngine:
             logger.warning(f"Insufficient active principal (${active_principal:.2f}) for Alpaca $1 trades. Blocked.")
             return # Block fractional dusting rejections on Alpaca
         
-        qty = trade_size_usd / current_price
-        
-        # Ensure we don't try to sell shares we don't own
-        if side == 'sell':
+        if side == 'buy':
+            logger.info(f"AI REQUESTING BUY: Notional ${trade_size_usd:.2f} {self.symbol} @ ${current_price:,.2f} | Conf: {action_confidence:.2f} | Limit: ${active_principal:,.2f}")
+            success, order_dict = await asyncio.to_thread(
+                self.broker.place_market_order,
+                symbol=self.symbol,
+                side=side,
+                notional_value=trade_size_usd,
+                qty=None
+            )
+        else:
+            qty = trade_size_usd / current_price
             qty = min(qty, held_qty)
             if action == -1.0:
                 qty = held_qty  # Dump entire inventory on 1-cent override
-        
-        logger.info(f"AI REQUESTING {side.upper()}: {qty:.4f} {self.symbol} @ ${current_price:,.2f} | Conf: {action_confidence:.2f} | Limit: ${active_principal:,.2f}")
-
-        success, order_dict = await asyncio.to_thread(
-            self.broker.place_market_order,
-            symbol=self.symbol,
-            side=side,
-            notional_value=None,
-            qty=qty
-        )
+                
+            logger.info(f"AI REQUESTING SELL: {qty:.6f} shares of {self.symbol} @ ${current_price:,.2f} | Conf: {action_confidence:.2f} | Limit: ${active_principal:,.2f}")
+            success, order_dict = await asyncio.to_thread(
+                self.broker.place_market_order,
+                symbol=self.symbol,
+                side=side,
+                notional_value=None,
+                qty=qty
+            )
 
         if not success:
             # Detect PDT restriction and suppress future sell attempts
@@ -332,20 +338,28 @@ class AITradingEngine:
                 logger.warning(f"Market rejection on {side.upper()} routing.")
             return
 
-        logger.info(f"LIVE EXECUTION CONFIRMED: {side.upper()} {qty:.4f}")
+        # Resolve final executed quantity if it was a Notional Buy
+        final_qty = qty
+        if final_qty is None:
+            try:
+                final_qty = float(getattr(order_dict, 'filled_qty', None) or getattr(order_dict, 'qty', None) or (trade_size_usd / current_price))
+            except Exception:
+                final_qty = trade_size_usd / current_price
+                
+        logger.info(f"LIVE EXECUTION CONFIRMED: {side.upper()} {final_qty:.6f}")
 
         # Ensure accurate Notional Value for budget recycling
-        executed_notional = qty * current_price
+        executed_notional = final_qty * current_price
 
         # Securely Sync State to Django ORM Background Layer
         sentiment = self.latest_sentiment.get(self.symbol, 0.0)
-        await asyncio.to_thread(self.log_trade, side, qty, current_price, executed_notional, sentiment)
+        await asyncio.to_thread(self.log_trade, side, final_qty, current_price, executed_notional, sentiment)
 
         # Broadcast to Django Channels / Dashboard UI
         execution_data = {
             "symbol": self.symbol,
             "side": side,
-            "qty": float(qty),
+            "qty": float(final_qty),
             "price": float(current_price),
             "ai_confidence": float(action_confidence),
             "new_equity": float(active_principal)
