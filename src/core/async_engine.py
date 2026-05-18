@@ -315,6 +315,24 @@ class AITradingEngine:
                 await asyncio.sleep(5)
                 continue
 
+            # Dynamic Affordable Basket — uses Alpaca's native asset list instead of CCXT
+            if not self._affordable_tickers:
+                def fetch_alpaca_crypto():
+                    try:
+                        assets = self.broker.api.list_assets(asset_class='crypto', status='active')
+                        # Filter to tradable USD pairs and pick top symbols by name recognition
+                        preferred = ['BTC/USD', 'ETH/USD', 'SOL/USD', 'LTC/USD', 'BCH/USD',
+                                     'LINK/USD', 'DOGE/USD', 'AVAX/USD', 'UNI/USD', 'AAVE/USD']
+                        available = {a.symbol for a in assets if a.tradable}
+                        result = [s for s in preferred if s in available]
+                        return result[:5] if result else ['BTC/USD']
+                    except Exception as e:
+                        logger.error(f"Alpaca crypto asset fetch failed: {e}")
+                        return ['BTC/USD', 'ETH/USD']
+
+                self._affordable_tickers = await asyncio.to_thread(fetch_alpaca_crypto)
+                logger.info(f"[CRYPTO MATRIX] Alpaca Tradable Universe: {self._affordable_tickers}")
+
             # 1. Market Clock Sync Check
             # Crypto trades 24/7 — only enforce NYSE sleep for stock symbols
             is_crypto = any(s for s in (self._affordable_tickers or [self.symbol]) if '/USD' in str(s) or '-USD' in str(s))
@@ -434,23 +452,7 @@ class AITradingEngine:
             # make a physical REST query to keep the bot trading!
             broker = self.broker
             
-            # Dynamic Affordable Basket — uses Alpaca's native asset list instead of CCXT
-            if not self._affordable_tickers:
-                def fetch_alpaca_crypto():
-                    try:
-                        assets = self.broker.api.list_assets(asset_class='crypto', status='active')
-                        # Filter to tradable USD pairs and pick top symbols by name recognition
-                        preferred = ['BTC/USD', 'ETH/USD', 'SOL/USD', 'LTC/USD', 'BCH/USD',
-                                     'LINK/USD', 'DOGE/USD', 'AVAX/USD', 'UNI/USD', 'AAVE/USD']
-                        available = {a.symbol for a in assets if a.tradable}
-                        result = [s for s in preferred if s in available]
-                        return result[:5] if result else ['BTC/USD']
-                    except Exception as e:
-                        logger.error(f"Alpaca crypto asset fetch failed: {e}")
-                        return ['BTC/USD', 'ETH/USD']
 
-                self._affordable_tickers = await asyncio.to_thread(fetch_alpaca_crypto)
-                logger.info(f"[CRYPTO MATRIX] Alpaca Tradable Universe: {self._affordable_tickers}")
                 
             active_symbols = self._affordable_tickers
             for sym in active_symbols:
