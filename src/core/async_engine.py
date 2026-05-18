@@ -62,6 +62,22 @@ class AITradingEngine:
         
         self.current_sentiment = 0.0
         self._affordable_tickers = None
+        
+        # Load Strategy Config
+        from control_panel.models import TrainingJob
+        self.feature_set_key = "alpha_discovery"
+        self.window_size = 10
+        if self.model_path.startswith('db:'):
+            job_id = int(self.model_path.split(':')[1])
+            job = TrainingJob.objects.filter(id=job_id).first()
+            if job:
+                self.feature_set_key = job.feature_set_key
+                self.window_size = job.window_size
+        
+        from src.strategies import STRATEGY_PLAYBOOK
+        self.observation_columns = STRATEGY_PLAYBOOK["feature_sets"].get(
+            self.feature_set_key, ["Close", "Volume"]
+        )
 
     def _read_checkpoint_shape(self):
         checkpoint = torch.load(
@@ -127,8 +143,60 @@ class AITradingEngine:
                                         for sym in symbols:
                                             self.latest_sentiment[sym] = val
             except Exception as e:
-                logger.error(f"Alpaca News Stream Error: {e}. Reconnecting...")
+                logger.error(f"[JARVIS] Global exception in execution loop: {e}")
                 await asyncio.sleep(5)
+                
+    def _build_live_state_tensor(self, symbol: str, current_price: float) -> np.ndarray:
+        """
+        Fetches historical data, calculates technical features, and returns 
+        the flattened state array precisely matching the shape used during training.
+        """
+        import pandas as pd
+        from src.data.preprocessor import calculate_features
+        
+        # We need at least 200 bars for SMA_200 to populate without NaNs.
+        limit = max(200, self.window_size + 50)
+        df = self.broker.get_historical_daily_bars(symbol, limit=limit)
+        
+        if df.empty:
+            logger.warning(f"Failed to fetch history for {symbol}. Returning zeroed tensor.")
+            return np.zeros((self.agent.state_dim,), dtype=np.float32)
+            
+        # Append the current live price as the latest partial day
+        last_idx = df.index[-1]
+        new_row = df.loc[last_idx].copy()
+        new_row['Close'] = current_price
+        # Using concat instead of append for modern pandas
+        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+        
+        # Calculate features identically to training
+        df = calculate_features(df)
+        
+        # Extract the required columns for the last `window_size` steps
+        cols = [c for c in self.observation_columns if c in df.columns]
+        
+        if len(df) < self.window_size:
+            # Not enough data (very rare if limit=200 worked)
+            window_data = np.zeros((self.window_size, len(self.observation_columns)))
+        else:
+            if len(cols) < len(self.observation_columns):
+                # Missing some columns, pad them with zeros
+                window_data = np.zeros((self.window_size, len(self.observation_columns)))
+                for i, col in enumerate(self.observation_columns):
+                    if col in df.columns:
+                        window_data[:, i] = df[col].iloc[-self.window_size:].values
+            else:
+                window_data = df[cols].iloc[-self.window_size:].values
+                
+        obs = window_data.flatten()
+        obs = np.nan_to_num(obs)
+        
+        # Pad or truncate to strictly match state_dim if there's an architectural mismatch
+        result = np.zeros((self.agent.state_dim,), dtype=np.float32)
+        valid_len = min(len(obs), self.agent.state_dim)
+        result[:valid_len] = obs[:valid_len]
+        
+        return result
             
     async def execute_trade(self, action, current_price):
         # Position awareness
@@ -450,10 +518,7 @@ class AITradingEngine:
             
             # FAST FALLBACK: If pub/sub is dead (user not running alpaca_stream), 
             # make a physical REST query to keep the bot trading!
-            broker = self.broker
             
-
-                
             active_symbols = self._affordable_tickers
             for sym in active_symbols:
                 current_price = None
@@ -470,9 +535,10 @@ class AITradingEngine:
                 if current_price and current_price > 0:
                     try:
                         self.symbol = sym  # Context switch for execute_trade functions
-                        # Generate State Numpy Array for Inference
-                        state_arr = np.zeros((self.agent.state_dim,), dtype=np.float32)
-                        state_arr[0] = current_price
+                        # Live state tensor reconstruction
+                        state_arr = await asyncio.to_thread(
+                            self._build_live_state_tensor, sym, current_price
+                        )
                         
                         # --- PHASE 6 BACKWARDS COMPATIBILITY ---
                         # Legacy models (state_dim==50) will stay exactly as they were (ignoring sentiment safely)
