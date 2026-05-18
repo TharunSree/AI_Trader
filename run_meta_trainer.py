@@ -96,21 +96,40 @@ def main():
     setup_logging()
     log = logging.getLogger("rl_trading_backend")
 
-    # --- Configuration ---
-    TICKER = [TICKER_SYMBOL]
-    TRAIN_START = "2015-01-01"
-    TRAIN_END = "2021-12-31"
-    VALIDATION_START = "2022-01-01"
-    VALIDATION_END = "2023-12-31"
+    import datetime
+    
+    duration = meta_job.training_duration_days if meta_job and hasattr(meta_job, 'training_duration_days') else 365
+    end_date = datetime.date.today()
+    start_date = end_date - datetime.timedelta(days=duration)
+    split_date = start_date + datetime.timedelta(days=int(duration * 0.8))
+    
+    start_str = start_date.strftime('%Y-%m-%d')
+    split_str = split_date.strftime('%Y-%m-%d')
+    end_str = end_date.strftime('%Y-%m-%d')
 
     # --- Data Loading ---
-    log.info("Loading and preparing training and validation data...")
-    train_df = calculate_features(
-        YFinanceLoader(TICKER, TRAIN_START, TRAIN_END).load_data()
-    )
-    validation_df = calculate_features(
-        YFinanceLoader(TICKER, VALIDATION_START, VALIDATION_END).load_data()
-    )
+    log.info(f"Loading and preparing training and validation data ({duration} days)...")
+    
+    if TICKER_SYMBOL == 'ALL_CRYPTO':
+        crypto_basket = ['BTC-USD', 'ETH-USD', 'SOL-USD', 'LTC-USD', 'DOGE-USD']
+        raw_train_df = YFinanceLoader(crypto_basket, start_str, split_str).load_data()
+        raw_val_df = YFinanceLoader(crypto_basket, split_str, end_str).load_data()
+        
+        train_df = {}
+        validation_df = {}
+        for sym in crypto_basket:
+            sym_train = raw_train_df[raw_train_df['Ticker'] == sym].copy()
+            sym_val = raw_val_df[raw_val_df['Ticker'] == sym].copy()
+            if not sym_train.empty and not sym_val.empty:
+                train_df[sym] = calculate_features(sym_train)
+                validation_df[sym] = calculate_features(sym_val)
+    else:
+        train_df = calculate_features(
+            YFinanceLoader([TICKER_SYMBOL], start_str, split_str).load_data()
+        )
+        validation_df = calculate_features(
+            YFinanceLoader([TICKER_SYMBOL], split_str, end_str).load_data()
+        )
 
     window_sizes_set = set()
     for w_list in STRATEGY_PLAYBOOK["window_sizes"].values():
@@ -146,7 +165,11 @@ def main():
         features = STRATEGY_PLAYBOOK["feature_sets"][feat_key]
         params = STRATEGY_PLAYBOOK["hyperparameters"][param_key]
 
-        train_env = TradingEnvironment(train_df, features, window, PRINCIPAL, 0.001, 0.0005)
+        if isinstance(train_df, dict):
+            from src.core.environment import MultiAssetTradingEnvironment
+            train_env = MultiAssetTradingEnvironment(train_df, observation_columns=features, window_size=window, initial_balance=PRINCIPAL, fee_rate=0.001, slippage=0.0005)
+        else:
+            train_env = TradingEnvironment(train_df, features, window, PRINCIPAL, 0.001, 0.0005)
 
         state_dim = train_env.observation_space.shape[0]
         action_dim = train_env.action_space.shape[0]

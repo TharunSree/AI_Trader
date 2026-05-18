@@ -18,14 +18,25 @@ class Validator:
         Returns a dictionary of performance metrics.
         """
         # Create a new environment with the validation data
-        env = TradingEnvironment(
-            df=self.validation_df,
-            observation_columns=self.env_config["features"],
-            window_size=self.env_config["window"],
-            initial_balance=100000.0,
-            fee_rate=0.001,
-            slippage=0.0005,
-        )
+        if isinstance(self.validation_df, dict):
+            from src.core.environment import MultiAssetTradingEnvironment
+            env = MultiAssetTradingEnvironment(
+                dfs_dict=self.validation_df,
+                observation_columns=self.env_config["features"],
+                window_size=self.env_config["window"],
+                initial_balance=100000.0,
+                fee_rate=0.001,
+                slippage=0.0005,
+            )
+        else:
+            env = TradingEnvironment(
+                df=self.validation_df,
+                observation_columns=self.env_config["features"],
+                window_size=self.env_config["window"],
+                initial_balance=100000.0,
+                fee_rate=0.001,
+                slippage=0.0005,
+            )
 
         obs, _ = env.reset()
         done = False
