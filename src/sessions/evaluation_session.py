@@ -141,127 +141,270 @@ class EvaluationSession:
         user_start_date = datetime.strptime(self.config['start_date'], '%Y-%m-%d')
         warmup_start_date = user_start_date - timedelta(days=100)
 
-        loader = YFinanceLoader([model_config['ticker']], warmup_start_date.strftime('%Y-%m-%d'), self.config['end_date'])
-        raw_df = loader.load_data()
-        if raw_df.empty:
-            raise ValueError("Evaluation data loading failed.")
-
-        if 'timestamp' not in raw_df.columns:
-            if isinstance(raw_df.index, pd.DatetimeIndex):
-                raw_df = raw_df.reset_index().rename(columns={'index': 'timestamp'})
-            else:
-                raise ValueError("DataFrame missing 'timestamp' column.")
-
-        if 'symbol' not in raw_df.columns:
-            sym = loader.tickers[0] if getattr(loader, 'tickers', None) else 'SPY'
-            raw_df['symbol'] = sym
-            logger.info("Inserted missing 'symbol' column for evaluation dataset.")
-
-        if not pd.api.types.is_datetime64_any_dtype(raw_df['timestamp']):
-            raw_df['timestamp'] = pd.to_datetime(raw_df['timestamp'])
-
-        # Keep timestamp as a column for the environment
-        featured_df = calculate_features(raw_df)
-
-        # Set index for slicing, but keep the column
-        backtest_df = featured_df.set_index('timestamp').loc[self.config['start_date']:].reset_index()
-
-        if len(backtest_df) < window_size + 1:
-            raise ValueError(f"Not enough data in range. Need {window_size + 1} days, got {len(backtest_df)}.")
-
-        env = TradingEnvironment(
-            df=backtest_df,
-            observation_columns=observation_columns,
-            window_size=window_size,
-            initial_cash=model_config['initial_cash'],
-            transaction_cost_pct=0.001,
-            slippage_pct=0.0005
-        )
-
-        state_dim = env.observation_space.shape[0]
-        action_dim = env.action_space.shape[0]
-        agent = PPOAgent(state_dim=state_dim, action_dim=action_dim)
-        if is_database_model_reference(model_config['reference']):
-            agent.load_weights_from_bytes(read_model_bytes(model_config['reference']), model_config['reference'])
-        else:
-            model_path = Path(f"saved_models/{model_config['reference']}")
-            if not model_path.exists():
-                raise FileNotFoundError(f"Model file not found at {model_path}")
-            agent.load_weights(str(model_path))
-
-        obs, _ = env.reset()
-        done = False
-        equity_curve = [float(env.initial_balance)]
-        dates = [env.df['timestamp'].iloc[max(env.current_step - 1, 0)]]
-        trade_log = []
-        total_trades = 0
-        action_values = []
-        threshold_crossings = {"buy": 0, "sell": 0}
-
-        while not done:
-            action_value = agent.predict(obs)
-            action_values.append(float(action_value))
-            if action_value > 0.4:
-                threshold_crossings["buy"] += 1
-            elif action_value < -0.4:
-                threshold_crossings["sell"] += 1
-            current_index = min(env.current_step, len(env.df) - 1)
-            current_bar = env.df.iloc[current_index]
-            current_timestamp = current_bar['timestamp']
-            current_price = float(current_bar['Close'])
-
-            prev_balance = env.balance
-            prev_crypto_held = env.crypto_held
-
-            obs, reward, terminated, truncated, info = env.step(np.array([action_value], dtype=np.float32))
-
-            if abs(env.balance - prev_balance) > 1e-9 or abs(env.crypto_held - prev_crypto_held) > 1e-9:
-                action_label = 'BUY' if env.crypto_held > prev_crypto_held else 'SELL'
-                quantity_delta = abs(env.crypto_held - prev_crypto_held)
-                trade_log.append({
-                    'timestamp': current_timestamp,
-                    'action': action_label,
-                    'symbol': current_bar.get('symbol', 'SPY'),
-                    'quantity': quantity_delta,
-                    'price': current_price,
-                })
-                total_trades += 1
-
-            equity_curve.append(float(info.get('net_worth', env.net_worth)))
-            dates.append(env.df['timestamp'].iloc[min(env.current_step - 1, len(env.df) - 1)])
-            done = terminated or truncated
-
-        equity_series = pd.Series(equity_curve, index=pd.to_datetime(dates))
-        daily_returns = equity_series.pct_change().dropna()
-        total_return_pct = (equity_curve[-1] / env.initial_balance - 1) * 100
-        sharpe_ratio = (daily_returns.mean() / daily_returns.std()) * np.sqrt(252) if daily_returns.std() > 0 else 0.0
-        max_drawdown_pct = abs(float(calculate_max_drawdown(equity_series))) * 100
-        avg_action = float(np.mean(action_values)) if action_values else 0.0
-        max_action = float(np.max(action_values)) if action_values else 0.0
-        min_action = float(np.min(action_values)) if action_values else 0.0
-
-        return {
-            "total_return_pct": round(total_return_pct, 2),
-            "sharpe_ratio": round(sharpe_ratio, 2),
-            "final_equity": round(equity_curve[-1], 2),
-            "max_drawdown_pct": round(max_drawdown_pct, 2),
-            "total_trades": total_trades,
-            "avg_action": round(avg_action, 4),
-            "max_action": round(max_action, 4),
-            "min_action": round(min_action, 4),
-            "buy_threshold_crossings": threshold_crossings["buy"],
-            "sell_threshold_crossings": threshold_crossings["sell"],
-            "trade_log": [
-                {
-                    'timestamp': str(t['timestamp']),
-                    'action': t['action'],
-                    'symbol': t.get('symbol', 'SPY'),
-                    'quantity': round(t['quantity'], 4),
-                    'price': round(t['price'], 2)
-                } for t in trade_log
-            ],
-            "equity_chart": {
-                "dates": [d.strftime('%Y-%m-%d') for d in dates],
-                "equity": [round(e, 2) for e in equity_curve]
+        if model_config['ticker'] == 'ALL_CRYPTO':
+            crypto_basket = ['BTC-USD', 'ETH-USD', 'SOL-USD', 'LTC-USD', 'DOGE-USD']
+            logger.info(f"ALL_CRYPTO evaluation requested. Simulating portfolio with assets: {crypto_basket}")
+            
+            asset_results = {}
+            combined_trade_log = []
+            
+            initial_balance_per_asset = model_config['initial_cash'] / len(crypto_basket)
+            
+            for sym in crypto_basket:
+                try:
+                    logger.info(f"Evaluating asset {sym}...")
+                    loader = YFinanceLoader([sym], warmup_start_date.strftime('%Y-%m-%d'), self.config['end_date'])
+                    raw_df = loader.load_data()
+                    if raw_df.empty:
+                        logger.warning(f"Skipping {sym} in ALL_CRYPTO evaluation due to empty data.")
+                        continue
+                        
+                    if 'timestamp' not in raw_df.columns:
+                        if isinstance(raw_df.index, pd.DatetimeIndex):
+                            raw_df = raw_df.reset_index().rename(columns={'index': 'timestamp'})
+                        else:
+                            continue
+                            
+                    if 'symbol' not in raw_df.columns:
+                        raw_df['symbol'] = sym
+                        
+                    if not pd.api.types.is_datetime64_any_dtype(raw_df['timestamp']):
+                        raw_df['timestamp'] = pd.to_datetime(raw_df['timestamp'])
+                        
+                    featured_df = calculate_features(raw_df)
+                    backtest_df = featured_df.set_index('timestamp').loc[self.config['start_date']:].reset_index()
+                    
+                    if len(backtest_df) < window_size + 1:
+                        logger.warning(f"Skipping {sym} in ALL_CRYPTO evaluation: not enough data.")
+                        continue
+                        
+                    env = TradingEnvironment(
+                        df=backtest_df,
+                        observation_columns=observation_columns,
+                        window_size=window_size,
+                        initial_cash=initial_balance_per_asset,
+                        fee_rate=0.001,
+                        slippage=0.0005
+                    )
+                    
+                    state_dim = env.observation_space.shape[0]
+                    action_dim = env.action_space.shape[0]
+                    agent = PPOAgent(state_dim=state_dim, action_dim=action_dim)
+                    if is_database_model_reference(model_config['reference']):
+                        agent.load_weights_from_bytes(read_model_bytes(model_config['reference']), model_config['reference'])
+                    else:
+                        model_path = Path(f"saved_models/{model_config['reference']}")
+                        agent.load_weights(str(model_path))
+                        
+                    obs, _ = env.reset()
+                    done = False
+                    equity_curve = [float(env.initial_balance)]
+                    dates = [env.df['timestamp'].iloc[max(env.current_step - 1, 0)]]
+                    
+                    while not done:
+                        action_value = agent.predict(obs)
+                        current_index = min(env.current_step, len(env.df) - 1)
+                        current_bar = env.df.iloc[current_index]
+                        current_timestamp = current_bar['timestamp']
+                        current_price = float(current_bar['Close'])
+                        
+                        prev_balance = env.balance
+                        prev_crypto_held = env.crypto_held
+                        
+                        obs, reward, terminated, truncated, info = env.step(np.array([action_value], dtype=np.float32))
+                        
+                        if abs(env.balance - prev_balance) > 1e-9 or abs(env.crypto_held - prev_crypto_held) > 1e-9:
+                            action_label = 'BUY' if env.crypto_held > prev_crypto_held else 'SELL'
+                            quantity_delta = abs(env.crypto_held - prev_crypto_held)
+                            combined_trade_log.append({
+                                'timestamp': current_timestamp,
+                                'action': action_label,
+                                'symbol': sym,
+                                'quantity': quantity_delta,
+                                'price': current_price,
+                            })
+                            
+                        equity_curve.append(float(info.get('net_worth', env.net_worth)))
+                        dates.append(env.df['timestamp'].iloc[min(env.current_step - 1, len(env.df) - 1)])
+                        done = terminated or truncated
+                        
+                    # Store this asset's equity series
+                    asset_series = pd.Series(equity_curve, index=pd.to_datetime(dates))
+                    # Remove duplicate indices
+                    asset_series = asset_series[~asset_series.index.duplicated(keep='first')]
+                    asset_results[sym] = asset_series
+                    
+                except Exception as e:
+                    logger.error(f"Error evaluating asset {sym} in ALL_CRYPTO: {e}")
+                    
+            if not asset_results:
+                raise ValueError("All assets in ALL_CRYPTO basket failed to load or evaluate.")
+                
+            # Align and sum up the equity curves
+            all_equities_df = pd.DataFrame(asset_results)
+            # Forward fill to handle any mismatches, then fillna(initial_balance_per_asset) to handle starting edge cases
+            all_equities_df = all_equities_df.ffill().fillna(initial_balance_per_asset)
+            
+            # Combined portfolio equity curve is the sum of all individual assets' net worths
+            portfolio_equity_series = all_equities_df.sum(axis=1)
+            
+            dates_list = portfolio_equity_series.index.tolist()
+            equity_curve = portfolio_equity_series.tolist()
+            
+            # Sort combined trade log by timestamp
+            combined_trade_log.sort(key=lambda t: t['timestamp'])
+            
+            # Calculate portfolio performance metrics
+            daily_returns = portfolio_equity_series.pct_change().dropna()
+            total_return_pct = (equity_curve[-1] / model_config['initial_cash'] - 1) * 100
+            sharpe_ratio = (daily_returns.mean() / daily_returns.std()) * np.sqrt(252) if daily_returns.std() > 0 else 0.0
+            max_drawdown_pct = abs(float(calculate_max_drawdown(portfolio_equity_series))) * 100
+            
+            return {
+                "total_return_pct": round(total_return_pct, 2),
+                "sharpe_ratio": round(sharpe_ratio, 2),
+                "final_equity": round(equity_curve[-1], 2),
+                "max_drawdown_pct": round(max_drawdown_pct, 2),
+                "total_trades": len(combined_trade_log),
+                "avg_action": 0.0,
+                "max_action": 1.0,
+                "min_action": -1.0,
+                "buy_threshold_crossings": 0,
+                "sell_threshold_crossings": 0,
+                "trade_log": [
+                    {
+                        'timestamp': str(t['timestamp']),
+                        'action': t['action'],
+                        'symbol': t['symbol'],
+                        'quantity': round(t['quantity'], 4),
+                        'price': round(t['price'], 2)
+                    } for t in combined_trade_log
+                ],
+                "equity_chart": {
+                    "dates": [d.strftime('%Y-%m-%d') for d in dates_list],
+                    "equity": [round(e, 2) for e in equity_curve]
+                }
             }
-        }
+
+        else:
+            loader = YFinanceLoader([model_config['ticker']], warmup_start_date.strftime('%Y-%m-%d'), self.config['end_date'])
+            raw_df = loader.load_data()
+            if raw_df.empty:
+                raise ValueError("Evaluation data loading failed.")
+
+            if 'timestamp' not in raw_df.columns:
+                if isinstance(raw_df.index, pd.DatetimeIndex):
+                    raw_df = raw_df.reset_index().rename(columns={'index': 'timestamp'})
+                else:
+                    raise ValueError("DataFrame missing 'timestamp' column.")
+
+            if 'symbol' not in raw_df.columns:
+                sym = loader.tickers[0] if getattr(loader, 'tickers', None) else 'SPY'
+                raw_df['symbol'] = sym
+                logger.info("Inserted missing 'symbol' column for evaluation dataset.")
+
+            if not pd.api.types.is_datetime64_any_dtype(raw_df['timestamp']):
+                raw_df['timestamp'] = pd.to_datetime(raw_df['timestamp'])
+
+            featured_df = calculate_features(raw_df)
+            backtest_df = featured_df.set_index('timestamp').loc[self.config['start_date']:].reset_index()
+
+            if len(backtest_df) < window_size + 1:
+                raise ValueError(f"Not enough data in range. Need {window_size + 1} days, got {len(backtest_df)}.")
+
+            env = TradingEnvironment(
+                df=backtest_df,
+                observation_columns=observation_columns,
+                window_size=window_size,
+                initial_cash=model_config['initial_cash'],
+                transaction_cost_pct=0.001,
+                slippage_pct=0.0005
+            )
+
+            state_dim = env.observation_space.shape[0]
+            action_dim = env.action_space.shape[0]
+            agent = PPOAgent(state_dim=state_dim, action_dim=action_dim)
+            if is_database_model_reference(model_config['reference']):
+                agent.load_weights_from_bytes(read_model_bytes(model_config['reference']), model_config['reference'])
+            else:
+                model_path = Path(f"saved_models/{model_config['reference']}")
+                if not model_path.exists():
+                    raise FileNotFoundError(f"Model file not found at {model_path}")
+                agent.load_weights(str(model_path))
+
+            obs, _ = env.reset()
+            done = False
+            equity_curve = [float(env.initial_balance)]
+            dates = [env.df['timestamp'].iloc[max(env.current_step - 1, 0)]]
+            trade_log = []
+            total_trades = 0
+            action_values = []
+            threshold_crossings = {"buy": 0, "sell": 0}
+
+            while not done:
+                action_value = agent.predict(obs)
+                action_values.append(float(action_value))
+                if action_value > 0.4:
+                    threshold_crossings["buy"] += 1
+                elif action_value < -0.4:
+                    threshold_crossings["sell"] += 1
+                current_index = min(env.current_step, len(env.df) - 1)
+                current_bar = env.df.iloc[current_index]
+                current_timestamp = current_bar['timestamp']
+                current_price = float(current_bar['Close'])
+
+                prev_balance = env.balance
+                prev_crypto_held = env.crypto_held
+
+                obs, reward, terminated, truncated, info = env.step(np.array([action_value], dtype=np.float32))
+
+                if abs(env.balance - prev_balance) > 1e-9 or abs(env.crypto_held - prev_crypto_held) > 1e-9:
+                    action_label = 'BUY' if env.crypto_held > prev_crypto_held else 'SELL'
+                    quantity_delta = abs(env.crypto_held - prev_crypto_held)
+                    trade_log.append({
+                        'timestamp': current_timestamp,
+                        'action': action_label,
+                        'symbol': current_bar.get('symbol', 'SPY'),
+                        'quantity': quantity_delta,
+                        'price': current_price,
+                    })
+                    total_trades += 1
+
+                equity_curve.append(float(info.get('net_worth', env.net_worth)))
+                dates.append(env.df['timestamp'].iloc[min(env.current_step - 1, len(env.df) - 1)])
+                done = terminated or truncated
+
+            equity_series = pd.Series(equity_curve, index=pd.to_datetime(dates))
+            daily_returns = equity_series.pct_change().dropna()
+            total_return_pct = (equity_curve[-1] / env.initial_balance - 1) * 100
+            sharpe_ratio = (daily_returns.mean() / daily_returns.std()) * np.sqrt(252) if daily_returns.std() > 0 else 0.0
+            max_drawdown_pct = abs(float(calculate_max_drawdown(equity_series))) * 100
+            avg_action = float(np.mean(action_values)) if action_values else 0.0
+            max_action = float(np.max(action_values)) if action_values else 0.0
+            min_action = float(np.min(action_values)) if action_values else 0.0
+
+            return {
+                "total_return_pct": round(total_return_pct, 2),
+                "sharpe_ratio": round(sharpe_ratio, 2),
+                "final_equity": round(equity_curve[-1], 2),
+                "max_drawdown_pct": round(max_drawdown_pct, 2),
+                "total_trades": total_trades,
+                "avg_action": round(avg_action, 4),
+                "max_action": round(max_action, 4),
+                "min_action": round(min_action, 4),
+                "buy_threshold_crossings": threshold_crossings["buy"],
+                "sell_threshold_crossings": threshold_crossings["sell"],
+                "trade_log": [
+                    {
+                        'timestamp': str(t['timestamp']),
+                        'action': t['action'],
+                        'symbol': t.get('symbol', 'SPY'),
+                        'quantity': round(t['quantity'], 4),
+                        'price': round(t['price'], 2)
+                    } for t in trade_log
+                ],
+                "equity_chart": {
+                    "dates": [d.strftime('%Y-%m-%d') for d in dates],
+                    "equity": [round(e, 2) for e in equity_curve]
+                }
+            }
