@@ -197,6 +197,8 @@ class PPOAgent:
 
     def save_weights(self, filepath: str = "best_model.pth"):
         """Locks the combat data in the vault."""
+        path = Path(filepath)
+        path.parent.mkdir(parents=True, exist_ok=True)
         torch.save(self.policy.state_dict(), filepath)
         logger.info(f"Champion weights safely saved to: {filepath}")
 
