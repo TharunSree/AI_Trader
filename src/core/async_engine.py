@@ -142,8 +142,11 @@ class AITradingEngine:
                                         
                                         for sym in symbols:
                                             self.latest_sentiment[sym] = val
+            except websockets.exceptions.ConnectionClosed as ce:
+                logger.warning(f"[JARVIS] News stream connection closed: {ce}. Reconnecting in 5s...")
+                await asyncio.sleep(5)
             except Exception as e:
-                logger.error(f"[JARVIS] Global exception in execution loop: {e}")
+                logger.error(f"[JARVIS] Global exception in news feed execution loop: {e}")
                 await asyncio.sleep(5)
                 
     def _build_live_state_tensor(self, symbol: str, current_price: float) -> np.ndarray:

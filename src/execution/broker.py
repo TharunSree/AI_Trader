@@ -178,21 +178,11 @@ class Broker:
             if is_crypto:
                 formatted_symbol = symbol.replace("-", "/")
                 logger.info(f"Fetching {limit} historical daily crypto bars for {formatted_symbol}")
-                try:
-                    # Request from CBSE exchange specifically for stable single-candle daily sequence
-                    bars = self.api.get_crypto_bars(
-                        formatted_symbol,
-                        TimeFrame.Day,
-                        limit=limit,
-                        exchanges=['CBSE']
-                    )
-                except Exception as ex:
-                    logger.warning(f"Failed to fetch crypto bars from CBSE for {formatted_symbol}, retrying without exchange filter: {ex}")
-                    bars = self.api.get_crypto_bars(
-                        formatted_symbol,
-                        TimeFrame.Day,
-                        limit=limit
-                    )
+                bars = self.api.get_crypto_bars(
+                    formatted_symbol,
+                    TimeFrame.Day,
+                    limit=limit
+                )
             else:
                 logger.info(f"Fetching {limit} historical daily stock bars for {symbol}")
                 bars = self.api.get_bars(
