@@ -19,6 +19,7 @@ urlpatterns = [
     path('paper-trading/<int:trader_id>/pause/', views.pause_trader_view, name='pause_trader'),
     path('paper-trading/<int:trader_id>/edit/', views.edit_trader_view, name='edit_trader_api'),
     path('paper-trading/<int:trader_id>/resume/', views.resume_trader_view, name='resume_trader'),
+    path('paper-trading/<int:trader_id>/restart/', views.restart_trader_view, name='restart_trader'),
     path('paper-trading/start-all/', views.start_all_traders_view, name='start_all_traders'),
     path('paper-trading/stop-all/', views.stop_all_traders_view, name='stop_all_traders'),
     path('paper-trading/<int:trader_id>/delete/', views.delete_trader_api, name='delete_trader_api'),

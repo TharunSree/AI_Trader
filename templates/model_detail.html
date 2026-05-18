@@ -16,21 +16,21 @@
 </div>
 
 <!-- Header Stats Grid -->
-<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+<div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-6">
   <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded p-6 relative overflow-hidden group">
-    <div class="text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-1 font-semibold">Node Status</div>
+    <div class="text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1 font-semibold">Node Status</div>
     <div id="dyn-status" class="text-sm font-mono tracking-tight ">
       {{ trader.status }}
     </div>
   </div>
   
   <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded p-6 relative overflow-hidden group">
-    <div class="flex justify-between items-center"><div class="text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-1 font-semibold">Allocated Limit</div></div>
+    <div class="flex justify-between items-center"><div class="text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1 font-semibold">Allocated Limit</div></div>
           <div class="flex items-end gap-2">
         <div id="dyn-allocated-limit" class="text-sm font-mono text-slate-800 dark:text-slate-200 tracking-tight whitespace-nowrap">
           ${{ initial_cash }}
         </div>
-        <div id="dyn-initial-cash-goal" class="text-[10px] uppercase tracking-widest font-mono font-bold tracking-widest text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-1 whitespace-nowrap">
+        <div id="dyn-initial-cash-goal" class="text-[10px] uppercase tracking-widest font-mono font-bold tracking-widest text-slate-500 dark:text-slate-400 mb-1 whitespace-nowrap">
           / ${{ initial_cash }}
         </div>
       </div>
@@ -38,17 +38,59 @@
   
   <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded p-6 relative overflow-hidden group">
     <div class="flex items-center justify-between gap-4 mb-1">
-      <div class="text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 dark:text-slate-500 font-semibold">Live Net PnL</div>
+      <div class="text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 font-semibold">Live Net PnL</div>
     </div>
     <div class="flex items-end gap-2">
 <div id="dyn-live-pnl" class="whitespace-nowrap text-sm font-mono tracking-tight {% if trader.live_net_profit >= 0 %}text-slate-800 dark:text-slate-200{% else %}text-red-400{% endif %}">{% if trader.live_net_profit > 0 %}+{% elif trader.live_net_profit < 0 %}-{% endif %}${{ trader.live_net_profit|floatformat:2 }}</div>
-<div id="dyn-live-pnl-goal" class="text-[10px] uppercase tracking-widest font-mono font-bold tracking-widest text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-1">{% if trader.goal_amount %} / ${{ trader.goal_amount|floatformat:2 }} GOAL{% endif %}</div>
+<div id="dyn-live-pnl-goal" class="text-[10px] uppercase tracking-widest font-mono font-bold tracking-widest text-slate-500 dark:text-slate-400 mb-1">{% if trader.goal_amount %} / ${{ trader.goal_amount|floatformat:2 }} GOAL{% endif %}</div>
 </div>
   </div>
   
   <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded p-6 relative overflow-hidden group">
-    <div class="text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-1 font-semibold">Trade Count</div>
+    <div class="text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1 font-semibold">Trade Count</div>
     <div id="dyn-trade-count" class="text-sm font-mono text-slate-800 dark:text-slate-200 tracking-tight ">{{ trades|length }} Actions</div>
+  </div>
+
+  <!-- Column 5: Interactive Control Center -->
+  <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded p-6 relative overflow-hidden group flex flex-col justify-between">
+    <div class="text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2 font-semibold">Node Directives</div>
+    <div class="flex items-center gap-2 flex-wrap">
+        <!-- Start/Resume Button -->
+        <form action="{% url 'resume_trader' trader.id %}" method="POST" class="inline" onsubmit="window.launchOverlay(this, 'ENGAGING NEURAL ENGINE...');">
+            {% csrf_token %}
+            <button id="ctrl-start" type="submit" class="px-2 py-1 rounded bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-white transition-all text-[9px] uppercase font-bold tracking-widest border border-emerald-500/30 flex items-center gap-1" title="Start or Resume Execution">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/></svg>
+                START
+            </button>
+        </form>
+
+        <!-- Pause Button -->
+        <form action="{% url 'pause_trader' trader.id %}" method="POST" class="inline" onsubmit="window.launchOverlay(this, 'PAUSING NEURAL ENGINE...');">
+            {% csrf_token %}
+            <button id="ctrl-pause" type="submit" class="px-2 py-1 rounded bg-amber-500/10 hover:bg-amber-500 text-amber-400 hover:text-white transition-all text-[9px] uppercase font-bold tracking-widest border border-amber-500/30 flex items-center gap-1" title="Pause Execution">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6"/></svg>
+                PAUSE
+            </button>
+        </form>
+
+        <!-- Stop Button -->
+        <form action="{% url 'stop_trader_instance' trader.id %}" method="POST" class="inline" onsubmit="return window.confirmAction ? window.confirmAction('Are you sure you want to stop this paper trading engine? All active positions will remain intact in Alpaca, but autonomous trading will cease.', this, 'TERMINATING NEURAL NODE...', 'danger') : confirm('Are you sure?');">
+            {% csrf_token %}
+            <button id="ctrl-stop" type="submit" class="px-2 py-1 rounded bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white transition-all text-[9px] uppercase font-bold tracking-widest border border-red-500/30 flex items-center gap-1" title="Stop Execution">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10h6v6H9z"/></svg>
+                STOP
+            </button>
+        </form>
+
+        <!-- Restart Button -->
+        <form action="{% url 'restart_trader' trader.id %}" method="POST" class="inline" onsubmit="window.launchOverlay(this, 'RECYCLING NEURAL INSTANCE...');">
+            {% csrf_token %}
+            <button id="ctrl-restart" type="submit" class="px-2 py-1 rounded bg-blue-500/10 hover:bg-blue-500 text-blue-400 hover:text-white transition-all text-[9px] uppercase font-bold tracking-widest border border-blue-500/30 flex items-center gap-1" title="Gracefully Restart Instance">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.28a8.001 8.001 0 01-13.8 2M20 20v-5h-.581m0 0a8.003 8.003 0 01-15.357-2M15.357 2H18.28m-13.8 0H1.21"/></svg>
+                RESTART
+            </button>
+        </form>
+    </div>
   </div>
 </div>
 
@@ -262,7 +304,47 @@ document.addEventListener('DOMContentLoaded', () => {
                     const goalEl = document.getElementById("dyn-live-pnl-goal");
                     if (goalEl && traderData.goal_amount) {
                          goalEl.textContent = ` / $${parseFloat(traderData.goal_amount).toFixed(2)} GOAL`;
-                    }}
+                    }
+
+                    // Reactive Control Center Buttons
+                    const btnStart = document.getElementById("ctrl-start");
+                    const btnPause = document.getElementById("ctrl-pause");
+                    const btnStop = document.getElementById("ctrl-stop");
+                    const btnRestart = document.getElementById("ctrl-restart");
+                    
+                    if (btnStart && btnPause && btnStop && btnRestart) {
+                        const status = traderData.status;
+                        if (status === 'RUNNING') {
+                            btnStart.disabled = true;
+                            btnStart.classList.add("opacity-30", "pointer-events-none");
+                            btnPause.disabled = false;
+                            btnPause.classList.remove("opacity-30", "pointer-events-none");
+                            btnStop.disabled = false;
+                            btnStop.classList.remove("opacity-30", "pointer-events-none");
+                            btnRestart.disabled = false;
+                            btnRestart.classList.remove("opacity-30", "pointer-events-none");
+                        } else if (status === 'PAUSED') {
+                            btnStart.disabled = false;
+                            btnStart.classList.remove("opacity-30", "pointer-events-none");
+                            btnPause.disabled = true;
+                            btnPause.classList.add("opacity-30", "pointer-events-none");
+                            btnStop.disabled = false;
+                            btnStop.classList.remove("opacity-30", "pointer-events-none");
+                            btnRestart.disabled = false;
+                            btnRestart.classList.remove("opacity-30", "pointer-events-none");
+                        } else {
+                            // STOPPED, FAILED, SLEEPING, etc.
+                            btnStart.disabled = false;
+                            btnStart.classList.remove("opacity-30", "pointer-events-none");
+                            btnPause.disabled = true;
+                            btnPause.classList.add("opacity-30", "pointer-events-none");
+                            btnStop.disabled = true;
+                            btnStop.classList.add("opacity-30", "pointer-events-none");
+                            btnRestart.disabled = true;
+                            btnRestart.classList.add("opacity-30", "pointer-events-none");
+                        }
+                    }
+                }
                 
                 // Update active positions grid across cluster if available
                 if (data.positions) {

@@ -746,6 +746,18 @@ def resume_trader_view(request, trader_id):
 
 
 @login_required
+def restart_trader_view(request, trader_id):
+    if request.method == 'POST':
+        trader = get_object_or_404(PaperTrader, id=trader_id)
+        if trader.status in ['RUNNING', 'PAUSED']:
+            _stop_trader_instance(trader)
+            import time
+            time.sleep(0.5)
+        _launch_trader_instance(trader)
+    return redirect(request.META.get('HTTP_REFERER', 'papertrading'))
+
+
+@login_required
 def start_all_traders_view(request):
     if request.method == 'POST':
         for trader in PaperTrader.objects.filter(status__in=['STOPPED', 'FAILED', 'SLEEPING']):
