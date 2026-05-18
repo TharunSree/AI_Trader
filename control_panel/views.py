@@ -470,7 +470,8 @@ def start_training_job_view(request):
             hyperparameter_key=hyperparameter_key,
             window_size=window_size,  # Now guaranteed to be an integer
             initial_cash=request.POST.get('initial_cash', 100000),
-            ticker=request.POST.get('ticker', 'SPY')
+            ticker=request.POST.get('ticker', 'SPY'),
+            training_duration_days=int(request.POST.get('training_duration_days', 365))
         )
 
         import sys
@@ -509,6 +510,7 @@ def start_meta_job_view(request):
             initial_cash=request.POST.get('initial_cash', 100000),
             target_equity=request.POST.get('target_equity', 200000),
             ticker=request.POST.get('ticker', 'SPY'),
+            training_duration_days=int(request.POST.get('training_duration_days', 365)),
             status='RUNNING'
         )
 

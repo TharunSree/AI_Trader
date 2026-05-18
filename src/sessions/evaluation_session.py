@@ -91,12 +91,16 @@ class EvaluationSession:
             job = get_database_model(model_reference)
             if not job:
                 raise FileNotFoundError(f"Database model {model_reference} was not found.")
+            ticker = job.ticker or 'SPY'
+            if ticker == 'ALL_CRYPTO':
+                logger.info("Evaluation target is ALL_CRYPTO. Defaulting visualization backtest to BTC-USD.")
+                ticker = 'BTC-USD'
             return {
                 'reference': model_reference,
                 'feature_set_key': job.feature_set_key,
                 'window_size': job.window_size,
                 'initial_cash': float(job.initial_cash or 100000),
-                'ticker': job.ticker or 'SPY',
+                'ticker': ticker,
             }
 
         inferred_shape = self._infer_disk_model_shape(model_reference)
@@ -112,6 +116,8 @@ class EvaluationSession:
             ticker = 'ETH-USD'
         elif 'spy' in ref_lower:
             ticker = 'SPY'
+        elif 'all_crypto' in ref_lower:
+            ticker = 'BTC-USD'
 
         return {
             'reference': model_reference,

@@ -32,6 +32,7 @@
                         <option value="BTC-USD">BTC-USD (Bitcoin)</option>
                         <option value="ETH-USD">ETH-USD (Ethereum)</option>
                         <option value="SOL-USD">SOL-USD (Solana)</option>
+                        <option value="ALL_CRYPTO" class="text-brand-accent font-bold font-mono bg-slate-950">ALL CRYPTO (Portfolio Basket: BTC, ETH, SOL, LTC, DOGE)</option>
                     </select>
                 </div>
                 <div>
@@ -44,9 +45,21 @@
                 <div>
                     <label for="meta_target_equity"
                         class="block text-xs uppercase tracking-widest text-slate-500 mb-2">Target Equity ($)</label>
-                    <input type="number" id="meta_target_equity" name="target_equity"
+                        <input type="number" id="meta_target_equity" name="target_equity"
                         class="w-full bg-slate-900 border border-slate-800 rounded px-4 py-2 text-white focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-all"
                         value="200000" step="1" min="1" required>
+                </div>
+                <div class="sm:col-span-2">
+                    <label for="meta_training_duration" class="block text-xs uppercase tracking-widest text-slate-500 mb-2">Historical Training Duration</label>
+                    <select id="meta_training_duration" name="training_duration_days"
+                        class="w-full bg-slate-900 border border-slate-800 rounded px-4 py-2 text-white focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-all appearance-none">
+                        <option value="20">20 Days (Fast In-Sample Test)</option>
+                        <option value="50">50 Days</option>
+                        <option value="100">100 Days</option>
+                        <option value="200">200 Days (Standard Validation)</option>
+                        <option value="365" selected>365 Days (Recommended - 1 Year)</option>
+                        <option value="730">730 Days (Deep Regime Study - 2 Years)</option>
+                    </select>
                 </div>
             </div>
             <button type="submit"
@@ -83,6 +96,7 @@
                         <option value="BTC-USD">BTC-USD (Bitcoin)</option>
                         <option value="ETH-USD">ETH-USD (Ethereum)</option>
                         <option value="SOL-USD">SOL-USD (Solana)</option>
+                        <option value="ALL_CRYPTO" class="text-brand-primary font-bold font-mono bg-slate-950">ALL CRYPTO (Portfolio Basket: BTC, ETH, SOL, LTC, DOGE)</option>
                     </select>
                 </div>
                 <div>
@@ -121,9 +135,21 @@
                 <div>
                     <label for="initial_cash"
                         class="block text-xs uppercase tracking-widest text-slate-500 mb-2">Initial Cash ($)</label>
-                    <input type="number" id="initial_cash" name="initial_cash"
+                        <input type="number" id="initial_cash" name="initial_cash"
                         class="w-full bg-slate-900 border border-slate-800 rounded px-4 py-2 text-white focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all"
                         value="100000" step="1" min="1" required>
+                </div>
+                <div>
+                    <label for="single_training_duration" class="block text-xs uppercase tracking-widest text-slate-500 mb-2">Training Timeline</label>
+                    <select id="single_training_duration" name="training_duration_days"
+                        class="w-full bg-slate-900 border border-slate-800 rounded px-4 py-2 text-white focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all appearance-none">
+                        <option value="20" class="bg-slate-900 text-slate-800 dark:text-slate-200 font-mono py-1">20 Days (Fast test)</option>
+                        <option value="50" class="bg-slate-900 text-slate-800 dark:text-slate-200 font-mono py-1">50 Days</option>
+                        <option value="100" class="bg-slate-900 text-slate-800 dark:text-slate-200 font-mono py-1">100 Days</option>
+                        <option value="200" class="bg-slate-900 text-slate-800 dark:text-slate-200 font-mono py-1">200 Days (Standard)</option>
+                        <option value="365" selected class="bg-slate-900 text-slate-800 dark:text-slate-200 font-mono py-1">365 Days (1 Year)</option>
+                        <option value="730" class="bg-slate-900 text-slate-800 dark:text-slate-200 font-mono py-1">730 Days (2 Years)</option>
+                    </select>
                 </div>
             </div>
             <button type="submit"

@@ -148,3 +148,27 @@ class TradingEnvironment(gym.Env):
         }
 
         return self._next_observation(), reward, done, False, info
+
+
+class MultiAssetTradingEnvironment(TradingEnvironment):
+    """
+    Advanced Environment that accepts a dictionary of dataframes.
+    On every reset, it switches the active dataframe to train the neural
+    network to generalize across a basket of multiple assets.
+    """
+    def __init__(self, dfs_dict: Dict[str, pd.DataFrame], *args, **kwargs):
+        self.dfs_dict = dfs_dict
+        self.asset_keys = list(dfs_dict.keys())
+        
+        # Initialize with the first asset temporarily
+        first_key = self.asset_keys[0]
+        super().__init__(df=dfs_dict[first_key], *args, **kwargs)
+        
+    def reset(self, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None) -> Tuple[np.ndarray, Dict[str, Any]]:
+        # Switch to a random asset on every new episode!
+        import random
+        selected_asset = random.choice(self.asset_keys)
+        logger.info(f"🔄 Environment Reset: Switched active target to {selected_asset}")
+        self.df = self.dfs_dict[selected_asset].copy()
+        self.df.reset_index(drop=True, inplace=True)
+        return super().reset(seed=seed, options=options)

@@ -139,16 +139,9 @@ class PPOAgent:
             # Clamp action to ensure it's within the valid range [-1.0, 1.0]
             action = torch.clamp(action_mean, -1.0, 1.0)
             
-            # Apply a high trade threshold to drastically reduce noise and overtrading.
-            # This is critical to address the critically low average PnL per trade and
-            # the high trade count observed in previous performance reports.
-            # By requiring a much higher conviction (0.95), the model will execute
-            # significantly fewer trades, focusing only on the strongest signals.
-            # This aims to increase the average profit per trade, reduce transaction costs,
-            # and avoid Pattern Day Trading (PDT) rejections.
-            if abs(action.item()) < self.trade_threshold:
-                return 0.0 # Return 0.0 for no action if conviction is below threshold
-            
+            # Removed the 0.95 trade threshold clamp here.
+            # The async_engine already filters out noise (e.g., abs < 0.05).
+            # Passing the raw signal allows the engine to actually see the network's confidence!
             return float(action.cpu().numpy()[0][0])
 
     def update(self, memory: Dict[str, List]):

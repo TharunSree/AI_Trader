@@ -60,14 +60,36 @@ def train_jarvis(job_id=None):
     from src.data.yfinance_loader import YFinanceLoader
     from src.data.preprocessor import calculate_features
     from src.models.trainer import Trainer
+    from src.core.environment import MultiAssetTradingEnvironment
+    import datetime
 
-    logger.info(f"Downloading historical market payload for {ticker}...")
-    train_df = calculate_features(
-        YFinanceLoader([ticker], "2015-01-01", "2021-12-31").load_data()
-    )
+    # Calculate dynamic training window based on job config
+    duration = job.training_duration_days if job and hasattr(job, 'training_duration_days') else 365
+    end_date = datetime.date.today()
+    start_date = end_date - datetime.timedelta(days=duration)
+    start_str = start_date.strftime('%Y-%m-%d')
+    end_str = end_date.strftime('%Y-%m-%d')
 
-    # Boot the modernized Gym
-    env = TradingEnvironment(train_df, features, window, principal, 0.001, 0.0005)
+    if ticker == 'ALL_CRYPTO':
+        logger.info(f"Downloading historical market payload for ALL_CRYPTO ({duration} days)...")
+        crypto_basket = ['BTC-USD', 'ETH-USD', 'SOL-USD', 'LTC-USD', 'DOGE-USD']
+        raw_df = YFinanceLoader(crypto_basket, start_str, end_str).load_data()
+        
+        dfs_dict = {}
+        for sym in crypto_basket:
+            sym_df = raw_df[raw_df['Ticker'] == sym].copy()
+            if not sym_df.empty:
+                dfs_dict[sym] = calculate_features(sym_df)
+                
+        # Boot the modernized Multi-Asset Gym
+        env = MultiAssetTradingEnvironment(dfs_dict, observation_columns=features, window_size=window, initial_balance=principal, fee_rate=0.001, slippage=0.0005)
+    else:
+        logger.info(f"Downloading historical market payload for {ticker} ({duration} days)...")
+        train_df = calculate_features(
+            YFinanceLoader([ticker], start_str, end_str).load_data()
+        )
+        # Boot the modernized Gym
+        env = TradingEnvironment(train_df, features, window, principal, 0.001, 0.0005)
     
     # Auto-Calculate Tensor requirements
     state_dim = env.observation_space.shape[0]

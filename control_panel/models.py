@@ -16,6 +16,7 @@ class TrainingJob(models.Model):
     hyperparameter_key = models.CharField(max_length=50, default='balanced')
     ticker = models.CharField(max_length=20, default='SPY')
     window_size = models.IntegerField(default=10)
+    training_duration_days = models.IntegerField(default=365)
     initial_cash = models.FloatField(default=100000.0)
 
     # Status Tracking
@@ -71,6 +72,7 @@ class MetaTrainingJob(models.Model):
 
     initial_cash = models.FloatField(default=100000.0)
     target_equity = models.FloatField(default=200000.0)
+    training_duration_days = models.IntegerField(default=365)
 
     # --- NEW: Add progress field ---
     progress = models.IntegerField(default=0)
