@@ -140,17 +140,29 @@ class Broker:
 
         try:
             # Fallback: get latest trade price
-            latest_trade = self.api.get_latest_trade(symbol)
-            return float(latest_trade.price)
+            return self._get_latest_trade_price(symbol)
         except Exception as e:
             logger.warning(f"Could not get latest trade for {symbol}: {e}")
             return None
 
+    def _get_latest_trade_price(self, symbol: str) -> float:
+        """Helper to safely fetch the most recent trade price for equities and crypto."""
+        try:
+            if '/USD' in symbol or '-USD' in symbol or symbol.endswith('USD'):
+                trades = self.api.get_latest_crypto_trades([symbol])
+                if symbol in trades:
+                    t = trades[symbol]
+                    return float(getattr(t, 'price', getattr(t, 'p', 0.0)))
+            
+            latest_trade = self.api.get_latest_trade(symbol)
+            return float(getattr(latest_trade, 'price', getattr(latest_trade, 'p', 0.0)))
+        except Exception as e:
+            raise RuntimeError(f"REST fetch failed: {e}")
+
     def get_current_price(self, symbol: str) -> float:
         """Get the absolute current market active price for the REST fallback."""
         try:
-            latest_trade = self.api.get_latest_trade(symbol)
-            return float(latest_trade.price)
+            return self._get_latest_trade_price(symbol)
         except Exception as e:
             logger.warning(f"Could not fetch current live price for {symbol}: {e}")
             return 0.0
@@ -162,8 +174,7 @@ class Broker:
         """
         try:
             # Get current market price
-            latest_trade = self.api.get_latest_trade(symbol)
-            current_price = float(latest_trade.price)
+            current_price = self._get_latest_trade_price(symbol)
 
             # Get last close price
             last_close = self._get_last_close_price(symbol)
@@ -194,8 +205,7 @@ class Broker:
             logger.error(f"Error in gap protection for {symbol}: {e}")
             # On error, allow trade but warn
             try:
-                latest_trade = self.api.get_latest_trade(symbol)
-                current_price = float(latest_trade.price)
+                current_price = self._get_latest_trade_price(symbol)
                 return True, current_price, None, 0.0
             except:
                 return True, 0.0, None, 0.0
@@ -275,8 +285,7 @@ class Broker:
                 return False, None
         else:
             try:
-                latest_trade = self.api.get_latest_trade(symbol)
-                current_price = float(latest_trade.price)
+                current_price = self._get_latest_trade_price(symbol)
             except:
                 current_price = 0.0
 
