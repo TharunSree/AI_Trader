@@ -18,46 +18,45 @@
                         mono: ['"JetBrains Mono"', 'monospace'],
                     },
                     colors: {
-                        white: 'var(--c-white)',
                         brand: {
-                            50: 'var(--c-brand-50)',
-                            100: 'var(--c-brand-100)',
-                            400: 'var(--c-brand-400)',
-                            500: 'var(--c-brand-500)',
-                            600: 'var(--c-brand-600)',
-                            700: 'var(--c-brand-700)',
-                            800: 'var(--c-brand-800)',
-                            900: 'var(--c-brand-900)',
-                            950: 'var(--c-brand-950)',
+                            50: 'rgb(var(--c-brand-50) / <alpha-value>)',
+                            100: 'rgb(var(--c-brand-100) / <alpha-value>)',
+                            400: 'rgb(var(--c-brand-400) / <alpha-value>)',
+                            500: 'rgb(var(--c-brand-500) / <alpha-value>)',
+                            600: 'rgb(var(--c-brand-600) / <alpha-value>)',
+                            700: 'rgb(var(--c-brand-700) / <alpha-value>)',
+                            800: 'rgb(var(--c-brand-800) / <alpha-value>)',
+                            900: 'rgb(var(--c-brand-900) / <alpha-value>)',
+                            950: 'rgb(var(--c-brand-950) / <alpha-value>)',
                         },
                         slate: {
-                            50: 'var(--c-slate-50)',
-                            100: 'var(--c-slate-100)',
-                            200: 'var(--c-slate-200)',
-                            300: 'var(--c-slate-300)',
-                            400: 'var(--c-slate-400)',
-                            500: 'var(--c-slate-500)',
-                            600: 'var(--c-slate-600)',
-                            700: 'var(--c-slate-700)',
-                            800: 'var(--c-slate-800)',
-                            900: 'var(--c-slate-900)',
-                            950: 'var(--c-slate-950)',
+                            50: 'rgb(var(--c-slate-50) / <alpha-value>)',
+                            100: 'rgb(var(--c-slate-100) / <alpha-value>)',
+                            200: 'rgb(var(--c-slate-200) / <alpha-value>)',
+                            300: 'rgb(var(--c-slate-300) / <alpha-value>)',
+                            400: 'rgb(var(--c-slate-400) / <alpha-value>)',
+                            500: 'rgb(var(--c-slate-500) / <alpha-value>)',
+                            600: 'rgb(var(--c-slate-600) / <alpha-value>)',
+                            700: 'rgb(var(--c-slate-700) / <alpha-value>)',
+                            800: 'rgb(var(--c-slate-800) / <alpha-value>)',
+                            900: 'rgb(var(--c-slate-900) / <alpha-value>)',
+                            950: 'rgb(var(--c-slate-950) / <alpha-value>)',
                         },
                         cat: {
-                            rosewater: '#f2d5cf',
-                            flamingo: '#eebebe',
-                            pink: '#f4b8e4',
-                            mauve: '#ca9ee6',
-                            red: '#e78284',
-                            maroon: '#ea999c',
-                            peach: '#ef9f76',
-                            yellow: '#e5c890',
-                            green: '#a6d189',
-                            teal: '#81c8be',
-                            sky: '#99d1db',
-                            sapphire: '#85c1dc',
-                            blue: '#8caaee',
-                            lavender: '#babbf1',
+                            rosewater: '#f4dbd6',
+                            flamingo: '#f0c6c6',
+                            pink: '#f5bde6',
+                            mauve: '#c6a0f6',
+                            red: '#ed8796',
+                            maroon: '#ee99a0',
+                            peach: '#f5a97f',
+                            yellow: '#eed49f',
+                            green: '#a6da95',
+                            teal: '#8bd5ca',
+                            sky: '#91d7e3',
+                            sapphire: '#7dc4e4',
+                            blue: '#8aadf4',
+                            lavender: '#b7bdf8',
                         }
                     }
                 }
@@ -82,58 +81,56 @@
     
     <style>
         :root {
-            /* Catppuccin Latte (Light) */
-            --c-white: #eff1f5;      /* Base for white */
-            --c-slate-50: #eff1f5;   /* Base */
-            --c-slate-100: #e6e9ef;  /* Mantle */
-            --c-slate-200: #ccd0da;  /* Surface0 */
-            --c-slate-300: #bcc0cc;  /* Surface1 */
-            --c-slate-400: #acb0be;  /* Surface2 */
-            --c-slate-500: #8c8fa1;  /* Overlay1 */
-            --c-slate-600: #6c6f85;  /* Subtext0 */
-            --c-slate-700: #5c5f77;  /* Subtext1 */
-            --c-slate-800: #4c4f69;  /* Text */
-            --c-slate-900: #e6e9ef;  /* Re-mapped for dark classes in light mode */
-            --c-slate-950: #eff1f5;  /* Re-mapped for dark classes in light mode */
+            /* Catppuccin Latte (Light) - RGB format for opacity support */
+            --c-slate-50: 239 241 245;   /* Base #eff1f5 */
+            --c-slate-100: 230 233 239;  /* Mantle #e6e9ef */
+            --c-slate-200: 204 208 218;  /* Surface0 #ccd0da */
+            --c-slate-300: 188 192 204;  /* Surface1 #bcc0cc */
+            --c-slate-400: 172 176 190;  /* Surface2 #acb0be */
+            --c-slate-500: 140 143 161;  /* Overlay1 #8c8fa1 */
+            --c-slate-600: 124 127 147;  /* Subtext0 #7c7f93 */
+            --c-slate-700: 108 111 133;  /* Subtext1 #6c6f85 */
+            --c-slate-800: 76 79 105;    /* Text #4c4f69 */
+            --c-slate-900: 76 79 105;    
+            --c-slate-950: 76 79 105;    
             
-            --c-brand-50: #e6e9ef;
-            --c-brand-100: #7287fd;
-            --c-brand-400: #1e66f5;
-            --c-brand-500: #1e66f5; /* Blue */
-            --c-brand-600: #179299; /* Teal */
-            --c-brand-700: #04a5e5;
-            --c-brand-800: #209fb5;
-            --c-brand-900: #1e66f5;
-            --c-brand-950: #1e66f5;
+            --c-brand-50: 230 233 239;
+            --c-brand-100: 114 135 253;
+            --c-brand-400: 30 102 245;
+            --c-brand-500: 30 102 245; 
+            --c-brand-600: 23 146 153; 
+            --c-brand-700: 4 165 229;
+            --c-brand-800: 32 159 181;
+            --c-brand-900: 30 102 245;
+            --c-brand-950: 30 102 245;
             
             /* App Overrides for solid backgrounds that use explicit bg-white */
             --tw-bg-opacity: 1;
         }
 
         .dark {
-            /* Catppuccin Frappe (Dark) */
-            --c-white: #303446;      /* Base for white mapping in dark mode (failsafe) */
-            --c-slate-50: #303446;   /* Re-mapped for light classes in dark mode */
-            --c-slate-100: #292c3c;
-            --c-slate-200: #414559;  /* Border/Surface */
-            --c-slate-300: #51576d;
-            --c-slate-400: #737994;  /* Overlay0 */
-            --c-slate-500: #838ba7;  /* Overlay1 */
-            --c-slate-600: #a5adce;  /* Subtext0 */
-            --c-slate-700: #b5bfe2;  /* Subtext1 */
-            --c-slate-800: #c6d0f5;  /* Text */
-            --c-slate-900: #292c3c;  /* Mantle */
-            --c-slate-950: #232634;  /* Crust */
+            /* Catppuccin Macchiato (Dark) - RGB format for opacity support */
+            --c-slate-50: 202 211 245;   /* Text #cad3f5 */
+            --c-slate-100: 184 192 224;
+            --c-slate-200: 202 211 245;  /* Text #cad3f5 */
+            --c-slate-300: 184 192 224;  /* Subtext1 #b8c0e0 */
+            --c-slate-400: 165 173 203;  /* Subtext0 #a5adcb */
+            --c-slate-500: 128 135 162;  /* Overlay1 #8087a2 */
+            --c-slate-600: 91 96 120;    /* Surface2 #5b6078 */
+            --c-slate-700: 73 77 100;    /* Surface1 #494d64 */
+            --c-slate-800: 54 58 79;     /* Surface0 #363a4f */
+            --c-slate-900: 30 32 48;     /* Mantle #1e2030 */
+            --c-slate-950: 24 25 38;     /* Crust #181926 */
             
-            --c-brand-50: #292c3c;
-            --c-brand-100: #8caaee;
-            --c-brand-400: #8caaee; /* Blue */
-            --c-brand-500: #85c1dc; /* Sapphire */
-            --c-brand-600: #81c8be; /* Teal */
-            --c-brand-700: #99d1db;
-            --c-brand-800: #85c1dc;
-            --c-brand-900: #8caaee;
-            --c-brand-950: #8caaee;
+            --c-brand-50: 30 32 48;      /* Mantle */
+            --c-brand-100: 138 173 244;
+            --c-brand-400: 138 173 244;  /* Blue */
+            --c-brand-500: 125 196 228;  /* Sapphire */
+            --c-brand-600: 139 213 202;  /* Teal */
+            --c-brand-700: 145 215 227;  
+            --c-brand-800: 125 196 228;
+            --c-brand-900: 138 173 244;
+            --c-brand-950: 138 173 244;
         }
 
         /* Custom scrollbar for high density data tables */
@@ -167,12 +164,12 @@
         }
         
         #app-sidebar nav a { transition: all 0.2s ease; }
-        #app-sidebar.collapsed nav a { justify-content: center; padding-left: 0; padding-right: 0; }
+        #app-sidebar.collapsed nav a { justify-content: center; padding-left: 0; padding-right: 0; gap: 0; }
         #app-sidebar.collapsed nav a i { margin: 0; }
         #app-sidebar.collapsed .sidebar-logo { justify-content: center; padding-left: 0; padding-right: 0; }
         #app-sidebar.collapsed .sidebar-logo > div { justify-content: center; width: auto; gap: 0; }
-        #app-sidebar.collapsed #sidebar-collapse-btn { position: absolute; right: -12px; top: 20px; background: white; border: 1px solid #e2e8f0; width: 24px; height: 24px; z-index: 60; }
-        .dark #app-sidebar.collapsed #sidebar-collapse-btn { background: #1e293b; border-color: #334155; }
+        #app-sidebar.collapsed #sidebar-collapse-btn { display: none; }
+        .dark #app-sidebar.collapsed #sidebar-collapse-btn { display: none; }
         #app-sidebar.collapsed #sidebar-collapse-btn i { margin-left: 2px; }
         #app-sidebar.collapsed .sidebar-footer button { justify-content: center; padding-left: 0; padding-right: 0; }
 
