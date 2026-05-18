@@ -14,6 +14,7 @@
             <ul class="space-y-3 font-mono text-xs tracking-wider text-slate-500 dark:text-slate-400 dark:text-slate-500">
                 <li><a href="#section-arch" class="hover:text-brand-accent transition-colors flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-slate-600"></div> System Architecture</a></li>
                 <li><a href="#section-train" class="hover:text-brand-accent transition-colors flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-slate-600"></div> Neural Training Protocols</a></li>
+                <li><a href="#section-features" class="hover:text-brand-accent transition-colors flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-slate-600"></div> Feature Sets & Strategies</a></li>
                 <li><a href="#section-exec" class="hover:text-brand-accent transition-colors flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-slate-600"></div> Autonomous Execution</a></li>
                 <li><a href="#section-heal" class="hover:text-brand-accent transition-colors flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse"></div> Cognitive Mutator & Auto-Heal</a></li>
                 <li><a href="#section-models" class="hover:text-brand-accent transition-colors flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-slate-600"></div> The Models Hub</a></li>
@@ -62,6 +63,47 @@
                 <div class="p-4 bg-slate-100 dark:bg-slate-800/20 border border-slate-700/50 rounded-lg">
                     <h4 class="text-brand-accent font-mono text-sm mb-2">Background A/B Tournaments</h4>
                     <p class="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Every night precisely at 4:15 PM EST (post-market), QuantTrader will automatically run background A/B tournament evaluations to rank all training jobs against real-world test sets while the stock market is closed.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature Sets & Strategies -->
+        <div id="section-features" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-8 relative overflow-hidden">
+            <h2 class="text-xl font-semibold text-slate-800 dark:text-slate-200 mb-4 tracking-widest uppercase border-b border-slate-700/50 pb-4">Feature Sets & Strategies</h2>
+            <p class="text-slate-600 dark:text-slate-400 dark:text-slate-500 text-sm leading-relaxed mb-6">
+                When training a model, you must select a Feature Set. This defines the mathematical indicators the neural network will analyze to make predictions. Here is a breakdown of the available intelligence protocols:
+            </p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-700/50 rounded-lg">
+                    <h4 class="text-brand-primary font-mono text-sm mb-1 uppercase">Alpha Discovery</h4>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400"><strong>Indicators:</strong> SMA (20, 50, 200), RSI, MACD, Bollinger Bands, ATR.</p>
+                    <p class="text-xs text-slate-600 dark:text-slate-500 mt-2">A balanced, omni-directional strategy. Looks for broad market inefficiencies and standard technical alignments. Great baseline for all environments.</p>
+                </div>
+                <div class="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-700/50 rounded-lg">
+                    <h4 class="text-brand-accent font-mono text-sm mb-1 uppercase">Volatility Breakout</h4>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400"><strong>Indicators:</strong> Bollinger Bands, ATR, ADX, Momentum.</p>
+                    <p class="text-xs text-slate-600 dark:text-slate-500 mt-2">Aggressively targets explosive price movements. Best used when anticipating sudden market shifts or news-driven events that shatter standard resistance levels.</p>
+                </div>
+                <div class="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-700/50 rounded-lg">
+                    <h4 class="text-purple-500 font-mono text-sm mb-1 uppercase">Intraday Reversal</h4>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400"><strong>Indicators:</strong> RSI, Stochastic, Williams %R, CCI.</p>
+                    <p class="text-xs text-slate-600 dark:text-slate-500 mt-2">Contrarian protocol that seeks overbought/oversold exhaustion points to bet against the immediate trend. Thrives in choppy, non-trending markets.</p>
+                </div>
+                <div class="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-700/50 rounded-lg">
+                    <h4 class="text-emerald-500 font-mono text-sm mb-1 uppercase">Macro Trend</h4>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400"><strong>Indicators:</strong> SMA (50, 200), EMA (21, 55), Ichimoku Cloud.</p>
+                    <p class="text-xs text-slate-600 dark:text-slate-500 mt-2">Patience-heavy trend-following system. Ignores short-term noise and only executes when long-term moving averages align. Excellent for holding massive winners.</p>
+                </div>
+                <div class="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-700/50 rounded-lg">
+                    <h4 class="text-blue-500 font-mono text-sm mb-1 uppercase">Institutional Value</h4>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400"><strong>Indicators:</strong> VWAP, OBV, MFI, Volume.</p>
+                    <p class="text-xs text-slate-600 dark:text-slate-500 mt-2">Follows the money. Analyzes volume footprints to detect large institutional accumulation or distribution. If whales are buying, this model buys.</p>
+                </div>
+                <div class="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-700/50 rounded-lg">
+                    <h4 class="text-rose-500 font-mono text-sm mb-1 uppercase">Growth Momentum</h4>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400"><strong>Indicators:</strong> ROC, MACD Histogram, ADX, PSAR.</p>
+                    <p class="text-xs text-slate-600 dark:text-slate-500 mt-2">High-octane trend rider. Buys assets that are already moving fast and attempts to surf the momentum before it slows down. Cuts losers quickly.</p>
                 </div>
             </div>
         </div>
