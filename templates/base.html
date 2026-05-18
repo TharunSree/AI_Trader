@@ -349,6 +349,30 @@
         </div>
     </div>
 
+    <!-- Standardized Premium Confirm Modal -->
+    <div id="standard-confirm-modal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[110] hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
+        <div id="confirm-modal-box" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-2xl flex flex-col max-w-sm w-full transform scale-95 transition-all duration-300">
+            <div class="flex items-start space-x-4 mb-5">
+                <div class="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 text-amber-500 border border-amber-200 dark:border-amber-500/20 shrink-0">
+                    <i class="fa-solid fa-triangle-exclamation text-lg animate-pulse"></i>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-widest font-mono mb-2">SYSTEM PROTOCOL</h3>
+                    <p id="confirm-modal-message" class="text-xs text-slate-600 dark:text-slate-400 font-mono leading-relaxed">Execute instruction?</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-end space-x-3">
+                <button id="confirm-modal-btn-cancel" class="px-4 py-2 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-400 rounded-lg text-[10px] font-mono font-bold tracking-widest uppercase transition-colors">
+                    Cancel
+                </button>
+                <button id="confirm-modal-btn-confirm" class="px-4 py-2 bg-red-500 hover:bg-red-600 dark:bg-red-500/20 dark:hover:bg-red-500/30 text-white dark:text-red-400 border border-red-200 dark:border-red-500/30 rounded-lg text-[10px] font-mono font-bold tracking-widest uppercase transition-colors">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Dark Mode Toggle Logic
         var themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
@@ -407,11 +431,93 @@
             }
         };
 
-        window.confirmAction = function(msg, callback) {
-            if (confirm(msg)) {
-                callback();
+        window.confirmAction = function(msg, callback, options = {}) {
+            const modal = document.getElementById('standard-confirm-modal');
+            const box = document.getElementById('confirm-modal-box');
+            const msgElem = document.getElementById('confirm-modal-message');
+            const confirmBtn = document.getElementById('confirm-modal-btn-confirm');
+            const cancelBtn = document.getElementById('confirm-modal-btn-cancel');
+            
+            // Set message text
+            msgElem.innerText = msg;
+            
+            // Customize confirm button style based on options or keyword matching for danger actions
+            const isDanger = options.danger || /kill|wipe|terminate|sever|delete|destroy|purge|abort|cancel/i.test(msg);
+            if (isDanger) {
+                confirmBtn.className = "px-4 py-2 bg-red-500 hover:bg-red-600 dark:bg-red-500/20 dark:hover:bg-red-500/30 text-white dark:text-red-400 border border-red-200 dark:border-red-500/30 rounded-lg text-[10px] font-mono font-bold tracking-widest uppercase transition-colors";
+            } else {
+                confirmBtn.className = "px-4 py-2 bg-brand-500 hover:bg-brand-600 dark:bg-brand-400/20 dark:hover:bg-brand-400/30 text-white dark:text-brand-400 border border-brand-500/30 dark:border-brand-400/30 rounded-lg text-[10px] font-mono font-bold tracking-widest uppercase transition-colors";
             }
+            
+            // Display modal
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            // Trigger animation
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                box.classList.remove('scale-95');
+            }, 10);
+            
+            // Clean up old event listeners (by cloning buttons)
+            const newConfirmBtn = confirmBtn.cloneNode(true);
+            const newCancelBtn = cancelBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+            cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+            
+            const closeModal = () => {
+                modal.classList.add('opacity-0');
+                box.classList.add('scale-95');
+                setTimeout(() => {
+                    modal.classList.remove('flex');
+                    modal.classList.add('hidden');
+                }, 300);
+            };
+            
+            newConfirmBtn.addEventListener('click', () => {
+                closeModal();
+                if (typeof callback === 'function') callback();
+            });
+            
+            newCancelBtn.addEventListener('click', closeModal);
+            
+            // Also close if clicked outside
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
         };
+
+        // DOMContentLoaded interceptor to automatically hook native form confirms
+        document.addEventListener('DOMContentLoaded', function() {
+            // Find all forms with inline confirm calls
+            document.querySelectorAll('form').forEach(function(form) {
+                const onsubmitAttr = form.getAttribute('onsubmit');
+                if (onsubmitAttr && onsubmitAttr.includes('confirm(')) {
+                    // Extract message from confirm('...') or confirm("...")
+                    const match = onsubmitAttr.match(/confirm\(['"](.*?)['"]\)/);
+                    if (match && match[1]) {
+                        const message = match[1];
+                        
+                        // Remove inline blocking onsubmit
+                        form.removeAttribute('onsubmit');
+                        
+                        // Hook new premium confirm submit action
+                        form.addEventListener('submit', function(e) {
+                            e.preventDefault();
+                            window.confirmAction(message, function() {
+                                if (onsubmitAttr.includes('window.launchOverlay')) {
+                                    const overlayMatch = onsubmitAttr.match(/launchOverlay\(.*?, ['"](.*?)['"]\)/);
+                                    const loadingMsg = (overlayMatch && overlayMatch[1]) ? overlayMatch[1] : "PROCESSING...";
+                                    window.launchOverlay(form, loadingMsg);
+                                } else {
+                                    form.submit();
+                                }
+                            });
+                        });
+                    }
+                }
+            });
+        });
 
         // ── Sidebar Toggle Logic ──
         const sidebar = document.getElementById('app-sidebar');
