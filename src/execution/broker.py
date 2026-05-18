@@ -172,20 +172,34 @@ class Broker:
         import pandas as pd
         from alpaca_trade_api.rest import TimeFrame
         try:
-            # For crypto symbols like SOL-USD or SOL/USD, Alpaca expects SOL/USD or BTC/USD.
-            # Let's ensure symbol format is clean for Alpaca.
-            formatted_symbol = symbol.replace("-", "/")
+            # Detect if this is a cryptocurrency asset
+            is_crypto = '-' in symbol or '/' in symbol or 'USD' in symbol.upper()
             
-            logger.info(f"Fetching {limit} historical daily bars for {formatted_symbol}")
-            bars = self.api.get_bars(
-                formatted_symbol,
-                TimeFrame.Day,
-                limit=limit
-            )
-            
-            if not bars:
-                # Try fallback without dash substitution
-                bars = self.api.get_bars(symbol, TimeFrame.Day, limit=limit)
+            if is_crypto:
+                formatted_symbol = symbol.replace("-", "/")
+                logger.info(f"Fetching {limit} historical daily crypto bars for {formatted_symbol}")
+                try:
+                    # Request from CBSE exchange specifically for stable single-candle daily sequence
+                    bars = self.api.get_crypto_bars(
+                        formatted_symbol,
+                        TimeFrame.Day,
+                        limit=limit,
+                        exchanges=['CBSE']
+                    )
+                except Exception as ex:
+                    logger.warning(f"Failed to fetch crypto bars from CBSE for {formatted_symbol}, retrying without exchange filter: {ex}")
+                    bars = self.api.get_crypto_bars(
+                        formatted_symbol,
+                        TimeFrame.Day,
+                        limit=limit
+                    )
+            else:
+                logger.info(f"Fetching {limit} historical daily stock bars for {symbol}")
+                bars = self.api.get_bars(
+                    symbol,
+                    TimeFrame.Day,
+                    limit=limit
+                )
                 
             if not bars:
                 logger.warning(f"No bars returned for {symbol} (limit={limit})")
@@ -193,6 +207,7 @@ class Broker:
                 
             df = pd.DataFrame([
                 {
+                    "timestamp": getattr(bar, "t", getattr(bar, "timestamp", None)),
                     "Open": float(bar.o),
                     "High": float(bar.h),
                     "Low": float(bar.l),
@@ -202,6 +217,12 @@ class Broker:
                 }
                 for bar in bars
             ])
+            
+            if not df.empty:
+                df = df.drop_duplicates(subset=["timestamp"]).reset_index(drop=True)
+                if "timestamp" in df.columns:
+                    df = df.drop(columns=["timestamp"])
+                    
             df = df.dropna()
             return df
         except Exception as e:
