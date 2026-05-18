@@ -167,6 +167,47 @@ class Broker:
             logger.warning(f"Could not fetch current live price for {symbol}: {e}")
             return 0.0
 
+    def get_historical_daily_bars(self, symbol: str, limit: int = 200) -> "pd.DataFrame":
+        """Fetches historical daily bar data and formats it as a pandas DataFrame."""
+        import pandas as pd
+        from alpaca_trade_api.rest import TimeFrame
+        try:
+            # For crypto symbols like SOL-USD or SOL/USD, Alpaca expects SOL/USD or BTC/USD.
+            # Let's ensure symbol format is clean for Alpaca.
+            formatted_symbol = symbol.replace("-", "/")
+            
+            logger.info(f"Fetching {limit} historical daily bars for {formatted_symbol}")
+            bars = self.api.get_bars(
+                formatted_symbol,
+                TimeFrame.Day,
+                limit=limit
+            )
+            
+            if not bars:
+                # Try fallback without dash substitution
+                bars = self.api.get_bars(symbol, TimeFrame.Day, limit=limit)
+                
+            if not bars:
+                logger.warning(f"No bars returned for {symbol} (limit={limit})")
+                return pd.DataFrame()
+                
+            df = pd.DataFrame([
+                {
+                    "Open": float(bar.o),
+                    "High": float(bar.h),
+                    "Low": float(bar.l),
+                    "Close": float(bar.c),
+                    "Volume": float(bar.v),
+                    "symbol": symbol
+                }
+                for bar in bars
+            ])
+            df = df.dropna()
+            return df
+        except Exception as e:
+            logger.error(f"Failed to fetch historical bars for {symbol}: {e}", exc_info=True)
+            return pd.DataFrame()
+
     def _check_gap_protection(self, symbol: str, side: str, max_gap_percent: float = 5.0) -> tuple:
         """
         Check if current price gaps too much from last close.

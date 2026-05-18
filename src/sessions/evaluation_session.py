@@ -96,14 +96,29 @@ class EvaluationSession:
                 'feature_set_key': job.feature_set_key,
                 'window_size': job.window_size,
                 'initial_cash': float(job.initial_cash or 100000),
+                'ticker': job.ticker or 'SPY',
             }
 
         inferred_shape = self._infer_disk_model_shape(model_reference)
+        
+        # Try to extract ticker from filename
+        ticker = 'SPY'
+        ref_lower = model_reference.lower()
+        if 'sol-usd' in ref_lower or 'solusd' in ref_lower:
+            ticker = 'SOL-USD'
+        elif 'btc-usd' in ref_lower or 'btcusd' in ref_lower:
+            ticker = 'BTC-USD'
+        elif 'eth-usd' in ref_lower or 'ethusd' in ref_lower:
+            ticker = 'ETH-USD'
+        elif 'spy' in ref_lower:
+            ticker = 'SPY'
+
         return {
             'reference': model_reference,
             'feature_set_key': inferred_shape['feature_set_key'],
             'window_size': inferred_shape['window_size'],
             'initial_cash': 100000.0,
+            'ticker': ticker,
         }
 
     def run(self):
@@ -115,7 +130,7 @@ class EvaluationSession:
         user_start_date = datetime.strptime(self.config['start_date'], '%Y-%m-%d')
         warmup_start_date = user_start_date - timedelta(days=100)
 
-        loader = YFinanceLoader(['SPY'], warmup_start_date.strftime('%Y-%m-%d'), self.config['end_date'])
+        loader = YFinanceLoader([model_config['ticker']], warmup_start_date.strftime('%Y-%m-%d'), self.config['end_date'])
         raw_df = loader.load_data()
         if raw_df.empty:
             raise ValueError("Evaluation data loading failed.")
@@ -207,7 +222,7 @@ class EvaluationSession:
 
         equity_series = pd.Series(equity_curve, index=pd.to_datetime(dates))
         daily_returns = equity_series.pct_change().dropna()
-        total_return_pct = (equity_curve[-1] / equity_curve[0] - 1) * 100
+        total_return_pct = (equity_curve[-1] / env.initial_balance - 1) * 100
         sharpe_ratio = (daily_returns.mean() / daily_returns.std()) * np.sqrt(252) if daily_returns.std() > 0 else 0.0
         max_drawdown_pct = abs(float(calculate_max_drawdown(equity_series))) * 100
         avg_action = float(np.mean(action_values)) if action_values else 0.0

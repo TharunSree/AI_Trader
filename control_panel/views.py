@@ -1077,6 +1077,7 @@ def job_status_api(request):
                 'status': job.status,
                 'progress': 100 if job.status == 'COMPLETED' else 0,
                 'sharpe_ratio': job.results.get('sharpe_ratio', 0.0) if job.results else 0.0,
+                'total_return_pct': job.results.get('total_return_pct', 0.0) if job.results else 0.0,
                 'error_message': job.error_message or ''
             } for job in evaluation_jobs
         ]

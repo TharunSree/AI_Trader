@@ -218,7 +218,7 @@
                     if (sharpeEl) sharpeEl.innerText = job.sharpe_ratio ? job.sharpe_ratio.toFixed(2) : '-';
                     
                     const returnEl = document.getElementById(`eval-return-${job.id}`);
-                    if (returnEl) returnEl.innerText = job.sharpe_ratio ? (job.sharpe_ratio > 0 ? '+' : '') + (job.sharpe_ratio * 100).toFixed(2) + '%' : '0.00%'; // Wait, using sharpe as return? No, I should use return.
+                    if (returnEl) returnEl.innerText = job.total_return_pct !== undefined ? (job.total_return_pct > 0 ? '+' : '') + job.total_return_pct.toFixed(2) + '%' : '0.00%';
                 });
             });
     }
