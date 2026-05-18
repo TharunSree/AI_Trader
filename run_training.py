@@ -73,13 +73,16 @@ def train_jarvis(job_id=None):
     if ticker == 'ALL_CRYPTO':
         logger.info(f"Downloading historical market payload for ALL_CRYPTO ({duration} days)...")
         crypto_basket = ['BTC-USD', 'ETH-USD', 'SOL-USD', 'LTC-USD', 'DOGE-USD']
-        raw_df = YFinanceLoader(crypto_basket, start_str, end_str).load_data()
         
         dfs_dict = {}
         for sym in crypto_basket:
-            sym_df = raw_df[raw_df['Ticker'] == sym].copy()
-            if not sym_df.empty:
-                dfs_dict[sym] = calculate_features(sym_df)
+            try:
+                sym_df = YFinanceLoader([sym], start_str, end_str).load_data()
+                if not sym_df.empty:
+                    sym_df['Ticker'] = sym
+                    dfs_dict[sym] = calculate_features(sym_df)
+            except Exception as e:
+                logger.warning(f"Failed to load {sym}: {e}")
                 
         # Boot the modernized Multi-Asset Gym
         env = MultiAssetTradingEnvironment(dfs_dict, observation_columns=features, window_size=window, initial_balance=principal, fee_rate=0.001, slippage=0.0005)

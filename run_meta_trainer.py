@@ -112,17 +112,21 @@ def main():
     
     if TICKER_SYMBOL == 'ALL_CRYPTO':
         crypto_basket = ['BTC-USD', 'ETH-USD', 'SOL-USD', 'LTC-USD', 'DOGE-USD']
-        raw_train_df = YFinanceLoader(crypto_basket, start_str, split_str).load_data()
-        raw_val_df = YFinanceLoader(crypto_basket, split_str, end_str).load_data()
         
         train_df = {}
         validation_df = {}
         for sym in crypto_basket:
-            sym_train = raw_train_df[raw_train_df['Ticker'] == sym].copy()
-            sym_val = raw_val_df[raw_val_df['Ticker'] == sym].copy()
-            if not sym_train.empty and not sym_val.empty:
-                train_df[sym] = calculate_features(sym_train)
-                validation_df[sym] = calculate_features(sym_val)
+            try:
+                sym_train = YFinanceLoader([sym], start_str, split_str).load_data()
+                sym_val = YFinanceLoader([sym], split_str, end_str).load_data()
+                
+                if not sym_train.empty and not sym_val.empty:
+                    sym_train['Ticker'] = sym
+                    sym_val['Ticker'] = sym
+                    train_df[sym] = calculate_features(sym_train)
+                    validation_df[sym] = calculate_features(sym_val)
+            except Exception as e:
+                log.warning(f"Failed to load {sym}: {e}")
     else:
         train_df = calculate_features(
             YFinanceLoader([TICKER_SYMBOL], start_str, split_str).load_data()
