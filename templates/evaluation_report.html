@@ -1,130 +1,219 @@
-{% extends "vertical.html" %}
+{% extends "base.html" %}
 {% load static %}
 
 {% block title %}Evaluation Report #{{ job.id }}{% endblock title %}
+{% block page_title %}Evaluation Lab{% endblock page_title %}
 
-{% block extra_css %}
-    <link href="{% static 'vendor/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}" rel="stylesheet" type="text/css" />
-{% endblock extra_css %}
-
-{% block page_title %}
-{% with topbarTitle="Evaluation Report: " %}
-    {% include 'partials/topbar.html' with topbarTitle=topbarTitle|add:job.model_file %}
-{% endwith %}
-{% endblock page_title %}
+{% block extra_head %}
+    <link href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" rel="stylesheet">
+    <style>
+        /* Custom DataTable Dark Theme overrrides */
+        .dataTables_wrapper .dataTables_length, .dataTables_wrapper .dataTables_filter, .dataTables_wrapper .dataTables_info, .dataTables_wrapper .dataTables_processing, .dataTables_wrapper .dataTables_paginate {
+            color: var(--c-slate-400) !important;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            margin-bottom: 10px;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            color: var(--c-slate-400) !important;
+            border-color: transparent !important;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            background: rgba(138, 173, 244, 0.1) !important;
+            border-color: rgba(138, 173, 244, 0.3) !important;
+            color: var(--c-brand-400) !important;
+        }
+        table.dataTable.no-footer {
+            border-bottom: 1px solid var(--c-slate-800) !important;
+        }
+        table.dataTable thead th {
+            border-bottom: 1px solid var(--c-slate-800) !important;
+            color: var(--c-slate-500);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+    </style>
+{% endblock extra_head %}
 
 {% block page_content %}
+<div class="grid grid-cols-1 gap-6 mb-6">
+    <!-- Header Summary -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-6">
+        <h4 class="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2 font-mono tracking-wider">EVALUATION SUMMARY</h4>
+        <p class="text-sm text-slate-500 dark:text-slate-400 font-mono">
+            <strong>Model:</strong> <span class="text-brand-600 dark:text-brand-400">{{ job.model_file }}</span> |
+            <strong>Period:</strong> <span class="text-slate-700 dark:text-slate-300">{{ job.start_date }} to {{ job.end_date }}</span>
+        </p>
+    </div>
+</div>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <h4 class="header-title">Evaluation Summary</h4>
-                    <p class="text-muted mb-0">
-                        <strong>Model:</strong> {{ job.model_file }} |
-                        <strong>Period:</strong> {{ job.start_date }} to {{ job.end_date }}
-                    </p>
-                </div>
-            </div>
-        </div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+    <!-- Metrics -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-6 relative overflow-hidden">
+        <h4 class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 font-mono">Total Return</h4>
+        <h3 class="text-3xl font-bold text-slate-800 dark:text-white font-mono">{{ job.results.total_return_pct }}%</h3>
+        {% if job.results.total_return_pct > 0 %}
+            <div class="absolute top-0 right-0 p-4 opacity-10"><i class="fas fa-arrow-trend-up text-5xl text-green-500"></i></div>
+        {% elif job.results.total_return_pct < 0 %}
+            <div class="absolute top-0 right-0 p-4 opacity-10"><i class="fas fa-arrow-trend-down text-5xl text-red-500"></i></div>
+        {% endif %}
     </div>
 
-    <div class="row">
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-body">
-                    <h4 class="header-title">Total Return</h4>
-                    <h3 class="fw-semibold mt-3">{{ job.results.total_return_pct }}%</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-body">
-                    <h4 class="header-title">Sharpe Ratio</h4>
-                    <h3 class="fw-semibold mt-3">{{ job.results.sharpe_ratio }}</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-body">
-                    <h4 class="header-title">Final Equity</h4>
-                    <h3 class="fw-semibold mt-3">${{ job.results.final_equity|floatformat:2 }}</h3>
-                </div>
-            </div>
-        </div>
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-6 relative overflow-hidden">
+        <h4 class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 font-mono">Sharpe Ratio</h4>
+        <h3 class="text-3xl font-bold text-slate-800 dark:text-white font-mono">{{ job.results.sharpe_ratio }}</h3>
     </div>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <h4 class="header-title mb-4">Equity Curve</h4>
-                    <div id="equity-curve-chart" class="apex-charts" data-colors="#35b8e0"></div>
-                </div>
-            </div>
-        </div>
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-6 relative overflow-hidden">
+        <h4 class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 font-mono">Final Equity</h4>
+        <h3 class="text-3xl font-bold text-slate-800 dark:text-white font-mono">${{ job.results.final_equity|floatformat:2 }}</h3>
     </div>
+</div>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <h4 class="header-title">Trade Log</h4>
-                    <table id="trade-log-table" class="table table-striped dt-responsive nowrap w-100">
-                        <thead>
-                            <tr>
-                                <th>Timestamp</th>
-                                <th>Action</th>
-                                <th>Symbol</th>
-                                <th>Quantity</th>
-                                <th>Price</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for trade in job.results.trade_log %}
-                            <tr>
-                                <td>{{ trade.timestamp }}</td>
-                                <td>
-                                    {% if trade.action == 'BUY' %}<span class="badge bg-success-subtle text-success">BUY</span>
-                                    {% else %}<span class="badge bg-danger-subtle text-danger">SELL</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ trade.symbol }}</td>
-                                <td>{{ trade.quantity }}</td>
-                                <td>${{ trade.price|floatformat:2 }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+<div class="grid grid-cols-1 gap-6 mb-6">
+    <!-- Equity Curve Chart -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-6">
+        <h4 class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-6 font-mono">Equity Curve</h4>
+        <div id="equity-curve-chart" class="w-full"></div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 gap-6 mb-6">
+    <!-- Trade Log -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-6">
+        <h4 class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-6 font-mono">Execution Log</h4>
+        <div class="overflow-x-auto">
+            <table id="trade-log-table" class="w-full text-left font-mono text-sm">
+                <thead>
+                    <tr class="bg-slate-50 dark:bg-slate-800/50">
+                        <th class="p-3 font-semibold text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400">Timestamp</th>
+                        <th class="p-3 font-semibold text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400">Action</th>
+                        <th class="p-3 font-semibold text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400">Symbol</th>
+                        <th class="p-3 font-semibold text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 text-right">Quantity</th>
+                        <th class="p-3 font-semibold text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 text-right">Price</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                    {% for trade in job.results.trade_log %}
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                        <td class="p-3 text-slate-600 dark:text-slate-400">{{ trade.timestamp }}</td>
+                        <td class="p-3">
+                            {% if trade.action == 'BUY' %}
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400 border border-green-200 dark:border-green-500/20">BUY</span>
+                            {% else %}
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400 border border-red-200 dark:border-red-500/20">SELL</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-3 text-slate-800 dark:text-slate-200">{{ trade.symbol }}</td>
+                        <td class="p-3 text-slate-600 dark:text-slate-400 text-right">{{ trade.quantity }}</td>
+                        <td class="p-3 text-slate-800 dark:text-slate-200 text-right">${{ trade.price|floatformat:2 }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="p-8 text-center text-slate-400 dark:text-slate-500 font-mono text-xs tracking-widest uppercase">
+                            No trade execution logs found for this evaluation period.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
+</div>
 
 {% endblock page_content %}
 
 {% block extra_javascript %}
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="{% static 'vendor/apexcharts/apexcharts.min.js' %}"></script>
-    <script src="{% static 'vendor/datatables.net/js/dataTables.min.js' %}"></script>
-    <script src="{% static 'vendor/datatables.net-bs5/js/dataTables.bootstrap5.min.js' %}"></script>
 
     <script>
         $(document).ready(function() {
-            $('#trade-log-table').DataTable({"order": [[ 0, "asc" ]]});
+            // Initialize DataTable if rows exist
+            if ($('#trade-log-table tbody tr td').length > 1) {
+                $('#trade-log-table').DataTable({
+                    "order": [[ 0, "asc" ]],
+                    "pageLength": 15,
+                    "lengthMenu": [15, 50, 100]
+                });
+            }
 
+            var equityData = {{ equity_data|safe }};
+            var equityDates = {{ equity_dates|safe }};
+            
+            // Generate flatline data if no trades happened to prevent broken charts
+            if (equityData.length === 0) {
+                equityData = [{{ job.results.final_equity|floatformat:2 }}, {{ job.results.final_equity|floatformat:2 }}];
+                equityDates = ["{{ job.start_date }}", "{{ job.end_date }}"];
+            }
+
+            // Determine if theme is dark for chart colors
+            var isDark = document.documentElement.classList.contains('dark');
+            var textColor = isDark ? '#a5adcb' : '#6c6f85'; // Subtext0
+            var gridColor = isDark ? '#363a4f' : '#e6e9ef'; // Surface0 / Mantle
+            var lineColor = isDark ? '#8aadf4' : '#1e66f5'; // Brand Blue
+            
             var options = {
-                chart: { height: 380, type: 'area' },
-                series: [{ name: 'Equity', data: {{ equity_data|safe }}}],
-                xaxis: { type: 'datetime', categories: {{ equity_dates|safe }}},
-                yaxis: { labels: { formatter: (val) => { return "$" + val.toLocaleString() } } },
+                chart: { 
+                    height: 380, 
+                    type: 'area',
+                    fontFamily: '"JetBrains Mono", monospace',
+                    toolbar: { show: false },
+                    background: 'transparent'
+                },
+                series: [{ name: 'Equity', data: equityData }],
+                xaxis: { 
+                    type: 'datetime', 
+                    categories: equityDates,
+                    labels: { style: { colors: textColor } },
+                    axisBorder: { show: false },
+                    axisTicks: { show: false }
+                },
+                yaxis: { 
+                    labels: { 
+                        formatter: (val) => { return "$" + val.toLocaleString() },
+                        style: { colors: textColor }
+                    } 
+                },
+                grid: {
+                    borderColor: gridColor,
+                    strokeDashArray: 4,
+                },
                 dataLabels: { enabled: false },
                 stroke: { curve: 'smooth', width: 2 },
-                colors: ["#35b8e0"],
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shadeIntensity: 1,
+                        opacityFrom: 0.4,
+                        opacityTo: 0.05,
+                        stops: [0, 90, 100]
+                    }
+                },
+                colors: [lineColor],
+                theme: { mode: isDark ? 'dark' : 'light' }
             };
             var chart = new ApexCharts(document.querySelector("#equity-curve-chart"), options);
             chart.render();
+            
+            // Handle dynamic theme switching
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.attributeName === 'class') {
+                        const newIsDark = document.documentElement.classList.contains('dark');
+                        chart.updateOptions({
+                            theme: { mode: newIsDark ? 'dark' : 'light' },
+                            colors: [newIsDark ? '#8aadf4' : '#1e66f5'],
+                            grid: { borderColor: newIsDark ? '#363a4f' : '#e6e9ef' },
+                            xaxis: { labels: { style: { colors: newIsDark ? '#a5adcb' : '#6c6f85' } } },
+                            yaxis: { labels: { style: { colors: newIsDark ? '#a5adcb' : '#6c6f85' } } }
+                        });
+                    }
+                });
+            });
+            observer.observe(document.documentElement, { attributes: true });
         });
     </script>
 {% endblock extra_javascript %}
