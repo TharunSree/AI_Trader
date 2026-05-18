@@ -14,6 +14,7 @@
             <ul class="space-y-3 font-mono text-xs tracking-wider text-slate-500 dark:text-slate-400 dark:text-slate-500">
                 <li><a href="#section-arch" class="hover:text-brand-accent transition-colors flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-slate-600"></div> System Architecture</a></li>
                 <li><a href="#section-train" class="hover:text-brand-accent transition-colors flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-slate-600"></div> Neural Training Protocols</a></li>
+                <li><a href="#section-meta" class="hover:text-brand-accent transition-colors flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-slate-600"></div> Master Coach: Meta-Trainer</a></li>
                 <li><a href="#section-features" class="hover:text-brand-accent transition-colors flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-slate-600"></div> Feature Sets & Strategies</a></li>
                 <li><a href="#section-exec" class="hover:text-brand-accent transition-colors flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-slate-600"></div> Autonomous Execution</a></li>
                 <li><a href="#section-heal" class="hover:text-brand-accent transition-colors flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse"></div> Cognitive Mutator & Auto-Heal</a></li>
@@ -63,6 +64,30 @@
                 <div class="p-4 bg-slate-100 dark:bg-slate-800/20 border border-slate-700/50 rounded-lg">
                     <h4 class="text-brand-accent font-mono text-sm mb-2">Background A/B Tournaments</h4>
                     <p class="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Every night precisely at 4:15 PM EST (post-market), QuantTrader will automatically run background A/B tournament evaluations to rank all training jobs against real-world test sets while the stock market is closed.</p>
+                </div>
+                <div class="p-4 bg-slate-100 dark:bg-slate-800/20 border border-slate-700/50 rounded-lg">
+                    <h4 class="text-cat-teal font-mono text-sm mb-2">Training Timeline vs. Observation Window</h4>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-2"><strong>Training Timeline (Days):</strong> The macro dataset size. This dictates how far back in time the engine will download historical market data for the AI to train against (e.g., 365 Days means it will learn by simulating trades through the entire past year of market volatility).</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500"><strong>Observation Window (Days):</strong> The micro context size. This is how many consecutive past days the AI is allowed to "look at" at any single moment to make its immediate prediction (e.g., A window of 10 means the AI analyzes the previous 10 days of price action to decide whether to Buy or Sell today).</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Meta Training -->
+        <div id="section-meta" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-8 relative overflow-hidden">
+            <h2 class="text-xl font-semibold text-slate-800 dark:text-slate-200 mb-4 tracking-widest uppercase border-b border-slate-700/50 pb-4 flex items-center gap-2"><i class="fas fa-brain text-brand-accent"></i> Master Coach: Meta-Trainer</h2>
+            <p class="text-slate-600 dark:text-slate-400 dark:text-slate-500 text-sm leading-relaxed mb-6">
+                The Meta-Trainer is an orchestration pipeline that automates the discovery of profitable AI configurations. Instead of manually launching individual training jobs and guessing which Feature Set or Hyperparameter profile will perform best, the Meta-Trainer does the heavy lifting for you.
+            </p>
+            
+            <div class="space-y-4">
+                <div class="p-4 bg-slate-100 dark:bg-slate-800/20 border border-slate-700/50 rounded-lg">
+                    <h4 class="text-brand-primary font-mono text-sm mb-2">When to Use the Meta-Trainer</h4>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">You should use the Meta-Trainer when you want to discover the most optimal strategy for a new asset (e.g., SOL-USD) without trial and error. It is designed to run in the background, exhaustively testing combinations until it identifies a mathematically superior "Champion" model.</p>
+                </div>
+                <div class="p-4 bg-slate-100 dark:bg-slate-800/20 border border-slate-700/50 rounded-lg">
+                    <h4 class="text-brand-accent font-mono text-sm mb-2">Generated Models & The $10 Start</h4>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">The Meta-Trainer generates a <strong>Champion Model</strong> and saves it directly to your Database Models Hub, where it can be immediately deployed for live trading. You can definitely train a Meta-Trainer with a $10 initial cash parameter! The engine dynamically normalizes position sizing algorithms relative to the initial equity, meaning the derived weights are fundamentally scale-invariant.</p>
                 </div>
             </div>
         </div>
