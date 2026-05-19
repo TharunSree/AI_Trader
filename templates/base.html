@@ -858,16 +858,27 @@
             }
             setInterval(updateClock, 1000);
             updateClock();
-        });
 
-        // --- 2. Manual Lock Trigger ---
-        document.getElementById('manual-lock-trigger').addEventListener('click', () => {
-            if(window.qtIdleEngine) {
-                if(!window.qtIdleEngine.hasPassword) {
-                    alert("Lockscreen password is not configured. Please set one in Settings or Admin.");
-                    return;
-                }
-                window.qtIdleEngine.triggerLock();
+            // --- 2. Manual Lock Trigger (inside DOMContentLoaded so qtIdleEngine exists) ---
+            const lockTrigger = document.getElementById('manual-lock-trigger');
+            if (lockTrigger) {
+                lockTrigger.addEventListener('click', () => {
+                    if (window.qtIdleEngine) {
+                        if (!window.qtIdleEngine.hasPassword) {
+                            alert('Lockscreen password is not configured. Please set one in Settings or Admin.');
+                            return;
+                        }
+                        window.qtIdleEngine.triggerLock();
+                    } else {
+                        // Fallback: show overlay directly if engine not ready
+                        const overlay = document.getElementById('global-lockscreen-overlay');
+                        if (overlay) {
+                            overlay.classList.remove('ls-hiding');
+                            overlay.classList.add('ls-visible');
+                            setTimeout(() => { const i = document.getElementById('pin-input'); if(i) i.focus(); }, 300);
+                        }
+                    }
+                });
             }
         });
 

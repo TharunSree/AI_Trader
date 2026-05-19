@@ -97,7 +97,7 @@
             <div>
                 <div class="text-[9px] uppercase tracking-widest text-slate-500 font-mono mb-1">Market State</div>
                 <div class="flex items-center gap-2">
-                    <span class="text-sm font-bold font-mono {% if clock.is_open %}text-emerald-500{% else %}text-slate-400{% endif %}">EQ: {% if clock.is_open %}OPEN{% else %}CLOSED{% endif %}</span>
+                    <span class="text-sm font-bold font-mono {% if clock and clock.is_open %}text-emerald-500{% else %}text-slate-400{% endif %}">EQ: {% if clock and clock.is_open %}OPEN{% else %}CLOSED{% endif %}</span>
                     <span class="text-slate-300 dark:text-slate-700">|</span>
                     <span class="text-sm font-bold font-mono text-emerald-500">CRYPTO: 24/7</span>
                 </div>
