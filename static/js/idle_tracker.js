@@ -100,13 +100,13 @@ class IdleTelemetryEngine {
     showLockscreenOverlay() {
         const overlay = document.getElementById('global-lockscreen-overlay');
         if (overlay) {
-            overlay.classList.remove('hidden');
-            overlay.classList.add('flex');
+            overlay.classList.remove('ls-hiding');
+            overlay.classList.add('ls-visible');
+            // Focus the input after the animation settles
             setTimeout(() => {
-                overlay.classList.remove('opacity-0', 'scale-105', 'scale-110');
                 const input = document.getElementById('pin-input');
                 if (input) input.focus();
-            }, 10);
+            }, 300);
         }
     }
 

@@ -226,7 +226,7 @@ class AITradingEngine:
                 logger.warning(f"[OVERRIDE] 0.5% Profit/Loss delta triggered! (Entry: ${avg_entry:.2f} -> Current: ${current_price:.2f} | Drift: {drift_percent:.2%})")
                 action = -1.0  # Force Maximum Sell Signal
                 
-        if action > 0.4:
+        if action > 0.15:   # BUY threshold — lowered from 0.4 to capture weaker buy signals
             side = 'buy'
         elif action < -0.01:
             side = 'sell'
@@ -301,6 +301,18 @@ class AITradingEngine:
             return # Block fractional dusting rejections on Alpaca
         
         if side == 'buy':
+            # --- BUYING POWER GUARD: Verify real Alpaca account buying power before order ---
+            try:
+                live_buying_power = await asyncio.to_thread(self.broker.get_buying_power)
+                live_buying_power = float(live_buying_power or 0)
+                if live_buying_power < 1.0:
+                    logger.warning(f"[CAPITAL GUARD] Alpaca buying power too low (${live_buying_power:.2f}) to place BUY. Skipping trade to avoid over-spend.")
+                    return
+                # Also cap trade size to actual buying power
+                trade_size_usd = min(trade_size_usd, live_buying_power)
+            except Exception as bp_err:
+                logger.warning(f"[CAPITAL GUARD] Could not verify buying power: {bp_err}. Proceeding with internal limit.")
+
             logger.info(f"AI REQUESTING BUY: Notional ${trade_size_usd:.2f} {self.symbol} @ ${current_price:,.2f} | Conf: {action_confidence:.2f} | Limit: ${active_principal:,.2f}")
             success, order_dict = await asyncio.to_thread(
                 self.broker.place_market_order,
@@ -309,6 +321,7 @@ class AITradingEngine:
                 notional_value=trade_size_usd,
                 qty=None
             )
+
         else:
             qty = trade_size_usd / current_price
             qty = min(qty, held_qty)

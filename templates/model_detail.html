@@ -94,18 +94,19 @@
   </div>
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-  <!-- System Metrics (Replaces old Capital block to consolidate Graph space) -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+  <!-- Cashflow Chart -->
   <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded p-6">
     <h3 class="text-[10px] uppercase tracking-widest font-medium text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-4 tracking-widest uppercase flex items-center gap-2">
       <svg class="w-4 h-4 text-slate-800 dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
       </svg>
-      Chronological Cashflow Accumulation
+      Cashflow Accumulation
     </h3>
     <div id="model-profit-chart" class="w-full relative z-10 h-[200px]"></div>
   </div>
   
+  <!-- Live Terminal -->
   <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded p-6 flex flex-col h-full max-h-[350px]">
     <div class="flex items-center justify-between mb-2 flex-shrink-0">
       <h3 class="text-[10px] uppercase tracking-widest font-medium text-slate-500 dark:text-slate-400 dark:text-slate-500 tracking-widest uppercase flex items-center gap-2">
@@ -123,15 +124,55 @@
           <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
           CLEAR
         </button>  
-        <span class="w-2 h-2 rounded-full bg-slate-800 animate-ping absolute right-6"></span>
-        <span class="w-2 h-2 rounded-full bg-slate-800 relative right-0"></span>
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping absolute right-6"></span>
+        <span class="w-2 h-2 rounded-full bg-emerald-500 relative right-0"></span>
       </div>
     </div>
     <div id="terminal-output" class="bg-slate-950 border border-slate-800 rounded p-4 font-mono text-xs overflow-y-auto break-all text-slate-500 dark:text-slate-400 dark:text-slate-500 flex-grow ">
       Awaiting stream...
     </div>
   </div>
+
+  <!-- Live Broker Positions -->
+  <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded p-6 flex flex-col">
+    <h3 class="text-[10px] uppercase tracking-widest font-medium text-slate-500 dark:text-slate-400 mb-4 flex items-center gap-2">
+      <svg class="w-4 h-4 text-slate-800 dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+      </svg>
+      Live Broker Positions
+    </h3>
+    <div class="overflow-x-auto flex-1">
+      <table class="w-full text-left text-xs font-mono">
+        <thead class="text-[9px] uppercase tracking-widest text-slate-500 border-b border-slate-100 dark:border-slate-800">
+          <tr>
+            <th class="pb-2">Symbol</th>
+            <th class="pb-2 text-right">Qty</th>
+            <th class="pb-2 text-right">Value</th>
+            <th class="pb-2 text-right">P/L</th>
+          </tr>
+        </thead>
+        <tbody id="dyn-active-positions" class="divide-y divide-slate-100 dark:divide-slate-800">
+          <tr><td colspan="4" class="py-6 text-center text-slate-400 text-[10px] tracking-widest">AWAITING BROKER TELEMETRY</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <!-- Capital Usage Bar -->
+    <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+      <div class="flex justify-between text-[9px] font-mono uppercase tracking-widest text-slate-500 mb-1">
+        <span>Capital Used</span>
+        <span id="dyn-capital-used-pct">0%</span>
+      </div>
+      <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5">
+        <div id="dyn-capital-bar" class="bg-brand-500 h-1.5 rounded-full transition-all" style="width:0%"></div>
+      </div>
+      <div class="flex justify-between text-[9px] font-mono mt-1">
+        <span class="text-slate-400" id="dyn-capital-spent-label">$0.00 deployed</span>
+        <span class="text-slate-500" id="dyn-capital-total-label">/ ${{ initial_cash }}</span>
+      </div>
+    </div>
+  </div>
 </div>
+
 
 <!-- Trade Log History -->
 <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded p-6">
@@ -270,6 +311,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Polling structure for dynamic telemetry 
     const currentTraderId = {{ trader.id }};
+    const initialCash = parseFloat("{{ initial_cash }}".replace(/,/g, '')) || 0;
+
     function pollTraderStatus() {
         fetch("{% url 'trader_status_api' %}?_=" + Date.now(), {cache: 'no-store'})
             .then(res => res.json())
@@ -279,7 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const statusEl = document.getElementById("dyn-status");
                     if (statusEl) {
                         statusEl.textContent = traderData.status;
-                        statusEl.className = `text-sm font-mono tracking-tight ${traderData.status === 'RUNNING' ? 'text-slate-800 dark:text-slate-200' : (traderData.status === 'FAILED' ? 'text-red-400' : 'text-slate-500 dark:text-slate-400 dark:text-slate-500')}`;
+                        statusEl.className = `text-sm font-mono tracking-tight ${traderData.status === 'RUNNING' ? 'text-emerald-500' : (traderData.status === 'FAILED' ? 'text-red-400' : 'text-slate-500 dark:text-slate-400')}`;
                     }
 
                     const tradeCountEl = document.getElementById("dyn-trade-count");
@@ -306,6 +349,16 @@ document.addEventListener('DOMContentLoaded', () => {
                          goalEl.textContent = ` / $${parseFloat(traderData.goal_amount).toFixed(2)} GOAL`;
                     }
 
+                    // Capital usage bar
+                    const capitalSpent = initialCash - parseFloat(traderData.active_principal || 0);
+                    const usedPct = initialCash > 0 ? Math.min(100, (capitalSpent / initialCash) * 100) : 0;
+                    const barEl = document.getElementById('dyn-capital-bar');
+                    const pctEl = document.getElementById('dyn-capital-used-pct');
+                    const spentLbl = document.getElementById('dyn-capital-spent-label');
+                    if (barEl) barEl.style.width = `${usedPct.toFixed(1)}%`;
+                    if (pctEl) pctEl.textContent = `${usedPct.toFixed(1)}%`;
+                    if (spentLbl) spentLbl.textContent = `$${Math.max(0, capitalSpent).toFixed(2)} deployed`;
+
                     // Reactive Control Center Buttons
                     const btnStart = document.getElementById("ctrl-start");
                     const btnPause = document.getElementById("ctrl-pause");
@@ -315,54 +368,44 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (btnStart && btnPause && btnStop && btnRestart) {
                         const status = traderData.status;
                         if (status === 'RUNNING') {
-                            btnStart.disabled = true;
-                            btnStart.classList.add("opacity-30", "pointer-events-none");
-                            btnPause.disabled = false;
-                            btnPause.classList.remove("opacity-30", "pointer-events-none");
-                            btnStop.disabled = false;
-                            btnStop.classList.remove("opacity-30", "pointer-events-none");
-                            btnRestart.disabled = false;
-                            btnRestart.classList.remove("opacity-30", "pointer-events-none");
+                            btnStart.disabled = true; btnStart.classList.add("opacity-30", "pointer-events-none");
+                            btnPause.disabled = false; btnPause.classList.remove("opacity-30", "pointer-events-none");
+                            btnStop.disabled = false; btnStop.classList.remove("opacity-30", "pointer-events-none");
+                            btnRestart.disabled = false; btnRestart.classList.remove("opacity-30", "pointer-events-none");
                         } else if (status === 'PAUSED') {
-                            btnStart.disabled = false;
-                            btnStart.classList.remove("opacity-30", "pointer-events-none");
-                            btnPause.disabled = true;
-                            btnPause.classList.add("opacity-30", "pointer-events-none");
-                            btnStop.disabled = false;
-                            btnStop.classList.remove("opacity-30", "pointer-events-none");
-                            btnRestart.disabled = false;
-                            btnRestart.classList.remove("opacity-30", "pointer-events-none");
+                            btnStart.disabled = false; btnStart.classList.remove("opacity-30", "pointer-events-none");
+                            btnPause.disabled = true; btnPause.classList.add("opacity-30", "pointer-events-none");
+                            btnStop.disabled = false; btnStop.classList.remove("opacity-30", "pointer-events-none");
+                            btnRestart.disabled = false; btnRestart.classList.remove("opacity-30", "pointer-events-none");
                         } else {
-                            // STOPPED, FAILED, SLEEPING, etc.
-                            btnStart.disabled = false;
-                            btnStart.classList.remove("opacity-30", "pointer-events-none");
-                            btnPause.disabled = true;
-                            btnPause.classList.add("opacity-30", "pointer-events-none");
-                            btnStop.disabled = true;
-                            btnStop.classList.add("opacity-30", "pointer-events-none");
-                            btnRestart.disabled = true;
-                            btnRestart.classList.add("opacity-30", "pointer-events-none");
+                            btnStart.disabled = false; btnStart.classList.remove("opacity-30", "pointer-events-none");
+                            btnPause.disabled = true; btnPause.classList.add("opacity-30", "pointer-events-none");
+                            btnStop.disabled = true; btnStop.classList.add("opacity-30", "pointer-events-none");
+                            btnRestart.disabled = true; btnRestart.classList.add("opacity-30", "pointer-events-none");
                         }
                     }
                 }
                 
-                // Update active positions grid across cluster if available
+                // Update live positions - show ALL broker positions (the actual Alpaca account positions)
                 if (data.positions) {
                     const tbody = document.getElementById("dyn-active-positions");
                     if (tbody) {
-                        // Normally trader_status_api aggregates ALL positions, but for UI sake we update it.
                         tbody.innerHTML = '';
-                        if (data.positions.length === 0) {
-                            tbody.innerHTML = `<tr><td colspan="4" class="py-6 text-center text-slate-500 dark:text-slate-400 dark:text-slate-500 font-mono text-sm">NO ACTIVE POSITIONS</td></tr>`;
+                        const activePosns = data.positions.filter(p => Number(p.qty) !== 0);
+                        if (activePosns.length === 0) {
+                            tbody.innerHTML = `<tr><td colspan="4" class="py-6 text-center text-slate-400 dark:text-slate-500 font-mono text-[10px] tracking-widest">NO ACTIVE POSITIONS</td></tr>`;
                         } else {
-                            data.positions.forEach(p => {
+                            activePosns.forEach(p => {
+                                const pl = Number(p.unrealized_pl || 0);
+                                const qty = Number(p.qty || 0);
+                                const mv = Number(p.market_value || 0);
                                 const row = `
-                                <tr class="hover:bg-slate-100 dark:bg-slate-800/50 transition-colors">
-                                  <td class="py-3 px-4 font-mono text-slate-800 dark:text-slate-200">${p.symbol}</td>
-                                  <td class="py-3 px-4 font-mono text-slate-600 dark:text-slate-400 dark:text-slate-500">${p.qty.toFixed(4)}</td>
-                                  <td class="py-3 px-4 font-mono text-slate-600 dark:text-slate-400 dark:text-slate-500">$${p.market_value.toFixed(2)}</td>
-                                  <td class="py-3 px-4 font-mono ${p.unrealized_pl >= 0 ? 'text-slate-800 dark:text-slate-200' : 'text-red-400'} text-right">
-                                    ${p.unrealized_pl > 0 ? '+' : ''}$${p.unrealized_pl.toFixed(2)}
+                                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                                  <td class="py-2 text-slate-800 dark:text-slate-200 font-bold text-xs">${p.symbol || ''}</td>
+                                  <td class="py-2 text-right text-slate-600 dark:text-slate-400 text-xs">${qty.toFixed(5)}</td>
+                                  <td class="py-2 text-right text-slate-800 dark:text-slate-200 text-xs">$${mv.toFixed(2)}</td>
+                                  <td class="py-2 text-right text-xs ${pl >= 0 ? 'text-emerald-500' : 'text-red-400'}">
+                                    ${pl > 0 ? '+' : ''}$${pl.toFixed(2)}
                                   </td>
                                 </tr>`;
                                 tbody.insertAdjacentHTML('beforeend', row);
@@ -375,6 +418,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Auto sync dashboard data 
     setInterval(pollTraderStatus, 1500);
+    pollTraderStatus(); // fire immediately on page load
+
+
 
     }
     

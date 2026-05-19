@@ -580,75 +580,197 @@
     </style>
 
     <!-- Global Seamless Lockscreen Overlay -->
-    <div id="global-lockscreen-overlay" class="fixed inset-0 bg-[#0a0f18]/95 backdrop-blur-md z-[10000] hidden flex flex-col items-center justify-center transition-all duration-300 opacity-0 overflow-hidden font-mono">
-        
-        <!-- Technical Grid -->
-        <div class="absolute inset-0 z-0 opacity-10 pointer-events-none" style="background-image: linear-gradient(rgba(100,116,139,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(100,116,139,0.4) 1px, transparent 1px); background-size: 20px 20px;"></div>
-        
-        <!-- Scanline -->
-        <div class="absolute inset-0 w-full h-[20vh] bg-gradient-to-b from-transparent via-brand-500/5 to-transparent z-0 opacity-50 animate-scanline pointer-events-none mix-blend-screen"></div>
+    <!-- LOCKSCREEN OVERLAY — Catppuccin Macchiato Theme -->
+    <style>
+        /* ── Lock / Unlock animation ──────────────────────────── */
+        @keyframes lockIn {
+            0%   { opacity: 0; transform: scale(1.04); filter: blur(8px); }
+            100% { opacity: 1; transform: scale(1);    filter: blur(0);   }
+        }
+        @keyframes lockOut {
+            0%   { opacity: 1; transform: scale(1);    filter: blur(0);   }
+            100% { opacity: 0; transform: scale(0.97); filter: blur(6px); }
+        }
+        @keyframes floatUp {
+            0%   { opacity: 0; transform: translateY(16px); }
+            100% { opacity: 1; transform: translateY(0);    }
+        }
+        @keyframes scanDown {
+            0%   { top: -20%; }
+            100% { top: 120%; }
+        }
+        @keyframes shimmer {
+            0%   { background-position: -400px 0; }
+            100% { background-position: 400px 0; }
+        }
+        @keyframes pulseDot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50%       { opacity: 0.4; transform: scale(0.8); }
+        }
+        #global-lockscreen-overlay { display: none; }
+        #global-lockscreen-overlay.ls-visible {
+            display: flex;
+            animation: lockIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        #global-lockscreen-overlay.ls-hiding {
+            animation: lockOut 0.35s cubic-bezier(0.4, 0, 1, 1) both;
+        }
+        .ls-panel { animation: floatUp 0.55s 0.15s cubic-bezier(0.22, 1, 0.36, 1) both; }
+        .ls-clock  { animation: floatUp 0.5s 0.05s cubic-bezier(0.22, 1, 0.36, 1) both; }
+        .ls-scan {
+            position: absolute; left: 0; right: 0;
+            height: 120px;
+            background: linear-gradient(to bottom,
+                transparent 0%,
+                rgba(125, 196, 228, 0.04) 40%,
+                rgba(125, 196, 228, 0.08) 50%,
+                rgba(125, 196, 228, 0.04) 60%,
+                transparent 100%);
+            animation: scanDown 6s linear infinite;
+            pointer-events: none;
+        }
+        .ls-input-caret {
+            display: inline-block;
+            width: 2px; height: 1.1em;
+            background: rgb(125 196 228);
+            border-radius: 1px;
+            animation: pulseDot 0.9s ease-in-out infinite;
+            vertical-align: middle;
+            margin-left: 4px;
+        }
+        .ls-shimmer-bar {
+            background: linear-gradient(90deg,
+                rgb(54 58 79) 0%, rgb(73 77 100) 40%,
+                rgb(54 58 79) 60%, rgb(54 58 79) 100%);
+            background-size: 800px 1px;
+            animation: shimmer 2.5s linear infinite;
+        }
+    </style>
 
-        <div class="z-10 flex flex-col items-center justify-center w-full max-w-2xl px-6">
-            
-            <!-- Sharp Technical Clock -->
-            <div class="text-center mb-16">
-                <h1 id="lock-clock" class="text-7xl md:text-9xl font-bold tracking-tight text-slate-100 mb-1 leading-none drop-shadow-md">00:00</h1>
-                <div class="h-[1px] w-full max-w-xs bg-slate-700 mx-auto mb-4"></div>
-                <p id="lock-date" class="text-xs md:text-sm uppercase tracking-[0.5em] text-slate-400">Loading Date...</p>
+    <div id="global-lockscreen-overlay"
+         class="fixed inset-0 z-[10000] flex flex-col items-center justify-center overflow-hidden"
+         style="background: rgb(24 25 38); font-family: 'Inter', 'Roboto Mono', monospace;">
+
+        <!-- Catppuccin subtle dot-grid bg -->
+        <div class="absolute inset-0 pointer-events-none opacity-[0.06]"
+             style="background-image: radial-gradient(circle, rgb(165 173 203) 1px, transparent 1px); background-size: 28px 28px;"></div>
+
+        <!-- Animated scan band -->
+        <div class="ls-scan"></div>
+
+        <!-- Top edge accent line -->
+        <div class="absolute top-0 left-0 right-0 h-[1px]"
+             style="background: linear-gradient(90deg, transparent, rgb(125 196 228 / 0.5), transparent);"></div>
+
+        <!-- Content -->
+        <div class="z-10 flex flex-col items-center w-full max-w-sm px-5">
+
+            <!-- Clock Block -->
+            <div class="ls-clock text-center mb-10 w-full">
+                <!-- Time -->
+                <div id="lock-clock"
+                     class="tabular-nums leading-none mb-2"
+                     style="font-size: clamp(4rem, 18vw, 7rem); font-weight: 700; letter-spacing: -0.03em; color: rgb(202 211 245);">
+                    00:00
+                </div>
+                <!-- Decorative rule -->
+                <div class="ls-shimmer-bar h-px w-32 mx-auto mb-3 rounded-full"></div>
+                <!-- Date -->
+                <p id="lock-date"
+                   class="text-xs uppercase tracking-[0.35em]"
+                   style="color: rgb(128 135 162);">
+                    Loading...
+                </p>
             </div>
 
-            <!-- Minimal Auth Panel -->
-            <div class="w-full max-w-md relative">
-                <!-- Outer sharp border -->
-                <div class="relative bg-transparent border border-slate-700 p-8 shadow-2xl flex flex-col items-center">
-                    <!-- Corner Accents -->
-                    <div class="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-slate-400"></div>
-                    <div class="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-slate-400"></div>
-                    <div class="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-slate-400"></div>
-                    <div class="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-slate-400"></div>
-                    
-                    <div class="w-full flex justify-between items-center mb-8 border-b border-slate-800 pb-2">
-                        <h2 class="text-slate-300 tracking-[0.2em] uppercase text-[10px] flex items-center gap-2">
-                            <span class="w-1.5 h-1.5 bg-brand-500 rounded-sm animate-pulse"></span>
-                            System Terminal Locked
-                        </h2>
-                        <i class="fas fa-lock text-slate-500 text-xs"></i>
+            <!-- Auth Panel -->
+            <div class="ls-panel w-full">
+                <!-- Glass card -->
+                <div class="relative rounded-2xl overflow-hidden"
+                     style="background: rgb(30 32 48 / 0.85); border: 1px solid rgb(73 77 100 / 0.7); backdrop-filter: blur(20px); box-shadow: 0 24px 64px rgb(24 25 38 / 0.7), inset 0 1px 0 rgb(165 173 203 / 0.08);">
+
+                    <!-- Card top bar -->
+                    <div class="flex items-center justify-between px-5 py-3"
+                         style="border-bottom: 1px solid rgb(54 58 79 / 0.8);">
+                        <div class="flex items-center gap-2">
+                            <span class="inline-block w-1.5 h-1.5 rounded-full"
+                                  style="background: rgb(125 196 228); box-shadow: 0 0 6px rgb(125 196 228 / 0.6); animation: pulseDot 1.4s ease-in-out infinite;"></span>
+                            <span class="text-[10px] uppercase tracking-[0.25em]"
+                                  style="color: rgb(128 135 162);">AI Trader · Secure Access</span>
+                        </div>
+                        <i class="fas fa-shield-halved text-[10px]" style="color: rgb(91 96 120);"></i>
                     </div>
 
-                    <div class="w-full" id="lock-auth-container">
+                    <!-- Auth form body -->
+                    <div class="p-6">
                         <form id="unlock-form" method="POST" action="{% url 'lockscreen_api' %}">
                             {% csrf_token %}
-                            <div class="relative mb-8">
-                                <label class="block text-[9px] text-slate-500 uppercase tracking-widest mb-2" id="pin-prompt">Authentication Required</label>
-                                <div class="flex items-center border-b border-slate-600 focus-within:border-brand-500 transition-colors">
-                                    <span class="text-slate-500 mr-2">></span>
-                                    <input type="password" id="pin-input" name="password" 
-                                        class="w-full bg-transparent border-none px-2 py-2 text-xl tracking-[0.5em] focus:outline-none focus:ring-0 text-slate-200 placeholder-slate-700" 
-                                        placeholder="••••" required autocomplete="off">
-                                    <span class="w-2 h-5 bg-brand-500 animate-blink ml-2"></span>
+
+                            <!-- User avatar placeholder -->
+                            <div class="flex flex-col items-center mb-6">
+                                <div class="w-12 h-12 rounded-full flex items-center justify-center mb-3"
+                                     style="background: linear-gradient(135deg, rgb(138 173 244 / 0.2), rgb(125 196 228 / 0.2)); border: 1px solid rgb(73 77 100 / 0.8);">
+                                    <i class="fas fa-user text-sm" style="color: rgb(138 173 244);"></i>
                                 </div>
+                                <label id="pin-prompt"
+                                       class="text-xs uppercase tracking-[0.2em]"
+                                       style="color: rgb(165 173 203);">
+                                    Enter Password
+                                </label>
                             </div>
-                            
-                            <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-slate-300 font-mono uppercase tracking-[0.3em] text-[10px] py-3 transition-colors border border-slate-700 hover:border-slate-500 hover:text-white">
-                                [ Execute Authorization ]
+
+                            <!-- Password field -->
+                            <div class="relative mb-5">
+                                <input type="password"
+                                       id="pin-input"
+                                       name="password"
+                                       autocomplete="off"
+                                       required
+                                       placeholder="••••••••"
+                                       class="w-full text-center text-lg tracking-[0.4em] rounded-xl px-4 py-3 outline-none transition-all"
+                                       style="background: rgb(24 25 38 / 0.7);
+                                              border: 1px solid rgb(73 77 100 / 0.8);
+                                              color: rgb(202 211 245);
+                                              caret-color: rgb(125 196 228);
+                                              font-family: 'Roboto Mono', monospace;">
+                                <span class="ls-input-caret hidden" id="ls-caret"></span>
+                            </div>
+
+                            <!-- Submit -->
+                            <button type="submit"
+                                    class="w-full py-2.5 rounded-xl text-xs uppercase tracking-[0.25em] font-semibold transition-all"
+                                    style="background: linear-gradient(135deg, rgb(138 173 244 / 0.15), rgb(125 196 228 / 0.15));
+                                           border: 1px solid rgb(138 173 244 / 0.4);
+                                           color: rgb(138 173 244);"
+                                    onmouseover="this.style.background='linear-gradient(135deg, rgb(138 173 244 / 0.25), rgb(125 196 228 / 0.25))'"
+                                    onmouseout="this.style.background='linear-gradient(135deg, rgb(138 173 244 / 0.15), rgb(125 196 228 / 0.15))'">
+                                <i class="fas fa-unlock-alt mr-2 opacity-70"></i>Authenticate
                             </button>
                         </form>
                     </div>
                 </div>
-            </div>
 
-            <!-- Emergency Terminate -->
-            <div class="mt-16 text-center z-10">
-                <form method="POST" action="{% url 'logout' %}">
-                    {% csrf_token %}
-                    <button type="submit" class="text-[9px] text-slate-600 hover:text-red-500 transition-colors uppercase tracking-[0.3em] font-mono flex items-center justify-center gap-2 group">
-                        [ Terminate Session ]
-                    </button>
-                </form>
+                <!-- Logout link -->
+                <div class="mt-5 text-center">
+                    <form method="POST" action="{% url 'logout' %}" class="inline">
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="text-[10px] uppercase tracking-[0.25em] transition-colors"
+                                style="color: rgb(91 96 120);"
+                                onmouseover="this.style.color='rgb(243 139 168)'"
+                                onmouseout="this.style.color='rgb(91 96 120)'">
+                            <i class="fas fa-power-off mr-1 opacity-60"></i>End Session
+                        </button>
+                    </form>
+                </div>
             </div>
-
         </div>
+
+        <!-- Bottom edge accent -->
+        <div class="absolute bottom-0 left-0 right-0 h-[1px]"
+             style="background: linear-gradient(90deg, transparent, rgb(73 77 100 / 0.5), transparent);"></div>
     </div>
+
     
     <!-- System Update Progress Overlay (Lockscreen-themed) -->
     <div id="update-terminal-overlay" class="fixed inset-0 bg-[#0a0f18]/95 backdrop-blur-md z-[10000] hidden flex-col items-center justify-center transition-all duration-300 opacity-0 overflow-hidden font-mono">
@@ -778,25 +900,26 @@
                         sessionStorage.removeItem('qt_locked');
                         
                         const overlay = document.getElementById('global-lockscreen-overlay');
-                        overlay.classList.add('opacity-0');
+                        overlay.classList.remove('ls-visible');
+                        overlay.classList.add('ls-hiding');
                         setTimeout(() => {
-                            overlay.classList.add('hidden');
-                            overlay.classList.remove('flex');
+                            overlay.classList.remove('ls-hiding', 'ls-visible');
                             pinInput.value = '';
-                            pinPrompt.textContent = 'Authentication Required';
-                            pinPrompt.classList.remove('text-red-500');
-                        }, 300);
+                            pinPrompt.textContent = 'Enter Password';
+                            pinPrompt.style.color = 'rgb(165 173 203)';
+                        }, 380);
                     } else {
                         pinInput.value = '';
-                        pinPrompt.textContent = 'ACCESS DENIED';
-                        pinPrompt.classList.add('text-red-500');
+                        pinPrompt.textContent = 'INCORRECT — Try Again';
+                        pinPrompt.style.color = 'rgb(243 139 168)';
                         
                         // Shake effect
-                        pinInput.style.transform = 'translateX(-10px)';
-                        setTimeout(() => pinInput.style.transform = 'translateX(10px)', 50);
-                        setTimeout(() => pinInput.style.transform = 'translateX(-10px)', 100);
-                        setTimeout(() => pinInput.style.transform = 'translateX(10px)', 150);
-                        setTimeout(() => pinInput.style.transform = 'translateX(0)', 200);
+                        const shakeEl = pinInput.closest('div') || pinInput;
+                        shakeEl.style.transform = 'translateX(-8px)';
+                        setTimeout(() => shakeEl.style.transform = 'translateX(8px)', 60);
+                        setTimeout(() => shakeEl.style.transform = 'translateX(-6px)', 120);
+                        setTimeout(() => shakeEl.style.transform = 'translateX(0)', 200);
+                        setTimeout(() => { pinPrompt.textContent = 'Enter Password'; pinPrompt.style.color = 'rgb(165 173 203)'; }, 2000);
                     }
                 });
             });
