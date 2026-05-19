@@ -94,49 +94,53 @@
   </div>
 </div>
 
+<!-- Row 1: Chart + Terminal -->
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
   <!-- Cashflow Chart -->
-  <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded p-6">
-    <h3 class="text-[10px] uppercase tracking-widest font-medium text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-4 tracking-widest uppercase flex items-center gap-2">
-      <svg class="w-4 h-4 text-slate-800 dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded p-5">
+    <h3 class="text-[10px] uppercase tracking-widest font-medium text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2">
+      <svg class="w-3.5 h-3.5 text-slate-800 dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
       </svg>
       Cashflow Accumulation
+      <span class="ml-auto text-[9px] text-slate-400 dark:text-slate-600 font-normal">Updates on first trade</span>
     </h3>
-    <div id="model-profit-chart" class="w-full relative z-10 h-[200px]"></div>
+    <div id="model-profit-chart" class="w-full relative z-10 h-[220px]"></div>
   </div>
-  
-  <!-- Live Terminal -->
-  <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded p-6 flex flex-col h-full max-h-[350px]">
+
+  <!-- Live Terminal — spans 2 columns -->
+  <div class="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded p-5 flex flex-col" style="min-height: 320px;">
     <div class="flex items-center justify-between mb-2 flex-shrink-0">
-      <h3 class="text-[10px] uppercase tracking-widest font-medium text-slate-500 dark:text-slate-400 dark:text-slate-500 tracking-widest uppercase flex items-center gap-2">
-        <svg class="w-4 h-4 text-slate-800 dark:text-slate-200 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <h3 class="text-[10px] uppercase tracking-widest font-medium text-slate-500 dark:text-slate-400 flex items-center gap-2">
+        <svg class="w-3.5 h-3.5 text-emerald-500 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M4 15V9a2 2 0 012-2h12a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2z" />
         </svg>
-        Live Terminal Trace
+        Live Terminal
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" style="box-shadow: 0 0 4px rgb(16 185 129 / 0.7);"></span>
       </h3>
       <div class="flex items-center gap-3">
-        <button id="copy-logs-btn" onclick="copyLogs(this)" class="text-[10px] uppercase tracking-widest tracking-widest text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:text-slate-200 transition-colors font-mono flex items-center gap-1">
+        <button id="copy-logs-btn" onclick="copyLogs(this)" class="text-[9px] uppercase tracking-widest text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors font-mono flex items-center gap-1">
           <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
           COPY
         </button>
-        <button onclick="clearLogs()" class="text-[10px] uppercase tracking-widest tracking-widest text-slate-500 dark:text-slate-400 dark:text-slate-500 hover:text-red-400 transition-colors font-mono flex items-center gap-1">
+        <button onclick="clearLogs()" class="text-[9px] uppercase tracking-widest text-slate-400 hover:text-red-400 transition-colors font-mono flex items-center gap-1">
           <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
           CLEAR
-        </button>  
-        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping absolute right-6"></span>
-        <span class="w-2 h-2 rounded-full bg-emerald-500 relative right-0"></span>
+        </button>
       </div>
     </div>
-    <div id="terminal-output" class="bg-slate-950 border border-slate-800 rounded p-4 font-mono text-xs overflow-y-auto break-all text-slate-500 dark:text-slate-400 dark:text-slate-500 flex-grow ">
+    <div id="terminal-output" class="bg-slate-950 border border-slate-800 rounded p-4 font-mono text-xs overflow-y-auto break-all text-slate-400 flex-1">
       Awaiting stream...
     </div>
   </div>
+</div>
 
+<!-- Row 2: Execution History + Live Broker Positions -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
   <!-- Live Broker Positions -->
-  <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded p-6 flex flex-col">
-    <h3 class="text-[10px] uppercase tracking-widest font-medium text-slate-500 dark:text-slate-400 mb-4 flex items-center gap-2">
-      <svg class="w-4 h-4 text-slate-800 dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded p-5 flex flex-col">
+    <h3 class="text-[10px] uppercase tracking-widest font-medium text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2">
+      <svg class="w-3.5 h-3.5 text-slate-800 dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
       </svg>
       Live Broker Positions
@@ -157,7 +161,7 @@
       </table>
     </div>
     <!-- Capital Usage Bar -->
-    <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+    <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
       <div class="flex justify-between text-[9px] font-mono uppercase tracking-widest text-slate-500 mb-1">
         <span>Capital Used</span>
         <span id="dyn-capital-used-pct">0%</span>
@@ -171,7 +175,52 @@
       </div>
     </div>
   </div>
+
+  <!-- Execution History placeholder (full trade log is below) -->
+  <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded p-5">
+    <h3 class="text-[10px] uppercase tracking-widest font-medium text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2">
+      <svg class="w-3.5 h-3.5 text-slate-800 dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+      </svg>
+      Recent Executions
+    </h3>
+    {% if trades %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs font-mono">
+        <thead class="text-[9px] uppercase tracking-widest text-slate-500 border-b border-slate-100 dark:border-slate-800">
+          <tr>
+            <th class="pb-2">Time</th>
+            <th class="pb-2">Symbol</th>
+            <th class="pb-2">Side</th>
+            <th class="pb-2 text-right">Price</th>
+            <th class="pb-2 text-right">Notional</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+          {% for trade in trades|slice:":8" %}
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+            <td class="py-2 text-slate-400 text-[10px]">{{ trade.timestamp|date:"H:i:s" }}</td>
+            <td class="py-2 text-slate-700 dark:text-slate-300 font-semibold">{{ trade.symbol }}</td>
+            <td class="py-2 {% if trade.action == 'BUY' %}text-emerald-500{% else %}text-red-400{% endif %} font-bold">{{ trade.action }}</td>
+            <td class="py-2 text-right text-slate-700 dark:text-slate-300">${{ trade.price|floatformat:2 }}</td>
+            <td class="py-2 text-right text-slate-500">${{ trade.notional_value|floatformat:2 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="flex flex-col items-center justify-center py-10 text-center">
+      <svg class="w-8 h-8 text-slate-300 dark:text-slate-700 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+      </svg>
+      <p class="text-[10px] uppercase tracking-widest text-slate-400">No executions yet</p>
+      <p class="text-[9px] text-slate-300 dark:text-slate-600 mt-1">Trades will appear here once the model starts buying</p>
+    </div>
+    {% endif %}
+  </div>
 </div>
+
 
 
 <!-- Trade Log History -->

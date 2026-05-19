@@ -211,10 +211,14 @@ class AITradingEngine:
             logger.warning(f"[JARVIS] Could not verify positions for {self.symbol}. Skipping trade cycle.")
             return
             
+        def _norm(s):
+            """Normalize BCH/USD, BCHUSD, BCH-USD → BCHUSD for comparison."""
+            return str(s).replace('/', '').replace('-', '').upper()
+
         held_qty = 0.0
         avg_entry = 0.0
         for p in positions:
-            if getattr(p, 'symbol', None) == self.symbol:
+            if _norm(getattr(p, 'symbol', '')) == _norm(self.symbol):
                 held_qty = float(getattr(p, 'qty', 0.0))
                 avg_entry = float(getattr(p, 'avg_entry_price', 0.0))
                 
