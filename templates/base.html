@@ -651,126 +651,84 @@
          class="fixed inset-0 z-[10000] flex flex-col items-center justify-center overflow-hidden"
          style="background: rgb(24 25 38); font-family: 'Inter', 'Roboto Mono', monospace;">
 
-        <!-- Catppuccin subtle dot-grid bg -->
-        <div class="absolute inset-0 pointer-events-none opacity-[0.06]"
-             style="background-image: radial-gradient(circle, rgb(165 173 203) 1px, transparent 1px); background-size: 28px 28px;"></div>
+        <!-- Dot grid background -->
+        <div class="absolute inset-0 pointer-events-none"
+             style="opacity:0.05; background-image: radial-gradient(rgb(165 173 203) 1px, transparent 1px); background-size: 26px 26px;"></div>
 
-        <!-- Animated scan band -->
+        <!-- Scan band -->
         <div class="ls-scan"></div>
 
-        <!-- Top edge accent line -->
-        <div class="absolute top-0 left-0 right-0 h-[1px]"
-             style="background: linear-gradient(90deg, transparent, rgb(125 196 228 / 0.5), transparent);"></div>
+        <!-- Top accent -->
+        <div class="absolute top-0 left-0 right-0 h-px pointer-events-none"
+             style="background: linear-gradient(90deg, transparent 0%, rgb(125 196 228 / 0.6) 50%, transparent 100%);"></div>
 
-        <!-- Content -->
-        <div class="z-10 flex flex-col items-center w-full max-w-sm px-5">
+        <!-- Main content -->
+        <div class="relative z-10 flex flex-col items-center w-full max-w-xs px-4">
 
-            <!-- Clock Block -->
-            <div class="ls-clock text-center mb-10 w-full">
-                <!-- Time -->
-                <div id="lock-clock"
-                     class="tabular-nums leading-none mb-2"
-                     style="font-size: clamp(4rem, 18vw, 7rem); font-weight: 700; letter-spacing: -0.03em; color: rgb(202 211 245);">
-                    00:00
-                </div>
-                <!-- Decorative rule -->
-                <div class="ls-shimmer-bar h-px w-32 mx-auto mb-3 rounded-full"></div>
-                <!-- Date -->
-                <p id="lock-date"
-                   class="text-xs uppercase tracking-[0.35em]"
-                   style="color: rgb(128 135 162);">
-                    Loading...
-                </p>
+            <!-- Clock -->
+            <div class="ls-clock text-center mb-8 w-full">
+                <div id="lock-clock" style="font-size: clamp(3.5rem, 16vw, 6.5rem); font-weight: 800; letter-spacing: -0.04em; color: rgb(202 211 245); line-height: 1; font-variant-numeric: tabular-nums;">00:00</div>
+                <div class="mx-auto mt-3 mb-2 h-px w-24" style="background: linear-gradient(90deg, transparent, rgb(73 77 100), transparent);"></div>
+                <p id="lock-date" class="text-[11px] uppercase tracking-[0.3em]" style="color: rgb(110 115 140);">Loading...</p>
             </div>
 
-            <!-- Auth Panel -->
+            <!-- Auth card -->
             <div class="ls-panel w-full">
-                <!-- Glass card -->
-                <div class="relative rounded-2xl overflow-hidden"
-                     style="background: rgb(30 32 48 / 0.85); border: 1px solid rgb(73 77 100 / 0.7); backdrop-filter: blur(20px); box-shadow: 0 24px 64px rgb(24 25 38 / 0.7), inset 0 1px 0 rgb(165 173 203 / 0.08);">
+                <div class="rounded-2xl overflow-hidden"
+                     style="background: rgb(30 32 48); border: 1px solid rgb(64 68 90); box-shadow: 0 20px 60px rgb(0 0 0 / 0.5);">
 
-                    <!-- Card top bar -->
-                    <div class="flex items-center justify-between px-5 py-3"
-                         style="border-bottom: 1px solid rgb(54 58 79 / 0.8);">
-                        <div class="flex items-center gap-2">
-                            <span class="inline-block w-1.5 h-1.5 rounded-full"
-                                  style="background: rgb(125 196 228); box-shadow: 0 0 6px rgb(125 196 228 / 0.6); animation: pulseDot 1.4s ease-in-out infinite;"></span>
-                            <span class="text-[10px] uppercase tracking-[0.25em]"
-                                  style="color: rgb(128 135 162);">AI Trader · Secure Access</span>
+                    <div class="flex items-center justify-between px-4 py-2.5"
+                         style="border-bottom: 1px solid rgb(45 48 65);">
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full inline-block" style="background: rgb(125 196 228);"></span>
+                            <span class="text-[9px] uppercase tracking-[0.22em]" style="color: rgb(110 115 140);">AI Trader &middot; Locked</span>
                         </div>
-                        <i class="fas fa-shield-halved text-[10px]" style="color: rgb(91 96 120);"></i>
+                        <i class="fas fa-lock" style="color: rgb(80 85 110); font-size: 9px;"></i>
                     </div>
 
-                    <!-- Auth form body -->
-                    <div class="p-6">
+                    <div class="px-5 py-5">
                         <form id="unlock-form" method="POST" action="{% url 'lockscreen_api' %}">
                             {% csrf_token %}
-
-                            <!-- User avatar placeholder -->
-                            <div class="flex flex-col items-center mb-6">
-                                <div class="w-12 h-12 rounded-full flex items-center justify-center mb-3"
-                                     style="background: linear-gradient(135deg, rgb(138 173 244 / 0.2), rgb(125 196 228 / 0.2)); border: 1px solid rgb(73 77 100 / 0.8);">
-                                    <i class="fas fa-user text-sm" style="color: rgb(138 173 244);"></i>
+                            <div class="flex flex-col items-center mb-5">
+                                <div class="w-11 h-11 rounded-full flex items-center justify-center mb-2.5"
+                                     style="background: rgb(36 39 58); border: 1px solid rgb(64 68 90);">
+                                    <i class="fas fa-user-circle" style="color: rgb(138 173 244); font-size: 1.1rem;"></i>
                                 </div>
-                                <label id="pin-prompt"
-                                       class="text-xs uppercase tracking-[0.2em]"
-                                       style="color: rgb(165 173 203);">
-                                    Enter Password
-                                </label>
+                                <label id="pin-prompt" class="text-[10px] uppercase tracking-[0.18em]"
+                                       style="color: rgb(140 145 165);">Enter password</label>
                             </div>
 
-                            <!-- Password field -->
-                            <div class="relative mb-5">
-                                <input type="password"
-                                       id="pin-input"
-                                       name="password"
-                                       autocomplete="off"
-                                       required
-                                       placeholder="••••••••"
-                                       class="w-full text-center text-lg tracking-[0.4em] rounded-xl px-4 py-3 outline-none transition-all"
-                                       style="background: rgb(24 25 38 / 0.7);
-                                              border: 1px solid rgb(73 77 100 / 0.8);
-                                              color: rgb(202 211 245);
-                                              caret-color: rgb(125 196 228);
-                                              font-family: 'Roboto Mono', monospace;">
-                                <span class="ls-input-caret hidden" id="ls-caret"></span>
-                            </div>
+                            <input type="password"
+                                   id="pin-input"
+                                   name="password"
+                                   autocomplete="off"
+                                   required
+                                   placeholder="••••••••"
+                                   class="w-full text-center rounded-xl px-3 py-2.5 mb-4 outline-none transition-all duration-200"
+                                   style="background: rgb(20 21 34); border: 1px solid rgb(55 58 80); color: rgb(202 211 245); font-size: 1.1rem; letter-spacing: 0.3em; caret-color: rgb(125 196 228);">
 
-                            <!-- Submit -->
                             <button type="submit"
-                                    class="w-full py-2.5 rounded-xl text-xs uppercase tracking-[0.25em] font-semibold transition-all"
-                                    style="background: linear-gradient(135deg, rgb(138 173 244 / 0.15), rgb(125 196 228 / 0.15));
-                                           border: 1px solid rgb(138 173 244 / 0.4);
-                                           color: rgb(138 173 244);"
-                                    onmouseover="this.style.background='linear-gradient(135deg, rgb(138 173 244 / 0.25), rgb(125 196 228 / 0.25))'"
-                                    onmouseout="this.style.background='linear-gradient(135deg, rgb(138 173 244 / 0.15), rgb(125 196 228 / 0.15))'">
-                                <i class="fas fa-unlock-alt mr-2 opacity-70"></i>Authenticate
+                                    class="w-full py-2.5 rounded-xl text-[10px] uppercase tracking-[0.22em] font-semibold transition-all duration-200"
+                                    style="background: rgb(36 39 58); border: 1px solid rgb(80 100 160 / 0.5); color: rgb(138 173 244);">
+                                <i class="fas fa-unlock-alt mr-1.5 opacity-60"></i>Unlock
                             </button>
                         </form>
                     </div>
                 </div>
 
-                <!-- Logout link -->
-                <div class="mt-5 text-center">
+                <div class="mt-4 text-center">
                     <form method="POST" action="{% url 'logout' %}" class="inline">
                         {% csrf_token %}
                         <button type="submit"
-                                class="text-[10px] uppercase tracking-[0.25em] transition-colors"
-                                style="color: rgb(91 96 120);"
-                                onmouseover="this.style.color='rgb(243 139 168)'"
-                                onmouseout="this.style.color='rgb(91 96 120)'">
-                            <i class="fas fa-power-off mr-1 opacity-60"></i>End Session
+                                class="text-[9px] uppercase tracking-[0.22em] transition-colors"
+                                style="color: rgb(70 74 100);">
+                            <i class="fas fa-power-off mr-1"></i>End Session
                         </button>
                     </form>
                 </div>
             </div>
         </div>
-
-        <!-- Bottom edge accent -->
-        <div class="absolute bottom-0 left-0 right-0 h-[1px]"
-             style="background: linear-gradient(90deg, transparent, rgb(73 77 100 / 0.5), transparent);"></div>
     </div>
-
     
     <!-- System Update Progress Overlay (Lockscreen-themed) -->
     <div id="update-terminal-overlay" class="fixed inset-0 bg-[#0a0f18]/95 backdrop-blur-md z-[10000] hidden flex-col items-center justify-center transition-all duration-300 opacity-0 overflow-hidden font-mono">
