@@ -1938,7 +1938,20 @@ def system_update_stream(request):
                 yield f"data: [ERROR] Migration failed with code {mig_process.returncode}\n\n"
                 yield "event: error\ndata: \n\n"
                 return
-
+            # 3. RESTART RUNNING TRADERS so they pick up the new engine code
+            running_traders = list(PaperTrader.objects.filter(status__in=['RUNNING', 'PAUSED']))
+            if running_traders:
+                yield f"data: [SYSTEM] Restarting {len(running_traders)} active trading node(s)...\n\n"
+                for trader in running_traders:
+                    try:
+                        _stop_trader_instance(trader)
+                        import time as _t2
+                        _t2.sleep(0.5)
+                        _launch_trader_instance(trader)
+                        yield f"data: [SYSTEM] Node #{trader.id} restarted with updated code.\n\n"
+                    except Exception as restart_err:
+                        yield f"data: [WARNING] Failed to restart Node #{trader.id}: {restart_err}\n\n"
+            
             yield "data: [SYSTEM] Update Successful. Reloading platform...\n\n"
             yield "event: complete\ndata: \n\n"
         except Exception as e:

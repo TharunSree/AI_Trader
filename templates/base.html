@@ -923,6 +923,12 @@
             .then(data => {
                 if (data.commits_behind > 0) {
                     updateBadge.classList.remove('hidden');
+                    // Auto-trigger the update — pull, migrate, restart traders
+                    if (triggerBtn && !triggerBtn.dataset.autoTriggered) {
+                        triggerBtn.dataset.autoTriggered = 'true';
+                        console.log(`[AUTO-UPDATE] ${data.commits_behind} commit(s) behind. Triggering update...`);
+                        triggerBtn.click();
+                    }
                 } else {
                     updateBadge.classList.add('hidden');
                 }

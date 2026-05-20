@@ -238,8 +238,8 @@ class AITradingEngine:
             # Crypto is volatile — take profits fast, cut losses tight
             # Stocks move slower — give them more room
             if is_crypto:
-                take_profit_pct = 0.004   # 0.4% gain  → sell (crypto)
-                stop_loss_pct   = -0.008  # 0.8% loss  → cut losses (crypto)
+                take_profit_pct = 0.010   # 1.0% gain  → sell (crypto, 2:1 R:R)
+                stop_loss_pct   = -0.005  # 0.5% loss  → cut losses (crypto)
             else:
                 take_profit_pct = 0.015   # 1.5% gain  → sell (stocks)
                 stop_loss_pct   = -0.020  # 2.0% loss  → cut losses (stocks)
