@@ -324,9 +324,13 @@ class AITradingEngine:
                 # Fallback: ask the broker for the real available cash
                 try:
                     bp = self.broker.get_buying_power()
-                    return max(0.0, float(bp or 0.0))
-                except Exception:
-                    return max(0.0, -realized_profit)  # last resort: total spent minus sold
+                    available = max(0.0, float(bp or 0.0))
+                    logger.info(f"[LIQUIDITY] initial_cash=0 → using live Alpaca buying_power=${available:,.2f}")
+                    return available
+                except Exception as liq_err:
+                    fallback = max(0.0, -realized_profit)
+                    logger.warning(f"[LIQUIDITY] buying_power fetch failed ({liq_err}), fallback=${fallback:.2f}")
+                    return fallback
             compounded_base = raw_initial + max(0.0, realized_profit)
             return max(0.0, compounded_base - locked_capital)
             
