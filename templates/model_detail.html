@@ -184,8 +184,7 @@
       </svg>
       Recent Executions
     </h3>
-    {% if trades %}
-    <div class="overflow-x-auto">
+    <div class="overflow-x-auto" id="recent-executions-wrapper" {% if not trades %}style="display:none;"{% endif %}>
       <table class="w-full text-left text-xs font-mono">
         <thead class="text-[9px] uppercase tracking-widest text-slate-500 border-b border-slate-100 dark:border-slate-800">
           <tr>
@@ -196,7 +195,7 @@
             <th class="pb-2 text-right">Notional</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+        <tbody id="dyn-recent-executions" class="divide-y divide-slate-100 dark:divide-slate-800">
           {% for trade in trades|slice:":8" %}
           <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
             <td class="py-2 text-slate-400 text-[10px]">{{ trade.timestamp|date:"H:i:s" }}</td>
@@ -209,15 +208,13 @@
         </tbody>
       </table>
     </div>
-    {% else %}
-    <div class="flex flex-col items-center justify-center py-10 text-center">
+    <div id="recent-executions-empty" class="flex flex-col items-center justify-center py-10 text-center" {% if trades %}style="display:none;"{% endif %}>
       <svg class="w-8 h-8 text-slate-300 dark:text-slate-700 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
       </svg>
       <p class="text-[10px] uppercase tracking-widest text-slate-400">No executions yet</p>
       <p class="text-[9px] text-slate-300 dark:text-slate-600 mt-1">Trades will appear here once the model starts buying</p>
     </div>
-    {% endif %}
   </div>
 </div>
 
@@ -246,7 +243,7 @@
           <th class="py-3 px-4 font-normal text-right">Nominal Value</th>
         </tr>
       </thead>
-      <tbody class="text-sm border-b border-slate-800">
+      <tbody id="dyn-execution-history-map" class="text-sm border-b border-slate-800">
         {% for trade in trades %}
           <tr class="border-b border-slate-800/50 hover:bg-slate-100 dark:bg-slate-800/5 transition-colors group">
             <td class="py-3 px-4 text-slate-500 dark:text-slate-400 dark:text-slate-500 font-mono text-xs">{{ trade.timestamp|date:"Y-m-d H:i:s" }}</td>
@@ -465,13 +462,85 @@ document.addEventListener('DOMContentLoaded', () => {
             }).catch(e => console.error("Telemetry Error", e));
     }
     
+    function pollTraderTrades() {
+        const url = `/api/trader-trades/${currentTraderId}/?_=` + Date.now();
+        fetch(url, {cache: 'no-store'})
+            .then(res => res.json())
+            .then(data => {
+                if (data.trades) {
+                    // 1. Update Recent Executions
+                    const recentTbody = document.getElementById("dyn-recent-executions");
+                    const recentWrapper = document.getElementById("recent-executions-wrapper");
+                    const recentEmpty = document.getElementById("recent-executions-empty");
+                    
+                    if (recentTbody) {
+                        const slice = data.trades.slice(0, 8);
+                        if (slice.length === 0) {
+                            if (recentWrapper) recentWrapper.style.display = 'none';
+                            if (recentEmpty) recentEmpty.style.display = 'flex';
+                        } else {
+                            if (recentWrapper) recentWrapper.style.display = 'block';
+                            if (recentEmpty) recentEmpty.style.display = 'none';
+                            recentTbody.innerHTML = '';
+                            slice.forEach(t => {
+                                const actionColor = t.action === 'BUY' ? 'text-emerald-500' : 'text-red-400';
+                                const row = `
+                                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                                  <td class="py-2 text-slate-400 text-[10px]">${t.time_short}</td>
+                                  <td class="py-2 text-slate-700 dark:text-slate-300 font-semibold">${t.symbol}</td>
+                                  <td class="py-2 ${actionColor} font-bold">${t.action}</td>
+                                  <td class="py-2 text-right text-slate-700 dark:text-slate-300">$${t.price.toFixed(2)}</td>
+                                  <td class="py-2 text-right text-slate-500">$${t.notional_value.toFixed(2)}</td>
+                                </tr>`;
+                                recentTbody.insertAdjacentHTML('beforeend', row);
+                            });
+                        }
+                    }
+                    
+                    // 2. Update Execution History Map
+                    const mapTbody = document.getElementById("dyn-execution-history-map");
+                    if (mapTbody) {
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const currentPage = parseInt(urlParams.get('page') || '1');
+                        
+                        if (currentPage === 1) {
+                            if (data.trades.length === 0) {
+                                mapTbody.innerHTML = `
+                                <tr>
+                                  <td colspan="6" class="py-8 text-center text-slate-500 dark:text-slate-400 text-sm font-mono tracking-widest">
+                                    NO TRADES EXECUTED IN CURRENT SESSION
+                                  </td>
+                                </tr>`;
+                            } else {
+                                mapTbody.innerHTML = '';
+                                const slice = data.trades.slice(0, 10);
+                                slice.forEach(t => {
+                                    const actionColor = t.action === 'BUY' ? 'text-slate-800 dark:text-slate-200' : 'text-slate-800 dark:text-slate-200';
+                                    const formattedTime = t.timestamp.replace('T', ' ').substring(0, 19);
+                                    const row = `
+                                    <tr class="border-b border-slate-800/50 hover:bg-slate-100 dark:bg-slate-800/5 transition-colors group">
+                                      <td class="py-3 px-4 text-slate-500 dark:text-slate-400 font-mono text-xs">${formattedTime}</td>
+                                      <td class="py-3 px-4 font-bold text-slate-800 dark:text-slate-200 tracking-wider">${t.symbol}</td>
+                                      <td class="py-3 px-4 font-mono font-bold ${actionColor}">${t.action}</td>
+                                      <td class="py-3 px-4 text-right text-slate-600 dark:text-slate-400">${t.quantity.toFixed(5)}</td>
+                                      <td class="py-3 px-4 text-right text-slate-600 dark:text-slate-400 font-mono">$${t.price.toFixed(2)}</td>
+                                      <td class="py-3 px-4 text-right font-bold text-slate-800 dark:text-slate-200">$${t.notional_value.toFixed(2)}</td>
+                                    </tr>`;
+                                    mapTbody.insertAdjacentHTML('beforeend', row);
+                                });
+                            }
+                        }
+                    }
+                }
+            }).catch(e => console.error("Trades Polling Error", e));
+    }
+    
     // Auto sync dashboard data 
     setInterval(pollTraderStatus, 1500);
-    pollTraderStatus(); // fire immediately on page load
-
-
-
-    }
+    pollTraderStatus();
+    
+    setInterval(pollTraderTrades, 3000);
+    pollTraderTrades();
     
     // QoL Global Functions
     window.copyLogs = function(btn) {

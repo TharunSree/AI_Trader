@@ -40,6 +40,7 @@ urlpatterns = [
     path('api/job-logs/<str:job_type>/<int:job_id>/', views.job_logs_api, name='job_logs_api'),
     path('api/trader-logs/<int:trader_id>/', views.trader_logs_api, name='trader_logs_api'),
     path('api/trader-status/', views.trader_status_api, name='trader_status_api'),
+    path('api/trader-trades/<int:trader_id>/', views.trader_trades_api, name='api_trader_trades'),
     path('api/trader-activity/', views.trader_activity_api, name='trader_activity_api'),
 
     path('intelligence-vault/', views.reports_hub_view, name='reports_hub'),

@@ -307,7 +307,7 @@ def _get_trader_stats(trader):
         'uptime_seconds': uptime_seconds,
         'trade_count': trade_count,
         'total_notional': float(total_notional or 0),
-        'live_net_profit': float(sell_notional - buy_notional),
+        'live_net_profit': float(getattr(trader, 'live_net_profit', 0.0) or 0.0),
         'active_principal': active_principal,
         'goal_amount': float(trader.goal_amount or 0.0),
         'initial_cash': float(trader.initial_cash or 0.0),
@@ -1293,6 +1293,25 @@ def trader_logs_api(request, trader_id):
         return JsonResponse({"logs": logs})
     except Exception as e:
         return JsonResponse({"logs": f"Error accessing trader terminal: {e}"})
+
+
+@login_required
+def trader_trades_api(request, trader_id):
+    from django.shortcuts import get_object_or_404
+    trader = get_object_or_404(PaperTrader, id=trader_id)
+    trades = TradeLog.objects.filter(trader=trader).order_by('-timestamp')
+    data = []
+    for t in trades:
+        data.append({
+            'timestamp': t.timestamp.isoformat(),
+            'time_short': t.timestamp.strftime("%H:%M:%S"),
+            'symbol': t.symbol,
+            'action': t.action,
+            'price': float(t.price),
+            'notional_value': float(t.notional_value or 0.0),
+            'quantity': float(t.quantity or 0.0),
+        })
+    return JsonResponse({"trades": data})
 
 
 def trader_status_api(request):
