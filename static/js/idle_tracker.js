@@ -30,6 +30,16 @@ class IdleTelemetryEngine {
                 this.logoutThreshold = data.idle_logout_minutes * 60 * 1000;
                 this.hasPassword = data.has_password;
 
+                // Fresh login bypass — server consumed the flag, clear client lock
+                if (data.fresh_login) {
+                    sessionStorage.removeItem('qt_locked');
+                    this.isLocked = false;
+                    const overlay = document.getElementById('global-lockscreen-overlay');
+                    if (overlay) {
+                        overlay.classList.remove('ls-visible', 'ls-hiding');
+                    }
+                }
+
                 // Update UI lock button state
                 const lockBtn = document.getElementById('manual-lock-trigger');
                 const lockIcon = document.getElementById('lock-icon-inner');

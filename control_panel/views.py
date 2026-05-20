@@ -126,13 +126,26 @@ def _spawn_background_process(command, log_file_path):
 
 
 def _get_process_memory_mb(pid_value):
+    """Get RSS memory for a PID. On Linux, also checks children since
+    the engine is spawned as a subprocess of the Django process."""
     if not psutil:
         return None
 
     try:
-        process = psutil.Process(int(pid_value))
-        return round(process.memory_info().rss / (1024 * 1024), 1)
-    except (psutil.Error, TypeError, ValueError):
+        pid = int(pid_value)
+        process = psutil.Process(pid)
+        mem = process.memory_info().rss
+        # Include memory of any child processes (common on Linux subprocess spawn)
+        try:
+            for child in process.children(recursive=True):
+                try:
+                    mem += child.memory_info().rss
+                except psutil.Error:
+                    pass
+        except psutil.Error:
+            pass
+        return round(mem / (1024 * 1024), 1)
+    except (psutil.NoSuchProcess, psutil.AccessDenied, TypeError, ValueError):
         return None
 
 
@@ -412,6 +425,13 @@ class JarvisLoginView(LoginView):
         context = super().get_context_data(**kwargs)
         context.update(_build_dashboard_context())
         return context
+
+    def form_valid(self, form):
+        """On successful login, mark session as fresh so the lockscreen
+        is bypassed — acts as a failsafe if the lockscreen password is forgotten."""
+        response = super().form_valid(form)
+        self.request.session['fresh_login'] = True
+        return response
 
 @login_required
 def dashboard_view(request):
@@ -1778,11 +1798,14 @@ def system_update_stream(request):
 
 def security_status_api(request):
     settings = SystemSettings.load()
+    # Consume the fresh_login flag — once popped it won't fire again
+    fresh_login = request.session.pop('fresh_login', False)
     return JsonResponse({
         'status': 'success',
         'has_password': bool(settings.lockscreen_password),
         'idle_lock_minutes': settings.idle_lock_minutes,
-        'idle_logout_minutes': settings.idle_logout_minutes
+        'idle_logout_minutes': settings.idle_logout_minutes,
+        'fresh_login': fresh_login,  # tells client to clear qt_locked
     })
 
 def save_security_settings_api(request):

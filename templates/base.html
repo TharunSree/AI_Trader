@@ -797,6 +797,13 @@
     <!-- Scripts -->
     <script src="{% static 'js/idle_tracker.js' %}"></script>
     <script>
+        // --- FRESH LOGIN LOCKSCREEN BYPASS ---
+        // If the user just logged in via the login page, Django sets fresh_login=True.
+        // We clear the sessionStorage lock flag so the lockscreen never auto-shows.
+        {% if request.session.fresh_login %}
+        sessionStorage.removeItem('qt_locked');
+        {% endif %}
+
         // --- 1. Idle Telemetry Engine ---
         document.addEventListener('DOMContentLoaded', () => {
             // Initialize Idle Tracker
