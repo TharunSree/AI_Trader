@@ -215,6 +215,8 @@ class AITradingEngine:
             """Normalize BCH/USD, BCHUSD, BCH-USD → BCHUSD for comparison."""
             return str(s).replace('/', '').replace('-', '').upper()
 
+        is_crypto = '/' in self.symbol or '-' in self.symbol or 'USD' in self.symbol.upper()
+
         held_qty = 0.0
         avg_entry = 0.0
         for p in positions:
@@ -223,7 +225,7 @@ class AITradingEngine:
                 avg_entry = float(getattr(p, 'avg_entry_price', 0.0))
                 
         # --- PHASE 17 OVERRIDE: 1-Cent Force Dump ---
-        if held_qty > 0 and avg_entry > 0:
+        if not is_crypto and held_qty > 0 and avg_entry > 0:
             price_delta = current_price - avg_entry
             drift_percent = abs(price_delta) / avg_entry
             if drift_percent >= 0.005: # 0.5% movement threshold
@@ -292,7 +294,6 @@ class AITradingEngine:
         # [FRACTIONAL OVERRIDE] Physical share bounding removed for Micro-Accounts
         trade_size_usd = active_principal * (action_confidence * 0.15)
         
-        is_crypto = '/' in self.symbol or '-' in self.symbol or 'USD' in self.symbol.upper()
         min_notional = 10.0 if is_crypto else 1.0
         
         # Hard mathematical cap so it can NEVER breach its partition
