@@ -290,7 +290,7 @@ class AITradingEngine:
         active_principal = await asyncio.to_thread(get_current_liquidity)
         
         # [FRACTIONAL OVERRIDE] Physical share bounding removed for Micro-Accounts
-
+        trade_size_usd = active_principal * (action_confidence * 0.15)
         
         is_crypto = '/' in self.symbol or '-' in self.symbol or 'USD' in self.symbol.upper()
         min_notional = 10.0 if is_crypto else 1.0
