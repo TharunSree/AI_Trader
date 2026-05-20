@@ -278,16 +278,35 @@ class AITradingEngine:
             locked_capital = 0.0
             for p in positions:
                 sym = getattr(p, 'symbol', None)
-                if sym and sym in bot_inventory:
-                    theoretical = max(0.0, bot_inventory[sym])
+                if not sym:
+                    continue
+                # Normalize to match bot_inventory key format (which uses raw self.symbol e.g. BCH/USD)
+                # Try direct match first, then normalized match
+                matched_sym = None
+                if sym in bot_inventory:
+                    matched_sym = sym
+                else:
+                    # Try to find matching key by stripping slashes/dashes
+                    sym_norm = str(sym).replace('/', '').replace('-', '').upper()
+                    for inv_sym in bot_inventory:
+                        if str(inv_sym).replace('/', '').replace('-', '').upper() == sym_norm:
+                            matched_sym = inv_sym
+                            break
+                if matched_sym:
+                    theoretical = max(0.0, bot_inventory[matched_sym])
                     physical = float(getattr(p, 'qty', 0.0))
                     actual = min(theoretical, physical)
                     locked_capital += actual * float(getattr(p, 'avg_entry_price', 0.0))
             
             # Compound realized profits: base grows as the bot makes money
+            # Use max() to guard against zero/null initial_cash — fall back to Alpaca buying power
             realized_profit = total_sold - total_bought
-            compounded_base = float(getattr(t_state, 'initial_cash', 2500.0)) + max(0.0, realized_profit)
-            return compounded_base - locked_capital
+            raw_initial = float(getattr(t_state, 'initial_cash', 0.0) or 0.0)
+            if raw_initial <= 0.0:
+                # initial_cash not set — derive from live buying power + locked capital as floor
+                raw_initial = max(100.0, locked_capital + max(0.0, -realized_profit))
+            compounded_base = raw_initial + max(0.0, realized_profit)
+            return max(0.0, compounded_base - locked_capital)
             
         active_principal = await asyncio.to_thread(get_current_liquidity)
         
