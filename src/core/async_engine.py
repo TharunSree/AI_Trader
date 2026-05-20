@@ -235,8 +235,14 @@ class AITradingEngine:
         # --- TAKE-PROFIT / STOP-LOSS OVERRIDE (crypto & stocks) ---
         if held_qty > 0 and avg_entry > 0:
             unrealized_pct = (current_price - avg_entry) / avg_entry
-            take_profit_pct = 0.015   # 1.5% gain  → sell
-            stop_loss_pct   = -0.020  # 2.0% loss  → cut losses
+            # Crypto is volatile — take profits fast, cut losses tight
+            # Stocks move slower — give them more room
+            if is_crypto:
+                take_profit_pct = 0.004   # 0.4% gain  → sell (crypto)
+                stop_loss_pct   = -0.008  # 0.8% loss  → cut losses (crypto)
+            else:
+                take_profit_pct = 0.015   # 1.5% gain  → sell (stocks)
+                stop_loss_pct   = -0.020  # 2.0% loss  → cut losses (stocks)
             if unrealized_pct >= take_profit_pct:
                 logger.info(
                     f"[TAKE-PROFIT] {self.symbol} | Entry ${avg_entry:.2f} → Now ${current_price:.2f} "
