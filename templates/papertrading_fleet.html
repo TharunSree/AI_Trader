@@ -104,7 +104,12 @@
             </div>
             <div class="text-right">
                 <div class="text-[9px] uppercase tracking-widest text-slate-500 font-mono mb-1">Equity Clock</div>
-                <div id="market-timer" data-next-open="{{ clock.next_open|default:'' }}" data-next-close="{{ clock.next_close|default:'' }}" data-is-open="{% if clock and clock.is_open %}true{% else %}false{% endif %}" class="text-sm font-bold font-mono text-slate-800 dark:text-slate-200">--:--:--</div>
+                <div id="market-timer" 
+                     data-next-open="{{ clock.next_open|default:'' }}" 
+                     data-next-close="{{ clock.next_close|default:'' }}" 
+                     data-is-open="{% if clock and clock.is_open %}true{% else %}false{% endif %}"
+                     data-has-crypto="{{ has_crypto_traders|yesno:'true,false' }}"
+                     class="text-sm font-bold font-mono text-slate-800 dark:text-slate-200">--:--:--</div>
             </div>
         </div>
     </div>
@@ -159,7 +164,7 @@
                     <td class="p-3 text-right text-slate-800 dark:text-slate-200 font-bold" data-field="total_notional">${{ row.total_notional|floatformat:2 }}</td>
                     <td class="p-3">
                         <div class="flex justify-end gap-1.5">
-                            <button onclick="openEditModal({{ row.id }}, '{{ row.initial_cash }}', '{{ row.goal_amount|default_if_none:"" }}', '{% if row.account %}{{row.account.id}}{% endif %}')" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors text-[9px] uppercase font-bold tracking-widest border border-slate-200 dark:border-slate-700">Edit</button>
+                            <button onclick="openEditModal({{ row.id }}, '{{ row.initial_cash }}', '{{ row.goal_amount|default_if_none:"" }}', '{% if row.account %}{{row.account.id}}{% endif %}', '{{ row.model_file|default:"" }}')" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors text-[9px] uppercase font-bold tracking-widest border border-slate-200 dark:border-slate-700">Edit</button>
                             
                             {% if row.status == 'RUNNING' %}
                             <form method="post" action="{% url 'pause_trader' row.id %}" class="inline">{% csrf_token %}<button type="submit" class="px-2 py-1 rounded bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 transition-colors text-[9px] uppercase font-bold tracking-widest border border-amber-200 dark:border-amber-500/30">Pause</button></form>
@@ -234,6 +239,14 @@
       <form id="edit-trader-form" method="post" action="">
         {% csrf_token %}
         <div class="space-y-3">
+          <div>
+            <label class="block text-[10px] uppercase tracking-widest text-slate-500 font-mono mb-1">Active Model</label>
+            <select name="model_file" id="edit-modal-model" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded px-3 py-2 font-mono text-xs outline-none focus:border-brand-500">
+              {% for m in model_files %}
+              <option value="{{ m.value }}">{{ m.label }}</option>
+              {% endfor %}
+            </select>
+          </div>
           <div>
             <label class="block text-[10px] uppercase tracking-widest text-slate-500 font-mono mb-1">Bound Environment</label>
             <select name="account_id" id="edit-modal-account" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded px-3 py-2 font-mono text-xs outline-none focus:border-brand-500">
@@ -353,20 +366,35 @@
     const timerElem = document.getElementById('market-timer');
     if (!timerElem) return;
 
+    const hasCrypto = timerElem.getAttribute('data-has-crypto') === 'true';
+
+    // If all traders are crypto, show a live UTC clock (crypto never closes)
+    if (hasCrypto) {
+      function tickCrypto() {
+        const now = new Date();
+        const h = String(now.getUTCHours()).padStart(2, '0');
+        const m = String(now.getUTCMinutes()).padStart(2, '0');
+        const s = String(now.getUTCSeconds()).padStart(2, '0');
+        timerElem.textContent = `\u2665 ${h}:${m}:${s} UTC`;
+        timerElem.style.color = 'rgb(16 185 129)'; // emerald
+      }
+      tickCrypto();
+      setInterval(tickCrypto, 1000);
+      return;
+    }
+
+    // Equity market countdown
     function tick() {
       const isOpen = timerElem.getAttribute('data-is-open') === 'true';
-      const targetIso = isOpen ? timerElem.getAttribute('data-next-close') : timerElem.getAttribute('data-next-open');
+      const targetIso = isOpen
+        ? timerElem.getAttribute('data-next-close')
+        : timerElem.getAttribute('data-next-open');
       if (!targetIso) {
-        timerElem.textContent = isOpen ? 'Closes --:--:--' : 'Opens --:--:--';
+        timerElem.textContent = isOpen ? 'Closes --:--' : 'Opens --:--';
         return;
       }
-
       const diff = new Date(targetIso).getTime() - Date.now();
-      if (diff <= 0) {
-        timerElem.textContent = 'Syncing...';
-        return;
-      }
-
+      if (diff <= 0) { timerElem.textContent = 'Syncing...'; return; }
       const totalSec = Math.floor(diff / 1000);
       const h = String(Math.floor(totalSec / 3600)).padStart(2, '0');
       const m = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
@@ -388,8 +416,21 @@
         const bp = document.getElementById('shared-buying-power'); if(bp) bp.textContent = fmtCurrency(data.buying_power);
 
         if (data.memory) {
-          document.getElementById('memory-system').textContent = data.memory.system_used_percent != null ? `${data.memory.system_used_percent}%` : 'N/A';
-          document.getElementById('memory-runners').textContent = `${data.memory.running_trader_memory_mb || 0} MB`;
+          const memSys = document.getElementById('memory-system');
+          const memRun = document.getElementById('memory-runners');
+          if (memSys) {
+            if (data.memory.system_used_percent != null) {
+              memSys.textContent = `${data.memory.system_used_percent}%`;
+            } else if (data.memory.system_used_gb != null && data.memory.system_total_gb != null) {
+              memSys.textContent = `${data.memory.system_used_gb}/${data.memory.system_total_gb} GB`;
+            } else {
+              memSys.textContent = 'N/A';
+            }
+          }
+          if (memRun) {
+            const mb = data.memory.running_trader_memory_mb;
+            memRun.textContent = mb != null ? `${mb} MB` : '--';
+          }
         }
         
         updatePositions(data.positions || []);
@@ -443,12 +484,13 @@
 
 let targetKillId = null;
 
-function openEditModal(id, cash, goal, acc) {
+function openEditModal(id, cash, goal, acc, model) {
   const modal = document.getElementById('edit-trader-modal');
   if(document.getElementById('edit-modal-id-label')) document.getElementById('edit-modal-id-label').textContent = '#T' + id;
   if(document.getElementById('edit-modal-cash')) document.getElementById('edit-modal-cash').value = cash || '';
   if(document.getElementById('edit-modal-goal')) document.getElementById('edit-modal-goal').value = goal || '';
   if(document.getElementById('edit-modal-account')) document.getElementById('edit-modal-account').value = acc || '';
+  if(document.getElementById('edit-modal-model')) document.getElementById('edit-modal-model').value = model || '';
   
   const form = document.getElementById('edit-trader-form');
   if(form) form.action = '/paper-trading/' + id + '/edit/';

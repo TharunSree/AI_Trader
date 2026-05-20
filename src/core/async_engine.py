@@ -292,17 +292,18 @@ class AITradingEngine:
         # [FRACTIONAL OVERRIDE] Physical share bounding removed for Micro-Accounts
 
         
-        trade_size_usd = active_principal * (action_confidence * 0.15)
+        is_crypto = '/' in self.symbol or '-' in self.symbol or 'USD' in self.symbol.upper()
+        min_notional = 10.0 if is_crypto else 1.0
         
         # Hard mathematical cap so it can NEVER breach its partition
         trade_size_usd = min(trade_size_usd, active_principal)
         
-        # [FRACTIONAL OVERRIDE] Force base $1.00 minimum bounds dynamically
-        trade_size_usd = max(1.0, trade_size_usd) if active_principal >= 1.0 else active_principal
+        # Force base minimum bounds dynamically
+        trade_size_usd = max(min_notional, trade_size_usd) if active_principal >= min_notional else active_principal
         
-        if trade_size_usd < 1.0 and side == 'buy':
-            logger.warning(f"Insufficient active principal (${active_principal:.2f}) for Alpaca $1 trades. Blocked.")
-            return # Block fractional dusting rejections on Alpaca
+        if trade_size_usd < min_notional and side == 'buy':
+            logger.warning(f"Insufficient active principal (${active_principal:.2f}) for minimum required trade size of ${min_notional:.2f} on {self.symbol}. Blocked.")
+            return # Block low-value dusting rejections on Alpaca
         
         if side == 'buy':
             # --- BUYING POWER GUARD: Verify real Alpaca account buying power before order ---
@@ -329,8 +330,8 @@ class AITradingEngine:
         else:
             qty = trade_size_usd / current_price
             qty = min(qty, held_qty)
-            if action == -1.0:
-                qty = held_qty  # Dump entire inventory on 1-cent override
+            if action == -1.0 or (is_crypto and (qty * current_price) < 10.0):
+                qty = held_qty  # Dump entire inventory if it's below minimum notional to avoid rejection!
                 
             logger.info(f"AI REQUESTING SELL: {qty:.6f} shares of {self.symbol} @ ${current_price:,.2f} | Conf: {action_confidence:.2f} | Limit: ${active_principal:,.2f}")
             success, order_dict = await asyncio.to_thread(

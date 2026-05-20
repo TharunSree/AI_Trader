@@ -127,26 +127,82 @@ def _spawn_background_process(command, log_file_path):
 
 def _get_process_memory_mb(pid_value):
     """Get RSS memory for a PID. On Linux, also checks children since
-    the engine is spawned as a subprocess of the Django process."""
-    if not psutil:
-        return None
-
+    the engine is spawned as a subprocess of the Django process.
+    Uses psutil if available, otherwise falls back to /proc reading on Linux."""
     try:
         pid = int(pid_value)
-        process = psutil.Process(pid)
-        mem = process.memory_info().rss
-        # Include memory of any child processes (common on Linux subprocess spawn)
-        try:
-            for child in process.children(recursive=True):
-                try:
-                    mem += child.memory_info().rss
-                except psutil.Error:
-                    pass
-        except psutil.Error:
-            pass
-        return round(mem / (1024 * 1024), 1)
-    except (psutil.NoSuchProcess, psutil.AccessDenied, TypeError, ValueError):
+    except (TypeError, ValueError):
         return None
+
+    # Try psutil first
+    if psutil:
+        try:
+            process = psutil.Process(pid)
+            mem = process.memory_info().rss
+            # Include memory of any child processes
+            try:
+                for child in process.children(recursive=True):
+                    try:
+                        mem += child.memory_info().rss
+                    except psutil.Error:
+                        pass
+            except psutil.Error:
+                pass
+            return round(mem / (1024 * 1024), 1)
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            pass
+
+    # Linux native /proc fallback
+    if os.path.exists('/proc'):
+        try:
+            def _get_proc_rss(p):
+                try:
+                    with open(f'/proc/{p}/status', 'r') as f:
+                        for line in f:
+                            if line.startswith('VmRSS:'):
+                                return int(line.split()[1]) * 1024  # kB to bytes
+                except Exception:
+                    pass
+                return 0
+
+            mem_bytes = _get_proc_rss(pid)
+
+            # Find child processes on Linux via /proc/<pid>/status or parental map
+            try:
+                import glob
+                parent_map = {}
+                for proc_dir in glob.glob('/proc/[0-9]*'):
+                    try:
+                        cpid = int(proc_dir.split('/')[-1])
+                        with open(f'{proc_dir}/status', 'r') as f:
+                            for line in f:
+                                if line.startswith('PPid:'):
+                                    ppid = int(line.split()[1])
+                                    parent_map[cpid] = ppid
+                                    break
+                    except Exception:
+                        pass
+                
+                # Recursive children search
+                def get_all_children(parent_pid):
+                    children = []
+                    for child, p in parent_map.items():
+                        if p == parent_pid:
+                            children.append(child)
+                            children.extend(get_all_children(child))
+                    return children
+
+                for child_pid in get_all_children(pid):
+                    mem_bytes += _get_proc_rss(child_pid)
+            except Exception:
+                pass
+
+            if mem_bytes > 0:
+                return round(mem_bytes / (1024 * 1024), 1)
+        except Exception:
+            pass
+
+    return None
 
 
 def _get_process_uptime_seconds(pid_value):
@@ -163,28 +219,67 @@ def _get_process_uptime_seconds(pid_value):
 def _get_memory_snapshot():
     threshold_percent = int(os.getenv('PAPER_TRADER_MEMORY_PAUSE_PERCENT', '85'))
 
-    try:
-        import psutil
-        memory = psutil.virtual_memory()
-        total_memory_mb = int(round(memory.total / (1024 * 1024)))
-        dynamic_limit_mb = max(2048, min(8192, int(total_memory_mb * 0.4)))
-        return {
-            'available': True,
-            'system_used_percent': round(memory.percent, 1),
-            'system_used_gb': round((memory.total - memory.available) / (1024 ** 3), 2),
-            'system_total_gb': round(memory.total / (1024 ** 3), 2),
-            'trader_limit_mb': int(os.getenv('PAPER_TRADER_MEMORY_LIMIT_MB', str(dynamic_limit_mb))),
-            'threshold_percent': threshold_percent,
-        }
-    except Exception:
-        return {
-            'available': False,
-            'system_used_percent': None,
-            'system_used_gb': None,
-            'system_total_gb': None,
-            'trader_limit_mb': int(os.getenv('PAPER_TRADER_MEMORY_LIMIT_MB', '2048')),
-            'threshold_percent': threshold_percent,
-        }
+    # 1. Try psutil first
+    if psutil:
+        try:
+            memory = psutil.virtual_memory()
+            total_memory_mb = int(round(memory.total / (1024 * 1024)))
+            dynamic_limit_mb = max(2048, min(8192, int(total_memory_mb * 0.4)))
+            return {
+                'available': True,
+                'system_used_percent': round(memory.percent, 1),
+                'system_used_gb': round((memory.total - memory.available) / (1024 ** 3), 2),
+                'system_total_gb': round(memory.total / (1024 ** 3), 2),
+                'trader_limit_mb': int(os.getenv('PAPER_TRADER_MEMORY_LIMIT_MB', str(dynamic_limit_mb))),
+                'threshold_percent': threshold_percent,
+            }
+        except Exception:
+            pass
+
+    # 2. Try Linux /proc fallback
+    if os.path.exists('/proc/meminfo'):
+        try:
+            meminfo = {}
+            with open('/proc/meminfo', 'r') as f:
+                for line in f:
+                    parts = line.split(':')
+                    if len(parts) == 2:
+                        name = parts[0].strip()
+                        val = parts[1].split()[0].strip()
+                        meminfo[name] = int(val) * 1024
+            total = meminfo.get('MemTotal', 0)
+            free = meminfo.get('MemFree', 0)
+            buffers = meminfo.get('Buffers', 0)
+            cached = meminfo.get('Cached', 0)
+            available = meminfo.get('MemAvailable', free + buffers + cached)
+            used = total - available
+            
+            percent = round((used / total) * 100, 1) if total > 0 else 0.0
+            total_gb = round(total / (1024 ** 3), 2)
+            used_gb = round(used / (1024 ** 3), 2)
+            total_mb = int(total / (1024 * 1024))
+            dynamic_limit_mb = max(2048, min(8192, int(total_mb * 0.4)))
+            
+            return {
+                'available': True,
+                'system_used_percent': percent,
+                'system_used_gb': used_gb,
+                'system_total_gb': total_gb,
+                'trader_limit_mb': int(os.getenv('PAPER_TRADER_MEMORY_LIMIT_MB', str(dynamic_limit_mb))),
+                'threshold_percent': threshold_percent,
+            }
+        except Exception:
+            pass
+
+    # 3. Last resort fallback
+    return {
+        'available': False,
+        'system_used_percent': None,
+        'system_used_gb': None,
+        'system_total_gb': None,
+        'trader_limit_mb': int(os.getenv('PAPER_TRADER_MEMORY_LIMIT_MB', '2048')),
+        'threshold_percent': threshold_percent,
+    }
 
 
 def _get_trader_stats(trader):
@@ -296,15 +391,17 @@ def _launch_trader_instance(trader):
 
 def _enforce_trader_memory_budget():
     snapshot = _get_memory_snapshot()
-    if not snapshot['available']:
-        return snapshot
-
+    
+    # Calculate runner memory regardless of system telemetry availability
     running_traders = list(PaperTrader.objects.filter(status='RUNNING').order_by('-id'))
     total_runner_mb = 0
     for trader in running_traders:
         total_runner_mb += _get_process_memory_mb(trader.celery_task_id) or 0
-
     snapshot['running_trader_memory_mb'] = round(total_runner_mb, 1)
+
+    if not snapshot['available']:
+        return snapshot
+
     should_throttle = (
         snapshot['system_used_percent'] is not None and snapshot['system_used_percent'] >= snapshot['threshold_percent']
     ) or total_runner_mb >= snapshot['trader_limit_mb']
@@ -615,6 +712,7 @@ def papertrading_view(request):
         'active_amount_recovered': f"{active_amount_recovered:,.2f}",
         'active_profit_made': f"{abs(active_profit_made):,.2f}",
         'active_profit_raw': active_profit_made,
+        'has_crypto_traders': True,
     }
     return render(request, 'papertrading_fleet.html', context)
 
@@ -863,6 +961,7 @@ def realtrading_view(request):
         'active_amount_recovered': f"{active_amount_recovered:,.2f}",
         'active_profit_made': f"{abs(active_profit_made):,.2f}",
         'active_profit_raw': active_profit_made,
+        'has_crypto_traders': True,
     }
     return render(request, 'realtrading.html', context)
 
@@ -1635,6 +1734,9 @@ def edit_trader_view(request, trader_id):
         initial_cash = request.POST.get('initial_cash')
         goal_amount = request.POST.get('goal_amount')
         account_id = request.POST.get('account_id')
+        model_file = request.POST.get('model_file')
+        
+        was_running = (trader.status == 'RUNNING')
         
         if initial_cash:
             trader.initial_cash = float(initial_cash)
@@ -1647,8 +1749,41 @@ def edit_trader_view(request, trader_id):
             acc = BrokerAccount.objects.filter(id=account_id).first()
             if acc:
                 trader.account = acc
+        
+        model_changed = False
+        if model_file and trader.model_file != model_file:
+            # If live, enforce certification
+            if trader.is_live:
+                if str(model_file).startswith("db:"):
+                    model_id = int(str(model_file).split(":")[1])
+                    from .models import TrainingJob
+                    job = TrainingJob.objects.filter(id=model_id).first()
+                    if not job or not job.is_live_trading_ready:
+                        messages.error(request, "CRITICAL ERROR: Selected model is NOT certified for Live Production.")
+                        return redirect(request.META.get('HTTP_REFERER', 'realtrading'))
+                else:
+                    messages.error(request, "CRITICAL ERROR: Custom disk weights cannot be safely evaluated. Please use DB models.")
+                    return redirect(request.META.get('HTTP_REFERER', 'realtrading'))
+            
+            trader.model_file = model_file
+            model_changed = True
                 
         trader.save()
+        
+        # If it was running and model/config changed, restart the process to apply changes
+        if was_running and model_changed:
+            try:
+                import time
+                _stop_trader_instance(trader)
+                # Give the OS a moment to release ports/files
+                time.sleep(0.5)
+                _launch_trader_instance(trader)
+                messages.success(request, f"Node #{trader.id} configuration updated and restarted successfully with model '{model_file}'.")
+            except Exception as e:
+                messages.error(request, f"Error restarting node #{trader.id} after edit: {e}")
+        else:
+            messages.success(request, f"Node #{trader.id} configuration updated successfully.")
+            
     return redirect(request.META.get('HTTP_REFERER', 'papertrading'))
 
 @login_required

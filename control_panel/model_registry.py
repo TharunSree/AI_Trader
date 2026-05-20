@@ -63,6 +63,7 @@ def get_model_choices(include_disk: bool = True, include_database: bool = True):
                 'value': job.model_reference,
                 'label': f"{job.name} ({job.model_reference})",
                 'source': 'database',
+                'is_certified': getattr(job, 'is_live_trading_ready', False),
             })
 
     if include_disk:
@@ -73,6 +74,7 @@ def get_model_choices(include_disk: bool = True, include_database: bool = True):
                     'value': model_file.name,
                     'label': model_file.name,
                     'source': 'disk',
+                    'is_certified': False,
                 })
 
     return choices
