@@ -305,6 +305,7 @@ class AITradingEngine:
             logger.warning(f"Insufficient active principal (${active_principal:.2f}) for minimum required trade size of ${min_notional:.2f} on {self.symbol}. Blocked.")
             return # Block low-value dusting rejections on Alpaca
         
+        qty = None
         if side == 'buy':
             # --- BUYING POWER GUARD: Verify real Alpaca account buying power before order ---
             try:
