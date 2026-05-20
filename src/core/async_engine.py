@@ -224,15 +224,33 @@ class AITradingEngine:
                 held_qty = float(getattr(p, 'qty', 0.0))
                 avg_entry = float(getattr(p, 'avg_entry_price', 0.0))
                 
-        # --- PHASE 17 OVERRIDE: 1-Cent Force Dump ---
+        # --- PHASE 17 OVERRIDE: 1-Cent Force Dump (stocks only) ---
         if not is_crypto and held_qty > 0 and avg_entry > 0:
             price_delta = current_price - avg_entry
             drift_percent = abs(price_delta) / avg_entry
             if drift_percent >= 0.005: # 0.5% movement threshold
                 logger.warning(f"[OVERRIDE] 0.5% Profit/Loss delta triggered! (Entry: ${avg_entry:.2f} -> Current: ${current_price:.2f} | Drift: {drift_percent:.2%})")
                 action = -1.0  # Force Maximum Sell Signal
-                
-        if action > 0.15:   # BUY threshold — lowered from 0.4 to capture weaker buy signals
+
+        # --- TAKE-PROFIT / STOP-LOSS OVERRIDE (crypto & stocks) ---
+        if held_qty > 0 and avg_entry > 0:
+            unrealized_pct = (current_price - avg_entry) / avg_entry
+            take_profit_pct = 0.015   # 1.5% gain  → sell
+            stop_loss_pct   = -0.020  # 2.0% loss  → cut losses
+            if unrealized_pct >= take_profit_pct:
+                logger.info(
+                    f"[TAKE-PROFIT] {self.symbol} | Entry ${avg_entry:.2f} → Now ${current_price:.2f} "
+                    f"| Gain {unrealized_pct:.2%} ≥ {take_profit_pct:.2%} threshold. Forcing SELL."
+                )
+                action = -1.0
+            elif unrealized_pct <= stop_loss_pct:
+                logger.warning(
+                    f"[STOP-LOSS]   {self.symbol} | Entry ${avg_entry:.2f} → Now ${current_price:.2f} "
+                    f"| Loss {unrealized_pct:.2%} ≤ {stop_loss_pct:.2%} threshold. Forcing SELL."
+                )
+                action = -1.0
+
+        if action > 0.15:   # BUY threshold
             side = 'buy'
         elif action < -0.01:
             side = 'sell'
@@ -298,13 +316,17 @@ class AITradingEngine:
                     actual = min(theoretical, physical)
                     locked_capital += actual * float(getattr(p, 'avg_entry_price', 0.0))
             
-            # Compound realized profits: base grows as the bot makes money
-            # Use max() to guard against zero/null initial_cash — fall back to Alpaca buying power
+            # When initial_cash is configured: derive available cash from trade history
+            # When initial_cash = 0 (not set): use live Alpaca buying_power directly — most accurate
             realized_profit = total_sold - total_bought
             raw_initial = float(getattr(t_state, 'initial_cash', 0.0) or 0.0)
             if raw_initial <= 0.0:
-                # initial_cash not set — derive from live buying power + locked capital as floor
-                raw_initial = max(100.0, locked_capital + max(0.0, -realized_profit))
+                # Fallback: ask the broker for the real available cash
+                try:
+                    bp = self.broker.get_buying_power()
+                    return max(0.0, float(bp or 0.0))
+                except Exception:
+                    return max(0.0, -realized_profit)  # last resort: total spent minus sold
             compounded_base = raw_initial + max(0.0, realized_profit)
             return max(0.0, compounded_base - locked_capital)
             
