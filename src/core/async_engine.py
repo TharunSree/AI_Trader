@@ -376,19 +376,36 @@ class AITradingEngine:
             
         active_principal = await asyncio.to_thread(get_current_liquidity)
         
+        # --- PRINCIPAL PROTECTION: preserve gains once balance grows past thresholds ---
+        # Below $150:  trade with 100% (growth mode — go all-in to build capital)
+        # $150 - $500: protect 50%, trade with 50% (safe growth mode)
+        # $500+:       protect 70%, trade with 30% (wealth preservation mode)
+        total_balance = active_principal  # Save for logging
+        if active_principal >= 500.0:
+            tradeable = active_principal * 0.30
+            protection_tier = "WEALTH (70% protected)"
+        elif active_principal >= 150.0:
+            tradeable = active_principal * 0.50
+            protection_tier = "SAFE (50% protected)"
+        else:
+            tradeable = active_principal
+            protection_tier = "GROWTH (100% deployed)"
+        
+        logger.info(f"[CAPITAL] Balance=${total_balance:.2f} | Tier={protection_tier} | Tradeable=${tradeable:.2f}")
+        
         # [FRACTIONAL OVERRIDE] Physical share bounding removed for Micro-Accounts
-        trade_size_usd = active_principal * (action_confidence * 0.15)
+        trade_size_usd = tradeable * (action_confidence * 0.15)
         
         min_notional = 10.0 if is_crypto else 1.0
         
         # Hard mathematical cap so it can NEVER breach its partition
-        trade_size_usd = min(trade_size_usd, active_principal)
+        trade_size_usd = min(trade_size_usd, tradeable)
         
         # Force base minimum bounds dynamically
-        trade_size_usd = max(min_notional, trade_size_usd) if active_principal >= min_notional else active_principal
+        trade_size_usd = max(min_notional, trade_size_usd) if tradeable >= min_notional else tradeable
         
         if trade_size_usd < min_notional and side == 'buy':
-            logger.warning(f"Insufficient active principal (${active_principal:.2f}) for minimum required trade size of ${min_notional:.2f} on {self.symbol}. Blocked.")
+            logger.warning(f"Insufficient tradeable capital (${tradeable:.2f} of ${total_balance:.2f}) for minimum required trade size of ${min_notional:.2f} on {self.symbol}. Blocked.")
             return # Block low-value dusting rejections on Alpaca
         
         qty = None
