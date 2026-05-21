@@ -71,10 +71,10 @@
     </div>
 </div>
 
-<div class="grid grid-cols-1 xl:grid-cols-12 gap-4 min-h-full">
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-4 xl:h-[calc(100vh-12rem)] min-h-[650px]">
     
     <!-- COLUMN 1: Portfolio & Pipelines (3 cols) -->
-    <div class="xl:col-span-3 flex flex-col gap-4">
+    <div class="xl:col-span-3 flex flex-col gap-4 min-h-0">
         
         <!-- Fleet Portfolio Summary -->
         <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
@@ -159,7 +159,7 @@
         </div>
 
         <!-- System Health Telemetry -->
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex-1 flex flex-col min-h-0">
             <h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                 <i class="fas fa-microchip text-brand-500"></i> System Telemetry
             </h3>
@@ -170,10 +170,10 @@
                 <div>
                     <div class="flex justify-between items-center mb-1 text-xs">
                         <span class="text-slate-500">CPU Usage</span>
-                        <span class="text-slate-800 dark:text-slate-200 font-bold">{{ telemetry.cpu_percent }}%</span>
+                        <span id="telemetry-cpu-val" class="text-slate-800 dark:text-slate-200 font-bold">{{ telemetry.cpu_percent }}%</span>
                     </div>
                     <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5">
-                        <div class="bg-brand-500 h-1.5 rounded-full transition-all" style="width: {{ telemetry.cpu_percent }}%"></div>
+                        <div id="telemetry-cpu-bar" class="bg-brand-500 h-1.5 rounded-full transition-all" style="width: {{ telemetry.cpu_percent }}%"></div>
                     </div>
                 </div>
                 
@@ -181,12 +181,12 @@
                 <div>
                     <div class="flex justify-between items-center mb-1 text-xs">
                         <span class="text-slate-500">RAM Usage</span>
-                        <span class="text-slate-800 dark:text-slate-200 font-bold">{{ telemetry.system_used_percent }}%</span>
+                        <span id="telemetry-ram-val" class="text-slate-800 dark:text-slate-200 font-bold">{{ telemetry.system_used_percent }}%</span>
                     </div>
                     <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5">
-                        <div class="bg-indigo-500 h-1.5 rounded-full transition-all" style="width: {{ telemetry.system_used_percent }}%"></div>
+                        <div id="telemetry-ram-bar" class="bg-indigo-500 h-1.5 rounded-full transition-all" style="width: {{ telemetry.system_used_percent }}%"></div>
                     </div>
-                    <div class="text-[9px] text-slate-400 mt-1">
+                    <div id="telemetry-ram-text" class="text-[9px] text-slate-400 mt-1">
                         {{ telemetry.system_used_gb }} GB / {{ telemetry.system_total_gb }} GB
                     </div>
                 </div>
@@ -194,7 +194,7 @@
                 <!-- Memory Budget -->
                 <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-xs">
                     <span class="text-slate-500">Memory Budget</span>
-                    <span class="text-slate-700 dark:text-slate-300 font-bold">{{ telemetry.trader_limit_mb }} MB</span>
+                    <span id="telemetry-limit-val" class="text-slate-700 dark:text-slate-300 font-bold">{{ telemetry.trader_limit_mb }} MB</span>
                 </div>
                 {% else %}
                 <div class="text-slate-400 dark:text-slate-600 text-xs text-center py-3 tracking-widest">
@@ -207,7 +207,7 @@
     </div>
 
     <!-- COLUMN 2: Recent Executions & Live Feed (6 cols) -->
-    <div class="xl:col-span-6 flex flex-col gap-4">
+    <div class="xl:col-span-6 flex flex-col gap-4 min-h-0">
         
         <!-- Live Asset Stream -->
         <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 shadow-sm flex items-center justify-between">
@@ -258,7 +258,7 @@
         </div>
 
         <!-- Recent Executions Table -->
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm flex flex-col">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm flex-1 flex flex-col min-h-0">
             <div class="p-3 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center py-2">
                 <h3 class="text-xs font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-widest">Recent Executions</h3>
                 <span class="text-[10px] px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-mono border border-slate-200 dark:border-slate-700">{{ total_trades }} TOTAL</span>
@@ -305,7 +305,7 @@
     </div>
 
     <!-- COLUMN 3: Command Center & Logs (3 cols) -->
-    <div class="xl:col-span-3 flex flex-col gap-4">
+    <div class="xl:col-span-3 flex flex-col gap-4 min-h-0">
         
         <!-- Command Center -->
         <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
@@ -430,6 +430,33 @@
         let globalPositions = [];
         let currentTradesPage = 1;
         let globalRecentTrades = [];
+
+        function fetchSystemTelemetry() {
+            fetch("{% url 'system_telemetry_api' %}")
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'success' && data.telemetry && data.telemetry.available) {
+                        const t = data.telemetry;
+                        const elCpuVal = document.getElementById('telemetry-cpu-val');
+                        const elCpuBar = document.getElementById('telemetry-cpu-bar');
+                        if (elCpuVal) elCpuVal.innerText = t.cpu_percent + '%';
+                        if (elCpuBar) elCpuBar.style.width = t.cpu_percent + '%';
+
+                        const elRamVal = document.getElementById('telemetry-ram-val');
+                        const elRamBar = document.getElementById('telemetry-ram-bar');
+                        if (elRamVal) elRamVal.innerText = t.system_used_percent + '%';
+                        if (elRamBar) elRamBar.style.width = t.system_used_percent + '%';
+
+                        const elRamText = document.getElementById('telemetry-ram-text');
+                        if (elRamText) elRamText.innerText = t.system_used_gb + ' GB / ' + t.system_total_gb + ' GB';
+
+                        const elLimitVal = document.getElementById('telemetry-limit-val');
+                        if (elLimitVal) elLimitVal.innerText = t.trader_limit_mb + ' MB';
+                    }
+                }).catch(err => console.log("Telemetry Error:", err));
+        }
+
+        setInterval(fetchSystemTelemetry, 3000);
 
         window.renderPositionsPage = function(page) {
             const tbody = document.getElementById("positions-tbody");

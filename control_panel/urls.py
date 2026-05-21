@@ -59,6 +59,7 @@ urlpatterns = [
     path('api/mutate/', views.trigger_mutation_api, name='trigger_mutation_api'),
     path('api/mutation-logs/', views.mutation_logs_api, name='mutation_logs_api'),
     path('api/system-logs/', views.system_logs_api, name='system_logs_api'),
+    path('api/system-telemetry/', views.system_telemetry_api, name='system_telemetry_api'),
     path('api/system/check-updates/', views.check_updates_api, name='check_updates_api'),
     path('api/system/update/stream/', views.system_update_stream, name='system_update_stream'),
     path('api/security/status/', views.security_status_api, name='security_status_api'),

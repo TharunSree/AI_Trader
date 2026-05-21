@@ -2301,6 +2301,14 @@ def system_update_stream(request):
     response['X-Accel-Buffering'] = 'no'  # Disable NGINX buffering
     return response
 
+
+@login_required
+def system_telemetry_api(request):
+    """API endpoint for live polling of system telemetry"""
+    telemetry = _get_memory_snapshot()
+    return JsonResponse({'status': 'success', 'telemetry': telemetry})
+
+
 def security_status_api(request):
     settings = SystemSettings.load()
     # Consume the fresh_login flag — once popped it won't fire again
