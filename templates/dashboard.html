@@ -137,10 +137,13 @@
             <h3 class="text-xs font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-widest mb-4">Command Center</h3>
             
             <div class="space-y-3">
-                <button onclick="window.confirmAction('Trigger Global Kill Switch? All positions will be immediately liquidated.', () => alert('Triggered'))" class="w-full flex items-center justify-between px-4 py-3 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/30 rounded-lg text-xs font-mono font-bold tracking-widest uppercase transition-colors">
-                    <span>Global Kill Switch</span>
-                    <i class="fas fa-skull"></i>
-                </button>
+                <form id="global-kill-switch-form" method="post" action="{% url 'global_kill_switch_api' %}">
+                    {% csrf_token %}
+                    <button type="button" onclick="window.confirmAction('Trigger Global Kill Switch? All active bots will be STOPPED and ALL positions will be immediately liquidated at market price. Are you sure?', () => document.getElementById('global-kill-switch-form').submit())" class="w-full flex items-center justify-between px-4 py-3 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/30 rounded-lg text-xs font-mono font-bold tracking-widest uppercase transition-colors">
+                        <span>Global Kill Switch</span>
+                        <i class="fas fa-skull"></i>
+                    </button>
+                </form>
                 
                 <button disabled class="w-full flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-mono font-bold tracking-widest uppercase cursor-not-allowed">
                     <span>A/B Swap (Auto)</span>
@@ -244,7 +247,24 @@
 
             socket.onopen = function (e) {
                 console.log("Connected to Stream");
-                updatePositions([]); 
+                
+                // Inject Boot Payload for instant loading
+                const bootPayloadStr = '{{ dashboard_boot_payload|escapejs }}';
+                if (bootPayloadStr) {
+                    try {
+                        const bootData = JSON.parse(bootPayloadStr);
+                        if (bootData.positions && bootData.positions.length > 0) {
+                            updatePositions(bootData.positions);
+                        } else {
+                            updatePositions([]);
+                        }
+                    } catch(e) {
+                        console.error("Boot payload parse error:", e);
+                        updatePositions([]); 
+                    }
+                } else {
+                    updatePositions([]);
+                }
             };
 
             socket.onmessage = function (e) {

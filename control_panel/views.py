@@ -1806,6 +1806,57 @@ def edit_trader_view(request, trader_id):
     return redirect(request.META.get('HTTP_REFERER', 'papertrading'))
 
 @login_required
+@require_POST
+def export_trade_logs_api(request):
+    """Placeholder for CSV export functionality"""
+    pass
+
+@login_required
+@require_POST
+def global_kill_switch_api(request):
+    """
+    EMERGENCY OVERRIDE:
+    1. Stop all active bots
+    2. Cancel all pending orders on all bound broker accounts
+    3. Liquidate all open positions at market price
+    """
+    from .models import PaperTrader, RealTrader, BrokerAccount
+    from src.execution.broker import Broker
+    import traceback
+    
+    logger.critical("[KILL SWITCH] Global Kill Switch Initiated via Dashboard.")
+    
+    # 1. Stop all bots
+    for bot in PaperTrader.objects.filter(status='RUNNING'):
+        _stop_trader_instance(bot.id)
+    for bot in RealTrader.objects.filter(status='RUNNING'):
+        _stop_trader_instance(bot.id, is_live=True)
+        
+    # 2. Liquidate all broker accounts
+    accounts = BrokerAccount.objects.all()
+    if not accounts:
+        # Fallback to default API credentials if no explicit DB accounts
+        try:
+            broker = Broker()
+            broker.api.cancel_all_orders()
+            broker.api.close_all_positions(cancel_orders=True)
+            logger.critical("[KILL SWITCH] Default Broker account liquidated.")
+        except Exception as e:
+            logger.error(f"[KILL SWITCH] Failed on default account: {e}")
+            
+    for acc in accounts:
+        try:
+            broker = Broker(account=acc)
+            broker.api.cancel_all_orders()
+            broker.api.close_all_positions(cancel_orders=True)
+            logger.critical(f"[KILL SWITCH] Account {acc.id} ({acc.account_name}) liquidated.")
+        except Exception as e:
+            logger.error(f"[KILL SWITCH] Failed on account {acc.id}: {e}\n{traceback.format_exc()}")
+            
+    messages.success(request, "Global Kill Switch Executed. All bots stopped and positions liquidated.")
+    return redirect('dashboard')
+
+@login_required
 def mutation_logs_api(request):
     """
     Streams the mutation progress logs for the frontend terminal.

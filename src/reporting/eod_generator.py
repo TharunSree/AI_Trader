@@ -14,7 +14,8 @@ from control_panel.models import TradeLog, PaperTrader, TradingReport, TrainingJ
 try:
     from google import genai
     from google.genai import types
-    GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
+    # Try OS environ first, fallback to Django settings
+    GEMINI_KEY = os.environ.get("GEMINI_API_KEY") or getattr(settings, 'GEMINI_API_KEY', None) or getattr(settings, 'API_KEY', None)
 except ImportError:
     genai = None
 
@@ -177,8 +178,11 @@ def fetch_daily_metrics(report_date=None, target_bot=None):
             )
             session_summary = client.models.generate_content(model='gemini-2.5-flash', contents=sum_prompt).text
         except Exception as e:
-            print(f"[EOD GENERATOR] Gemini AI generation failed: {e}")
-            ai_analysis = f"AI Analysis unavailable: {e}"
+            import traceback
+            err_str = traceback.format_exc()
+            print(f"[EOD GENERATOR] Gemini AI generation failed:\n{err_str}")
+            ai_analysis = f"**AI Analysis Generation Failed**\n\nThe AI system was unable to generate insights for this session due to an error. This is usually caused by an invalid/missing GEMINI_API_KEY, network issues, or API rate limits.\n\n`{e}`"
+            session_summary = f"Session summary generation failed. See AI Analysis section for details."
 
     return {
         'date': report_date or today,
