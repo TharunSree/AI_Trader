@@ -71,18 +71,18 @@
     </div>
 </div>
 
-<div class="grid grid-cols-1 xl:grid-cols-12 gap-6 min-h-full">
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-4 min-h-full">
     
     <!-- COLUMN 1: Portfolio & Pipelines (3 cols) -->
-    <div class="xl:col-span-3 flex flex-col gap-6">
+    <div class="xl:col-span-3 flex flex-col gap-4">
         
         <!-- Fleet Portfolio Summary -->
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
-            <h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+            <h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                 <i class="fas fa-wallet text-brand-500"></i> Fleet Portfolio
             </h3>
             
-            <div class="space-y-3 font-mono text-sm">
+            <div class="space-y-2 font-mono text-sm">
                 <div class="flex justify-between">
                     <span class="text-xs text-slate-500">Initial Capital</span>
                     <span class="text-xs font-bold text-slate-800 dark:text-slate-200">${{ fleet_initial_cash|floatformat:2 }}</span>
@@ -103,12 +103,12 @@
         </div>
 
         <!-- AI Training Pulse -->
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
-            <h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+            <h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                 <i class="fas fa-network-wired text-brand-500"></i> Active Pipelines
             </h3>
             
-            <div class="space-y-4 font-mono text-sm">
+            <div class="space-y-3 font-mono text-sm">
                 {% if active_meta %}
                 <div>
                     <div class="flex justify-between items-center mb-1">
@@ -142,7 +142,7 @@
 
             <!-- Evolution Status -->
             {% if evolution_testing > 0 or evolution_pending > 0 %}
-            <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <div class="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800">
                 <div class="flex justify-between items-center">
                     <span class="text-[10px] text-slate-500 uppercase tracking-wider font-mono">🧬 Evolution</span>
                     <div class="flex gap-2">
@@ -159,12 +159,12 @@
         </div>
 
         <!-- System Health Telemetry -->
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
-            <h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+            <h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                 <i class="fas fa-microchip text-brand-500"></i> System Telemetry
             </h3>
             
-            <div class="space-y-4 font-mono text-sm">
+            <div class="space-y-3 font-mono text-sm">
                 {% if telemetry and telemetry.available %}
                 <!-- CPU -->
                 <div>
@@ -207,10 +207,10 @@
     </div>
 
     <!-- COLUMN 2: Recent Executions & Live Feed (6 cols) -->
-    <div class="xl:col-span-6 flex flex-col gap-6">
+    <div class="xl:col-span-6 flex flex-col gap-4">
         
         <!-- Live Asset Stream -->
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex items-center justify-between">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 shadow-sm flex items-center justify-between">
             <div>
                 <h3 class="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Live Asset Stream</h3>
                 <div class="text-xl font-bold font-mono text-slate-900 dark:text-white" id="live-price-display">
@@ -230,38 +230,65 @@
             </div>
         </div>
 
-        <!-- Recent Executions Table -->
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm flex-1 flex flex-col overflow-hidden">
-            <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
-                <h3 class="text-xs font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-widest">Recent Executions</h3>
-                <span class="text-[10px] px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-mono border border-slate-200 dark:border-slate-700">{{ total_trades }} TOTAL</span>
+        <!-- Active Positions Card -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm h-[190px] flex flex-col overflow-hidden">
+            <div class="p-3 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center py-2">
+                <h3 class="text-xs font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-widest">Active Positions</h3>
+                <span class="text-[10px] px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-mono border border-slate-200 dark:border-slate-700">PORTFOLIO</span>
             </div>
             
             <div class="flex-1 overflow-y-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-slate-50 dark:bg-slate-800/50 text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono sticky top-0">
-                            <th class="p-3 font-medium border-b border-slate-200 dark:border-slate-800">Time</th>
-                            <th class="p-3 font-medium border-b border-slate-200 dark:border-slate-800">Symbol</th>
-                            <th class="p-3 font-medium border-b border-slate-200 dark:border-slate-800">Side</th>
-                            <th class="p-3 font-medium border-b border-slate-200 dark:border-slate-800 text-right">Price</th>
-                            <th class="p-3 font-medium border-b border-slate-200 dark:border-slate-800 text-right">Notional</th>
-                            <th class="p-3 font-medium border-b border-slate-200 dark:border-slate-800 text-right hidden xl:table-cell">Bot</th>
+                            <th class="px-3 py-1.5 font-medium border-b border-slate-200 dark:border-slate-800">Asset</th>
+                            <th class="px-3 py-1.5 font-medium border-b border-slate-200 dark:border-slate-800 text-right">Holdings</th>
+                            <th class="px-3 py-1.5 font-medium border-b border-slate-200 dark:border-slate-800 text-right">Market Value</th>
                         </tr>
                     </thead>
                     <tbody class="text-sm divide-y divide-slate-100 dark:divide-slate-800" id="positions-tbody">
+                        <tr>
+                            <td colspan="3" class="p-6 text-center text-slate-400 dark:text-slate-600 font-mono text-xs tracking-widest uppercase">
+                                Loading positions...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recent Executions Table -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm h-[235px] flex flex-col overflow-hidden">
+            <div class="p-3 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center py-2">
+                <h3 class="text-xs font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-widest">Recent Executions</h3>
+                <span class="text-[10px] px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-mono border border-slate-200 dark:border-slate-700">{{ total_trades }} TOTAL</span>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 dark:bg-slate-800/50 text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono sticky top-0">
+                            <th class="px-3 py-1.5 font-medium border-b border-slate-200 dark:border-slate-800">Time</th>
+                            <th class="px-3 py-1.5 font-medium border-b border-slate-200 dark:border-slate-800">Symbol</th>
+                            <th class="px-3 py-1.5 font-medium border-b border-slate-200 dark:border-slate-800">Side</th>
+                            <th class="px-3 py-1.5 font-medium border-b border-slate-200 dark:border-slate-800 text-right">Price</th>
+                            <th class="px-3 py-1.5 font-medium border-b border-slate-200 dark:border-slate-800 text-right">Notional</th>
+                            <th class="px-3 py-1.5 font-medium border-b border-slate-200 dark:border-slate-800 text-right hidden xl:table-cell">Bot</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm divide-y divide-slate-100 dark:divide-slate-800" id="recent-executions-tbody">
                         {% for trade in recent_trades %}
                         <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                            <td class="p-3 text-xs text-slate-600 dark:text-slate-400 font-mono">{{ trade.timestamp|date:"H:i:s" }}</td>
-                            <td class="p-3 text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">{{ trade.symbol }}</td>
-                            <td class="p-3">
+                            <td class="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-400 font-mono">{{ trade.timestamp|date:"H:i:s" }}</td>
+                            <td class="px-3 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">{{ trade.symbol }}</td>
+                            <td class="px-3 py-1.5">
                                 <span class="text-[10px] font-bold font-mono tracking-wider {% if trade.action == 'BUY' %}text-green-500{% else %}text-red-500{% endif %}">
                                     {{ trade.action }}
                                 </span>
                             </td>
-                            <td class="p-3 text-xs text-slate-700 dark:text-slate-300 font-mono text-right">${{ trade.price|floatformat:2 }}</td>
-                            <td class="p-3 text-xs text-slate-700 dark:text-slate-300 font-mono text-right">${{ trade.notional_value|floatformat:2 }}</td>
-                            <td class="p-3 text-[10px] text-slate-500 font-mono text-right hidden xl:table-cell">T#{{ trade.trader_id }}</td>
+                            <td class="px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 font-mono text-right">${{ trade.price|floatformat:2 }}</td>
+                            <td class="px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 font-mono text-right">${{ trade.notional_value|floatformat:2 }}</td>
+                            <td class="px-3 py-1.5 text-[10px] text-slate-500 font-mono text-right hidden xl:table-cell">T#{{ trade.trader_id }}</td>
                         </tr>
                         {% empty %}
                         <tr>
@@ -278,22 +305,22 @@
     </div>
 
     <!-- COLUMN 3: Command Center & Logs (3 cols) -->
-    <div class="xl:col-span-3 flex flex-col gap-6">
+    <div class="xl:col-span-3 flex flex-col gap-4">
         
         <!-- Command Center -->
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
-            <h3 class="text-xs font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-widest mb-4">Command Center</h3>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+            <h3 class="text-xs font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-widest mb-3">Command Center</h3>
             
-            <div class="space-y-3">
+            <div class="space-y-2">
                 <form id="global-kill-switch-form" method="post" action="{% url 'global_kill_switch_api' %}">
                     {% csrf_token %}
-                    <button type="button" onclick="window.confirmAction('Trigger Global Kill Switch? All active bots will be STOPPED and ALL positions will be immediately liquidated at market price. Are you sure?', () => document.getElementById('global-kill-switch-form').submit())" class="w-full flex items-center justify-between px-4 py-3 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/30 rounded-lg text-xs font-mono font-bold tracking-widest uppercase transition-colors">
+                    <button type="button" onclick="window.confirmAction('Trigger Global Kill Switch? All active bots will be STOPPED and ALL positions will be immediately liquidated at market price. Are you sure?', () => document.getElementById('global-kill-switch-form').submit())" class="w-full flex items-center justify-between px-3 py-2.5 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/30 rounded-lg text-xs font-mono font-bold tracking-widest uppercase transition-colors">
                         <span>Global Kill Switch</span>
                         <i class="fas fa-skull"></i>
                     </button>
                 </form>
                 
-                <button id="evolution-toggle-btn" onclick="toggleEvolutionPanel()" class="w-full flex items-center justify-between px-4 py-3 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 rounded-lg text-xs font-mono font-bold tracking-widest uppercase transition-colors">
+                <button id="evolution-toggle-btn" onclick="window.toggleEvolutionPanel()" class="w-full flex items-center justify-between px-3 py-2.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 rounded-lg text-xs font-mono font-bold tracking-widest uppercase transition-colors">
                     <span>🧬 Neural Evolution</span>
                     <i class="fas fa-dna"></i>
                 </button>
@@ -320,7 +347,7 @@
                 <div class="border-t border-slate-200 dark:border-slate-700 pt-4">
                     <div class="flex items-center justify-between mb-3">
                         <h4 class="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Challenger Variants</h4>
-                        <button onclick="fetchEvolutionVariants()" class="text-[9px] text-indigo-400 hover:text-indigo-300 transition-colors font-mono tracking-wider">
+                        <button onclick="window.fetchEvolutionVariants()" class="text-[9px] text-indigo-400 hover:text-indigo-300 transition-colors font-mono tracking-wider">
                             <i class="fas fa-sync-alt"></i> REFRESH
                         </button>
                     </div>
@@ -332,28 +359,28 @@
         </div>
 
         <!-- System Logs -->
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm flex-1 flex flex-col overflow-hidden">
-            <div class="p-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm h-[250px] flex flex-col overflow-hidden">
+            <div class="p-2.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between py-1.5">
                 <div class="flex gap-2">
-                    <button id="log-tab-alerts" onclick="switchLogTab('alerts')" class="text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 transition-colors">
+                    <button id="log-tab-alerts" onclick="window.switchLogTab('alerts')" class="text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 transition-colors">
                         Alerts{% if system_alerts %}<span class="ml-1 text-[8px] px-1 bg-red-500/20 text-red-400 rounded">{{ system_alerts|length }}</span>{% endif %}
                     </button>
-                    <button id="log-tab-live" onclick="switchLogTab('live')" class="text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-1 rounded text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors">
+                    <button id="log-tab-live" onclick="window.switchLogTab('live')" class="text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-1 rounded text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors">
                         Live Feed
                     </button>
                 </div>
                 <div id="live-log-controls" class="hidden">
-                    <button onclick="fetchSystemLogs()" class="text-[10px] text-brand-400 hover:text-brand-300 font-mono">
+                    <button onclick="window.fetchSystemLogs()" class="text-[10px] text-brand-400 hover:text-brand-300 font-mono">
                         <i class="fas fa-sync-alt animate-pulse"></i>
                     </button>
                 </div>
             </div>
             
             <!-- Alerts Tab Panel -->
-            <div id="log-panel-alerts" class="p-3 flex-1 overflow-y-auto space-y-2 bg-slate-50/50 dark:bg-slate-900">
+            <div id="log-panel-alerts" class="p-2.5 flex-1 overflow-y-auto space-y-1.5 bg-slate-50/50 dark:bg-slate-900">
                 {% if system_alerts %}
                     {% for alert in system_alerts %}
-                    <div class="p-2.5 rounded border {% if alert.level == 'CRITICAL' %}bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-500/30{% elif alert.level == 'EVOLUTION' %}bg-indigo-50 border-indigo-200 dark:bg-indigo-900/20 dark:border-indigo-500/30{% elif alert.level == 'WARNING' %}bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-500/30{% else %}bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700{% endif %}">
+                    <div class="p-2 rounded border {% if alert.level == 'CRITICAL' %}bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-500/30{% elif alert.level == 'EVOLUTION' %}bg-indigo-50 border-indigo-200 dark:bg-indigo-900/20 dark:border-indigo-500/30{% elif alert.level == 'WARNING' %}bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-500/30{% else %}bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700{% endif %}">
                         <div class="flex justify-between items-start mb-0.5">
                             <span class="text-[9px] font-bold font-mono {% if alert.level == 'CRITICAL' %}text-red-600 dark:text-red-400{% elif alert.level == 'EVOLUTION' %}text-indigo-600 dark:text-indigo-400{% elif alert.level == 'WARNING' %}text-amber-600 dark:text-amber-400{% else %}text-slate-700 dark:text-slate-300{% endif %} uppercase tracking-wider truncate max-w-[180px]">{{ alert.title }}</span>
                             <form action="{% url 'dismiss_alert_api' alert_id=alert.id %}" method="post" class="inline ml-1">
@@ -373,7 +400,7 @@
                         </div>
                     </div>
                 {% endif %}
-
+ 
                 <!-- Latest Report Link -->
                 {% if latest_report %}
                 <div class="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700">
@@ -384,10 +411,10 @@
                 </div>
                 {% endif %}
             </div>
-
+ 
             <!-- Live Logs Tab Panel -->
             <div id="log-panel-live" class="hidden p-2 bg-slate-950 flex-1 flex flex-col overflow-hidden">
-                <pre id="system-logs-box" class="flex-1 overflow-y-auto text-slate-300 p-2.5 rounded font-mono text-[9px] h-[320px] leading-relaxed select-all scrollbar-thin whitespace-pre-wrap">Loading main log stream...</pre>
+                <pre id="system-logs-box" class="flex-1 overflow-y-auto text-slate-300 p-2 rounded font-mono text-[9px] h-full leading-relaxed select-all scrollbar-thin whitespace-pre-wrap">Loading main log stream...</pre>
             </div>
         </div>
 
@@ -401,16 +428,23 @@
     (function () {
         let currentPosPage = 1;
         let globalPositions = [];
+        let currentTradesPage = 1;
+        let globalRecentTrades = [];
 
         window.renderPositionsPage = function(page) {
             const tbody = document.getElementById("positions-tbody");
+            if (!tbody) return;
             if (!globalPositions || globalPositions.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="3" class="p-6 text-center text-slate-400 dark:text-slate-600 font-mono text-xs tracking-widest uppercase">No Active Positions</td></tr>';
                 return;
             }
 
-            const itemsPerPage = 8;
+            const itemsPerPage = 3;
             const totalPages = Math.ceil(globalPositions.length / itemsPerPage);
+            if (totalPages < 1) {
+                tbody.innerHTML = '<tr><td colspan="3" class="p-6 text-center text-slate-400 dark:text-slate-600 font-mono text-xs tracking-widest uppercase">No Active Positions</td></tr>';
+                return;
+            }
             if(page < 1) page = 1;
             if(page > totalPages) page = totalPages;
             currentPosPage = page;
@@ -419,14 +453,16 @@
             
             tbody.innerHTML = '';
             slice.forEach(p => {
+                const qty = parseFloat(p.qty) || 0;
+                const mktVal = parseFloat(p.market_value) || 0;
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                        <td class="p-3 text-slate-800 dark:text-slate-200 font-medium font-mono text-xs flex items-center gap-2">
+                        <td class="p-3 py-2 text-slate-800 dark:text-slate-200 font-medium font-mono text-xs flex items-center gap-2">
                            <span class="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
                            ${p.symbol}
                         </td>
-                        <td class="p-3 text-slate-600 dark:text-slate-400 font-mono text-xs text-right">${p.qty.toFixed(5)}</td>
-                        <td class="p-3 text-slate-900 dark:text-white font-mono font-medium text-xs text-right">$${p.market_value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                        <td class="p-3 py-2 text-slate-600 dark:text-slate-400 font-mono text-xs text-right">${qty.toFixed(5)}</td>
+                        <td class="p-3 py-2 text-slate-900 dark:text-white font-mono font-medium text-xs text-right">$${mktVal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                     </tr>
                 `;
             });
@@ -434,19 +470,76 @@
             if(totalPages > 1) {
                 tbody.innerHTML += `
                     <tr>
-                        <td colspan="3" class="p-3 text-center border-t border-slate-100 dark:border-slate-800">
+                        <td colspan="3" class="p-2 text-center border-t border-slate-100 dark:border-slate-800">
                             <div class="flex items-center justify-between text-[10px] font-mono text-slate-400 dark:text-slate-500">
-                                <button onclick="window.renderPositionsPage(${page - 1})" class="hover:text-brand-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" ${page === 1 ? 'disabled' : ''}>&larr; PREV</button>
-                                <span>PAGE ${page} / ${totalPages}</span>
-                                <button onclick="window.renderPositionsPage(${page + 1})" class="hover:text-brand-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" ${page === totalPages ? 'disabled' : ''}>NEXT &rarr;</button>
+                                <button onclick="window.renderPositionsPage(${currentPosPage - 1})" class="hover:text-brand-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" ${currentPosPage === 1 ? 'disabled' : ''}>&larr; PREV</button>
+                                <span>PAGE ${currentPosPage} / ${totalPages}</span>
+                                <button onclick="window.renderPositionsPage(${currentPosPage + 1})" class="hover:text-brand-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" ${currentPosPage === totalPages ? 'disabled' : ''}>NEXT &rarr;</button>
                             </div>
                         </td>
                     </tr>
                 `;
-            }};
+            }
+        };
+
+        window.renderRecentTradesPage = function(page) {
+            const tbody = document.getElementById("recent-executions-tbody");
+            if (!tbody) return;
+            if (!globalRecentTrades || globalRecentTrades.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-400 dark:text-slate-600 font-mono text-xs tracking-widest uppercase">No Trades Yet</td></tr>';
+                return;
+            }
+
+            const itemsPerPage = 5;
+            const totalPages = Math.ceil(globalRecentTrades.length / itemsPerPage);
+            if (totalPages < 1) {
+                tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-400 dark:text-slate-600 font-mono text-xs tracking-widest uppercase">No Trades Yet</td></tr>';
+                return;
+            }
+            if(page < 1) page = 1;
+            if(page > totalPages) page = totalPages;
+            currentTradesPage = page;
+
+            const slice = globalRecentTrades.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+            
+            tbody.innerHTML = '';
+            slice.forEach(trade => {
+                const actionColor = trade.action === 'BUY' ? 'text-green-500' : 'text-red-500';
+                const price = parseFloat(trade.price) || 0;
+                const notional = parseFloat(trade.notional_value) || 0;
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                        <td class="p-3 py-2 text-xs text-slate-600 dark:text-slate-400 font-mono">${trade.timestamp}</td>
+                        <td class="p-3 py-2 text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">${trade.symbol}</td>
+                        <td class="p-3 py-2">
+                            <span class="text-[10px] font-bold font-mono tracking-wider ${actionColor}">
+                                ${trade.action}
+                            </span>
+                        </td>
+                        <td class="p-3 py-2 text-xs text-slate-700 dark:text-slate-300 font-mono text-right">$${price.toFixed(2)}</td>
+                        <td class="p-3 py-2 text-xs text-slate-700 dark:text-slate-300 font-mono text-right">$${notional.toFixed(2)}</td>
+                        <td class="p-3 py-2 text-[10px] text-slate-500 font-mono text-right hidden xl:table-cell">T#${trade.trader_id}</td>
+                    </tr>
+                `;
+            });
+
+            if(totalPages > 1) {
+                tbody.innerHTML += `
+                    <tr>
+                        <td colspan="6" class="p-2 text-center border-t border-slate-100 dark:border-slate-800">
+                            <div class="flex items-center justify-between text-[10px] font-mono text-slate-400 dark:text-slate-500">
+                                <button onclick="window.renderRecentTradesPage(${currentTradesPage - 1})" class="hover:text-brand-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" ${currentTradesPage === 1 ? 'disabled' : ''}>&larr; PREV</button>
+                                <span>PAGE ${currentTradesPage} / ${totalPages}</span>
+                                <button onclick="window.renderRecentTradesPage(${currentTradesPage + 1})" class="hover:text-brand-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" ${currentTradesPage === totalPages ? 'disabled' : ''}>NEXT &rarr;</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+        };
 
         function updatePositions(positions) {
-            globalPositions = positions.filter(p => p.qty > 0);
+            globalPositions = positions.filter(p => parseFloat(p.qty) > 0);
             window.renderPositionsPage(currentPosPage);
         }
 
@@ -456,26 +549,37 @@
             const traderStatusText = document.getElementById('trader-status-text');
             const traderStatusBadge = document.getElementById('trader-status-badge');
 
+            // 1. Instantly parse and load boot payload data on page load (so it's never empty/wiped)
+            const bootPayloadStr = '{{ dashboard_boot_payload|escapejs }}';
+            if (bootPayloadStr) {
+                try {
+                    const bootData = JSON.parse(bootPayloadStr);
+                    if (bootData.positions) {
+                        updatePositions(bootData.positions);
+                    } else {
+                        updatePositions([]);
+                    }
+                    if (bootData.recent_trades) {
+                        globalRecentTrades = bootData.recent_trades;
+                        window.renderRecentTradesPage(1);
+                    } else {
+                        globalRecentTrades = [];
+                        window.renderRecentTradesPage(1);
+                    }
+                } catch(e) {
+                    console.error("Boot payload parse error:", e);
+                    updatePositions([]); 
+                    globalRecentTrades = [];
+                    window.renderRecentTradesPage(1);
+                }
+            } else {
+                updatePositions([]);
+                globalRecentTrades = [];
+                window.renderRecentTradesPage(1);
+            }
+
             socket.onopen = function (e) {
                 console.log("Connected to Stream");
-                
-                // Inject Boot Payload for instant loading
-                const bootPayloadStr = '{{ dashboard_boot_payload|escapejs }}';
-                if (bootPayloadStr) {
-                    try {
-                        const bootData = JSON.parse(bootPayloadStr);
-                        if (bootData.positions && bootData.positions.length > 0) {
-                            updatePositions(bootData.positions);
-                        } else {
-                            updatePositions([]);
-                        }
-                    } catch(e) {
-                        console.error("Boot payload parse error:", e);
-                        updatePositions([]); 
-                    }
-                } else {
-                    updatePositions([]);
-                }
             };
 
             socket.onmessage = function (e) {
@@ -483,35 +587,74 @@
 
                 if (payload.type === 'ai_trade_execution') {
                     const trade = payload.data;
-                    traderStatusText.innerText = "EXECUTING";
-                    traderStatusBadge.innerText = "RUNNING";
-                    traderStatusBadge.className = "px-2 py-0.5 rounded text-[10px] font-bold font-mono tracking-widest bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400";
+                    if (traderStatusText) traderStatusText.innerText = "EXECUTING";
+                    if (traderStatusBadge) {
+                        traderStatusBadge.innerText = "RUNNING";
+                        traderStatusBadge.className = "px-2 py-0.5 rounded text-[10px] font-bold font-mono tracking-widest bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400";
+                    }
 
                     if (trade.new_equity) {
                         const eqEl = document.getElementById("account-equity-global");
                         if (eqEl) eqEl.innerText = "$" + trade.new_equity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                     }
 
-                    updatePositions([{
+                    // Update positions list
+                    const existingPosIndex = globalPositions.findIndex(p => p.symbol === trade.symbol);
+                    const sideUpper = (trade.side || trade.action || '').toUpperCase();
+                    const qtyVal = parseFloat(trade.qty) || 0;
+                    if (sideUpper === 'BUY') {
+                        if (existingPosIndex > -1) {
+                            globalPositions[existingPosIndex].qty += qtyVal;
+                            globalPositions[existingPosIndex].market_value = globalPositions[existingPosIndex].qty * trade.price;
+                        } else {
+                            globalPositions.push({
+                                symbol: trade.symbol,
+                                qty: qtyVal,
+                                market_value: qtyVal * trade.price
+                            });
+                        }
+                    } else if (sideUpper === 'SELL') {
+                        if (existingPosIndex > -1) {
+                            globalPositions[existingPosIndex].qty -= qtyVal;
+                            if (globalPositions[existingPosIndex].qty <= 0.0001) {
+                                globalPositions.splice(existingPosIndex, 1);
+                            } else {
+                                globalPositions[existingPosIndex].market_value = globalPositions[existingPosIndex].qty * trade.price;
+                            }
+                        }
+                    }
+                    updatePositions(globalPositions);
+
+                    // Prepend trade to recent trades list and update pagination
+                    const newTrade = {
+                        timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }),
                         symbol: trade.symbol,
-                        qty: trade.qty,
-                        market_value: trade.qty * trade.price
-                    }]);
+                        action: sideUpper,
+                        price: trade.price,
+                        notional_value: qtyVal * trade.price,
+                        trader_id: trade.trader_id || 1
+                    };
+                    globalRecentTrades.unshift(newTrade);
+                    window.renderRecentTradesPage(1);
 
                 } else if (payload.type === 'live_market_tick') {
                     const tick = typeof payload.data === 'string' ? JSON.parse(payload.data) : payload.data;
-                    document.getElementById("live-price-display").innerText = `${tick.symbol} $${tick.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+                    const priceDisplay = document.getElementById("live-price-display");
+                    if (priceDisplay) {
+                        priceDisplay.innerText = `${tick.symbol} $${tick.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+                    }
                 }
             };
 
             socket.onclose = function () {
-                if (traderStatusBadge.innerText.includes('ACTIVE NODES')) {
-                    traderStatusText.innerText = "DISCONNECTED";
+                if (traderStatusText) traderStatusText.innerText = "DISCONNECTED";
+                if (traderStatusBadge) {
                     traderStatusBadge.innerText = "OFFLINE";
                     traderStatusBadge.className = "px-2 py-0.5 rounded text-[10px] font-bold font-mono tracking-widest bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400";
                 }
-            }
-        })();
+            };
+        });
+    })();
 
     // ====== NEURAL EVOLUTION ENGINE ======
     function toggleEvolutionPanel() {
@@ -564,10 +707,10 @@
                     </div>
                     ${showActions ? `
                     <div class="flex gap-2 mt-2 pt-2 border-t border-slate-700/50">
-                        <button onclick="promoteVariant(${v.id}, '${v.name.replace(/'/g, "\\'")}')" class="flex-1 text-[8px] font-mono font-bold uppercase tracking-widest py-1.5 rounded bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/30 transition-colors">
+                        <button onclick="window.promoteVariant(${v.id}, '${v.name.replace(/'/g, "\\'")}')" class="flex-1 text-[8px] font-mono font-bold uppercase tracking-widest py-1.5 rounded bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/30 transition-colors">
                             <i class="fas fa-rocket mr-1"></i>Promote
                         </button>
-                        <button onclick="rejectVariant(${v.id})" class="flex-1 text-[8px] font-mono font-bold uppercase tracking-widest py-1.5 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition-colors">
+                        <button onclick="window.rejectVariant(${v.id})" class="flex-1 text-[8px] font-mono font-bold uppercase tracking-widest py-1.5 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition-colors">
                             <i class="fas fa-times mr-1"></i>Reject
                         </button>
                     </div>` : ''}
@@ -648,6 +791,7 @@
 
     function fetchSystemLogs() {
         const logsBox = document.getElementById('system-logs-box');
+        if (!logsBox) return;
         fetch("{% url 'system_logs_api' %}")
         .then(r => r.json())
         .then(data => {

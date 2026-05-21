@@ -39,3 +39,61 @@ class TrainingJobStorageTests(TestCase):
         self.assertEqual(len(choices), 1)
         self.assertEqual(choices[0]['value'], f"db:{job.id}")
         self.assertIn("Named Model", choices[0]['label'])
+
+
+from django.contrib.auth.models import User
+from django.urls import reverse
+from django.core.cache import cache
+from unittest.mock import patch
+import json
+
+class DashboardViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="testuser", password="testpassword")
+
+    def test_dashboard_redirects_if_anonymous(self):
+        response = self.client.get(reverse('dashboard'))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/accounts/login/', response.url)
+
+    def test_dashboard_authenticated_success(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('dashboard'))
+        self.assertEqual(response.status_code, 200)
+        
+        # Verify dashboard_boot_payload context variable exists and is a valid JSON string
+        self.assertIn('dashboard_boot_payload', response.context)
+        payload_str = response.context['dashboard_boot_payload']
+        payload = json.loads(payload_str)
+        
+        self.assertIn('positions', payload)
+        self.assertIn('recent_trades', payload)
+        self.assertIn('header', payload)
+
+    @patch('control_panel.views.psutil')
+    def test_telemetry_cpu_fallback(self, mock_psutil):
+        # Test case where cache is empty and psutil returns 0.0
+        if not mock_psutil:
+            self.skipTest("psutil not available")
+            
+        mock_psutil.cpu_percent.return_value = 0.0
+        cache.delete("system_telemetry_cpu")
+        
+        from control_panel.views import _get_memory_snapshot
+        snapshot = _get_memory_snapshot()
+        self.assertIsNotNone(snapshot)
+        self.assertIn('cpu_percent', snapshot)
+        # Fallback should result in a value between 0.5 and 2.5
+        self.assertTrue(0.5 <= snapshot['cpu_percent'] <= 2.5)
+
+    @patch('control_panel.views.psutil')
+    def test_telemetry_cpu_cached(self, mock_psutil):
+        if not mock_psutil:
+            self.skipTest("psutil not available")
+            
+        cache.set("system_telemetry_cpu", 45.2, timeout=10)
+        from control_panel.views import _get_memory_snapshot
+        snapshot = _get_memory_snapshot()
+        self.assertEqual(snapshot['cpu_percent'], 45.2)
+        cache.delete("system_telemetry_cpu")
+

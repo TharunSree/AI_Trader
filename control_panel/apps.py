@@ -70,6 +70,30 @@ def _eod_watcher_daemon():
         # Poll every 60 seconds
         time.sleep(60)
 
+def _telemetry_watcher_daemon():
+    """
+    Background daemon that periodically updates system CPU usage in the cache.
+    This avoids blocking the HTTP request thread when loading the dashboard.
+    """
+    import django
+    if not django.apps.apps.ready:
+        time.sleep(5)
+        
+    from django.core.cache import cache
+    try:
+        import psutil
+    except ImportError:
+        return
+
+    while True:
+        try:
+            cpu = psutil.cpu_percent(interval=1.0)
+            cache.set("system_telemetry_cpu", cpu, timeout=10)
+            time.sleep(2.0)
+        except Exception as e:
+            logger.debug(f"[Telemetry Daemon] Error: {e}")
+            time.sleep(5)
+
 class ControlPanelConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "control_panel"
@@ -78,10 +102,18 @@ class ControlPanelConfig(AppConfig):
         # We only want to start the daemon if we are running the main web server process.
         # Block engine subprocesses which inherit RUN_MAIN=true from the parent Django dev server.
         argv_str = ' '.join(os.sys.argv)
-        is_webserver = 'runserver' in argv_str or 'gunicorn' in argv_str or 'uvicorn' in argv_str
+        is_webserver = 'runserver' in argv_str or 'gunicorn' in argv_str or 'uvicorn' in argv_str or 'daphne' in argv_str
         if not is_webserver:
             return
-        if os.environ.get('RUN_MAIN', None) == 'true' or 'gunicorn' in os.environ.get('SERVER_SOFTWARE', ''):
+        
+        # Start daemon threads if we are not in the runserver parent reloader process
+        is_reloader_parent = 'runserver' in argv_str and '--noreload' not in argv_str and os.environ.get('RUN_MAIN', None) != 'true'
+        if not is_reloader_parent:
             daemon_thread = threading.Thread(target=_eod_watcher_daemon, daemon=True)
             daemon_thread.start()
             logger.info("[JARVIS SYSTEM] EOD Market Monitor Daemon initialized & watching the tape.")
+            
+            telemetry_thread = threading.Thread(target=_telemetry_watcher_daemon, daemon=True)
+            telemetry_thread.start()
+            logger.info("[JARVIS SYSTEM] Telemetry Poller Daemon initialized.")
+

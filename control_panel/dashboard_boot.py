@@ -10,6 +10,7 @@ def build_dashboard_boot_payload(
     active_meta,
     active_training,
     trader,
+    recent_trades=None,
 ):
     market_open = bool(clock_data and clock_data.get('is_open'))
     top_positions = sorted(
@@ -37,7 +38,30 @@ def build_dashboard_boot_payload(
     trader_ref = getattr(trader, 'model_file', '') or ''
     trader_model_label = get_model_label(trader_ref) if trader_ref else 'No model linked'
 
+    # Format positions for JS table rendering
+    formatted_positions = []
+    for p in (positions or []):
+        formatted_positions.append({
+            'symbol': getattr(p, 'symbol', ''),
+            'qty': float(getattr(p, 'qty', 0)),
+            'market_value': float(getattr(p, 'market_value', 0)),
+        })
+
+    # Format recent_trades for JS table rendering
+    formatted_trades = []
+    for t in (recent_trades or []):
+        formatted_trades.append({
+            'timestamp': t.timestamp.strftime('%H:%M:%S') if t.timestamp else '',
+            'symbol': t.symbol,
+            'action': t.action,
+            'price': float(t.price or 0),
+            'notional_value': float(t.notional_value or 0),
+            'trader_id': t.trader_id,
+        })
+
     return {
+        'positions': formatted_positions,
+        'recent_trades': formatted_trades,
         'header': {
             'equity': float(live_equity or 0),
             'buying_power': float(buying_power or 0),
