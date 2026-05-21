@@ -396,7 +396,7 @@ class AITradingEngine:
         # [FRACTIONAL OVERRIDE] Physical share bounding removed for Micro-Accounts
         trade_size_usd = tradeable * (action_confidence * 0.15)
         
-        min_notional = 1.0 if is_crypto else 1.0
+        min_notional = 10.0 if is_crypto else 1.0
         
         # Hard mathematical cap so it can NEVER breach its partition
         trade_size_usd = min(trade_size_usd, tradeable)
