@@ -1905,6 +1905,150 @@ def trigger_mutation_api(request):
     return redirect('models_hub')
 
 
+# ===========================================================================
+#  NEURAL EVOLUTION ENGINE — API Endpoints
+# ===========================================================================
+
+@login_required
+def evolution_variants_api(request):
+    """GET: Returns all ModelVariant records with live metrics for the dashboard."""
+    from .models import ModelVariant
+    
+    variants = ModelVariant.objects.all()[:20]  # Last 20 variants
+    data = []
+    for v in variants:
+        data.append({
+            'id': v.id,
+            'name': v.name,
+            'status': v.status,
+            'starting_cash': float(v.starting_cash),
+            'virtual_balance': float(v.virtual_balance),
+            'virtual_pnl': float(v.virtual_pnl),
+            'virtual_pnl_pct': v.virtual_pnl_pct,
+            'sharpe_ratio': v.sharpe_ratio,
+            'max_drawdown_pct': v.max_drawdown_pct,
+            'win_rate': v.win_rate,
+            'virtual_trades_count': v.virtual_trades_count,
+            'days_remaining': v.days_remaining,
+            'test_duration_days': v.test_duration_days,
+            'created_at': v.created_at.isoformat() if v.created_at else None,
+            'parent_trader_id': v.parent_trader_id,
+            'error_message': v.error_message,
+        })
+    
+    return JsonResponse({'status': 'success', 'variants': data})
+
+
+@login_required
+@require_POST
+def evolution_promote_api(request, variant_id):
+    """
+    POST: Promote a variant to production.
+    1. Writes variant.agent_code to ppo_agent.py (with backup)
+    2. Restarts all running PaperTrader instances
+    3. Marks variant as PROMOTED, fails all other TESTING variants
+    """
+    from .models import ModelVariant, PaperTrader, SystemAlert
+    from pathlib import Path
+    import difflib
+    
+    variant = ModelVariant.objects.filter(id=variant_id).first()
+    if not variant:
+        return JsonResponse({'status': 'error', 'message': 'Variant not found'}, status=404)
+    
+    if variant.status not in ('PENDING', 'TESTING'):
+        return JsonResponse({'status': 'error', 'message': f'Cannot promote variant in {variant.status} status'}, status=400)
+    
+    target_path = Path(django_settings.BASE_DIR) / 'src' / 'models' / 'ppo_agent.py'
+    backup_path = Path(django_settings.BASE_DIR) / 'src' / 'models' / 'ppo_agent.py.bak'
+    
+    try:
+        # Backup current production code
+        if target_path.exists():
+            current_code = target_path.read_text(encoding='utf-8')
+            backup_path.write_text(current_code, encoding='utf-8')
+        
+        # Write the variant's evolved code to production
+        target_path.write_text(variant.agent_code, encoding='utf-8')
+        
+        # Mark this variant as promoted
+        variant.status = 'PROMOTED'
+        variant.save(update_fields=['status'])
+        
+        # Fail all other testing variants
+        ModelVariant.objects.filter(status='TESTING').exclude(id=variant_id).update(
+            status='FAILED',
+            error_message='Terminated: another variant was promoted'
+        )
+        
+        # Restart all running traders to pick up new code
+        running_traders = list(PaperTrader.objects.filter(status__in=['RUNNING', 'SLEEPING']))
+        restarted = 0
+        for trader in running_traders:
+            try:
+                _stop_trader_instance(trader.id)
+                import time as _t
+                _t.sleep(0.5)
+                _launch_trader_instance(trader)
+                restarted += 1
+            except Exception as e:
+                logger.error(f"[EVOLUTION] Failed to restart trader #{trader.id}: {e}")
+        
+        # Create success alert
+        SystemAlert.objects.create(
+            level='INFO',
+            title=f'🧬 Variant #{variant.id} Promoted to Production',
+            message=f"'{variant.name}' is now the active trading model. {restarted} trader(s) restarted.",
+            related_model_reference=str(variant.id),
+        )
+        
+        logger.info(f"[EVOLUTION] Variant #{variant_id} promoted. {restarted} traders restarted.")
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': f"Variant #{variant_id} promoted to production. {restarted} trader(s) restarted with evolved model."
+        })
+    
+    except Exception as e:
+        logger.error(f"[EVOLUTION] Promotion failed: {e}", exc_info=True)
+        # Rollback
+        if backup_path.exists():
+            target_path.write_text(backup_path.read_text(encoding='utf-8'), encoding='utf-8')
+        return JsonResponse({'status': 'error', 'message': f'Promotion failed: {str(e)}'}, status=500)
+
+
+@login_required
+@require_POST
+def evolution_reject_api(request, variant_id):
+    """POST: Reject a variant — mark as FAILED and stop its virtual engine."""
+    from .models import ModelVariant
+    
+    variant = ModelVariant.objects.filter(id=variant_id).first()
+    if not variant:
+        return JsonResponse({'status': 'error', 'message': 'Variant not found'}, status=404)
+    
+    variant.status = 'FAILED'
+    variant.error_message = 'Manually rejected from dashboard'
+    variant.save(update_fields=['status', 'error_message'])
+    
+    # Try to kill the virtual engine process
+    if variant.celery_task_id:
+        try:
+            import signal
+            os.kill(int(variant.celery_task_id), signal.SIGTERM)
+        except Exception:
+            pass
+    
+    return JsonResponse({'status': 'success', 'message': f'Variant #{variant_id} rejected.'})
+
+
+@login_required
+def evolution_evaluate_api(request):
+    """POST: Manually trigger the evolution evaluator to check expired variants."""
+    from src.core.evolution_evaluator import evaluate_expired_variants
+    evaluate_expired_variants()
+    return JsonResponse({'status': 'success', 'message': 'Evaluation complete.'})
+
 
 import subprocess
 import time

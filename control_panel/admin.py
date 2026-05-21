@@ -1,5 +1,8 @@
 from django.contrib import admin
-from .models import TrainingJob, MetaTrainingJob, PaperTrader, EvaluationJob, SystemSettings
+from .models import (
+    TrainingJob, MetaTrainingJob, PaperTrader, EvaluationJob,
+    SystemSettings, ModelVariant, VirtualTrade
+)
 
 @admin.register(TrainingJob)
 class TrainingJobAdmin(admin.ModelAdmin):
@@ -24,3 +27,16 @@ class EvaluationJobAdmin(admin.ModelAdmin):
 @admin.register(SystemSettings)
 class SystemSettingsAdmin(admin.ModelAdmin):
     list_display = ('singleton_id', 'display_currency')
+
+@admin.register(ModelVariant)
+class ModelVariantAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'status', 'starting_cash', 'virtual_pnl_pct', 'sharpe_ratio', 'days_remaining', 'created_at')
+    list_filter = ('status',)
+    search_fields = ('name',)
+    readonly_fields = ('created_at', 'updated_at', 'test_start')
+    exclude = ('agent_code', 'model_weights')  # Too large for admin view
+
+@admin.register(VirtualTrade)
+class VirtualTradeAdmin(admin.ModelAdmin):
+    list_display = ('timestamp', 'variant', 'symbol', 'action', 'quantity', 'price', 'notional_value')
+    list_filter = ('action', 'symbol')

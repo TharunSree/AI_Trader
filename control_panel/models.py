@@ -204,7 +204,7 @@ class SystemAlert(models.Model):
         ('INFO', 'Information'),
         ('WARNING', 'Warning'),
         ('CRITICAL', 'Critical Level'),
-        ('AB_SWAP', 'A/B Test Swap Request'),
+        ('EVOLUTION', 'Neural Evolution Promotion'),
     ]
     level = models.CharField(max_length=15, choices=ALERT_TYPES, default='INFO')
     title = models.CharField(max_length=255)
@@ -212,9 +212,120 @@ class SystemAlert(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
     
-    # Used for ping persistence in A/B Engine
+    # Used for ping persistence in Evolution Engine
     insist_count = models.IntegerField(default=0)
     related_model_reference = models.CharField(max_length=255, null=True, blank=True)
     
     def __str__(self):
         return f"[{self.level}] {self.title}"
+
+
+class ModelVariant(models.Model):
+    """
+    Neural Evolution Engine: Tracks each mutated model variant.
+    Each variant runs in a virtual paper trading sandbox, competing
+    against the active production model for promotion.
+    """
+    STATUS_CHOICES = [
+        ('TESTING', 'Testing'),      # Running virtual paper trade
+        ('PENDING', 'Pending'),      # Won comparison, awaiting human approval
+        ('PROMOTED', 'Promoted'),    # Became the live model
+        ('FAILED', 'Failed'),        # Lost the comparison or was rejected
+        ('QUEUED', 'Queued'),        # Waiting for a test slot (spawn guard)
+    ]
+    name = models.CharField(max_length=150, default='Unnamed Variant')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='TESTING')
+    parent_variant = models.ForeignKey(
+        'self', null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='children', help_text="The variant this was mutated from"
+    )
+    parent_trader = models.ForeignKey(
+        PaperTrader, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='spawned_variants',
+        help_text="The live PaperTrader this variant is benchmarked against"
+    )
+
+    # The mutated agent code (stored as text, NOT overwriting ppo_agent.py)
+    agent_code = models.TextField(help_text="Full ppo_agent.py source code for this variant")
+    model_weights = models.BinaryField(null=True, blank=True, help_text="Trained .pth weights if applicable")
+
+    # Capital snapshot at fork time
+    starting_cash = models.DecimalField(
+        max_digits=15, decimal_places=2, default=100.00,
+        help_text="Inherited from parent model's balance at fork time"
+    )
+
+    # Test window
+    test_start = models.DateTimeField(auto_now_add=True)
+    test_duration_days = models.IntegerField(default=14)
+
+    # Virtual Paper Trading Results (updated every cycle by the virtual engine)
+    virtual_balance = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    virtual_trades_count = models.IntegerField(default=0)
+    virtual_pnl = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    virtual_pnl_pct = models.FloatField(default=0.0, help_text="PnL as percentage of starting_cash")
+    sharpe_ratio = models.FloatField(default=0.0)
+    max_drawdown_pct = models.FloatField(default=0.0)
+    win_rate = models.FloatField(default=0.0)
+
+    # Mutation metadata
+    mutation_reasoning = models.TextField(blank=True, help_text="AI reasoning for the code changes")
+    diff_summary = models.TextField(blank=True, help_text="Unified diff of code changes")
+
+    # Process tracking
+    celery_task_id = models.CharField(max_length=255, null=True, blank=True, editable=False)
+    error_message = models.TextField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"[{self.status}] {self.name} (PnL: {self.virtual_pnl_pct:+.2f}%)"
+
+    @property
+    def is_test_expired(self):
+        """True if the test window has elapsed."""
+        from django.utils import timezone as tz
+        from datetime import timedelta
+        if not self.test_start:
+            return False
+        return tz.now() >= self.test_start + timedelta(days=self.test_duration_days)
+
+    @property
+    def days_remaining(self):
+        """Days left in the test window."""
+        from django.utils import timezone as tz
+        from datetime import timedelta
+        if not self.test_start:
+            return self.test_duration_days
+        end = self.test_start + timedelta(days=self.test_duration_days)
+        remaining = (end - tz.now()).total_seconds() / 86400
+        return max(0, round(remaining, 1))
+
+
+class VirtualTrade(models.Model):
+    """
+    Neural Evolution Engine: Trade log for virtual paper trading.
+    These trades NEVER hit Alpaca — they are pure simulations using live market prices.
+    """
+    variant = models.ForeignKey(ModelVariant, on_delete=models.CASCADE, related_name='virtual_trades')
+    timestamp = models.DateTimeField(auto_now_add=True)
+    symbol = models.CharField(max_length=20)
+    action = models.CharField(max_length=4)  # BUY or SELL
+    quantity = models.DecimalField(max_digits=15, decimal_places=8)
+    price = models.DecimalField(max_digits=15, decimal_places=4)
+    notional_value = models.DecimalField(max_digits=15, decimal_places=2)
+    virtual_balance_after = models.DecimalField(
+        max_digits=15, decimal_places=2, default=0,
+        help_text="Running balance after this trade"
+    )
+
+    class Meta:
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"{self.timestamp:%H:%M} {self.action} {self.quantity} {self.symbol} @ ${self.price}"
+

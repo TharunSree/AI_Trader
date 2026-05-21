@@ -254,19 +254,68 @@ def rewrite_agent_code(client, d_report, w_report, current_code, crash_log=None,
         
     return code.strip() + "\n", response.text
 
+def _snapshot_parent_cash(parent_trader):
+    """
+    Get the parent trader's current computed balance (initial_cash + realized_profit).
+    This is what the challenger variant inherits.
+    """
+    from collections import defaultdict
+    if not parent_trader:
+        return 100.0
+    
+    trades = parent_trader.trades.all()
+    total_bought = sum(float(t.notional_value) for t in trades if t.action == 'BUY')
+    total_sold = sum(float(t.notional_value) for t in trades if t.action == 'SELL')
+    realized = total_sold - total_bought
+    initial = float(parent_trader.initial_cash or 0)
+    
+    current_balance = max(0.0, initial + realized)
+    print(f"[NEURAL EVOLUTION] Parent T#{parent_trader.id} balance snapshot: "
+          f"initial=${initial:.2f} + realized=${realized:+.2f} = ${current_balance:.2f}")
+    return current_balance
+
+
+def _enforce_spawn_guard(max_active=3):
+    """
+    Spawn Guard: cap concurrent testing variants at max_active.
+    If at capacity, terminate the worst performer (lowest virtual_pnl_pct).
+    Returns True if a slot is available after enforcement.
+    """
+    from control_panel.models import ModelVariant
+    
+    active = ModelVariant.objects.filter(status='TESTING').order_by('virtual_pnl_pct')
+    count = active.count()
+    
+    if count < max_active:
+        print(f"[NEURAL EVOLUTION] Spawn Guard: {count}/{max_active} slots occupied. Slot available.")
+        return True
+    
+    # Kill the worst performer to make room
+    worst = active.first()
+    if worst:
+        print(f"[NEURAL EVOLUTION] Spawn Guard: {count}/{max_active} slots full. "
+              f"Terminating worst performer: Variant #{worst.id} '{worst.name}' "
+              f"(PnL: {worst.virtual_pnl_pct:+.2f}%)")
+        worst.status = 'FAILED'
+        worst.error_message = 'Terminated by spawn guard to make room for new variant'
+        worst.save(update_fields=['status', 'error_message'])
+    
+    return True
+
+
 def orchestrate_rewrite(crash_log=None):
-    print("[COGNITIVE REWRITER] Booting Sandbox Orchestrator...")
+    print("[NEURAL EVOLUTION] Booting Mutation Orchestrator...")
     daily = TradingReport.objects.filter(report_type='DAILY').order_by('-timestamp').first()
     weekly = TradingReport.objects.filter(report_type='WEEKLY').order_by('-timestamp').first()
     
     if not daily and not crash_log:
-        print("[COGNITIVE REWRITER] No Daily Report or crash log found. Skipping rewrite iteration.")
+        print("[NEURAL EVOLUTION] No Daily Report or crash log found. Skipping rewrite iteration.")
         return
 
     try:
         client = get_gemini_client()
     except Exception as e:
-        print(f"[COGNITIVE REWRITER] API Client failed: {e}")
+        print(f"[NEURAL EVOLUTION] API Client failed: {e}")
         return
 
     target_path = Path(__file__).resolve().parent.parent / 'models' / 'ppo_agent.py'
@@ -274,9 +323,9 @@ def orchestrate_rewrite(crash_log=None):
     
     current_code = load_ppo_agent_code()
     
-    # Secure Backup (Sandbox Protocol Phase 1)
+    # Secure Backup (still kept as a filesystem safety net)
     backup_path.write_text(current_code, encoding='utf-8')
-    print("[COGNITIVE REWRITER] Pre-flight rollback state captured.")
+    print("[NEURAL EVOLUTION] Pre-flight rollback state captured.")
 
     def read_report(report_obj):
         if not report_obj:
@@ -297,11 +346,10 @@ def orchestrate_rewrite(crash_log=None):
     if daily_content and 'Generative AI Insights' in daily_content:
         try:
             ai_section = daily_content.split('## Generative AI Insights')[1]
-            # Take everything up to the next section header
             if '##' in ai_section[1:]:
                 ai_section = ai_section[:ai_section.index('##', 1)]
             eod_suggestions = ai_section.strip()
-            print(f"[COGNITIVE REWRITER] Injecting {len(eod_suggestions.split())} words of EOD AI directives into mutation prompt.")
+            print(f"[NEURAL EVOLUTION] Injecting {len(eod_suggestions.split())} words of EOD AI directives into mutation prompt.")
         except Exception:
             pass
 
@@ -318,36 +366,35 @@ def orchestrate_rewrite(crash_log=None):
         print("\n" + "="*50)
         print("GENERATIVE AI REASONING & CHANGES")
         print("="*50)
-        print(raw_response)
+        print(raw_response[:2000])  # Truncate for log readability
         print("="*50 + "\n")
         
-        # Sandbox Protocol Phase 2: Syntax Validate BEFORE deploying
+        # Sandbox Protocol: Syntax Validate
         try:
             compile(new_code, 'ppo_agent.py', 'exec')
-            print("[COGNITIVE REWRITER] Syntax verification passed.")
+            print("[NEURAL EVOLUTION] Syntax verification passed.")
         except SyntaxError as syntax_e:
             raise RuntimeError(f"Syntax validation failed. The LLM wrote broken code: {syntax_e}")
         
-        # Only write to disk AFTER syntax validation passes
-        target_path.write_text(new_code, encoding='utf-8')
-        print("[COGNITIVE REWRITER] Mutated logic synced to core.")
-            
-        # Generate Unified Diff securely
+        # === NEURAL EVOLUTION: Create variant instead of overwriting ===
+        # DO NOT write to ppo_agent.py — the production file stays untouched!
+        
+        # Generate Unified Diff
         diff_lines = list(difflib.unified_diff(
             current_code.splitlines(),
             new_code.splitlines(),
-            fromfile='ppo_agent.py.bak',
-            tofile='ppo_agent.py',
+            fromfile='ppo_agent.py (current)',
+            tofile='ppo_agent.py (mutant)',
             lineterm=''
         ))
         diff_str = "\n".join(diff_lines)
         
         print("CODEBASE DELTA (UNIFIED DIFF):")
         print("-" * 50)
-        print(diff_str)
+        print(diff_str[:3000])
         print("-" * 50 + "\n")
         
-        # Generate Simple Summary for Email
+        # Generate Simple Summary
         simple_summary = "Strategy evolved: Thresholds and logic flow optimized based on recent session performance."
         if genai and GEMINI_KEY:
             try:
@@ -358,61 +405,90 @@ def orchestrate_rewrite(crash_log=None):
                 simple_summary = sum_res.text
             except: pass
         
+        # Generate mutation PDF report
         pdf_path = generate_mutation_pdf("ppo_agent", raw_response, diff_str, simple_summary)
         
-        # Send Notification Mail with PDF
+        # Send email notification
         try:
             from src.reporting.email_dispatcher import send_mutator_alert
             send_mutator_alert(
-                f"Mutation Complete for ppo_agent. Logic synced to core.",
+                f"Neural Evolution: New variant spawned for 14-day trial.",
                 diff_text=None,
                 pdf_path=pdf_path,
                 simple_summary=simple_summary
             )
         except Exception as mail_err:
-            print(f"[COGNITIVE REWRITER] Failed to dispatch mutation email: {mail_err}")
+            print(f"[NEURAL EVOLUTION] Failed to dispatch mutation email: {mail_err}")
+        
+        # === Spawn Guard: ensure we don't exceed max concurrent variants ===
+        _enforce_spawn_guard(max_active=3)
+        
+        # === Find the parent PaperTrader and snapshot its current cash ===
+        from control_panel.models import PaperTrader, ModelVariant
+        
+        # Pick the first running paper trader as the parent (benchmark)
+        parent_trader = PaperTrader.objects.filter(
+            status__in=['RUNNING', 'SLEEPING']
+        ).first()
+        
+        parent_cash = _snapshot_parent_cash(parent_trader)
+        
+        # === Create the ModelVariant record ===
+        variant_name = f"Evolution {timezone.now().strftime('%b %d %H:%M')}"
+        if crash_log:
+            variant_name = f"Crash Recovery {timezone.now().strftime('%b %d %H:%M')}"
+        
+        variant = ModelVariant.objects.create(
+            name=variant_name,
+            status='TESTING',
+            parent_trader=parent_trader,
+            agent_code=new_code,
+            starting_cash=parent_cash,
+            virtual_balance=parent_cash,
+            mutation_reasoning=raw_response[:5000],
+            diff_summary=diff_str[:10000],
+        )
+        
+        print(f"[NEURAL EVOLUTION] Created Variant #{variant.id}: '{variant_name}' "
+              f"with starting cash ${parent_cash:.2f}")
+        
+        # === Create a SystemAlert for dashboard notification ===
+        from control_panel.models import SystemAlert
+        SystemAlert.objects.create(
+            level='INFO',
+            title=f'Neural Evolution: Variant #{variant.id} Spawned',
+            message=f'{simple_summary}\n\nStarting 14-day virtual paper trading trial with ${parent_cash:.2f} starting capital.',
+            related_model_reference=str(variant.id),
+        )
+        
+        # === Auto-spawn the virtual paper trading engine ===
+        try:
+            from control_panel.views import _spawn_background_process
+            log_dir = Path(__file__).resolve().parent.parent.parent / "logs"
+            log_dir.mkdir(exist_ok=True)
+            log_file = log_dir / f"evolution_variant_{variant.id}.log"
             
-        # If this was an Epoch Refinement (not a mid-day crash), automatically trigger a robust training cycle
-        if not crash_log:
-            try:
-                from control_panel.models import TrainingJob
-                from control_panel.views import _spawn_background_process
-                
-                # Spawn diverse training configurations to explore the parameter space
-                mutation_configs = [
-                    ("Mutant Alpha Discovery", "alpha_discovery", "high_frequency_alpha", 10),
-                    ("Mutant Macro Trend", "macro_trend", "long_horizon_growth", 20),
-                ]
-                
-                print("[COGNITIVE REWRITER] Spawning iterative backtesting processes against mutated configurations...")
-                for name, feat_key, param_key, window in mutation_configs:
-                    job = TrainingJob.objects.create(
-                        name=name,
-                        feature_set_key=feat_key,
-                        hyperparameter_key=param_key,
-                        window_size=window, 
-                        initial_cash=100000
-                    )
-                    log_dir = Path(__file__).resolve().parent.parent.parent / "logs"
-                    log_dir.mkdir(exist_ok=True)
-                    log_file = log_dir / f"train_job_{job.id}.log"
-                    process = _spawn_background_process(
-                        [sys.executable, "run_training.py", "--job_id", str(job.id)],
-                        log_file,
-                    )
-                    job.celery_task_id = str(process.pid)
-                    job.save()
-                print("[COGNITIVE REWRITER] Mutation Training Nodes seamlessly isolated and dispatched.")
-            except Exception as eval_e:
-                print(f"[COGNITIVE REWRITER] Failed to spawn iteration nodes: {eval_e}")
+            process = _spawn_background_process(
+                [sys.executable, "-m", "src.core.virtual_paper_engine", "--variant_id", str(variant.id)],
+                log_file,
+            )
+            variant.celery_task_id = str(process.pid)
+            variant.save(update_fields=['celery_task_id'])
+            
+            print(f"[NEURAL EVOLUTION] Virtual engine spawned (PID: {process.pid}) "
+                  f"for Variant #{variant.id}. 14-day trial begins now.")
+        except Exception as spawn_err:
+            print(f"[NEURAL EVOLUTION] Failed to spawn virtual engine: {spawn_err}")
+            variant.status = 'FAILED'
+            variant.error_message = f"Failed to spawn virtual engine: {spawn_err}"
+            variant.save(update_fields=['status', 'error_message'])
 
     except Exception as e:
-        print(f"[COGNITIVE REWRITER] FATAL ANOMALY: {e}")
-        print("[COGNITIVE REWRITER] Executing Rollback Protocol...")
-        # Instantly revert
-        if backup_path.exists():
-            target_path.write_text(backup_path.read_text(encoding='utf-8'), encoding='utf-8')
-            print("[COGNITIVE REWRITER] System restored to last known good configuration.")
+        print(f"[NEURAL EVOLUTION] FATAL ANOMALY: {e}")
+        import traceback
+        traceback.print_exc()
+        # No rollback needed — we never touched ppo_agent.py!
 
 if __name__ == "__main__":
     orchestrate_rewrite()
+

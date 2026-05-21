@@ -63,4 +63,10 @@ urlpatterns = [
     path('api/security/status/', views.security_status_api, name='security_status_api'),
     path('api/security/save/', views.save_security_settings_api, name='save_security_settings_api'),
     path('api/lock/', views.lockscreen_api, name='lockscreen_api'),
+
+    # Neural Evolution Engine
+    path('api/evolution/variants/', views.evolution_variants_api, name='evolution_variants_api'),
+    path('api/evolution/promote/<int:variant_id>/', views.evolution_promote_api, name='evolution_promote_api'),
+    path('api/evolution/reject/<int:variant_id>/', views.evolution_reject_api, name='evolution_reject_api'),
+    path('api/evolution/evaluate/', views.evolution_evaluate_api, name='evolution_evaluate_api'),
 ]
