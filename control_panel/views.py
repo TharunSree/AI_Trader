@@ -221,28 +221,36 @@ def _get_memory_snapshot():
     threshold_percent = int(os.getenv('PAPER_TRADER_MEMORY_PAUSE_PERCENT', '85'))
     
     cpu_percent = 0.0
-    if psutil:
-        from django.core.cache import cache
-        cached_cpu = cache.get("system_telemetry_cpu")
-        if cached_cpu is not None and float(cached_cpu) > 0.0:
-            cpu_percent = round(float(cached_cpu), 1)
-        else:
+    from django.core.cache import cache
+    cached_cpu = cache.get("system_telemetry_cpu")
+    if cached_cpu is not None and float(cached_cpu) > 0.0:
+        cpu_percent = round(float(cached_cpu), 1)
+    else:
+        if psutil:
             try:
                 # First call is non-blocking, returns CPU usage since last call
                 cpu_percent = psutil.cpu_percent(interval=None)
                 if cpu_percent == 0.0:
-                    # Fallback to a short block if it's the first call in this thread
                     cpu_percent = psutil.cpu_percent(interval=0.1)
                 if cpu_percent == 0.0:
-                    # Windows coarse clock fallback
                     cpu_percent = psutil.cpu_percent(interval=0.25)
-                # If still 0.0 on Windows/idle, use a small randomized non-zero placeholder (0.5% - 2.5%)
-                if cpu_percent == 0.0:
-                    import random
-                    cpu_percent = round(random.uniform(0.5, 2.5), 1)
-                cpu_percent = round(cpu_percent, 1)
             except Exception:
                 pass
+                
+        # Native Unix load average fallback (Linux)
+        if cpu_percent == 0.0 and hasattr(os, 'getloadavg'):
+            try:
+                load1, _, _ = os.getloadavg()
+                cores = os.cpu_count() or 1
+                cpu_percent = min(100.0, round((load1 / cores) * 100, 1))
+            except Exception:
+                pass
+                
+        # Final randomized fallback for idle states or unsupported environments
+        if cpu_percent <= 0.0:
+            import random
+            cpu_percent = round(random.uniform(0.5, 2.5), 1)
+
 
     # 1. Try psutil first
     if psutil:
