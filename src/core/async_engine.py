@@ -404,6 +404,13 @@ class AITradingEngine:
         # Force base minimum bounds dynamically
         trade_size_usd = max(min_notional, trade_size_usd) if tradeable >= min_notional else tradeable
         
+        # SMART FLOOR: If balance is close to the exchange minimum (within 15%), 
+        # round UP to the minimum instead of blocking forever.
+        # The buying power guard downstream verifies the real account can cover it.
+        if side == 'buy' and trade_size_usd < min_notional and tradeable >= min_notional * 0.85:
+            trade_size_usd = min_notional
+            logger.info(f"[SMART FLOOR] Balance ${tradeable:.2f} is near minimum ${min_notional:.2f}. Rounding up to ${min_notional:.2f} for {self.symbol}.")
+        
         if trade_size_usd < min_notional and side == 'buy':
             logger.warning(f"Insufficient tradeable capital (${tradeable:.2f} of ${total_balance:.2f}) for minimum required trade size of ${min_notional:.2f} on {self.symbol}. Blocked.")
             return # Block low-value dusting rejections on Alpaca
