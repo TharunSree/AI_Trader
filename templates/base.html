@@ -730,6 +730,34 @@
         </div>
     </div>
     
+    <!-- Auto-Update Toast Notification (Bottom-Right) -->
+    <div id="auto-update-toast" class="fixed bottom-6 right-6 z-[10001] hidden" style="width: 360px;">
+        <div class="bg-[#0d1117]/95 backdrop-blur-xl border border-slate-700/60 rounded-xl shadow-2xl overflow-hidden font-mono" style="box-shadow: 0 0 40px rgba(14,165,233,0.1);">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-4 py-2.5 border-b border-slate-800/60">
+                <div class="flex items-center gap-2">
+                    <span id="toast-pulse" class="w-1.5 h-1.5 bg-sky-500 rounded-full animate-pulse"></span>
+                    <span id="toast-header" class="text-[10px] text-slate-300 uppercase tracking-[0.15em]">System Update</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span id="toast-pct" class="text-[10px] text-slate-500 tracking-widest">0%</span>
+                    <button id="toast-close" class="text-slate-600 hover:text-slate-300 transition-colors hidden" title="Dismiss">
+                        <i class="fas fa-times text-[10px]"></i>
+                    </button>
+                </div>
+            </div>
+            <!-- Progress bar -->
+            <div class="w-full h-0.5 bg-slate-800 relative">
+                <div id="toast-progress" class="h-full transition-all duration-700 ease-out" style="width: 0%; background: linear-gradient(90deg, #10b981, #0ea5e9);"></div>
+            </div>
+            <!-- Status -->
+            <div class="px-4 py-2.5 flex items-center gap-2 min-h-[32px]">
+                <i id="toast-icon" class="fas fa-code-branch text-sky-400 text-xs"></i>
+                <p id="toast-status" class="text-[10px] text-slate-400 tracking-wider uppercase truncate">Checking for updates...</p>
+            </div>
+        </div>
+    </div>
+
     <!-- System Update Progress Overlay (Lockscreen-themed) -->
     <div id="update-terminal-overlay" class="fixed inset-0 bg-[#0a0f18]/95 backdrop-blur-md z-[10000] hidden flex-col items-center justify-center transition-all duration-300 opacity-0 overflow-hidden font-mono">
         
@@ -917,17 +945,116 @@
         const pulseDot = document.getElementById('update-pulse-dot');
 
         // Poll for updates every 5 minutes
+        // --- Auto-Update Toast System ---
+        const toast = document.getElementById('auto-update-toast');
+        const toastProgress = document.getElementById('toast-progress');
+        const toastStatus = document.getElementById('toast-status');
+        const toastPct = document.getElementById('toast-pct');
+        const toastHeader = document.getElementById('toast-header');
+        const toastPulse = document.getElementById('toast-pulse');
+        const toastIcon = document.getElementById('toast-icon');
+        const toastClose = document.getElementById('toast-close');
+        let autoUpdateInProgress = false;
+
+        function setToastProgress(pct) {
+            const clamped = Math.min(100, Math.max(0, pct));
+            toastProgress.style.width = clamped + '%';
+            toastPct.textContent = Math.round(clamped) + '%';
+        }
+
+        function runAutoUpdateToast() {
+            if (autoUpdateInProgress) return;
+            autoUpdateInProgress = true;
+            toast.classList.remove('hidden');
+            setToastProgress(0);
+            toastStatus.textContent = 'Pulling latest changes...';
+            toastHeader.textContent = 'Auto-Updating';
+            toastPulse.className = 'w-1.5 h-1.5 bg-sky-500 rounded-full animate-pulse';
+            toastIcon.className = 'fas fa-code-branch text-sky-400 text-xs';
+            toastClose.classList.add('hidden');
+            toastStatus.classList.remove('text-red-400', 'text-green-400');
+            toastStatus.classList.add('text-slate-400');
+
+            let currentPct = 5;
+            const source = new EventSource("{% url 'system_update_stream' %}");
+
+            source.onmessage = function(event) {
+                const msg = event.data.trim();
+                if (!msg) return;
+                let displayMsg = msg.replace(/^\[SYSTEM\]\s*/i, '').replace(/^\[ERROR\]\s*/i, '').replace(/^\[WARNING\]\s*/i, '').replace(/^\[CRITICAL ERROR\]\s*/i, '');
+                toastStatus.textContent = displayMsg;
+                const lower = msg.toLowerCase();
+
+                if (lower.includes('git pull') || lower.includes('override protocol')) {
+                    currentPct = 15; toastIcon.className = 'fas fa-code-branch text-sky-400 text-xs animate-pulse';
+                } else if (lower.includes('already up to date') || lower.includes('up-to-date')) {
+                    currentPct = 50;
+                } else if (lower.includes('fast-forward') || lower.includes('files changed')) {
+                    currentPct = 40;
+                } else if (lower.includes('synchronizing database') || lower.includes('migrate')) {
+                    currentPct = 55; toastIcon.className = 'fas fa-database text-sky-400 text-xs animate-pulse';
+                } else if (lower.includes('applying') || lower.includes('no migrations')) {
+                    currentPct = Math.min(currentPct + 5, 85);
+                } else if (lower.includes('restarting')) {
+                    currentPct = 90; toastIcon.className = 'fas fa-sync text-sky-400 text-xs animate-spin';
+                } else if (lower.includes('update successful') || lower.includes('reloading')) {
+                    currentPct = 100;
+                    toastHeader.textContent = 'Update Complete';
+                    toastStatus.textContent = 'Reloading platform...';
+                    toastStatus.classList.remove('text-slate-400');
+                    toastStatus.classList.add('text-green-400');
+                    toastIcon.className = 'fas fa-check-circle text-green-400 text-xs';
+                    toastPulse.className = 'w-1.5 h-1.5 bg-green-500 rounded-full';
+                } else if (lower.includes('error') || lower.includes('critical')) {
+                    toastHeader.textContent = 'Update Failed';
+                    toastIcon.className = 'fas fa-exclamation-triangle text-red-400 text-xs';
+                    toastPulse.className = 'w-1.5 h-1.5 bg-red-500 rounded-full';
+                    toastStatus.classList.remove('text-slate-400');
+                    toastStatus.classList.add('text-red-400');
+                } else {
+                    currentPct = Math.min(currentPct + 2, 92);
+                }
+                setToastProgress(currentPct);
+            };
+
+            source.addEventListener('complete', function() {
+                source.close();
+                setToastProgress(100);
+                autoUpdateInProgress = false;
+                setTimeout(() => window.location.reload(), 2500);
+            });
+
+            source.addEventListener('error', function() {
+                source.close();
+                autoUpdateInProgress = false;
+                toastClose.classList.remove('hidden');
+                if (currentPct < 100) {
+                    toastHeader.textContent = 'Update Failed';
+                    toastStatus.textContent = 'Auto-update failed — try manually from Settings';
+                    toastIcon.className = 'fas fa-exclamation-triangle text-red-400 text-xs';
+                    toastPulse.className = 'w-1.5 h-1.5 bg-red-500 rounded-full';
+                    toastStatus.classList.remove('text-slate-400');
+                    toastStatus.classList.add('text-red-400');
+                }
+            });
+        }
+
+        toastClose.addEventListener('click', () => {
+            toast.classList.add('hidden');
+            autoUpdateInProgress = false;
+        });
+
         function checkUpdates() {
             fetch("{% url 'check_updates_api' %}")
             .then(r => r.json())
             .then(data => {
                 if (data.commits_behind > 0) {
                     updateBadge.classList.remove('hidden');
-                    // Auto-trigger the update — pull, migrate, restart traders
-                    if (triggerBtn && !triggerBtn.dataset.autoTriggered) {
+                    // Auto-trigger via toast notification (non-blocking)
+                    if (!autoUpdateInProgress && !triggerBtn.dataset.autoTriggered) {
                         triggerBtn.dataset.autoTriggered = 'true';
-                        console.log(`[AUTO-UPDATE] ${data.commits_behind} commit(s) behind. Triggering update...`);
-                        triggerBtn.click();
+                        console.log(`[AUTO-UPDATE] ${data.commits_behind} commit(s) behind. Running via toast...`);
+                        runAutoUpdateToast();
                     }
                 } else {
                     updateBadge.classList.add('hidden');
@@ -944,8 +1071,11 @@
             pctText.textContent = Math.round(clamped) + '%';
         }
 
-        // Launch Progress Overlay & Stream
+        // Launch Progress Overlay & Stream (Manual trigger only)
         triggerBtn.addEventListener('click', () => {
+            // If auto-update is already running via toast, don't double-trigger
+            if (autoUpdateInProgress) return;
+
             // Reset state
             setProgress(0);
             statusText.textContent = 'Establishing connection...';

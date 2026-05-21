@@ -12,6 +12,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
 from django.conf import settings as django_settings
 from django.http import JsonResponse, HttpResponse, HttpResponseServerError
+from django.views.decorators.http import require_POST
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 import json
@@ -1820,7 +1821,7 @@ def global_kill_switch_api(request):
     2. Cancel all pending orders on all bound broker accounts
     3. Liquidate all open positions at market price
     """
-    from .models import PaperTrader, RealTrader, BrokerAccount
+    from .models import PaperTrader, BrokerAccount
     from src.execution.broker import Broker
     import traceback
     
@@ -1829,8 +1830,6 @@ def global_kill_switch_api(request):
     # 1. Stop all bots
     for bot in PaperTrader.objects.filter(status='RUNNING'):
         _stop_trader_instance(bot.id)
-    for bot in RealTrader.objects.filter(status='RUNNING'):
-        _stop_trader_instance(bot.id, is_live=True)
         
     # 2. Liquidate all broker accounts
     accounts = BrokerAccount.objects.all()
@@ -1849,7 +1848,7 @@ def global_kill_switch_api(request):
             broker = Broker(account=acc)
             broker.api.cancel_all_orders()
             broker.api.close_all_positions(cancel_orders=True)
-            logger.critical(f"[KILL SWITCH] Account {acc.id} ({acc.account_name}) liquidated.")
+            logger.critical(f"[KILL SWITCH] Account {acc.id} ({acc.name}) liquidated.")
         except Exception as e:
             logger.error(f"[KILL SWITCH] Failed on account {acc.id}: {e}\n{traceback.format_exc()}")
             
