@@ -52,6 +52,9 @@ class AITradingEngine:
         
         # Phase 6: PDT tracking
         self.pdt_blocked = False
+        
+        # Cooldown tracker: {symbol: datetime} — block re-buy for 5 min after sell
+        self._sell_cooldowns = {}
 
         state_dim, action_dim = self._read_checkpoint_shape()
         logger.info(f"[JARVIS] Runner #{self.trader_id} booting.")
@@ -223,18 +226,34 @@ class AITradingEngine:
             if _norm(getattr(p, 'symbol', '')) == _norm(self.symbol):
                 held_qty = float(getattr(p, 'qty', 0.0))
                 avg_entry = float(getattr(p, 'avg_entry_price', 0.0))
+
+        # --- Get THIS BOT's own last buy price (not Alpaca's blended average) ---
+        bot_entry_price = avg_entry  # fallback to Alpaca avg
+        try:
+            last_buy = await asyncio.to_thread(
+                lambda: TradeLog.objects.filter(
+                    paper_trader_id=self.trader_id,
+                    symbol=self.symbol,
+                    action='BUY'
+                ).order_by('-timestamp').first()
+            )
+            if last_buy and last_buy.price:
+                bot_entry_price = float(last_buy.price)
+        except Exception:
+            pass  # Use Alpaca avg_entry as fallback
                 
         # --- PHASE 17 OVERRIDE: 1-Cent Force Dump (stocks only) ---
-        if not is_crypto and held_qty > 0 and avg_entry > 0:
-            price_delta = current_price - avg_entry
-            drift_percent = abs(price_delta) / avg_entry
+        if not is_crypto and held_qty > 0 and bot_entry_price > 0:
+            price_delta = current_price - bot_entry_price
+            drift_percent = abs(price_delta) / bot_entry_price
             if drift_percent >= 0.005: # 0.5% movement threshold
-                logger.warning(f"[OVERRIDE] 0.5% Profit/Loss delta triggered! (Entry: ${avg_entry:.2f} -> Current: ${current_price:.2f} | Drift: {drift_percent:.2%})")
+                logger.warning(f"[OVERRIDE] 0.5% Profit/Loss delta triggered! (Entry: ${bot_entry_price:.2f} -> Current: ${current_price:.2f} | Drift: {drift_percent:.2%})")
                 action = -1.0  # Force Maximum Sell Signal
 
         # --- TAKE-PROFIT / STOP-LOSS OVERRIDE (crypto & stocks) ---
-        if held_qty > 0 and avg_entry > 0:
-            unrealized_pct = (current_price - avg_entry) / avg_entry
+        # Uses THIS bot's own entry price, not Alpaca's blended avg across all bots
+        if held_qty > 0 and bot_entry_price > 0:
+            unrealized_pct = (current_price - bot_entry_price) / bot_entry_price
             # Crypto is volatile — take profits fast, cut losses tight
             # Stocks move slower — give them more room
             if is_crypto:
@@ -245,13 +264,13 @@ class AITradingEngine:
                 stop_loss_pct   = -0.020  # 2.0% loss  → cut losses (stocks)
             if unrealized_pct >= take_profit_pct:
                 logger.info(
-                    f"[TAKE-PROFIT] {self.symbol} | Entry ${avg_entry:.2f} → Now ${current_price:.2f} "
+                    f"[TAKE-PROFIT] {self.symbol} | Bot Entry ${bot_entry_price:.2f} → Now ${current_price:.2f} "
                     f"| Gain {unrealized_pct:.2%} ≥ {take_profit_pct:.2%} threshold. Forcing SELL."
                 )
                 action = -1.0
             elif unrealized_pct <= stop_loss_pct:
                 logger.warning(
-                    f"[STOP-LOSS]   {self.symbol} | Entry ${avg_entry:.2f} → Now ${current_price:.2f} "
+                    f"[STOP-LOSS]   {self.symbol} | Bot Entry ${bot_entry_price:.2f} → Now ${current_price:.2f} "
                     f"| Loss {unrealized_pct:.2%} ≤ {stop_loss_pct:.2%} threshold. Forcing SELL."
                 )
                 action = -1.0
@@ -262,6 +281,17 @@ class AITradingEngine:
             side = 'sell'
         else:
             return
+        
+        # --- COOLDOWN GUARD: Block re-buy for 5 min after selling same symbol ---
+        if side == 'buy' and self.symbol in self._sell_cooldowns:
+            cooldown_until = self._sell_cooldowns[self.symbol]
+            now = datetime.now(timezone.utc)
+            if now < cooldown_until:
+                remaining = (cooldown_until - now).total_seconds()
+                logger.info(f"[COOLDOWN] {self.symbol} buy blocked — {remaining:.0f}s remaining after recent sell.")
+                return
+            else:
+                del self._sell_cooldowns[self.symbol]  # Cooldown expired
         
         # --- PDT GUARD: Block ALL sells (including overrides) when PDT-restricted ---
         if self.pdt_blocked and side == 'sell':
@@ -418,6 +448,12 @@ class AITradingEngine:
                 final_qty = trade_size_usd / current_price
                 
         logger.info(f"LIVE EXECUTION CONFIRMED: {side.upper()} {final_qty:.6f}")
+
+        # Set cooldown after selling to prevent instant re-buy churn
+        if side == 'sell':
+            from datetime import timedelta
+            self._sell_cooldowns[self.symbol] = datetime.now(timezone.utc) + timedelta(minutes=5)
+            logger.info(f"[COOLDOWN] {self.symbol} buy cooldown set for 5 minutes.")
 
         # Ensure accurate Notional Value for budget recycling
         executed_notional = final_qty * current_price
