@@ -219,6 +219,13 @@ def _get_process_uptime_seconds(pid_value):
 
 def _get_memory_snapshot():
     threshold_percent = int(os.getenv('PAPER_TRADER_MEMORY_PAUSE_PERCENT', '85'))
+    
+    cpu_percent = 0.0
+    if psutil:
+        try:
+            cpu_percent = round(psutil.cpu_percent(interval=None), 1)
+        except Exception:
+            pass
 
     # 1. Try psutil first
     if psutil:
@@ -233,6 +240,7 @@ def _get_memory_snapshot():
                 'system_total_gb': round(memory.total / (1024 ** 3), 2),
                 'trader_limit_mb': int(os.getenv('PAPER_TRADER_MEMORY_LIMIT_MB', str(dynamic_limit_mb))),
                 'threshold_percent': threshold_percent,
+                'cpu_percent': cpu_percent,
             }
         except Exception:
             pass
@@ -268,6 +276,7 @@ def _get_memory_snapshot():
                 'system_total_gb': total_gb,
                 'trader_limit_mb': int(os.getenv('PAPER_TRADER_MEMORY_LIMIT_MB', str(dynamic_limit_mb))),
                 'threshold_percent': threshold_percent,
+                'cpu_percent': cpu_percent,
             }
         except Exception:
             pass
@@ -280,6 +289,7 @@ def _get_memory_snapshot():
         'system_total_gb': None,
         'trader_limit_mb': int(os.getenv('PAPER_TRADER_MEMORY_LIMIT_MB', '2048')),
         'threshold_percent': threshold_percent,
+        'cpu_percent': cpu_percent,
     }
 
 
@@ -442,8 +452,13 @@ def _enforce_trader_memory_budget():
 
 
 def _build_dashboard_context():
+    from .models import BrokerAccount, TradeLog, ModelVariant, SystemAlert, TradingReport
+    from django.db.models import Sum, Count, Q, F
+    from django.utils import timezone as tz
+    from datetime import timedelta
+    
+    # === Broker Connection ===
     try:
-        from .models import BrokerAccount
         first_account = BrokerAccount.objects.first()
         broker = Broker(account=first_account)
         live_equity = broker.get_equity()
@@ -452,58 +467,141 @@ def _build_dashboard_context():
         clock_data = broker.get_market_clock()
     except Exception as e:
         logger.warning(f"Could not connect to broker for dashboard: {e}")
-        live_equity = 100000.00
-        buying_power = 100000.00
+        live_equity = 0.0
+        buying_power = 0.0
         positions = []
         clock_data = None
 
+    # === Fleet Stats ===
+    running_traders = PaperTrader.objects.filter(status='RUNNING')
+    sleeping_traders = PaperTrader.objects.filter(status='SLEEPING')
+    all_active = PaperTrader.objects.filter(status__in=['RUNNING', 'SLEEPING'])
+    running_count = running_traders.count()
+    sleeping_count = sleeping_traders.count()
+    total_bots = PaperTrader.objects.count()
+    
+    # === Fleet-wide P&L ===
+    fleet_initial_cash = 0.0
+    fleet_total_bought = 0.0
+    fleet_total_sold = 0.0
+    
+    for t in all_active.prefetch_related('trades'):
+        fleet_initial_cash += float(t.initial_cash or 0)
+        for trade in t.trades.all():
+            notional = float(trade.notional_value or 0)
+            if trade.action == 'BUY':
+                fleet_total_bought += notional
+            elif trade.action == 'SELL':
+                fleet_total_sold += notional
+    
+    fleet_realized_pnl = fleet_total_sold - fleet_total_bought
+    fleet_balance = fleet_initial_cash + fleet_realized_pnl
+    fleet_pnl_pct = (fleet_realized_pnl / fleet_initial_cash * 100) if fleet_initial_cash > 0 else 0.0
+    
+    # === Recent Trades (last 15 across all bots) ===
+    recent_trades = TradeLog.objects.select_related('trader').order_by('-timestamp')[:15]
+    
+    # === Today's Activity ===
+    today_start = tz.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_trades = TradeLog.objects.filter(timestamp__gte=today_start)
+    today_buys = today_trades.filter(action='BUY').count()
+    today_sells = today_trades.filter(action='SELL').count()
+    today_volume = float(today_trades.aggregate(vol=Sum('notional_value'))['vol'] or 0)
+    
+    # === Win/Loss Rate (from sell trades — a "win" is selling for more than the buy notional) ===
+    total_sells = TradeLog.objects.filter(action='SELL').count()
+    total_buys = TradeLog.objects.filter(action='BUY').count()
+    total_trades = total_buys + total_sells
+    
+    # Simple win rate: sell_notional > buy_avg * qty = profit
+    # We'll use a simpler approach: count sells where notional > average buy notional for that bot
+    wins = 0
+    losses = 0
+    for t in all_active.prefetch_related('trades'):
+        buy_trades = list(t.trades.filter(action='BUY').order_by('timestamp'))
+        sell_trades = list(t.trades.filter(action='SELL').order_by('timestamp'))
+        for i, sell in enumerate(sell_trades):
+            if i < len(buy_trades):
+                if float(sell.notional_value) > float(buy_trades[i].notional_value):
+                    wins += 1
+                else:
+                    losses += 1
+    
+    win_rate = (wins / (wins + losses) * 100) if (wins + losses) > 0 else 0.0
+    
+    # === Training & Models ===
     recent_jobs = TrainingJob.objects.filter(status='COMPLETED').order_by('-id')[:5]
     active_meta = MetaTrainingJob.objects.exclude(status__in=['COMPLETED', 'FAILED', 'STOPPED']).order_by('-id').first()
     active_training = TrainingJob.objects.exclude(status__in=['COMPLETED', 'FAILED', 'STOPPED']).order_by('-id').first()
-    trader = PaperTrader.objects.filter(status='RUNNING').first() or PaperTrader.objects.first()
-
-    # Advanced Tracing Metrics for Live Nodes
-    running_traders = PaperTrader.objects.prefetch_related('trades').filter(status='RUNNING')
-    active_starting_limit = 0.0
-    active_amount_spent = 0.0
-    active_amount_recovered = 0.0
-    
-    for t in running_traders:
-        active_starting_limit += float(getattr(t, 'initial_cash', 0.0))
-        for trade in t.trades.all():
-            q = float(getattr(trade, 'quantity', 0))
-            p = float(getattr(trade, 'price', 0))
-            notional = float(getattr(trade, 'notional_value', q * p))
-            if trade.action == 'BUY':
-                active_amount_spent += notional
-            elif trade.action == 'SELL':
-                active_amount_recovered += notional
-
-    # Compute Net PNL of the active bots including unrealized inventory
-    # Assuming standard account baseline of 200k or 100k
-    assumed_base = 200000.0 if float(live_equity) > 150000 else 100000.0
-    active_profit_made = float(live_equity) - assumed_base
-    
-    active_bots_count = PaperTrader.objects.filter(status='RUNNING').count()
     ready_models_count = TrainingJob.objects.filter(is_live_trading_ready=True).count()
     
+    # === Evolution Stats ===
+    evolution_testing = ModelVariant.objects.filter(status='TESTING').count()
+    evolution_pending = ModelVariant.objects.filter(status='PENDING').count()
+    evolution_total = ModelVariant.objects.count()
+    
+    # === System Alerts ===
+    system_alerts = SystemAlert.objects.filter(is_read=False).order_by('-timestamp')[:10]
+    
+    # === Latest Report ===
+    latest_report = TradingReport.objects.order_by('-timestamp').first()
+    
+    # === Trader reference for websocket ===
+    trader = PaperTrader.objects.filter(status='RUNNING').first() or PaperTrader.objects.first()
+    
     return {
-        'recent_jobs': recent_jobs,
+        # Engine & Fleet
+        'running_count': running_count,
+        'sleeping_count': sleeping_count,
+        'total_bots': total_bots,
+        'active_bots_count': running_count + sleeping_count,
+        'ready_models_count': ready_models_count,
+        
+        # Broker
         'live_equity': f"{live_equity:,.2f}",
         'buying_power': f"{buying_power:,.2f}",
         'active_positions': positions,
-        'active_starting_limit': active_starting_limit,
-        'active_amount_spent': active_amount_spent,
-        'active_amount_recovered': active_amount_recovered,
-        'active_profit_made': active_profit_made,
-        'active_bots_count': active_bots_count,
-        'ready_models_count': ready_models_count,
-        'system_settings': SystemSettings.load(),
-        'system_alerts': __import__('control_panel.models').models.SystemAlert.objects.filter(is_read=False).order_by('-timestamp')[:5],
+        'clock': clock_data,
+        
+        # Fleet P&L
+        'fleet_initial_cash': fleet_initial_cash,
+        'fleet_balance': fleet_balance,
+        'fleet_realized_pnl': fleet_realized_pnl,
+        'fleet_pnl_pct': fleet_pnl_pct,
+        'fleet_total_bought': fleet_total_bought,
+        'fleet_total_sold': fleet_total_sold,
+        
+        # Today's Activity
+        'today_buys': today_buys,
+        'today_sells': today_sells,
+        'today_volume': today_volume,
+        'today_total_trades': today_buys + today_sells,
+        
+        # Trade Stats
+        'total_trades': total_trades,
+        'win_rate': win_rate,
+        'wins': wins,
+        'losses': losses,
+        'recent_trades': recent_trades,
+        
+        # Training
+        'recent_jobs': recent_jobs,
         'active_meta': active_meta,
         'active_training': active_training,
+        
+        # Evolution
+        'evolution_testing': evolution_testing,
+        'evolution_pending': evolution_pending,
+        'evolution_total': evolution_total,
+        
+        # System
+        'system_alerts': system_alerts,
+        'system_settings': SystemSettings.load(),
+        'latest_report': latest_report,
         'trader': trader,
-        'clock': clock_data,
+        'telemetry': _get_memory_snapshot(),
+        
+        # Websocket & Boot
         'dashboard_websocket_enabled': bool(getattr(django_settings, 'HAS_DAPHNE', False)),
         'dashboard_boot_payload': build_dashboard_boot_payload(
             live_equity=live_equity,
@@ -1872,6 +1970,26 @@ def mutation_logs_api(request):
         return JsonResponse({"logs": logs})
     except Exception as e:
         return JsonResponse({"logs": f"Error accessing mutation terminal: {e}"})
+
+@login_required
+def system_logs_api(request):
+    """
+    Tails the main system log (trading_bot.log) for the frontend terminal.
+    """
+    from pathlib import Path
+    log_dir = Path(__file__).resolve().parent.parent / "logs"
+    log_file_path = log_dir / "trading_bot.log"
+    
+    if not log_file_path.exists():
+        return JsonResponse({"logs": "Main system log offline. Waiting for engine start..."})
+        
+    try:
+        with open(log_file_path, "r", encoding="utf-8", errors="ignore") as f:
+            lines = f.readlines()
+            logs = "".join(lines[-150:])
+        return JsonResponse({"logs": logs})
+    except Exception as e:
+        return JsonResponse({"logs": f"Error accessing system logs: {e}"})
 
 @login_required
 def trigger_mutation_api(request):
