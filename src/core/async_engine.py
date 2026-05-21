@@ -367,8 +367,12 @@ class AITradingEngine:
                     fallback = max(0.0, -realized_profit)
                     logger.warning(f"[LIQUIDITY] buying_power fetch failed ({liq_err}), fallback=${fallback:.2f}")
                     return fallback
-            compounded_base = raw_initial + max(0.0, realized_profit)
-            return max(0.0, compounded_base - locked_capital)
+            # Include BOTH profits AND losses — don't ignore losses with max(0)
+            # Old bug: max(0, realized_profit) reset the balance to initial_cash after every loss
+            compounded_base = max(0.0, raw_initial + realized_profit)
+            active = max(0.0, compounded_base - locked_capital)
+            logger.info(f"[LIQUIDITY] initial=${raw_initial:.2f} realized={realized_profit:+.2f} locked=${locked_capital:.2f} → active=${active:.2f}")
+            return active
             
         active_principal = await asyncio.to_thread(get_current_liquidity)
         
