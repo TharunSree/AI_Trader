@@ -242,13 +242,28 @@ class AITradingEngine:
         except Exception:
             pass  # Use Alpaca avg_entry as fallback
                 
-        # --- PHASE 17 OVERRIDE: 1-Cent Force Dump (stocks only) ---
+        # --- MINIMUM PROFIT GUARD: Block sells on small positions at a loss ---
+        if held_qty > 0 and bot_entry_price > 0:
+            position_value = held_qty * current_price
+            unrealized_pnl = (current_price - bot_entry_price) * held_qty
+            unrealized_pct = (current_price - bot_entry_price) / bot_entry_price
+            # For positions under $100, never sell at a loss (let TP/SL handle bigger ones)
+            if position_value < 100.0 and unrealized_pnl < 0:
+                logger.info(
+                    f"[PROFIT GUARD] Blocking sell on {self.symbol} — small position "
+                    f"(${position_value:.2f}) is at a loss (${unrealized_pnl:.4f}). Holding."
+                )
+                return
+
+        # --- PHASE 17 OVERRIDE: Profit-Taking Drift Dump (stocks only) ---
+        # Only triggers when price has RISEN above entry (profit), not on losses
         if not is_crypto and held_qty > 0 and bot_entry_price > 0:
             price_delta = current_price - bot_entry_price
-            drift_percent = abs(price_delta) / bot_entry_price
-            if drift_percent >= 0.005: # 0.5% movement threshold
-                logger.warning(f"[OVERRIDE] 0.5% Profit/Loss delta triggered! (Entry: ${bot_entry_price:.2f} -> Current: ${current_price:.2f} | Drift: {drift_percent:.2%})")
-                action = -1.0  # Force Maximum Sell Signal
+            if price_delta > 0:  # Only on PROFITS
+                drift_percent = price_delta / bot_entry_price
+                if drift_percent >= 0.005: # 0.5% profit threshold
+                    logger.warning(f"[OVERRIDE] 0.5% Profit delta triggered! (Entry: ${bot_entry_price:.2f} -> Current: ${current_price:.2f} | Drift: {drift_percent:.2%})")
+                    action = -1.0  # Force Maximum Sell Signal
 
         # --- TAKE-PROFIT / STOP-LOSS OVERRIDE (crypto & stocks) ---
         # Uses THIS bot's own entry price, not Alpaca's blended avg across all bots
@@ -257,8 +272,8 @@ class AITradingEngine:
             # Crypto is volatile — take profits fast, cut losses tight
             # Stocks move slower — give them more room
             if is_crypto:
-                take_profit_pct = 0.010   # 1.0% gain  → sell (crypto, 2:1 R:R)
-                stop_loss_pct   = -0.005  # 0.5% loss  → cut losses (crypto)
+                take_profit_pct = 0.012   # 1.2% gain  → sell (crypto, 3:1 R:R)
+                stop_loss_pct   = -0.020  # 2.0% loss  → cut losses (crypto)
             else:
                 take_profit_pct = 0.015   # 1.5% gain  → sell (stocks)
                 stop_loss_pct   = -0.020  # 2.0% loss  → cut losses (stocks)
@@ -277,7 +292,7 @@ class AITradingEngine:
 
         if action > 0.15:   # BUY threshold
             side = 'buy'
-        elif action < -0.01:
+        elif action < -0.15: # SELL threshold — symmetric with buy, requires real conviction
             side = 'sell'
         else:
             return
