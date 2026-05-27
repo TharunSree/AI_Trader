@@ -159,6 +159,7 @@ class AITradingEngine:
         """
         Fetches historical data, calculates technical features, and returns 
         the flattened state array precisely matching the shape used during training.
+        Features are z-score normalized per column to make the model asset-agnostic.
         """
         import pandas as pd
         from src.data.preprocessor import calculate_features
@@ -196,9 +197,23 @@ class AITradingEngine:
                         window_data[:, i] = df[col].iloc[-self.window_size:].values
             else:
                 window_data = df[cols].iloc[-self.window_size:].values
+        
+        # --- Z-SCORE NORMALIZATION: Make features asset-agnostic ---
+        # Without this, a model trained on SPY ($550) saturates on BTC ($74,000)
+        # Normalize each feature column independently using the full available history
+        if len(cols) >= len(self.observation_columns):
+            full_history = df[cols].values
+        else:
+            full_history = window_data  # fallback
+        
+        col_means = np.nanmean(full_history, axis=0)
+        col_stds = np.nanstd(full_history, axis=0)
+        col_stds[col_stds < 1e-8] = 1.0  # Prevent division by zero for constant features
+        
+        window_data = (window_data - col_means) / col_stds
                 
         obs = window_data.flatten()
-        obs = np.nan_to_num(obs)
+        obs = np.nan_to_num(obs, nan=0.0, posinf=0.0, neginf=0.0)
         
         # Pad or truncate to strictly match state_dim if there's an architectural mismatch
         result = np.zeros((self.agent.state_dim,), dtype=np.float32)
