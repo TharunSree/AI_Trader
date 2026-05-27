@@ -33,33 +33,39 @@ def _eod_watcher_daemon():
                 broker = Broker(account=first_account)
                 
             clock = broker.get_market_clock()
-            if not clock:
-                time.sleep(60)
-                continue
-                
-            is_open = clock.get("is_open", False)
+            is_open = clock.get("is_open", False) if clock else False
             
-            # Detect transition from OPEN -> CLOSED
+            today_str = date.today().isoformat()
+            cache_key = f"eod_generated_{today_str}"
+            should_generate = False
+            
+            # Trigger 1: Detect stock market transition from OPEN -> CLOSED
             if was_open and not is_open:
-                today_str = date.today().isoformat()
-                cache_key = f"eod_generated_{today_str}"
+                should_generate = True
+                logger.info("[JARVIS SYSTEM] Market Close Detected. Triggering EOD Report...")
+            
+            # Trigger 2: Daily time-based fallback (for crypto-only bots)
+            # Fires at ~00:00 UTC if no report has been generated today
+            import datetime as _dt
+            now_utc = _dt.datetime.utcnow()
+            if now_utc.hour == 0 and now_utc.minute < 5 and not cache.get(cache_key):
+                should_generate = True
+                logger.info("[JARVIS SYSTEM] Daily midnight trigger. Generating EOD Report for crypto bots...")
                 
-                # Use Redis/Memory cache to prevent multiple threads from firing simultaneously
-                if not cache.get(cache_key):
-                    logger.info("[JARVIS SYSTEM] Market Close Detected. Automatically triggering EOD Report Generation...")
-                    try:
-                        from src.reporting.email_dispatcher import send_report_email
-                        artifacts_list = write_report_artifacts()
-                        
-                        logger.info(f"[JARVIS SYSTEM] Dispatching bundled Telemetry Payload for {len(artifacts_list)} instances...")
-                        if artifacts_list:
-                            from src.reporting.email_dispatcher import send_bundled_report_email
-                            send_bundled_report_email(artifacts_list, today_str)
-                        # Lock for 24 hours so it won't trigger again today
-                        cache.set(cache_key, True, timeout=86400)
-                        logger.info("[JARVIS SYSTEM] EOD Report Generated & Emailed Successfully.")
-                    except Exception as e:
-                        logger.error(f"[JARVIS SYSTEM] EOD Generation Failed: {e}", exc_info=True)
+            if should_generate and not cache.get(cache_key):
+                try:
+                    from src.reporting.email_dispatcher import send_report_email
+                    artifacts_list = write_report_artifacts()
+                    
+                    logger.info(f"[JARVIS SYSTEM] Dispatching bundled Telemetry Payload for {len(artifacts_list)} instances...")
+                    if artifacts_list:
+                        from src.reporting.email_dispatcher import send_bundled_report_email
+                        send_bundled_report_email(artifacts_list, today_str)
+                    # Lock for 24 hours so it won't trigger again today
+                    cache.set(cache_key, True, timeout=86400)
+                    logger.info("[JARVIS SYSTEM] EOD Report Generated & Emailed Successfully.")
+                except Exception as e:
+                    logger.error(f"[JARVIS SYSTEM] EOD Generation Failed: {e}", exc_info=True)
             
             was_open = is_open
             
@@ -94,6 +100,149 @@ def _telemetry_watcher_daemon():
             logger.debug(f"[Telemetry Daemon] Error: {e}")
             time.sleep(5)
 
+def _auto_training_daemon():
+    """
+    Background daemon that automatically triggers model training when needed.
+    Checks every 6 hours. Trains if:
+    - No training has completed in the last 3 days
+    - OR no models exist at all
+    """
+    import django
+    if not django.apps.apps.ready:
+        time.sleep(10)
+
+    # Wait 2 minutes after startup before first check
+    time.sleep(120)
+
+    from django.utils import timezone as tz
+    from datetime import timedelta
+
+    while True:
+        try:
+            from control_panel.models import TrainingJob
+            import subprocess, sys
+
+            # Check if any training completed recently (last 3 days by checking recent IDs)
+            recent_completed = TrainingJob.objects.filter(
+                status='COMPLETED'
+            ).order_by('-id').first()
+
+            has_recent_training = False
+            if recent_completed:
+                # Check if the most recent completed job's model weights exist
+                # and if there have been any completed jobs (we use a simple heuristic:
+                # if the last completed job is within the most recent 5 jobs, training is fresh)
+                recent_job_ids = list(TrainingJob.objects.order_by('-id').values_list('id', flat=True)[:5])
+                has_recent_training = recent_completed.id in recent_job_ids
+
+            has_any_model = TrainingJob.objects.filter(
+                model_weights__isnull=False
+            ).exists()
+
+            already_running = TrainingJob.objects.filter(
+                status='RUNNING'
+            ).exists()
+
+            if not already_running and (not has_recent_training or not has_any_model):
+                logger.info("[AUTO-TRAIN] No recent training detected. Spawning automatic training job...")
+
+                # Create a training job with balanced defaults
+                job = TrainingJob.objects.create(
+                    name=f"Auto-Train {tz.now().strftime('%Y-%m-%d')}",
+                    feature_set_key='all_in',
+                    hyperparameter_key='balanced',
+                    ticker='SPY',
+                    window_size=10,
+                    training_duration_days=365,
+                    initial_cash=100000.0,
+                    status='PENDING'
+                )
+
+                # Spawn training subprocess
+                from control_panel.views import _spawn_background_process
+                log_path = os.path.join('logs', f'auto_train_job_{job.id}.log')
+                os.makedirs('logs', exist_ok=True)
+                cmd = [sys.executable, 'run_training.py', '--job_id', str(job.id)]
+                process = _spawn_background_process(cmd, log_path)
+                job.celery_task_id = str(process.pid)
+                job.status = 'RUNNING'
+                job.save()
+                logger.info(f"[AUTO-TRAIN] Training job #{job.id} launched (PID: {process.pid})")
+            else:
+                logger.debug("[AUTO-TRAIN] Models are fresh. No training needed.")
+
+        except Exception as e:
+            logger.debug(f"[AUTO-TRAIN] Check error: {e}")
+
+        # Check every 6 hours
+        time.sleep(6 * 3600)
+
+
+def _model_recommendation_daemon():
+    """
+    Background daemon that scores models based on evaluation results
+    and caches the top recommendation for the Models Hub.
+    Runs every 30 minutes.
+    """
+    import django
+    if not django.apps.apps.ready:
+        time.sleep(10)
+
+    time.sleep(60)  # Wait 1 min after startup
+
+    from django.core.cache import cache
+
+    while True:
+        try:
+            from control_panel.models import EvaluationJob, TrainingJob
+
+            # Find all completed evaluations with results
+            evals = EvaluationJob.objects.filter(
+                status='COMPLETED',
+                results__isnull=False
+            ).order_by('-id')
+
+            model_scores = {}
+            for ev in evals:
+                ref = ev.model_file
+                if ref in model_scores:
+                    continue  # Only use most recent eval per model
+                results = ev.results or {}
+                sharpe = float(results.get('sharpe_ratio', 0) or 0)
+                ret = float(results.get('total_return_pct', 0) or 0)
+                drawdown = abs(float(results.get('max_drawdown_pct', 0) or 0))
+                trades = int(results.get('total_trades', 0) or 0)
+
+                # Composite score: high Sharpe + high return - high drawdown + activity
+                score = (sharpe * 40) + (ret * 0.5) - (drawdown * 0.3) + min(trades * 0.1, 5)
+                model_scores[ref] = {
+                    'score': round(score, 2),
+                    'sharpe': round(sharpe, 3),
+                    'return_pct': round(ret, 2),
+                    'max_drawdown': round(drawdown, 2),
+                    'trades': trades,
+                    'eval_id': ev.id
+                }
+
+            if model_scores:
+                # Sort by score descending
+                ranked = sorted(model_scores.items(), key=lambda x: x[1]['score'], reverse=True)
+                recommendations = {}
+                for ref, data in ranked:
+                    grade = 'A' if data['score'] > 20 else 'B' if data['score'] > 10 else 'C' if data['score'] > 0 else 'D'
+                    recommendations[ref] = {**data, 'grade': grade}
+
+                cache.set('model_recommendations', recommendations, timeout=3600)
+                best = ranked[0] if ranked else None
+                if best:
+                    logger.debug(f"[MODEL REC] Top model: {best[0]} (Score: {best[1]['score']}, Sharpe: {best[1]['sharpe']})")
+
+        except Exception as e:
+            logger.debug(f"[MODEL REC] Scoring error: {e}")
+
+        time.sleep(1800)  # Every 30 minutes
+
+
 class ControlPanelConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "control_panel"
@@ -116,4 +265,12 @@ class ControlPanelConfig(AppConfig):
             telemetry_thread = threading.Thread(target=_telemetry_watcher_daemon, daemon=True)
             telemetry_thread.start()
             logger.info("[JARVIS SYSTEM] Telemetry Poller Daemon initialized.")
+
+            auto_train_thread = threading.Thread(target=_auto_training_daemon, daemon=True)
+            auto_train_thread.start()
+            logger.info("[JARVIS SYSTEM] Auto-Training Scheduler Daemon initialized.")
+
+            model_rec_thread = threading.Thread(target=_model_recommendation_daemon, daemon=True)
+            model_rec_thread.start()
+            logger.info("[JARVIS SYSTEM] Model Recommendation Engine initialized.")
 

@@ -1712,6 +1712,9 @@ def models_hub_view(request):
     
     enriched_models = []
     
+    from django.core.cache import cache
+    recommendations = cache.get('model_recommendations') or {}
+    
     for val in raw_models:
         ref = val['value']
         source = val['source']
@@ -1742,6 +1745,9 @@ def models_hub_view(request):
                 created_at_fmt = dt.strftime('%Y-%m-%d %H:%M')
                 from .models import EvaluationJob
                 eval_count = EvaluationJob.objects.filter(model_file=ref).count()
+        
+        # Get AI recommendation data
+        rec = recommendations.get(ref, {})
                 
         enriched_models.append({
             'reference': ref,
@@ -1750,8 +1756,16 @@ def models_hub_view(request):
             'size_mb': size_mb,
             'created_at': created_at_fmt,
             'evaluations': eval_count,
-            'is_ready': is_ready
+            'is_ready': is_ready,
+            'rec_grade': rec.get('grade', ''),
+            'rec_score': rec.get('score', ''),
+            'rec_sharpe': rec.get('sharpe', ''),
+            'rec_return': rec.get('return_pct', ''),
+            'rec_drawdown': rec.get('max_drawdown', ''),
         })
+    
+    # Sort: recommended models first (by score descending), then rest
+    enriched_models.sort(key=lambda m: float(m.get('rec_score', 0) or 0), reverse=True)
         
     context = {
         'models': enriched_models,

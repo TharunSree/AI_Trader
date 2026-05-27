@@ -242,16 +242,24 @@ class AITradingEngine:
         except Exception:
             pass  # Use Alpaca avg_entry as fallback
                 
-        # --- MINIMUM PROFIT GUARD: Block sells on small positions at a loss ---
+        # --- Define TP/SL thresholds early (used by multiple guards below) ---
+        if is_crypto:
+            take_profit_pct = 0.012   # 1.2% gain  → sell (crypto)
+            stop_loss_pct   = -0.020  # 2.0% loss  → cut losses (crypto)
+        else:
+            take_profit_pct = 0.015   # 1.5% gain  → sell (stocks)
+            stop_loss_pct   = -0.020  # 2.0% loss  → cut losses (stocks)
+
+        # --- SMART PROFIT GUARD: Block noise sells, allow real stop-loss ---
         if held_qty > 0 and bot_entry_price > 0:
             position_value = held_qty * current_price
-            unrealized_pnl = (current_price - bot_entry_price) * held_qty
             unrealized_pct = (current_price - bot_entry_price) / bot_entry_price
-            # For positions under $100, never sell at a loss (let TP/SL handle bigger ones)
-            if position_value < 100.0 and unrealized_pnl < 0:
+            # For small positions: only block sells when loss is SMALL (noise/spread)
+            # If loss exceeds stop-loss threshold, let it through to be cut
+            if position_value < 100.0 and unrealized_pct < 0 and unrealized_pct > stop_loss_pct:
                 logger.info(
-                    f"[PROFIT GUARD] Blocking sell on {self.symbol} — small position "
-                    f"(${position_value:.2f}) is at a loss (${unrealized_pnl:.4f}). Holding."
+                    f"[PROFIT GUARD] Blocking noise sell on {self.symbol} — small position "
+                    f"(${position_value:.2f}) loss {unrealized_pct:.2%} is within SL range. Holding."
                 )
                 return
 
@@ -266,17 +274,8 @@ class AITradingEngine:
                     action = -1.0  # Force Maximum Sell Signal
 
         # --- TAKE-PROFIT / STOP-LOSS OVERRIDE (crypto & stocks) ---
-        # Uses THIS bot's own entry price, not Alpaca's blended avg across all bots
         if held_qty > 0 and bot_entry_price > 0:
             unrealized_pct = (current_price - bot_entry_price) / bot_entry_price
-            # Crypto is volatile — take profits fast, cut losses tight
-            # Stocks move slower — give them more room
-            if is_crypto:
-                take_profit_pct = 0.012   # 1.2% gain  → sell (crypto, 3:1 R:R)
-                stop_loss_pct   = -0.020  # 2.0% loss  → cut losses (crypto)
-            else:
-                take_profit_pct = 0.015   # 1.5% gain  → sell (stocks)
-                stop_loss_pct   = -0.020  # 2.0% loss  → cut losses (stocks)
             if unrealized_pct >= take_profit_pct:
                 logger.info(
                     f"[TAKE-PROFIT] {self.symbol} | Bot Entry ${bot_entry_price:.2f} → Now ${current_price:.2f} "
