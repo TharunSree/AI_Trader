@@ -71,7 +71,7 @@ class TradingEnvironment(gym.Env):
         return self._next_observation(), {}
 
     def _next_observation(self) -> np.ndarray:
-        """Returns the fully padded multidimensional array for the neural network input."""
+        """Returns the z-score normalized multidimensional array for the neural network input."""
         end_idx = self.current_step + 1
         start_idx = end_idx - self.window_size
         
@@ -84,13 +84,25 @@ class TradingEnvironment(gym.Env):
             for i, col in enumerate(self.observation_columns):
                 if col in self.df.columns:
                     full_window[:, i] = self.df[col].iloc[start_idx:end_idx].values
-            obs = full_window.flatten()
+            window_data = full_window
         else:
             window_data = self.df[cols].iloc[start_idx:end_idx].values
-            obs = window_data.flatten()
+        
+        # --- Z-SCORE NORMALIZATION: Identical to live inference ---
+        # Compute statistics from available history (up to current step)
+        if len(cols) >= len(self.observation_columns):
+            history = self.df[cols].iloc[:end_idx].values
+        else:
+            history = window_data
+        
+        col_means = np.nanmean(history, axis=0)
+        col_stds = np.nanstd(history, axis=0)
+        col_stds[col_stds < 1e-8] = 1.0  # Prevent division by zero
+        
+        window_data = (window_data - col_means) / col_stds
             
-        # Nan stripping for clean tensors
-        obs = np.nan_to_num(obs)
+        obs = window_data.flatten()
+        obs = np.nan_to_num(obs, nan=0.0, posinf=0.0, neginf=0.0)
         return obs.astype(np.float32)
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any]]:
