@@ -130,6 +130,10 @@
                 {% csrf_token %}
                 <button type="submit" class="px-3 py-1 rounded border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 font-mono text-[9px] uppercase font-bold tracking-widest hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors">Pause All</button>
             </form>
+            <button type="button" id="fleet-evolve-btn" class="px-3 py-1 rounded border border-purple-200 dark:border-purple-500/30 bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 font-mono text-[9px] uppercase font-bold tracking-widest hover:bg-purple-100 dark:hover:bg-purple-500/20 transition-colors flex items-center gap-1.5">
+                <i class="fas fa-dna text-[8px]"></i> Evolve
+            </button>
+            <form id="evolve-csrf-form" style="display:none;">{% csrf_token %}</form>
         </div>
     </div>
     
@@ -533,5 +537,49 @@ function confirmKill() {
     if(form) form.submit();
   }
 }
+// --- Neural Evolution Manual Trigger ---
+(function() {
+    var evolveBtn = document.getElementById('fleet-evolve-btn');
+    if (!evolveBtn) return;
+    
+    var csrfInput = document.querySelector('#evolve-csrf-form [name=csrfmiddlewaretoken]');
+    var csrfToken = csrfInput ? csrfInput.value : '';
+    
+    evolveBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        function doEvolve() {
+            evolveBtn.disabled = true;
+            evolveBtn.innerHTML = '<i class="fas fa-spinner fa-spin text-[8px]"></i> Evolving...';
+            
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '{% url "trigger_mutation_api" %}', true);
+            xhr.setRequestHeader('X-CSRFToken', csrfToken);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.onload = function() {
+                evolveBtn.innerHTML = '<i class="fas fa-check text-[8px]"></i> Launched';
+                setTimeout(function() {
+                    evolveBtn.disabled = false;
+                    evolveBtn.innerHTML = '<i class="fas fa-dna text-[8px]"></i> Evolve';
+                }, 5000);
+            };
+            xhr.onerror = function() {
+                evolveBtn.disabled = false;
+                evolveBtn.innerHTML = '<i class="fas fa-dna text-[8px]"></i> Evolve';
+            };
+            xhr.send('csrfmiddlewaretoken=' + encodeURIComponent(csrfToken));
+            
+            if (typeof window.launchOverlay === 'function') {
+                window.launchOverlay(null, 'NEURAL EVOLUTION INITIATED...');
+            }
+        }
+        
+        if (typeof window.confirmAction === 'function') {
+            window.confirmAction('Launch Neural Evolution? Gemini will analyze performance and mutate the trading model.', doEvolve);
+        } else {
+            if (confirm('Launch Neural Evolution?')) doEvolve();
+        }
+    });
+})();
 </script>
 {% endblock extra_javascript %}

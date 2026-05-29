@@ -243,6 +243,59 @@ def _model_recommendation_daemon():
         time.sleep(1800)  # Every 30 minutes
 
 
+def _neural_evolution_daemon():
+    """
+    Background daemon that automatically triggers neural evolution (code mutations)
+    when running trading bots exist. Runs every 12 hours.
+    Creates a ModelVariant by spawning the code_rewriter subprocess.
+    """
+    import django
+    if not django.apps.apps.ready:
+        time.sleep(10)
+
+    # Wait 5 minutes after startup before first check
+    time.sleep(300)
+
+    while True:
+        try:
+            from control_panel.models import PaperTrader, ModelVariant
+            import subprocess, sys
+
+            # Only trigger if there are running bots to evolve from
+            running_bots = PaperTrader.objects.filter(status='RUNNING')
+            if not running_bots.exists():
+                logger.debug("[EVOLUTION] No running bots. Skipping mutation cycle.")
+                time.sleep(12 * 3600)
+                continue
+
+            # Don't trigger if a mutation is already in progress
+            active_variants = ModelVariant.objects.filter(status='TESTING').count()
+            if active_variants >= 3:
+                logger.debug(f"[EVOLUTION] {active_variants} variants already testing. Skipping.")
+                time.sleep(12 * 3600)
+                continue
+
+            logger.info("[EVOLUTION] Auto-triggering neural evolution cycle...")
+
+            from pathlib import Path
+            log_dir = Path("logs")
+            log_dir.mkdir(exist_ok=True)
+            log_file = log_dir / "auto_mutation.log"
+
+            from control_panel.views import _spawn_background_process
+            _spawn_background_process(
+                [sys.executable, str(Path("src") / "core" / "code_rewriter.py")],
+                log_file
+            )
+            logger.info("[EVOLUTION] Neural mutation subprocess launched.")
+
+        except Exception as e:
+            logger.debug(f"[EVOLUTION] Auto-evolution error: {e}")
+
+        # Run every 12 hours
+        time.sleep(12 * 3600)
+
+
 class ControlPanelConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "control_panel"
@@ -273,4 +326,8 @@ class ControlPanelConfig(AppConfig):
             model_rec_thread = threading.Thread(target=_model_recommendation_daemon, daemon=True)
             model_rec_thread.start()
             logger.info("[JARVIS SYSTEM] Model Recommendation Engine initialized.")
+
+            evolution_thread = threading.Thread(target=_neural_evolution_daemon, daemon=True)
+            evolution_thread.start()
+            logger.info("[JARVIS SYSTEM] Neural Evolution Daemon initialized (12h cycle).")
 

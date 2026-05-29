@@ -296,3 +296,6 @@ EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 
 
 os.environ.setdefault('HF_TOKEN', os.getenv('HF_TOKEN', ''))
+
+# ── Gemini AI (Phase 14 Report Generation + Code Rewriter) ──
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')

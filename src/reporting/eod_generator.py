@@ -15,9 +15,21 @@ try:
     from google import genai
     from google.genai import types
     # Try OS environ first, fallback to Django settings
-    GEMINI_KEY = os.environ.get("GEMINI_API_KEY") or getattr(settings, 'GEMINI_API_KEY', None) or getattr(settings, 'API_KEY', None)
+    GEMINI_KEY = (
+        os.environ.get("GEMINI_API_KEY") or 
+        getattr(settings, 'GEMINI_API_KEY', None) or 
+        getattr(settings, 'API_KEY', None) or 
+        ''
+    )
+    if not GEMINI_KEY:
+        import logging as _log
+        _log.getLogger("rl_trading_backend").warning(
+            "[EOD GENERATOR] GEMINI_API_KEY not found in environment or Django settings. "
+            "AI insights will be unavailable. Set GEMINI_API_KEY env var to enable."
+        )
 except ImportError:
     genai = None
+    GEMINI_KEY = None
 
 REPORTS_DIR = Path(settings.BASE_DIR) / "reports"
 

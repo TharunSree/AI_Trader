@@ -2224,91 +2224,100 @@ def check_updates_api(request):
 
 @login_required
 def system_update_stream(request):
+    MAX_RETRIES = 5
+    RETRY_DELAY = 30  # seconds
+
+    def _run_subprocess(cmd, label):
+        """Run a subprocess and yield its output. Returns (success, lines_yielded)."""
+        import time as _time
+        process = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, bufsize=1
+        )
+        lines = []
+        last_heartbeat = _time.time()
+        while True:
+            line = process.stdout.readline()
+            if not line:
+                if process.poll() is not None:
+                    break
+                if _time.time() - last_heartbeat > 5:
+                    lines.append(": ping\n\n")
+                    last_heartbeat = _time.time()
+                _time.sleep(0.1)
+                continue
+            lines.append(f"data: {line}\n\n")
+            last_heartbeat = _time.time()
+        process.wait()
+        return process.returncode == 0, lines
+
     def event_stream():
-        yield "data: [SYSTEM] Initiating Override Protocol: Git Pull\n\n"
-        try:
-            # 1. GIT PULL
-            process = subprocess.Popen(
-                ['git', 'pull', 'origin', 'master'],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1
-            )
-            
-            # Read line by line with a heartbeat fallback
-            import time as _time
-            last_heartbeat = _time.time()
+        import time as _time
 
-            while True:
-                line = process.stdout.readline()
-                if not line:
-                    if process.poll() is not None:
-                        break
-                    # Send a heartbeat every 5 seconds of silence to keep proxies alive
-                    if _time.time() - last_heartbeat > 5:
-                        yield ": ping\n\n"
-                        last_heartbeat = _time.time()
-                    _time.sleep(0.1) # Small sleep to prevent CPU spiking
-                    continue
-                yield f"data: {line}\n\n"
-                last_heartbeat = _time.time()
+        for attempt in range(1, MAX_RETRIES + 1):
+            if attempt > 1:
+                yield f"data: [RETRY] Attempt {attempt}/{MAX_RETRIES} — waiting {RETRY_DELAY}s before retry...\n\n"
+                _time.sleep(RETRY_DELAY)
 
-            process.wait()
-            if process.returncode != 0:
-                yield f"data: [ERROR] Git pull failed with code {process.returncode}\n\n"
-                yield "event: error\ndata: \n\n"
-                return
+            yield f"data: [SYSTEM] Initiating Override Protocol: Git Pull (attempt {attempt}/{MAX_RETRIES})\n\n"
 
-            yield "data: [SYSTEM] Synchronizing Database Schema...\n\n"
-            
-            # 2. RUN MIGRATIONS
-            mig_process = subprocess.Popen(
-                [sys.executable, 'manage.py', 'migrate'],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1
-            )
-            
-            last_heartbeat = _time.time()
-            while True:
-                line = mig_process.stdout.readline()
-                if not line:
-                    if mig_process.poll() is not None:
-                        break
-                    if _time.time() - last_heartbeat > 5:
-                        yield ": ping\n\n"
-                        last_heartbeat = _time.time()
-                    _time.sleep(0.1)
-                    continue
-                yield f"data: {line}\n\n"
-                last_heartbeat = _time.time()
+            try:
+                # 1. GIT PULL
+                success, lines = _run_subprocess(
+                    ['git', 'pull', 'origin', 'master'], 'Git Pull'
+                )
+                for line in lines:
+                    yield line
 
-            mig_process.wait()
-            if mig_process.returncode != 0:
-                yield f"data: [ERROR] Migration failed with code {mig_process.returncode}\n\n"
-                yield "event: error\ndata: \n\n"
-                return
-            # 3. RESTART RUNNING TRADERS so they pick up the new engine code
-            running_traders = list(PaperTrader.objects.filter(status__in=['RUNNING', 'PAUSED']))
-            if running_traders:
-                yield f"data: [SYSTEM] Restarting {len(running_traders)} active trading node(s)...\n\n"
-                for trader in running_traders:
-                    try:
-                        _stop_trader_instance(trader)
-                        import time as _t2
-                        _t2.sleep(0.5)
-                        _launch_trader_instance(trader)
-                        yield f"data: [SYSTEM] Node #{trader.id} restarted with updated code.\n\n"
-                    except Exception as restart_err:
-                        yield f"data: [WARNING] Failed to restart Node #{trader.id}: {restart_err}\n\n"
-            
-            yield "data: [SYSTEM] Update Successful. Reloading platform...\n\n"
-            yield "event: complete\ndata: \n\n"
-        except Exception as e:
-            yield f"data: [CRITICAL ERROR] {str(e)}\n\n"
-            yield "event: error\ndata: \n\n"
+                if not success:
+                    yield f"data: [ERROR] Git pull failed on attempt {attempt}/{MAX_RETRIES}\n\n"
+                    if attempt < MAX_RETRIES:
+                        continue  # Retry
+                    yield "event: error\ndata: \n\n"
+                    return
+
+                yield "data: [SYSTEM] Synchronizing Database Schema...\n\n"
+
+                # 2. RUN MIGRATIONS
+                success, lines = _run_subprocess(
+                    [sys.executable, 'manage.py', 'migrate'], 'Migration'
+                )
+                for line in lines:
+                    yield line
+
+                if not success:
+                    yield f"data: [ERROR] Migration failed on attempt {attempt}/{MAX_RETRIES}\n\n"
+                    if attempt < MAX_RETRIES:
+                        continue  # Retry
+                    yield "event: error\ndata: \n\n"
+                    return
+
+                # 3. RESTART RUNNING TRADERS so they pick up the new engine code
+                running_traders = list(PaperTrader.objects.filter(status__in=['RUNNING', 'PAUSED']))
+                if running_traders:
+                    yield f"data: [SYSTEM] Restarting {len(running_traders)} active trading node(s)...\n\n"
+                    for trader in running_traders:
+                        try:
+                            _stop_trader_instance(trader)
+                            _time.sleep(0.5)
+                            _launch_trader_instance(trader)
+                            yield f"data: [SYSTEM] Node #{trader.id} restarted with updated code.\n\n"
+                        except Exception as restart_err:
+                            yield f"data: [WARNING] Failed to restart Node #{trader.id}: {restart_err}\n\n"
+
+                yield "data: [SYSTEM] Update Successful. Reloading platform...\n\n"
+                yield "event: complete\ndata: \n\n"
+                return  # Success — exit retry loop
+
+            except Exception as e:
+                yield f"data: [ERROR] Attempt {attempt}/{MAX_RETRIES} failed: {str(e)}\n\n"
+                if attempt >= MAX_RETRIES:
+                    yield f"data: [CRITICAL] All {MAX_RETRIES} update attempts failed.\n\n"
+                    yield "event: error\ndata: \n\n"
+                    return
+
+        yield "data: [CRITICAL] Exhausted all retry attempts.\n\n"
+        yield "event: error\ndata: \n\n"
 
     response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
     response['Cache-Control'] = 'no-cache'
