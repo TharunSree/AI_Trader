@@ -23,7 +23,11 @@ from control_panel.models import TradingReport
 try:
     from google import genai
     from google.genai import types
-    GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
+    GEMINI_KEY = (
+        os.environ.get("GEMINI_API_KEY") or
+        getattr(settings, 'GEMINI_API_KEY', None) or
+        ''
+    )
 except ImportError:
     genai = None
     GEMINI_KEY = None
@@ -181,9 +185,9 @@ def generate_mutation_pdf(model_name, reasoning, diff_str, simple_summary):
     return str(pdf_path)
 
 def get_gemini_client():
-    api_key = os.environ.get("GEMINI_API_KEY") 
+    api_key = GEMINI_KEY or os.environ.get("GEMINI_API_KEY") or getattr(settings, 'GEMINI_API_KEY', '')
     if not api_key:
-        raise ValueError("GEMINI_API_KEY environment variable is required to run the cognitive rewriter.")
+        raise ValueError("GEMINI_API_KEY not found in environment or Django settings. Cannot run cognitive rewriter.")
     return genai.Client(api_key=api_key)
 
 def load_ppo_agent_code():
@@ -308,9 +312,42 @@ def orchestrate_rewrite(crash_log=None):
     daily = TradingReport.objects.filter(report_type='DAILY').order_by('-timestamp').first()
     weekly = TradingReport.objects.filter(report_type='WEEKLY').order_by('-timestamp').first()
     
+    # If no reports exist, generate a live performance snapshot from trade logs
     if not daily and not crash_log:
-        print("[NEURAL EVOLUTION] No Daily Report or crash log found. Skipping rewrite iteration.")
-        return
+        try:
+            from control_panel.models import PaperTrader
+            running = PaperTrader.objects.filter(status__in=['RUNNING', 'SLEEPING']).first()
+            if running:
+                trades = running.trades.all()
+                total_bought = sum(float(t.notional_value) for t in trades if t.action == 'BUY')
+                total_sold = sum(float(t.notional_value) for t in trades if t.action == 'SELL')
+                trade_count = trades.count()
+                pnl = total_sold - total_bought
+                initial = float(running.initial_cash or 0)
+                
+                synthetic_report = (
+                    f"Live Performance Snapshot (No EOD report available)\n"
+                    f"Trader #{running.id} | Model: {running.model_file}\n"
+                    f"Initial Capital: ${initial:.2f}\n"
+                    f"Total Trades: {trade_count}\n"
+                    f"Capital Spent (Buys): ${total_bought:.2f}\n"
+                    f"Capital Recovered (Sells): ${total_sold:.2f}\n"
+                    f"Realized PnL: ${pnl:+.2f}\n"
+                    f"Status: The model needs optimization — it is not generating consistent profits.\n"
+                )
+                print(f"[NEURAL EVOLUTION] No daily report found. Generated synthetic snapshot from {trade_count} trades.")
+                # Create a temporary fake daily for the rest of the flow
+                class FakeReport:
+                    report_type = 'SYNTHETIC'
+                    markdown_path = None
+                    _content = synthetic_report
+                daily = FakeReport()
+            else:
+                print("[NEURAL EVOLUTION] No running traders and no reports. Skipping.")
+                return
+        except Exception as e:
+            print(f"[NEURAL EVOLUTION] Could not generate synthetic report: {e}")
+            return
 
     try:
         client = get_gemini_client()
@@ -330,6 +367,9 @@ def orchestrate_rewrite(crash_log=None):
     def read_report(report_obj):
         if not report_obj:
             return "No report data."
+        # Handle synthetic reports from live trade data
+        if hasattr(report_obj, '_content'):
+            return report_obj._content
         try:
             path = Path(report_obj.markdown_path)
             if path.exists():

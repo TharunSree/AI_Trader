@@ -231,20 +231,24 @@ class AITradingEngine:
             
         def _norm(s):
             """Normalize BCH/USD, BCHUSD, BCH-USD → BCHUSD for comparison."""
-            return str(s).replace('/', '').replace('-', '').upper()
+            return str(s).replace('/', '').replace('-', '').replace(' ', '').upper()
 
         is_crypto = '/' in self.symbol or '-' in self.symbol or 'USD' in self.symbol.upper()
 
         held_qty = 0.0
         avg_entry = 0.0
+        my_norm = _norm(self.symbol)
         for p in positions:
-            if _norm(getattr(p, 'symbol', '')) == _norm(self.symbol):
+            p_sym = getattr(p, 'symbol', '')
+            if _norm(p_sym) == my_norm:
                 held_qty = float(getattr(p, 'qty', 0.0))
                 avg_entry = float(getattr(p, 'avg_entry_price', 0.0))
+                break
 
         # --- Get THIS BOT's own last buy price (not Alpaca's blended average) ---
         bot_entry_price = avg_entry  # fallback to Alpaca avg
         try:
+            # Try exact match first, then normalized match
             last_buy = await asyncio.to_thread(
                 lambda: TradeLog.objects.filter(
                     paper_trader_id=self.trader_id,
@@ -252,10 +256,27 @@ class AITradingEngine:
                     action='BUY'
                 ).order_by('-timestamp').first()
             )
+            if not last_buy:
+                # Fallback: try normalized match for symbol format mismatches
+                all_buys = await asyncio.to_thread(
+                    lambda: list(TradeLog.objects.filter(
+                        paper_trader_id=self.trader_id,
+                        action='BUY'
+                    ).order_by('-timestamp')[:20])
+                )
+                for buy in all_buys:
+                    if _norm(buy.symbol) == my_norm:
+                        last_buy = buy
+                        break
             if last_buy and last_buy.price:
                 bot_entry_price = float(last_buy.price)
         except Exception:
             pass  # Use Alpaca avg_entry as fallback
+        
+        # Diagnostic: log position awareness for debugging
+        if held_qty > 0:
+            unrealized_check = (current_price - bot_entry_price) / bot_entry_price if bot_entry_price > 0 else 0
+            logger.debug(f"[POSITION] {self.symbol} | Held: {held_qty:.6f} | Entry: ${bot_entry_price:.2f} | Now: ${current_price:.2f} | P/L: {unrealized_check:.2%}")
                 
         # --- Define TP/SL thresholds early (used by multiple guards below) ---
         if is_crypto:
@@ -443,6 +464,10 @@ class AITradingEngine:
         if trade_size_usd < min_notional and side == 'buy':
             logger.warning(f"Insufficient tradeable capital (${tradeable:.2f} of ${total_balance:.2f}) for minimum required trade size of ${min_notional:.2f} on {self.symbol}. Blocked.")
             return # Block low-value dusting rejections on Alpaca
+        
+        # Sells should NEVER be blocked by capital checks
+        if side == 'sell':
+            logger.info(f"[SELL PASS] {self.symbol} sell order proceeding regardless of capital (${tradeable:.2f})")
         
         qty = None
         if side == 'buy':

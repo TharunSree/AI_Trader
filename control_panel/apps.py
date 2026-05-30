@@ -253,44 +253,66 @@ def _neural_evolution_daemon():
     if not django.apps.apps.ready:
         time.sleep(10)
 
-    # Wait 5 minutes after startup before first check
-    time.sleep(300)
+    # Wait 10 minutes after startup before first check (let bots warm up)
+    time.sleep(600)
 
     while True:
         try:
-            from control_panel.models import PaperTrader, ModelVariant
+            from control_panel.models import PaperTrader
             import subprocess, sys
+            from pathlib import Path
 
             # Only trigger if there are running bots to evolve from
             running_bots = PaperTrader.objects.filter(status='RUNNING')
             if not running_bots.exists():
-                logger.debug("[EVOLUTION] No running bots. Skipping mutation cycle.")
+                logger.info("[EVOLUTION] No running bots. Skipping mutation cycle.")
                 time.sleep(12 * 3600)
                 continue
 
             # Don't trigger if a mutation is already in progress
-            active_variants = ModelVariant.objects.filter(status='TESTING').count()
-            if active_variants >= 3:
-                logger.debug(f"[EVOLUTION] {active_variants} variants already testing. Skipping.")
-                time.sleep(12 * 3600)
-                continue
+            try:
+                from control_panel.models import ModelVariant
+                active_variants = ModelVariant.objects.filter(status='TESTING').count()
+                if active_variants >= 3:
+                    logger.info(f"[EVOLUTION] {active_variants} variants already testing. Skipping.")
+                    time.sleep(12 * 3600)
+                    continue
+            except Exception:
+                pass  # ModelVariant table might not exist yet
 
             logger.info("[EVOLUTION] Auto-triggering neural evolution cycle...")
 
-            from pathlib import Path
             log_dir = Path("logs")
             log_dir.mkdir(exist_ok=True)
             log_file = log_dir / "auto_mutation.log"
 
-            from control_panel.views import _spawn_background_process
-            _spawn_background_process(
-                [sys.executable, str(Path("src") / "core" / "code_rewriter.py")],
-                log_file
-            )
-            logger.info("[EVOLUTION] Neural mutation subprocess launched.")
+            # Inline subprocess spawn (avoid circular import from views)
+            project_root = Path(__file__).resolve().parent.parent
+            cmd = [sys.executable, str(project_root / "src" / "core" / "code_rewriter.py")]
+            
+            try:
+                log_handle = open(log_file, "a", encoding="utf-8")
+                popen_kwargs = {
+                    'cwd': str(project_root),
+                    'stdout': log_handle,
+                    'stderr': subprocess.STDOUT,
+                    'stdin': subprocess.DEVNULL,
+                    'start_new_session': True,
+                }
+                if os.name == 'nt':
+                    del popen_kwargs['start_new_session']
+                    popen_kwargs['creationflags'] = (
+                        getattr(subprocess, 'CREATE_NEW_PROCESS_GROUP', 0)
+                        | getattr(subprocess, 'CREATE_NO_WINDOW', 0)
+                    )
+                
+                process = subprocess.Popen(cmd, **popen_kwargs)
+                logger.info(f"[EVOLUTION] Neural mutation subprocess launched (PID: {process.pid}). Logs: {log_file}")
+            except Exception as spawn_err:
+                logger.error(f"[EVOLUTION] Failed to spawn mutation process: {spawn_err}")
 
         except Exception as e:
-            logger.debug(f"[EVOLUTION] Auto-evolution error: {e}")
+            logger.error(f"[EVOLUTION] Auto-evolution error: {e}", exc_info=True)
 
         # Run every 12 hours
         time.sleep(12 * 3600)
