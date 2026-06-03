@@ -1005,6 +1005,13 @@
                     toastStatus.classList.add('text-green-400');
                     toastIcon.className = 'fas fa-check-circle text-green-400 text-xs';
                     toastPulse.className = 'w-1.5 h-1.5 bg-green-500 rounded-full';
+                } else if (lower.includes('[retry]') || lower.includes('retry')) {
+                    toastHeader.textContent = 'Retrying Update';
+                    toastIcon.className = 'fas fa-redo text-amber-400 text-xs animate-spin';
+                    toastPulse.className = 'w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse';
+                    toastStatus.classList.remove('text-slate-400', 'text-red-400');
+                    toastStatus.classList.add('text-amber-400');
+                    currentPct = 10;
                 } else if (lower.includes('error') || lower.includes('critical')) {
                     toastHeader.textContent = 'Update Failed';
                     toastIcon.className = 'fas fa-exclamation-triangle text-red-400 text-xs';
@@ -1133,6 +1140,16 @@
                     headerLabel.textContent = 'Deployment Successful';
                     pulseDot.classList.remove('bg-brand-500', 'animate-pulse');
                     pulseDot.classList.add('bg-green-500');
+                } else if (lower.includes('[retry]') || lower.includes('retry')) {
+                    phaseTitle.textContent = 'Retrying Update';
+                    phaseSubtitle.textContent = 'Previous attempt failed — retrying automatically...';
+                    phaseIcon.className = 'fas fa-redo text-amber-400 text-4xl animate-spin';
+                    headerLabel.textContent = 'Auto-Retry Active';
+                    pulseDot.classList.remove('bg-brand-500', 'bg-red-500');
+                    pulseDot.classList.add('bg-amber-500', 'animate-pulse');
+                    statusText.classList.remove('text-red-400');
+                    statusText.classList.add('text-slate-400');
+                    currentPct = 10;
                 } else if (lower.includes('error') || lower.includes('critical')) {
                     phaseTitle.textContent = 'Update Failed';
                     phaseSubtitle.textContent = 'An error occurred during deployment';
