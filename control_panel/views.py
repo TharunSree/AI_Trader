@@ -1196,15 +1196,126 @@ def test_email_api(request):
 
 @login_required
 def test_rewriter_api(request):
+    """Legacy alias — redirects to evolve stream."""
+    return evolve_stream(request)
+
+
+@login_required
+def test_ai_key_api(request):
+    """Test whichever AI key is configured and return the provider + status."""
     try:
-        from src.core.code_rewriter import orchestrate_rewrite
-        import threading
-        # Run it in a background thread so the UI doesn't hang!
-        t = threading.Thread(target=orchestrate_rewrite, daemon=True)
-        t.start()
-        return JsonResponse({"status": "SUCCESS", "message": "Neural Sandbox Mutator Launched. Check logs!"})
+        from src.core.code_rewriter import get_ai_client
+        client = get_ai_client()
+        # Quick ping to verify the key actually works
+        test_response = client.generate("Say 'OK' in one word.", temperature=0.0)
+        return JsonResponse({
+            "status": "ok",
+            "provider": client.provider,
+            "message": f"{client.provider.title()} API key is valid and working.",
+            "test_response": (test_response or "")[:100],
+        })
+    except ValueError as e:
+        return JsonResponse({"status": "error", "provider": None, "message": str(e)})
     except Exception as e:
-        return JsonResponse({"status": "FAILED", "message": str(e)})
+        return JsonResponse({"status": "error", "provider": None, "message": f"Key test failed: {str(e)}"})
+
+
+@login_required
+def evolve_stream(request):
+    """SSE stream that runs neural evolution and sends real-time progress."""
+    import queue, threading
+    
+    progress_queue = queue.Queue()
+    
+    def _run_evolution():
+        """Run the code rewriter and push progress messages to the queue."""
+        try:
+            progress_queue.put("[EVOLVE] Initializing AI Engine...")
+            from src.core.code_rewriter import get_ai_client, load_ppo_agent_code, rewrite_agent_code
+            from src.core.code_rewriter import _snapshot_parent_cash, generate_mutation_pdf
+            
+            progress_queue.put("[EVOLVE] Connecting to AI provider...")
+            client = get_ai_client()
+            progress_queue.put(f"[EVOLVE] Connected to {client.provider.title()}")
+            
+            progress_queue.put("[EVOLVE] Loading current model code...")
+            current_code = load_ppo_agent_code()
+            progress_queue.put(f"[EVOLVE] Loaded PPO agent ({len(current_code)} bytes)")
+            
+            # Build performance reports from recent trades
+            progress_queue.put("[EVOLVE] Building performance snapshot...")
+            d_report, w_report = _snapshot_parent_cash(None)
+            
+            progress_queue.put("[EVOLVE] Sending to AI for mutation analysis...")
+            progress_queue.put("[EVOLVE] This may take 30-60 seconds...")
+            
+            new_code, raw_response = rewrite_agent_code(
+                client, d_report, w_report, current_code
+            )
+            
+            if not new_code or len(new_code.strip()) < 100:
+                progress_queue.put("[ERROR] AI returned empty or invalid code. Aborting.")
+                progress_queue.put("[DONE]")
+                return
+            
+            progress_queue.put(f"[EVOLVE] Received mutated code ({len(new_code)} bytes)")
+            
+            # Save the new code
+            from pathlib import Path
+            agent_path = Path(__file__).resolve().parent.parent / 'src' / 'models' / 'ppo_agent.py'
+            
+            # Backup first
+            backup_path = agent_path.with_suffix('.py.bak')
+            if agent_path.exists():
+                import shutil
+                shutil.copy2(agent_path, backup_path)
+                progress_queue.put("[EVOLVE] Backed up current model")
+            
+            agent_path.write_text(new_code, encoding='utf-8')
+            progress_queue.put("[EVOLVE] New model code written to disk")
+            
+            # Generate diff
+            import difflib
+            old_lines = current_code.splitlines(keepends=True)
+            new_lines = new_code.splitlines(keepends=True)
+            diff = list(difflib.unified_diff(old_lines, new_lines, fromfile='ppo_agent.py.old', tofile='ppo_agent.py'))
+            changes = len([l for l in diff if l.startswith('+') and not l.startswith('+++')])
+            progress_queue.put(f"[EVOLVE] {changes} lines changed")
+            
+            progress_queue.put("[EVOLVE] Evolution complete!")
+            progress_queue.put("[DONE]")
+            
+        except Exception as e:
+            progress_queue.put(f"[ERROR] {str(e)}")
+            progress_queue.put("[DONE]")
+    
+    def event_stream():
+        # Start evolution in background thread
+        t = threading.Thread(target=_run_evolution, daemon=True)
+        t.start()
+        
+        import time as _t
+        timeout = 120  # 2 minute max
+        start = _t.time()
+        
+        while _t.time() - start < timeout:
+            try:
+                msg = progress_queue.get(timeout=1)
+                yield f"data: {msg}\n\n"
+                if msg == "[DONE]":
+                    yield "event: complete\ndata: \n\n"
+                    return
+            except queue.Empty:
+                # Send heartbeat to keep connection alive
+                yield "data: \n\n"
+        
+        yield "data: [ERROR] Evolution timed out after 2 minutes\n\n"
+        yield "event: complete\ndata: \n\n"
+    
+    response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
+    response['Cache-Control'] = 'no-cache'
+    response['X-Accel-Buffering'] = 'no'
+    return response
 
 @login_required
 def evaluation_view(request):
