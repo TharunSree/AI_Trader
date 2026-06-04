@@ -1232,15 +1232,13 @@ def evolve_stream(request):
     
     progress_queue = queue.Queue()
     
-    def _run_evolution():
+    def _run_evolution(client):
         """Run the code rewriter and push progress messages to the queue."""
         try:
             progress_queue.put("[EVOLVE] Initializing AI Engine...")
-            from src.core.code_rewriter import get_ai_client, load_ppo_agent_code, rewrite_agent_code
+            from src.core.code_rewriter import load_ppo_agent_code, rewrite_agent_code
             from src.core.code_rewriter import _snapshot_parent_cash, generate_mutation_pdf
             
-            progress_queue.put("[EVOLVE] Connecting to AI provider...")
-            client = get_ai_client()
             progress_queue.put(f"[EVOLVE] Connected to {client.provider.title()}")
             
             progress_queue.put("[EVOLVE] Loading current model code...")
@@ -1295,8 +1293,16 @@ def evolve_stream(request):
             progress_queue.put("[DONE]")
     
     def event_stream():
+        try:
+            from src.core.code_rewriter import get_ai_client
+            client = get_ai_client()
+        except Exception as e:
+            yield f"data: [ERROR] {str(e)}\n\n"
+            yield "event: complete\ndata: \n\n"
+            return
+            
         # Start evolution in background thread
-        t = threading.Thread(target=_run_evolution, daemon=True)
+        t = threading.Thread(target=_run_evolution, args=(client,), daemon=True)
         t.start()
         
         import time as _t
