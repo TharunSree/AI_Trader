@@ -17,13 +17,17 @@ class Broker:
             secret_key = account.secret_key
             raw_base = account.base_url
         else:
-            api_key = getattr(settings, 'ALPACA_API_KEY', None) or getattr(settings, 'API_KEY', None)
-            secret_key = (
-                    getattr(settings, 'ALPACA_SECRET_KEY', None)
-                    or getattr(settings, 'SECRET_KEY_ALPACA', None)
-                    or getattr(settings, 'SECRET_KEY', None)
-            )
-            raw_base = getattr(settings, 'BASE_URL', 'paper')
+            # Fallback to SystemSettings if no specific account provided
+            try:
+                from control_panel.models import SystemSettings
+                sys_settings = SystemSettings.load()
+                api_key = sys_settings.alpaca_api_key or getattr(settings, 'ALPACA_API_KEY', None) or getattr(settings, 'API_KEY', None)
+                secret_key = sys_settings.alpaca_secret_key or getattr(settings, 'ALPACA_SECRET_KEY', None) or getattr(settings, 'SECRET_KEY', None)
+                raw_base = sys_settings.broker_endpoint or getattr(settings, 'BASE_URL', 'paper')
+            except Exception:
+                api_key = getattr(settings, 'ALPACA_API_KEY', None) or getattr(settings, 'API_KEY', None)
+                secret_key = getattr(settings, 'ALPACA_SECRET_KEY', None) or getattr(settings, 'SECRET_KEY', None)
+                raw_base = getattr(settings, 'BASE_URL', 'paper')
             
         if not api_key or not secret_key:
             raise ValueError("Missing Alpaca credentials (API_KEY / SECRET_KEY).")

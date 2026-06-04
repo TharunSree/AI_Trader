@@ -1148,19 +1148,24 @@ def start_real_trader_view(request):
 @login_required
 def settings_view(request):
     if request.method == 'POST':
-        # Save sensitive keys to .env file
-        write_env_value("API_KEY", request.POST.get('alpaca_api_key', ''))
-        write_env_value("SECRET_KEY", request.POST.get('alpaca_secret_key', ''))
-        write_env_value("BASE_URL", request.POST.get('broker_endpoint', ''))
-        write_env_value("GEMINI_API_KEY", request.POST.get('gemini_api_key', ''))
-        write_env_value("OPENAI_API_KEY", request.POST.get('openai_api_key', ''))
-        write_env_value("ANTHROPIC_API_KEY", request.POST.get('anthropic_api_key', ''))
+        settings = SystemSettings.load()
+        
+        # Save sensitive keys to database
+        if 'alpaca_api_key' in request.POST:
+            settings.alpaca_api_key = request.POST.get('alpaca_api_key', '')
+            settings.alpaca_secret_key = request.POST.get('alpaca_secret_key', '')
+            settings.broker_endpoint = request.POST.get('broker_endpoint', '')
+            
+        if 'gemini_api_key' in request.POST or 'openai_api_key' in request.POST or 'anthropic_api_key' in request.POST:
+            settings.gemini_api_key = request.POST.get('gemini_api_key', '')
+            settings.openai_api_key = request.POST.get('openai_api_key', '')
+            settings.anthropic_api_key = request.POST.get('anthropic_api_key', '')
 
         # Save non-sensitive settings to the database
-        settings = SystemSettings.load()
         # Only update display_currency if the field was in the form submission
         if 'display_currency' in request.POST and request.POST.get('display_currency'):
             settings.display_currency = request.POST.get('display_currency')
+            
         settings.save()
 
         messages.success(request, 'Settings have been saved successfully!')
@@ -1172,12 +1177,12 @@ def settings_view(request):
     context = {
         'settings': settings,
         'broker_accounts': BrokerAccount.objects.all(),
-        'api_key': read_env_value("API_KEY"),
-        'secret_key': read_env_value("SECRET_KEY"),
-        'base_url': read_env_value("BASE_URL"),
-        'gemini_api_key': read_env_value("GEMINI_API_KEY"),
-        'openai_api_key': read_env_value("OPENAI_API_KEY"),
-        'anthropic_api_key': read_env_value("ANTHROPIC_API_KEY"),
+        'api_key': settings.alpaca_api_key,
+        'secret_key': settings.alpaca_secret_key,
+        'base_url': settings.broker_endpoint,
+        'gemini_api_key': settings.gemini_api_key,
+        'openai_api_key': settings.openai_api_key,
+        'anthropic_api_key': settings.anthropic_api_key,
         'current_currency': settings.display_currency,
     }
     return render(request, 'settings.html', context)

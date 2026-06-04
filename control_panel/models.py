@@ -173,6 +173,14 @@ class SystemSettings(models.Model):
     idle_lock_minutes = models.IntegerField(default=5, help_text="Minutes of inactivity before showing lockscreen (0 to disable)")
     idle_logout_minutes = models.IntegerField(default=30, help_text="Minutes of inactivity before forcefully ending session")
 
+    # API Keys
+    alpaca_api_key = models.CharField(max_length=255, blank=True, default='')
+    alpaca_secret_key = models.CharField(max_length=255, blank=True, default='')
+    broker_endpoint = models.CharField(max_length=255, blank=True, default='')
+    gemini_api_key = models.CharField(max_length=255, blank=True, default='')
+    openai_api_key = models.CharField(max_length=255, blank=True, default='')
+    anthropic_api_key = models.CharField(max_length=255, blank=True, default='')
+
     def save(self, *args, **kwargs):
         self.pk = 1
         super(SystemSettings, self).save(*args, **kwargs)

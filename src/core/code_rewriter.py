@@ -190,14 +190,15 @@ def generate_mutation_pdf(model_name, reasoning, diff_str, simple_summary):
     return str(pdf_path)
 
 def _read_key(name):
-    """Read an API key from env vars, Django settings, or .env file."""
+    """Read an API key from env vars, Django settings, or SystemSettings database."""
     val = os.environ.get(name, '')
     if not val:
         val = getattr(settings, name, '') or ''
     if not val:
         try:
-            from control_panel.env_manager import read_env_value
-            val = read_env_value(name)
+            from control_panel.models import SystemSettings
+            db_settings = SystemSettings.load()
+            val = getattr(db_settings, name.lower(), '')
         except Exception:
             pass
     return val or ''
