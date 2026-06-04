@@ -250,17 +250,38 @@ class _UnifiedAIClient:
             f"OpenAI(key={'SET' if openai_key else 'EMPTY'}, mod={'LOADED' if openai_mod else 'MISSING'}) | "
             f"Anthropic(key={'SET' if anthropic_key else 'EMPTY'}, mod={'LOADED' if anthropic_mod else 'MISSING'})"
         )
+        
+        # REST API Fallback for Gemini if the package is missing but the key is set
+        if gemini_key and not genai:
+            self.provider = 'gemini'
+            self._gemini_api_key = gemini_key
+            print(f"[AI ENGINE] Using Gemini (REST API Fallback)")
+            return
+            
         raise ValueError(f"No AI API key or module found! {debug_msg}")
 
     def generate(self, prompt, temperature=0.4):
         """Generate text from any provider. Returns the raw response text."""
         if self.provider == 'gemini':
-            response = self._client.models.generate_content(
-                model='gemini-2.5-flash',
-                contents=prompt,
-                config=genai_types.GenerateContentConfig(temperature=temperature),
-            )
-            return response.text
+            if hasattr(self, '_gemini_api_key'):
+                import requests
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={self._gemini_api_key}"
+                headers = {"Content-Type": "application/json"}
+                data = {
+                    "contents": [{"parts": [{"text": prompt}]}],
+                    "generationConfig": {"temperature": temperature}
+                }
+                resp = requests.post(url, headers=headers, json=data)
+                if resp.status_code != 200:
+                    raise RuntimeError(f"Gemini API Error: {resp.text}")
+                return resp.json()['candidates'][0]['content']['parts'][0]['text']
+            else:
+                response = self._client.models.generate_content(
+                    model='gemini-2.5-flash',
+                    contents=prompt,
+                    config=genai_types.GenerateContentConfig(temperature=temperature),
+                )
+                return response.text
 
         elif self.provider == 'openai':
             response = self._client.chat.completions.create(
