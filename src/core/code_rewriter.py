@@ -22,15 +22,20 @@ from control_panel.models import TradingReport
 
 try:
     from google import genai
-    from google.genai import types
-    GEMINI_KEY = (
-        os.environ.get("GEMINI_API_KEY") or
-        getattr(settings, 'GEMINI_API_KEY', None) or
-        ''
-    )
+    from google.genai import types as genai_types
 except ImportError:
     genai = None
-    GEMINI_KEY = None
+    genai_types = None
+
+try:
+    import openai as openai_mod
+except ImportError:
+    openai_mod = None
+
+try:
+    import anthropic as anthropic_mod
+except ImportError:
+    anthropic_mod = None
 
 class MutationReportPDF(FPDF):
     """Catppuccin Frappe themed mutation report with JetBrains Mono."""
@@ -184,11 +189,102 @@ def generate_mutation_pdf(model_name, reasoning, diff_str, simple_summary):
     pdf.output(str(pdf_path))
     return str(pdf_path)
 
-def get_gemini_client():
-    api_key = GEMINI_KEY or os.environ.get("GEMINI_API_KEY") or getattr(settings, 'GEMINI_API_KEY', '')
-    if not api_key:
-        raise ValueError("GEMINI_API_KEY not found in environment or Django settings. Cannot run cognitive rewriter.")
-    return genai.Client(api_key=api_key)
+def _read_key(name):
+    """Read an API key from env vars, Django settings, or .env file."""
+    val = os.environ.get(name, '')
+    if not val:
+        val = getattr(settings, name, '') or ''
+    if not val:
+        try:
+            from control_panel.env_manager import read_env_value
+            val = read_env_value(name)
+        except Exception:
+            pass
+    return val or ''
+
+
+class _UnifiedAIClient:
+    """Wraps Gemini / OpenAI / Anthropic behind a single .generate(prompt) interface."""
+
+    def __init__(self):
+        self.provider = None
+        self._client = None
+
+        # Try Gemini first
+        gemini_key = _read_key("GEMINI_API_KEY")
+        if gemini_key and genai:
+            try:
+                self._client = genai.Client(api_key=gemini_key)
+                self.provider = 'gemini'
+                print(f"[AI ENGINE] Using Gemini (google-genai)")
+                return
+            except Exception as e:
+                print(f"[AI ENGINE] Gemini init failed: {e}")
+
+        # Try OpenAI
+        openai_key = _read_key("OPENAI_API_KEY")
+        if openai_key and openai_mod:
+            try:
+                self._client = openai_mod.OpenAI(api_key=openai_key)
+                self.provider = 'openai'
+                print(f"[AI ENGINE] Using OpenAI")
+                return
+            except Exception as e:
+                print(f"[AI ENGINE] OpenAI init failed: {e}")
+
+        # Try Anthropic
+        anthropic_key = _read_key("ANTHROPIC_API_KEY")
+        if anthropic_key and anthropic_mod:
+            try:
+                self._client = anthropic_mod.Anthropic(api_key=anthropic_key)
+                self.provider = 'anthropic'
+                print(f"[AI ENGINE] Using Anthropic Claude")
+                return
+            except Exception as e:
+                print(f"[AI ENGINE] Anthropic init failed: {e}")
+
+        raise ValueError(
+            "No AI API key found! Set at least one of: GEMINI_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY "
+            "in Settings > AI Engine, or as an environment variable."
+        )
+
+    def generate(self, prompt, temperature=0.4):
+        """Generate text from any provider. Returns the raw response text."""
+        if self.provider == 'gemini':
+            response = self._client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=prompt,
+                config=genai_types.GenerateContentConfig(temperature=temperature),
+            )
+            return response.text
+
+        elif self.provider == 'openai':
+            response = self._client.chat.completions.create(
+                model='gpt-4o-mini',
+                messages=[{"role": "user", "content": prompt}],
+                temperature=temperature,
+            )
+            return response.choices[0].message.content
+
+        elif self.provider == 'anthropic':
+            response = self._client.messages.create(
+                model='claude-sonnet-4-20250514',
+                max_tokens=8192,
+                temperature=temperature,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            return response.content[0].text
+
+        raise RuntimeError(f"Unknown provider: {self.provider}")
+
+
+def get_ai_client():
+    """Get a unified AI client — tries Gemini > OpenAI > Anthropic in order."""
+    return _UnifiedAIClient()
+
+
+# Legacy alias so existing callers still work
+get_gemini_client = get_ai_client
 
 def load_ppo_agent_code():
     agent_path = Path(__file__).resolve().parent.parent / 'models' / 'ppo_agent.py'
@@ -240,15 +336,9 @@ def rewrite_agent_code(client, d_report, w_report, current_code, crash_log=None,
     Output ONLY valid Python code containing the full updated ppo_agent.py module. Do not use markdown wrappers if possible, but if you do, wrap the whole output exactly once.
     """
     
-    response = client.models.generate_content(
-        model='gemini-2.5-flash',
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            temperature=0.4,
-        )
-    )
+    raw_response = client.generate(prompt, temperature=0.4)
     
-    code = response.text
+    code = raw_response
     if code.startswith("```python"):
         code = code[9:]
     if code.startswith("```"):
@@ -256,7 +346,7 @@ def rewrite_agent_code(client, d_report, w_report, current_code, crash_log=None,
     if code.endswith("```"):
         code = code[:-3]
         
-    return code.strip() + "\n", response.text
+    return code.strip() + "\n", raw_response
 
 def _snapshot_parent_cash(parent_trader):
     """
@@ -436,14 +526,13 @@ def orchestrate_rewrite(crash_log=None):
         
         # Generate Simple Summary
         simple_summary = "Strategy evolved: Thresholds and logic flow optimized based on recent session performance."
-        if genai and GEMINI_KEY:
-            try:
-                sum_res = client.models.generate_content(
-                    model='gemini-2.5-flash',
-                    contents=f"Summarize these code changes in 2-3 simple sentences for a non-technical trader:\n\n{diff_str}"
-                )
-                simple_summary = sum_res.text
-            except: pass
+        try:
+            simple_summary = client.generate(
+                f"Summarize these code changes in 2-3 simple sentences for a non-technical trader:\n\n{diff_str}",
+                temperature=0.3
+            )
+        except Exception:
+            pass
         
         # Generate mutation PDF report
         pdf_path = generate_mutation_pdf("ppo_agent", raw_response, diff_str, simple_summary)

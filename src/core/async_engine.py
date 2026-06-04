@@ -278,21 +278,42 @@ class AITradingEngine:
             unrealized_check = (current_price - bot_entry_price) / bot_entry_price if bot_entry_price > 0 else 0
             logger.debug(f"[POSITION] {self.symbol} | Held: {held_qty:.6f} | Entry: ${bot_entry_price:.2f} | Now: ${current_price:.2f} | P/L: {unrealized_check:.2%}")
                 
-        # --- Define TP/SL thresholds early (used by multiple guards below) ---
+        # --- Define TP/SL thresholds — ADAPTIVE based on position size ---
+        # Small accounts ($50-200): take frequent small profits, avoid premature stop-losses
+        # Large accounts ($500+): standard wider thresholds
+        position_value = held_qty * current_price if held_qty > 0 else 0.0
+        
         if is_crypto:
-            take_profit_pct = 0.012   # 1.2% gain  → sell (crypto)
-            stop_loss_pct   = -0.020  # 2.0% loss  → cut losses (crypto)
+            if position_value < 50.0:
+                # MICRO positions (<$50): scalp mode — grab small wins, never sell at loss
+                take_profit_pct = 0.004   # 0.4% gain → sell (e.g. $0.04 on $10)
+                stop_loss_pct   = -0.050  # 5.0% loss → only cut on extreme drops
+            elif position_value < 200.0:
+                # SMALL positions (<$200): tight profits, relaxed stops
+                take_profit_pct = 0.006   # 0.6% gain
+                stop_loss_pct   = -0.035  # 3.5% loss
+            else:
+                # STANDARD positions ($200+): normal thresholds
+                take_profit_pct = 0.012   # 1.2% gain
+                stop_loss_pct   = -0.020  # 2.0% loss
         else:
-            take_profit_pct = 0.015   # 1.5% gain  → sell (stocks)
-            stop_loss_pct   = -0.020  # 2.0% loss  → cut losses (stocks)
+            take_profit_pct = 0.008   # 0.8% gain (stocks)
+            stop_loss_pct   = -0.020  # 2.0% loss (stocks)
 
-        # --- SMART PROFIT GUARD: Block noise sells, allow real stop-loss ---
+        # --- SMART PROFIT GUARD: Block loss sells on small positions ---
         if held_qty > 0 and bot_entry_price > 0:
-            position_value = held_qty * current_price
             unrealized_pct = (current_price - bot_entry_price) / bot_entry_price
-            # For small positions: only block sells when loss is SMALL (noise/spread)
-            # If loss exceeds stop-loss threshold, let it through to be cut
-            if position_value < 100.0 and unrealized_pct < 0 and unrealized_pct > stop_loss_pct:
+            
+            if position_value < 50.0 and unrealized_pct < 0:
+                # MICRO positions: NEVER sell at a loss — the absolute dollar loss is
+                # tiny but fees/spread eat disproportionately into small capital
+                logger.info(
+                    f"[PROFIT GUARD] Blocking ALL loss sells on micro position {self.symbol} "
+                    f"(${position_value:.2f}) loss {unrealized_pct:.2%}. Holding for recovery."
+                )
+                return
+            elif position_value < 200.0 and unrealized_pct < 0 and unrealized_pct > stop_loss_pct:
+                # SMALL positions: block noise sells within SL range
                 logger.info(
                     f"[PROFIT GUARD] Blocking noise sell on {self.symbol} — small position "
                     f"(${position_value:.2f}) loss {unrealized_pct:.2%} is within SL range. Holding."

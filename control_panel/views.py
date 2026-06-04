@@ -1153,6 +1153,8 @@ def settings_view(request):
         write_env_value("SECRET_KEY", request.POST.get('alpaca_secret_key', ''))
         write_env_value("BASE_URL", request.POST.get('broker_endpoint', ''))
         write_env_value("GEMINI_API_KEY", request.POST.get('gemini_api_key', ''))
+        write_env_value("OPENAI_API_KEY", request.POST.get('openai_api_key', ''))
+        write_env_value("ANTHROPIC_API_KEY", request.POST.get('anthropic_api_key', ''))
 
         # Save non-sensitive settings to the database
         settings = SystemSettings.load()
@@ -1172,6 +1174,8 @@ def settings_view(request):
         'secret_key': read_env_value("SECRET_KEY"),
         'base_url': read_env_value("BASE_URL"),
         'gemini_api_key': read_env_value("GEMINI_API_KEY"),
+        'openai_api_key': read_env_value("OPENAI_API_KEY"),
+        'anthropic_api_key': read_env_value("ANTHROPIC_API_KEY"),
         'current_currency': settings.display_currency,
     }
     return render(request, 'settings.html', context)
@@ -2313,14 +2317,15 @@ def system_update_stream(request):
                 # 4. SCHEDULE SERVER SELF-RESTART (runs after SSE stream closes)
                 import threading
                 def _delayed_server_restart():
-                    """Restart the Django server process after a short delay."""
+                    """Restart the server process after a short delay.
+                    Handles: systemd, supervisor, Daphne (PaaS), and dev server."""
                     _time.sleep(3)  # Let the SSE response flush to client first
                     try:
-                        import shutil
-                        # Try systemctl (Linux systemd services)
+                        import shutil, signal
+                        
+                        # Method 1: systemctl (Linux systemd services)
                         if shutil.which('systemctl'):
-                            # Try common service names
-                            for svc in ['ai_trader', 'aitrader', 'gunicorn', 'django']:
+                            for svc in ['ai_trader', 'aitrader', 'gunicorn', 'daphne', 'django']:
                                 result = subprocess.run(
                                     ['systemctl', 'is-active', svc],
                                     capture_output=True, text=True, timeout=5
@@ -2332,7 +2337,8 @@ def system_update_stream(request):
                                     )
                                     logger.info(f"[UPDATE] Server restart via systemctl restart {svc}")
                                     return
-                        # Try supervisorctl (Supervisor-managed)
+                        
+                        # Method 2: supervisorctl
                         if shutil.which('supervisorctl'):
                             subprocess.Popen(
                                 ['supervisorctl', 'restart', 'all'],
@@ -2340,12 +2346,29 @@ def system_update_stream(request):
                             )
                             logger.info("[UPDATE] Server restart via supervisorctl restart all")
                             return
-                        # Fallback: touch manage.py to trigger Django dev server reload
-                        import pathlib
-                        manage_py = pathlib.Path(__file__).parent.parent / 'manage.py'
-                        if manage_py.exists():
-                            manage_py.touch()
-                            logger.info("[UPDATE] Triggered dev server reload by touching manage.py")
+                        
+                        # Method 3: Kill parent process (Daphne/Gunicorn on PaaS like Render)
+                        # The platform's process manager will auto-restart the container
+                        if os.name != 'nt':
+                            ppid = os.getppid()
+                            if ppid > 1:  # Not init
+                                try:
+                                    os.kill(ppid, signal.SIGHUP)
+                                    logger.info(f"[UPDATE] Sent SIGHUP to parent PID {ppid} for graceful reload")
+                                    _time.sleep(2)
+                                except Exception:
+                                    pass
+                            
+                            # Final fallback: exit the process — PaaS will restart it
+                            logger.info("[UPDATE] Forcing process exit for PaaS restart...")
+                            os._exit(0)
+                        else:
+                            # Windows dev server: touch manage.py to trigger auto-reload
+                            import pathlib
+                            manage_py = pathlib.Path(__file__).parent.parent / 'manage.py'
+                            if manage_py.exists():
+                                manage_py.touch()
+                                logger.info("[UPDATE] Triggered dev server reload by touching manage.py")
                     except Exception as restart_err:
                         logger.warning(f"[UPDATE] Server self-restart failed: {restart_err}")
                 
