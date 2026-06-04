@@ -282,6 +282,21 @@
             </p>
             
             <div class="space-y-6 font-mono text-xs">
+                <!-- v1.04 -->
+                <div class="border-l-2 border-indigo-500 pl-4 py-1">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 font-bold">v1.04</span>
+                        <span class="text-slate-500 text-[10px]">June 04, 2026</span>
+                    </div>
+                    <p class="text-slate-800 dark:text-slate-300 font-bold mb-1">Self-Healing Feedback Loops & Zombie Process Eviction</p>
+                    <ul class="list-disc pl-4 space-y-1 text-slate-500 dark:text-slate-400">
+                        <li>Closed the self-healing loop: The Cognitive Mutator now reads tracebacks/errors from failed variants and instructs Gemini to correct them in the next iteration.</li>
+                        <li>Implemented zombie PID eviction: testing slots automatically self-heal and release if their virtual processes are terminated or OOM-killed.</li>
+                        <li>Forced process termination: Evicting/rejecting/promoting variants now kills all respective running PIDs immediately to prevent CPU leaks.</li>
+                        <li>Added a "Restart Engine" button on failed variants to easily retry after settings updates.</li>
+                    </ul>
+                </div>
+
                 <!-- v1.03 -->
                 <div class="border-l-2 border-purple-500 pl-4 py-1">
                     <div class="flex items-center gap-2 mb-1">

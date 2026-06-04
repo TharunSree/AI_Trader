@@ -2333,11 +2333,21 @@ def evolution_promote_api(request, variant_id):
         variant.status = 'PROMOTED'
         variant.save(update_fields=['status'])
         
-        # Fail all other testing variants
-        ModelVariant.objects.filter(status='TESTING').exclude(id=variant_id).update(
-            status='FAILED',
-            error_message='Terminated: another variant was promoted'
-        )
+        # Fail and terminate all other testing variants' background processes
+        other_variants = list(ModelVariant.objects.filter(status='TESTING').exclude(id=variant_id))
+        for ov in other_variants:
+            if ov.celery_task_id:
+                try:
+                    import psutil
+                    import signal
+                    pid = int(ov.celery_task_id)
+                    if psutil.pid_exists(pid):
+                        os.kill(pid, signal.SIGTERM)
+                except Exception as e:
+                    logger.error(f"[EVOLUTION] Failed to kill PID {ov.celery_task_id} for variant #{ov.id}: {e}")
+            ov.status = 'FAILED'
+            ov.error_message = 'Terminated: another variant was promoted'
+            ov.save(update_fields=['status', 'error_message'])
         
         # Restart all running traders to pick up new code
         running_traders = list(PaperTrader.objects.filter(status__in=['RUNNING', 'SLEEPING']))
@@ -2433,6 +2443,77 @@ def evolution_delete_api(request, variant_id):
         return JsonResponse({'status': 'success', 'message': f'Variant #{variant_id} deleted successfully.'})
         
     return redirect('evolution_hub')
+
+
+@login_required
+@require_POST
+def evolution_restart_api(request, variant_id):
+    """POST: Restarts a failed or stopped variant's virtual trading engine."""
+    from django.shortcuts import get_object_or_404, redirect
+    from .models import ModelVariant
+    import sys
+    import os
+    import signal
+    from pathlib import Path
+    
+    variant = get_object_or_404(ModelVariant, id=variant_id)
+    
+    # Enforce spawn guard to make sure we don't exceed max 3 active variants
+    from src.core.code_rewriter import _enforce_spawn_guard
+    _enforce_spawn_guard(max_active=3)
+    
+    # Kill existing process if any
+    if variant.celery_task_id:
+        try:
+            import psutil
+            pid = int(variant.celery_task_id)
+            if psutil.pid_exists(pid):
+                os.kill(pid, signal.SIGTERM)
+        except Exception:
+            pass
+            
+    # Reset metrics
+    variant.status = 'TESTING'
+    variant.error_message = None
+    variant.virtual_balance = variant.starting_cash
+    variant.virtual_trades_count = 0
+    variant.virtual_pnl = 0
+    variant.virtual_pnl_pct = 0.0
+    variant.win_rate = 0.0
+    variant.save()
+    
+    # Delete virtual trades to start clean
+    variant.virtual_trades.all().delete()
+    
+    # Spawn process
+    try:
+        from .views import _spawn_background_process
+        log_dir = Path(__file__).resolve().parent.parent / "logs"
+        log_dir.mkdir(exist_ok=True)
+        log_file = log_dir / f"evolution_variant_{variant.id}.log"
+        
+        # Clear existing logs
+        if log_file.exists():
+            try:
+                log_file.unlink()
+            except Exception:
+                pass
+                
+        process = _spawn_background_process(
+            [sys.executable, "-m", "src.core.virtual_paper_engine", "--variant_id", str(variant.id)],
+            log_file,
+        )
+        variant.celery_task_id = str(process.pid)
+        variant.save(update_fields=['celery_task_id'])
+    except Exception as spawn_err:
+        variant.status = 'FAILED'
+        variant.error_message = f"Failed to spawn virtual engine: {spawn_err}"
+        variant.save(update_fields=['status', 'error_message'])
+        
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json':
+        return JsonResponse({'status': 'success', 'message': f'Variant #{variant_id} restarted successfully.'})
+        
+    return redirect('variant_details', variant_id=variant.id)
 
 
 

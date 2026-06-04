@@ -322,7 +322,7 @@ def load_ppo_agent_code():
         raise FileNotFoundError(f"Could not find {agent_path}")
     return agent_path.read_text(encoding='utf-8')
 
-def rewrite_agent_code(client, d_report, w_report, current_code, crash_log=None, eod_suggestions=None):
+def rewrite_agent_code(client, d_report, w_report, current_code, crash_log=None, eod_suggestions=None, failed_context=None):
     suggestions_block = ""
     if eod_suggestions:
         suggestions_block = f"""
@@ -352,6 +352,7 @@ def rewrite_agent_code(client, d_report, w_report, current_code, crash_log=None,
     {'CRITICAL: THE SYSTEM JUST CRASHED. FIX THE FOLLOWING TRACEBACK IN YOUR NEW CODE:' if crash_log else ''}
     {crash_log if crash_log else ''}
     
+    {failed_context if failed_context else ''}
     
     Only rewrite the hyperparameters or the get_action / predict functions. Do NOT change the neural architecture (input/output shape) or the system will crash.
     
@@ -406,7 +407,24 @@ def _enforce_spawn_guard(max_active=3):
     Returns True if a slot is available after enforcement.
     """
     from control_panel.models import ModelVariant
+    import psutil
+    import os
+    import signal
     
+    # 1. Self-healing/clean-up: Prune dead testing processes from database status
+    testing_variants = ModelVariant.objects.filter(status='TESTING')
+    for v in testing_variants:
+        if v.celery_task_id:
+            try:
+                pid = int(v.celery_task_id)
+                if not psutil.pid_exists(pid):
+                    print(f"[NEURAL EVOLUTION] Detected dead virtual engine process (PID {pid}) for Variant #{v.id}. Pruning slot to FAILED.")
+                    v.status = 'FAILED'
+                    v.error_message = 'Process exited unexpectedly (crashed or was terminated)'
+                    v.save(update_fields=['status', 'error_message'])
+            except Exception as e:
+                print(f"[NEURAL EVOLUTION] Error checking process status for Variant #{v.id}: {e}")
+
     active = ModelVariant.objects.filter(status='TESTING').order_by('virtual_pnl_pct')
     count = active.count()
     
@@ -414,12 +432,23 @@ def _enforce_spawn_guard(max_active=3):
         print(f"[NEURAL EVOLUTION] Spawn Guard: {count}/{max_active} slots occupied. Slot available.")
         return True
     
-    # Kill the worst performer to make room
+    # 2. Free up slot: Kill the worst performer to make room
     worst = active.first()
     if worst:
         print(f"[NEURAL EVOLUTION] Spawn Guard: {count}/{max_active} slots full. "
               f"Terminating worst performer: Variant #{worst.id} '{worst.name}' "
               f"(PnL: {worst.virtual_pnl_pct:+.2f}%)")
+              
+        # Stop its running process
+        if worst.celery_task_id:
+            try:
+                pid = int(worst.celery_task_id)
+                if psutil.pid_exists(pid):
+                    os.kill(pid, signal.SIGTERM)
+                    print(f"[NEURAL EVOLUTION] Successfully terminated PID {pid} for Variant #{worst.id}")
+            except Exception as kill_err:
+                print(f"[NEURAL EVOLUTION] Failed to kill PID {worst.celery_task_id} for Variant #{worst.id}: {kill_err}")
+                
         worst.status = 'FAILED'
         worst.error_message = 'Terminated by spawn guard to make room for new variant'
         worst.save(update_fields=['status', 'error_message'])
@@ -513,6 +542,19 @@ def orchestrate_rewrite(crash_log=None):
         except Exception:
             pass
 
+    # Collect error tracebacks from recently failed variants to avoid repeating errors
+    from control_panel.models import ModelVariant
+    failed_variants = ModelVariant.objects.filter(status='FAILED').exclude(error_message__isnull=True).exclude(error_message='').order_by('-id')[:2]
+    failed_context = ""
+    if failed_variants:
+        failed_context = "\nCRITICAL: The following recently generated model variant(s) crashed in the virtual testing sandbox. Review their errors and ensure your new code resolves or avoids these issues:\n"
+        for fv in failed_variants:
+            failed_context += f"--- Failed Variant #{fv.id} ({fv.name}) ---\n"
+            failed_context += f"Error: {fv.error_message}\n"
+            if fv.agent_code:
+                failed_context += f"Failed Agent Code:\n```python\n{fv.agent_code}\n```\n"
+            failed_context += "----------------------------------------\n"
+
     try:
         new_code, raw_response = rewrite_agent_code(
             client, 
@@ -520,7 +562,8 @@ def orchestrate_rewrite(crash_log=None):
             weekly_content,
             current_code,
             crash_log,
-            eod_suggestions
+            eod_suggestions,
+            failed_context
         )
         
         print("\n" + "="*50)
