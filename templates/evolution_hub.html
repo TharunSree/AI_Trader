@@ -204,7 +204,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${stColor}">${v.status}</span>
                         </div>
                         <div class="flex items-center justify-between text-[10px] font-mono border-t border-slate-100 dark:border-slate-800 pt-2 mt-2">
-                            <span class="text-slate-500">P&L: <span class="${v.net_pnl > 0 ? 'text-emerald-500' : 'text-rose-500'} font-bold">$${v.net_pnl.toFixed(2)}</span></span>
+                            <span class="text-slate-500">P&L: <span class="${v.virtual_pnl > 0 ? 'text-emerald-500' : 'text-rose-500'} font-bold">$${v.virtual_pnl.toFixed(2)}</span></span>
                             <span class="text-slate-500">Win Rate: <span class="text-slate-300">${(v.win_rate*100).toFixed(1)}%</span></span>
                         </div>
                     </div>
