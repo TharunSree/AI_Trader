@@ -2429,6 +2429,8 @@ def system_update_stream(request):
                     if attempt < MAX_RETRIES:
                         continue  # Retry
                     yield "event: error\ndata: \n\n"
+                    import threading
+                    threading.Thread(target=_delayed_server_restart, daemon=True).start()
                     return
                 
                 yield "data: [SYSTEM] Synchronizing Dependencies...\n\n"
@@ -2454,6 +2456,8 @@ def system_update_stream(request):
                     if attempt < MAX_RETRIES:
                         continue  # Retry
                     yield "event: error\ndata: \n\n"
+                    import threading
+                    threading.Thread(target=_delayed_server_restart, daemon=True).start()
                     return
 
                 # 3. RESTART RUNNING TRADERS so they pick up the new engine code
