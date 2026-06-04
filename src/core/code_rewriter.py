@@ -244,10 +244,13 @@ class _UnifiedAIClient:
             except Exception as e:
                 print(f"[AI ENGINE] Anthropic init failed: {e}")
 
-        raise ValueError(
-            "No AI API key found! Set at least one of: GEMINI_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY "
-            "in Settings > AI Engine, or as an environment variable."
+        debug_msg = (
+            f"Diagnostics: "
+            f"Gemini(key={'SET' if gemini_key else 'EMPTY'}, mod={'LOADED' if genai else 'MISSING'}) | "
+            f"OpenAI(key={'SET' if openai_key else 'EMPTY'}, mod={'LOADED' if openai_mod else 'MISSING'}) | "
+            f"Anthropic(key={'SET' if anthropic_key else 'EMPTY'}, mod={'LOADED' if anthropic_mod else 'MISSING'})"
         )
+        raise ValueError(f"No AI API key or module found! {debug_msg}")
 
     def generate(self, prompt, temperature=0.4):
         """Generate text from any provider. Returns the raw response text."""
