@@ -2244,6 +2244,24 @@ def evolution_variants_api(request):
     
     return JsonResponse({'status': 'success', 'variants': data})
 
+@login_required
+def variant_logs_api(request, variant_id):
+    """
+    Streams the virtual trading progress logs for a specific variant.
+    """
+    from pathlib import Path
+    log_file = Path(__file__).parent.parent / "logs" / f"evolution_variant_{variant_id}.log"
+    if not log_file.exists():
+        return JsonResponse({"logs": f"Virtual Engine offline. Log file evolution_variant_{variant_id}.log not found."})
+    
+    try:
+        with open(log_file, "r", encoding="utf-8", errors="ignore") as f:
+            lines = f.readlines()
+            logs = "".join(lines[-300:])
+        return JsonResponse({"logs": logs})
+    except Exception as e:
+        return JsonResponse({"logs": f"Error accessing virtual terminal: {e}"})
+
 
 @login_required
 @require_POST
