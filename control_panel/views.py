@@ -1158,7 +1158,9 @@ def settings_view(request):
 
         # Save non-sensitive settings to the database
         settings = SystemSettings.load()
-        settings.display_currency = request.POST.get('display_currency')
+        # Only update display_currency if the field was in the form submission
+        if 'display_currency' in request.POST and request.POST.get('display_currency'):
+            settings.display_currency = request.POST.get('display_currency')
         settings.save()
 
         messages.success(request, 'Settings have been saved successfully!')
@@ -2347,21 +2349,21 @@ def system_update_stream(request):
                             logger.info("[UPDATE] Server restart via supervisorctl restart all")
                             return
                         
-                        # Method 3: Kill parent process (Daphne/Gunicorn on PaaS like Render)
-                        # The platform's process manager will auto-restart the container
+                        # Method 3: Signal parent process (Daphne/Gunicorn on PaaS like Render)
                         if os.name != 'nt':
                             ppid = os.getppid()
                             if ppid > 1:  # Not init
                                 try:
                                     os.kill(ppid, signal.SIGHUP)
                                     logger.info(f"[UPDATE] Sent SIGHUP to parent PID {ppid} for graceful reload")
-                                    _time.sleep(2)
                                 except Exception:
                                     pass
-                            
-                            # Final fallback: exit the process — PaaS will restart it
-                            logger.info("[UPDATE] Forcing process exit for PaaS restart...")
-                            os._exit(0)
+                            # Also touch manage.py as a secondary reload trigger
+                            import pathlib
+                            manage_py = pathlib.Path(__file__).parent.parent / 'manage.py'
+                            if manage_py.exists():
+                                manage_py.touch()
+                                logger.info("[UPDATE] Touched manage.py for reload")
                         else:
                             # Windows dev server: touch manage.py to trigger auto-reload
                             import pathlib
