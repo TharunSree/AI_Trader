@@ -2460,28 +2460,16 @@ def system_update_stream(request):
                             logger.info("[UPDATE] Server restart via supervisorctl restart all")
                             return
                         
-                        # Method 3: Signal parent process (Daphne/Gunicorn on PaaS like Render)
-                        if os.name != 'nt':
-                            ppid = os.getppid()
-                            if ppid > 1:  # Not init
-                                try:
-                                    os.kill(ppid, signal.SIGHUP)
-                                    logger.info(f"[UPDATE] Sent SIGHUP to parent PID {ppid} for graceful reload")
-                                except Exception:
-                                    pass
-                            # Also touch manage.py as a secondary reload trigger
-                            import pathlib
-                            manage_py = pathlib.Path(__file__).parent.parent / 'manage.py'
-                            if manage_py.exists():
-                                manage_py.touch()
-                                logger.info("[UPDATE] Touched manage.py for reload")
+                        # Method 3: Replace current process using os.execv (Works cross-platform)
+                        import sys
+                        logger.info(f"[UPDATE] Restarting process via os.execv: {sys.argv}")
+                        
+                        if sys.argv[0].endswith('.py'):
+                            os.execv(sys.executable, [sys.executable] + sys.argv)
                         else:
-                            # Windows dev server: touch manage.py to trigger auto-reload
-                            import pathlib
-                            manage_py = pathlib.Path(__file__).parent.parent / 'manage.py'
-                            if manage_py.exists():
-                                manage_py.touch()
-                                logger.info("[UPDATE] Triggered dev server reload by touching manage.py")
+                            os.execv(sys.argv[0], sys.argv)
+                        
+                        
                     except Exception as restart_err:
                         logger.warning(f"[UPDATE] Server self-restart failed: {restart_err}")
                 
