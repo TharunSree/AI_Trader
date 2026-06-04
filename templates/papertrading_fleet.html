@@ -540,65 +540,12 @@ function confirmKill() {
 // --- Neural Evolution Manual Trigger ---
 (function() {
     var evolveBtn = document.getElementById('fleet-evolve-btn');
-    if (!evolveBtn) return;
-    
-    var csrfInput = document.querySelector('#evolve-csrf-form [name=csrfmiddlewaretoken]');
-    var csrfToken = csrfInput ? csrfInput.value : '';
-    
-    function resetBtn(msg, delay) {
-        evolveBtn.innerHTML = '<i class="fas ' + (msg === 'Launched' ? 'fa-check' : 'fa-exclamation-triangle') + ' text-[8px]"></i> ' + msg;
-        setTimeout(function() {
-            evolveBtn.disabled = false;
-            evolveBtn.innerHTML = '<i class="fas fa-dna text-[8px]"></i> Evolve';
-        }, delay || 5000);
+    if (evolveBtn) {
+        evolveBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.location.href = "{% url 'evolution_hub' %}";
+        });
     }
-    
-    evolveBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        function doEvolve() {
-            evolveBtn.disabled = true;
-            evolveBtn.innerHTML = '<i class="fas fa-spinner fa-spin text-[8px]"></i> Launching...';
-            
-            // Use AbortController for timeout
-            var controller = new AbortController();
-            var timeoutId = setTimeout(function() { controller.abort(); }, 15000);
-            
-            fetch('{% url "trigger_mutation_api" %}', {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: 'csrfmiddlewaretoken=' + encodeURIComponent(csrfToken),
-                signal: controller.signal,
-                credentials: 'same-origin',
-            })
-            .then(function(res) {
-                clearTimeout(timeoutId);
-                if (res.ok) {
-                    resetBtn('Launched', 8000);
-                } else if (res.status === 302 || res.redirected) {
-                    resetBtn('Auth Error', 3000);
-                } else {
-                    resetBtn('Error ' + res.status, 3000);
-                }
-            })
-            .catch(function(err) {
-                clearTimeout(timeoutId);
-                if (err.name === 'AbortError') {
-                    resetBtn('Launched', 8000); // Timeout likely means it's running
-                } else {
-                    resetBtn('Failed', 3000);
-                }
-            });
-        }
-        
-        if (confirm('Launch Neural Evolution? Gemini will analyze performance and mutate the trading model.')) {
-            doEvolve();
-        }
-    });
 })();
 </script>
 {% endblock extra_javascript %}

@@ -246,44 +246,6 @@
 
   </div>
 </div>
-
-<!-- Evolution Terminal Overlay -->
-<div id="evolve-terminal-overlay" class="fixed inset-0 bg-[#0a0f18]/95 backdrop-blur-md z-[10000] hidden flex-col items-center justify-center transition-all duration-300 opacity-0 overflow-hidden font-mono">
-  
-  <!-- Top Bar -->
-  <div class="absolute top-0 w-full h-12 border-b border-brand-500/20 bg-[#0f172a] flex items-center px-4 justify-between shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
-      <div class="flex items-center gap-3">
-          <i class="fas fa-dna text-brand-500 animate-pulse text-sm"></i>
-          <span class="text-xs font-bold text-slate-200 tracking-[0.2em] uppercase">Neural Evolution Sequence</span>
-          <span class="px-2 py-0.5 rounded text-[9px] bg-brand-500/10 text-brand-400 border border-brand-500/20 ml-2">LIVE</span>
-      </div>
-      <button id="btn-close-evolve" class="hidden w-8 h-8 rounded hover:bg-white/5 text-slate-400 hover:text-white transition-colors flex items-center justify-center">
-          <i class="fas fa-times"></i>
-      </button>
-  </div>
-
-  <!-- Terminal Window -->
-  <div class="w-full max-w-4xl mx-auto px-4 sm:px-6 pt-20 pb-8 flex flex-col h-screen">
-      
-      <!-- Status Header -->
-      <div class="mb-6 border-l-2 border-brand-500 pl-4 py-1">
-          <h2 class="text-brand-400 text-lg sm:text-xl font-bold tracking-widest uppercase" id="evolve-status-text">INITIALIZING...</h2>
-          <p class="text-slate-500 text-[10px] sm:text-xs mt-1" id="evolve-substatus-text">ESTABLISHING UPLINK TO AI CLUSTER</p>
-      </div>
-
-      <!-- Terminal Output -->
-      <div class="flex-1 bg-black/40 rounded border border-white/5 shadow-inner overflow-hidden flex flex-col relative">
-          <div class="absolute top-0 w-full h-1 bg-gradient-to-r from-brand-500/0 via-brand-500/50 to-brand-500/0 opacity-50"></div>
-          
-          <div id="evolve-terminal-content" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-1 text-[11px] sm:text-[13px] text-slate-300 font-mono leading-relaxed pb-12 scroll-smooth">
-              <!-- Logs injected here -->
-          </div>
-          
-          <!-- Scanline Effect -->
-          <div class="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,3px_100%] opacity-20"></div>
-      </div>
-  </div>
-</div>
 {% endblock page_content %}
 
 {% block extra_javascript %}
@@ -317,15 +279,16 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(r => r.json())
             .then(data => {
                 if(data.status === 'ok') {
-                    alert('SUCCESS: ' + data.message + '\n\nTest Response:\n"' + data.test_response + '"');
+                    window.launchOverlay(null, 'SUCCESS: ' + data.message);
+                    setTimeout(() => document.getElementById('standard-overlay').classList.add('hidden'), 2000);
                 } else {
-                    alert('FAILED: ' + data.message);
+                    window.launchOverlay(null, 'FAILED: ' + data.message);
+                    setTimeout(() => document.getElementById('standard-overlay').classList.add('hidden'), 3000);
                 }
-                document.getElementById('standard-overlay').classList.add('hidden');
             })
             .catch(err => {
-                alert('ERROR: Network or server error while testing AI key.');
-                document.getElementById('standard-overlay').classList.add('hidden');
+                window.launchOverlay(null, 'ERROR: Network or server error while testing AI key.');
+                setTimeout(() => document.getElementById('standard-overlay').classList.add('hidden'), 3000);
             });
         });
     }
@@ -333,82 +296,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const btnTestRewriter = document.getElementById('btn-test-rewriter');
     if(btnTestRewriter) {
         btnTestRewriter.addEventListener('click', function() {
-            // Open Evolution Overlay
-            const overlay = document.getElementById('evolve-terminal-overlay');
-            const term = document.getElementById('evolve-terminal-content');
-            const statusTxt = document.getElementById('evolve-status-text');
-            const closeBtn = document.getElementById('btn-close-evolve');
-            
-            overlay.classList.remove('hidden');
-            // small delay to allow display:block to apply before animating opacity
-            setTimeout(() => {
-                overlay.classList.remove('opacity-0');
-            }, 10);
-            
-            term.innerHTML = '';
-            statusTxt.textContent = "SEQUENCE INITIATED";
-            closeBtn.classList.add('hidden');
-            
-            // Connect to SSE
-            const eventSource = new EventSource("{% url 'evolve_stream' %}");
-            
-            function appendLog(msg, colorClass="text-brand-400") {
-                const div = document.createElement('div');
-                div.innerHTML = `<span class="text-slate-600 mr-3">[${new Date().toISOString().split('T')[1].slice(0,-1)}]</span> <span class="${colorClass}">${msg}</span>`;
-                term.appendChild(div);
-                term.scrollTop = term.scrollHeight;
-            }
-            
-            appendLog('ESTABLISHING CONNECTION TO MAIN TOWER...', 'text-slate-400');
-            
-            eventSource.onmessage = function(e) {
-                const data = e.data;
-                if (!data) return; // heartbeat
-                
-                if (data === '[DONE]') {
-                    statusTxt.textContent = "MUTATION COMPLETE";
-                    statusTxt.classList.replace('text-brand-400', 'text-emerald-400');
-                    closeBtn.classList.remove('hidden');
-                    eventSource.close();
-                    return;
-                }
-                
-                if (data.startsWith('[ERROR]')) {
-                    statusTxt.textContent = "CRITICAL FAILURE";
-                    statusTxt.classList.replace('text-brand-400', 'text-rose-500');
-                    appendLog(data, 'text-rose-400 font-bold');
-                    closeBtn.classList.remove('hidden');
-                    eventSource.close();
-                    return;
-                }
-                
-                appendLog(data, 'text-slate-300');
-            };
-            
-            eventSource.addEventListener('complete', function(e) {
-                statusTxt.textContent = "SYSTEM READY";
-                closeBtn.classList.remove('hidden');
-                eventSource.close();
-            });
-            
-            eventSource.onerror = function(e) {
-                appendLog('[SYSTEM] Connection lost or stream ended unexpectedly.', 'text-rose-400');
-                statusTxt.textContent = "CONNECTION ERROR";
-                closeBtn.classList.remove('hidden');
-                eventSource.close();
-            };
-        });
-    }
-
-    const btnCloseEvolve = document.getElementById('btn-close-evolve');
-    if (btnCloseEvolve) {
-        btnCloseEvolve.addEventListener('click', function() {
-            const overlay = document.getElementById('evolve-terminal-overlay');
-            overlay.classList.add('opacity-0');
-            setTimeout(() => {
-                overlay.classList.add('hidden');
-                window.location.reload(); // Reload to pick up UI changes (if any)
-            }, 300);
+            window.location.href = "{% url 'evolution_hub' %}";
         });
     }
 

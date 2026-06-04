@@ -2187,6 +2187,13 @@ def trigger_mutation_api(request):
 # ===========================================================================
 
 @login_required
+def evolution_hub_view(request):
+    """
+    Renders the dedicated Neural Evolution Chamber page.
+    """
+    return render(request, 'evolution_hub.html')
+
+@login_required
 def evolution_variants_api(request):
     """GET: Returns all ModelVariant records with live metrics for the dashboard."""
     from .models import ModelVariant
@@ -2381,20 +2388,36 @@ def system_update_stream(request):
             yield f"data: [SYSTEM] Initiating Override Protocol: Git Pull (attempt {attempt}/{MAX_RETRIES})\n\n"
 
             try:
-                # 1. GIT PULL
+                # 1. GIT FETCH & RESET (Clean sync)
+                yield "data: [SYSTEM] Fetching latest intelligence from remote tower...\n\n"
                 success, lines = _run_subprocess(
-                    ['git', 'pull', 'origin', 'master'], 'Git Pull'
+                    ['git', 'fetch', 'origin'], 'Git Fetch'
+                )
+                for line in lines:
+                    yield line
+
+                success, lines = _run_subprocess(
+                    ['git', 'reset', '--hard', 'origin/master'], 'Git Reset'
                 )
                 for line in lines:
                     yield line
 
                 if not success:
-                    yield f"data: [ERROR] Git pull failed on attempt {attempt}/{MAX_RETRIES}\n\n"
+                    yield f"data: [ERROR] Git sync failed on attempt {attempt}/{MAX_RETRIES}\n\n"
                     if attempt < MAX_RETRIES:
                         continue  # Retry
                     yield "event: error\ndata: \n\n"
                     return
-
+                
+                yield "data: [SYSTEM] Synchronizing Dependencies...\n\n"
+                
+                # 1b. PIP INSTALL
+                success, lines = _run_subprocess(
+                    [sys.executable, '-m', 'pip', 'install', '-r', 'requirements.txt'], 'Pip Install'
+                )
+                for line in lines:
+                    yield line
+                
                 yield "data: [SYSTEM] Synchronizing Database Schema...\n\n"
 
                 # 2. RUN MIGRATIONS
