@@ -26,28 +26,28 @@
       {% if variant.status in 'TESTING,PENDING' %}
       <form method="post" action="{% url 'evolution_promote_api' variant.id %}" class="inline">
         {% csrf_token %}
-        <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors">
-          <i class="fas fa-crown mr-1"></i> Promote
+        <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 hover:border-emerald-500/50 text-emerald-400 hover:text-emerald-300 transition-all duration-300 shadow-[0_0_10px_rgba(16,185,129,0.1)] hover:shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+          <i class="fas fa-crown mr-1 text-emerald-500"></i> Promote
         </button>
       </form>
       <form method="post" action="{% url 'evolution_reject_api' variant.id %}" class="inline">
         {% csrf_token %}
-        <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition-colors">
-          <i class="fas fa-times mr-1"></i> Reject
+        <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 hover:border-rose-500/50 text-rose-400 hover:text-rose-300 transition-all duration-300 shadow-[0_0_10px_rgba(244,63,94,0.1)] hover:shadow-[0_0_15px_rgba(244,63,94,0.3)]">
+          <i class="fas fa-times mr-1 text-rose-500"></i> Reject
         </button>
       </form>
       {% endif %}
       <form method="post" action="{% url 'evolution_delete_api' variant.id %}" class="inline" onsubmit="return confirm('Are you sure you want to delete this variant? This will permanently delete its history, trades, and logs.');">
         {% csrf_token %}
-        <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-700 hover:bg-rose-600 dark:bg-slate-800 dark:hover:bg-rose-700 text-slate-300 hover:text-white transition-colors">
+        <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-500/10 hover:bg-rose-500/20 border border-slate-500/20 hover:border-rose-500/50 text-slate-400 hover:text-rose-400 transition-all duration-300">
           <i class="fas fa-trash-alt mr-1"></i> Delete
         </button>
       </form>
       {% if variant.status == 'FAILED' %}
       <form method="post" action="{% url 'evolution_restart_api' variant.id %}" class="inline">
         {% csrf_token %}
-        <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white transition-colors">
-          <i class="fas fa-redo mr-1"></i> Restart Engine
+        <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 hover:border-amber-500/50 text-amber-400 hover:text-amber-300 transition-all duration-300 shadow-[0_0_10px_rgba(245,158,11,0.1)] hover:shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+          <i class="fas fa-redo mr-1 text-amber-500"></i> Restart Engine
         </button>
       </form>
       {% endif %}
