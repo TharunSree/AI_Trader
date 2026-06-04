@@ -2216,6 +2216,40 @@ def evolution_hub_view(request):
     return render(request, 'evolution_hub.html')
 
 @login_required
+def variant_details_view(request, variant_id):
+    """Renders the dedicated detail page for a single Neural Evolution variant."""
+    from .models import ModelVariant, VirtualTrade
+    import json
+
+    variant = get_object_or_404(ModelVariant, id=variant_id)
+    trades = VirtualTrade.objects.filter(variant=variant).order_by('timestamp')
+
+    # Build equity curve data points
+    equity_curve = []
+    for t in trades:
+        equity_curve.append({
+            'x': t.timestamp.isoformat(),
+            'y': float(t.virtual_balance_after),
+        })
+
+    # If no trades, seed with starting cash
+    if not equity_curve:
+        equity_curve = [{'x': variant.created_at.isoformat(), 'y': float(variant.starting_cash)}]
+
+    total_buys = trades.filter(action='BUY').count()
+    total_sells = trades.filter(action='SELL').count()
+
+    context = {
+        'variant': variant,
+        'trades': trades[:500],  # Cap to prevent page bloat
+        'equity_curve_json': json.dumps(equity_curve),
+        'trade_count': trades.count(),
+        'total_buys': total_buys,
+        'total_sells': total_sells,
+    }
+    return render(request, 'variant_details.html', context)
+
+@login_required
 def evolution_variants_api(request):
     """GET: Returns all ModelVariant records with live metrics for the dashboard."""
     from .models import ModelVariant

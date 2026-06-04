@@ -196,7 +196,9 @@ def _read_key(name):
         from control_panel.models import SystemSettings
         db_settings = SystemSettings.load()
         val = getattr(db_settings, name.lower(), '')
-    except Exception:
+        print(f"[DEBUG _read_key] Loaded from DB '{name.lower()}': {'SET' if val else 'EMPTY'}")
+    except Exception as e:
+        print(f"[DEBUG _read_key] SystemSettings DB error: {e}")
         pass
         
     if not val:
@@ -533,6 +535,21 @@ def orchestrate_rewrite(crash_log=None):
             print("[NEURAL EVOLUTION] Syntax verification passed.")
         except SyntaxError as syntax_e:
             raise RuntimeError(f"Syntax validation failed. The LLM wrote broken code: {syntax_e}")
+        
+        # Sandbox Protocol: Runtime Smoke Test
+        # Catches NameError/TypeError hallucinations that compile() misses
+        try:
+            import types as _types
+            _sandbox_module = _types.ModuleType("sandbox_smoke_test")
+            exec(compile(new_code, 'ppo_agent_smoke_test.py', 'exec'), _sandbox_module.__dict__)
+            _SandboxAgent = getattr(_sandbox_module, 'PPOAgent', None)
+            if _SandboxAgent:
+                _SandboxAgent(state_dim=50, action_dim=3)
+                del _SandboxAgent
+            del _sandbox_module
+            print("[NEURAL EVOLUTION] Runtime smoke test passed.")
+        except Exception as runtime_e:
+            raise RuntimeError(f"Runtime validation failed — AI hallucinated broken logic: {runtime_e}")
         
         # === NEURAL EVOLUTION: Create variant instead of overwriting ===
         # DO NOT write to ppo_agent.py — the production file stays untouched!

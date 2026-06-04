@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+{% block title %}{{ variant.name }} | Evolution Chamber{% endblock %}
+{% block page_title %}Variant Details{% endblock %}
+
+{% block page_content %}
+<!-- HEADER: Back link + Variant name + Status badge + Action buttons -->
+<div class="mb-6">
+  <a href="{% url 'evolution_hub' %}" class="text-xs text-brand-500 hover:text-brand-400 font-mono mb-3 inline-block">
+    <i class="fas fa-arrow-left mr-1"></i> Back to Evolution Chamber
+  </a>
+  <div class="flex items-center justify-between flex-wrap gap-4">
+    <div>
+      <h2 class="text-xl font-bold text-slate-800 dark:text-white">{{ variant.name }}</h2>
+      <p class="text-xs text-slate-500 font-mono">Created {{ variant.created_at|date:"M d, Y H:i" }} · {{ variant.days_remaining }} days remaining · Parent: T{{ variant.parent_trader_id|default:"N/A" }}</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <!-- Status Badge -->
+      <span class="px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider 
+        {% if variant.status == 'TESTING' %}bg-blue-500/10 text-blue-400 border border-blue-500/20
+        {% elif variant.status == 'PROMOTED' %}bg-emerald-500/10 text-emerald-400 border border-emerald-500/20
+        {% elif variant.status == 'FAILED' %}bg-rose-500/10 text-rose-400 border border-rose-500/20
+        {% elif variant.status == 'PENDING' %}bg-amber-500/10 text-amber-400 border border-amber-500/20
+        {% else %}bg-slate-500/10 text-slate-400 border border-slate-500/20{% endif %}">
+        {{ variant.status }}
+      </span>
+      {% if variant.status in 'TESTING,PENDING' %}
+      <form method="post" action="{% url 'evolution_promote_api' variant.id %}" class="inline">
+        {% csrf_token %}
+        <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors">
+          <i class="fas fa-crown mr-1"></i> Promote
+        </button>
+      </form>
+      <form method="post" action="{% url 'evolution_reject_api' variant.id %}" class="inline">
+        {% csrf_token %}
+        <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition-colors">
+          <i class="fas fa-times mr-1"></i> Reject
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- ERROR ALERT (if failed) -->
+{% if variant.error_message %}
+<div class="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400">
+  <div class="flex items-start gap-3">
+    <i class="fas fa-exclamation-triangle text-rose-500 mt-0.5"></i>
+    <div>
+      <h4 class="text-sm font-bold text-rose-300 mb-1">Runtime Error</h4>
+      <pre class="text-xs font-mono whitespace-pre-wrap text-rose-400/80">{{ variant.error_message }}</pre>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ROW 1: Metric Cards (4 columns) -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <!-- Virtual Balance -->
+  <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+    <p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1">Virtual Balance</p>
+    <p class="text-lg font-bold font-mono {% if variant.virtual_pnl >= 0 %}text-emerald-500{% else %}text-rose-500{% endif %}">${{ variant.virtual_balance|floatformat:2 }}</p>
+    <p class="text-[10px] text-slate-500 font-mono">Starting: ${{ variant.starting_cash|floatformat:2 }}</p>
+  </div>
+  <!-- Net P&L -->
+  <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+    <p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1">Net P&L</p>
+    <p class="text-lg font-bold font-mono {% if variant.virtual_pnl >= 0 %}text-emerald-500{% else %}text-rose-500{% endif %}">
+      {% if variant.virtual_pnl >= 0 %}+{% endif %}${{ variant.virtual_pnl|floatformat:2 }}
+    </p>
+    <p class="text-[10px] font-mono {% if variant.virtual_pnl_pct >= 0 %}text-emerald-500{% else %}text-rose-500{% endif %}">
+      {% if variant.virtual_pnl_pct >= 0 %}+{% endif %}{{ variant.virtual_pnl_pct|floatformat:2 }}%
+    </p>
+  </div>
+  <!-- Win Rate -->
+  <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+    <p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1">Win Rate</p>
+    <p class="text-lg font-bold font-mono text-slate-200">{{ variant.win_rate|floatformat:1 }}%</p>
+    <p class="text-[10px] text-slate-500 font-mono">{{ trade_count }} trades ({{ total_buys }}B / {{ total_sells }}S)</p>
+  </div>
+  <!-- Risk -->
+  <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+    <p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1">Risk Metrics</p>
+    <p class="text-lg font-bold font-mono text-slate-200">{{ variant.sharpe_ratio|floatformat:2 }}</p>
+    <p class="text-[10px] text-slate-500 font-mono">Sharpe · DD: {{ variant.max_drawdown_pct|floatformat:2 }}%</p>
+  </div>
+</div>
+
+<!-- ROW 2: Main Content (2/3 + 1/3) -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+  <!-- LEFT: Chart + Trade Table -->
+  <div class="lg:col-span-2 flex flex-col gap-6">
+    
+    <!-- Equity Curve -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+      <h3 class="text-xs uppercase tracking-widest font-bold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
+        <i class="fas fa-chart-line text-brand-500"></i> Simulated Equity Curve
+      </h3>
+      <div class="h-[300px] relative">
+        <canvas id="equity-chart"></canvas>
+      </div>
+    </div>
+
+    <!-- Trade History Table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+        <h3 class="text-xs uppercase tracking-widest font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+          <i class="fas fa-exchange-alt text-slate-400"></i> Virtual Trade History
+        </h3>
+        <span class="text-[10px] font-mono text-slate-500">{{ trade_count }} total</span>
+      </div>
+      <div class="overflow-x-auto max-h-[400px] overflow-y-auto">
+        <table class="w-full text-xs font-mono">
+          <thead class="bg-slate-50 dark:bg-slate-800/50 sticky top-0">
+            <tr>
+              <th class="text-left px-4 py-2 text-slate-500 font-bold uppercase tracking-wider">Time</th>
+              <th class="text-left px-4 py-2 text-slate-500 font-bold uppercase tracking-wider">Symbol</th>
+              <th class="text-left px-4 py-2 text-slate-500 font-bold uppercase tracking-wider">Action</th>
+              <th class="text-right px-4 py-2 text-slate-500 font-bold uppercase tracking-wider">Qty</th>
+              <th class="text-right px-4 py-2 text-slate-500 font-bold uppercase tracking-wider">Price</th>
+              <th class="text-right px-4 py-2 text-slate-500 font-bold uppercase tracking-wider">Notional</th>
+              <th class="text-right px-4 py-2 text-slate-500 font-bold uppercase tracking-wider">Balance</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+            {% for trade in trades %}
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+              <td class="px-4 py-2 text-slate-400">{{ trade.timestamp|date:"M d H:i:s" }}</td>
+              <td class="px-4 py-2 text-slate-300 font-bold">{{ trade.symbol }}</td>
+              <td class="px-4 py-2">
+                <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase
+                  {% if trade.action == 'BUY' %}bg-emerald-500/10 text-emerald-400{% else %}bg-rose-500/10 text-rose-400{% endif %}">
+                  {{ trade.action }}
+                </span>
+              </td>
+              <td class="px-4 py-2 text-right text-slate-400">{{ trade.quantity|floatformat:6 }}</td>
+              <td class="px-4 py-2 text-right text-slate-300">${{ trade.price|floatformat:2 }}</td>
+              <td class="px-4 py-2 text-right text-slate-400">${{ trade.notional_value|floatformat:2 }}</td>
+              <td class="px-4 py-2 text-right text-slate-300 font-bold">${{ trade.virtual_balance_after|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="px-4 py-10 text-center text-slate-500">
+                <i class="fas fa-ghost text-2xl mb-2 text-slate-600"></i><br>
+                No virtual trades recorded yet.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Terminal + Reasoning + Diff -->
+  <div class="flex flex-col gap-6">
+
+    <!-- Live Terminal -->
+    <div class="bg-slate-900 rounded-xl border border-slate-800 shadow-xl overflow-hidden flex flex-col min-h-[300px]">
+      <div class="h-10 border-b border-brand-500/20 bg-slate-950 flex items-center px-4 justify-between shrink-0">
+        <div class="flex items-center gap-2">
+          <i class="fas fa-terminal text-brand-400 text-[10px]"></i>
+          <span class="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Virtual Engine Log</span>
+        </div>
+        <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-slate-800 text-slate-500 border border-slate-700" id="log-status">POLLING</span>
+      </div>
+      <div id="variant-terminal" class="flex-1 bg-[#0a0a0c] overflow-y-auto p-4 text-[11px] text-slate-300 font-mono leading-relaxed max-h-[350px]">
+        <div class="text-slate-500 text-center mt-10"><i class="fas fa-circle-notch fa-spin"></i> Connecting...</div>
+      </div>
+    </div>
+
+    <!-- AI Reasoning -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+      <button onclick="this.nextElementSibling.classList.toggle('hidden')" class="w-full px-5 py-3 flex justify-between items-center hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+        <h3 class="text-xs uppercase tracking-widest font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+          <i class="fas fa-brain text-purple-500"></i> AI Mutation Reasoning
+        </h3>
+        <i class="fas fa-chevron-down text-slate-400 text-[10px]"></i>
+      </button>
+      <div class="px-5 pb-4 border-t border-slate-100 dark:border-slate-800">
+        <pre class="text-[11px] font-mono text-slate-400 whitespace-pre-wrap leading-relaxed mt-3">{{ variant.mutation_reasoning|default:"No AI reasoning recorded for this variant." }}</pre>
+      </div>
+    </div>
+
+    <!-- Code Diff -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+      <button onclick="this.nextElementSibling.classList.toggle('hidden')" class="w-full px-5 py-3 flex justify-between items-center hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+        <h3 class="text-xs uppercase tracking-widest font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+          <i class="fas fa-code-branch text-cyan-500"></i> Code Diff
+        </h3>
+        <i class="fas fa-chevron-down text-slate-400 text-[10px]"></i>
+      </button>
+      <div class="px-5 pb-4 border-t border-slate-100 dark:border-slate-800 hidden">
+        <pre class="text-[11px] font-mono text-slate-400 whitespace-pre-wrap leading-relaxed mt-3 max-h-[400px] overflow-y-auto">{{ variant.diff_summary|default:"No diff available." }}</pre>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- CSRF for AJAX -->
+<form id="csrf-form" style="display:none;">{% csrf_token %}</form>
+{% endblock %}
+
+{% block extra_javascript %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Equity Curve Chart
+    const eqData = {{ equity_curve_json|safe }};
+    const ctx = document.getElementById('equity-chart').getContext('2d');
+    const startCash = {{ variant.starting_cash }};
+    
+    const isProfitable = eqData.length > 0 && eqData[eqData.length-1].y >= startCash;
+    const lineColor = isProfitable ? 'rgb(16, 185, 129)' : 'rgb(244, 63, 94)';
+    const fillColor = isProfitable ? 'rgba(16, 185, 129, 0.1)' : 'rgba(244, 63, 94, 0.1)';
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            datasets: [{
+                label: 'Virtual Balance',
+                data: eqData,
+                borderColor: lineColor,
+                backgroundColor: fillColor,
+                fill: true,
+                tension: 0.3,
+                pointRadius: eqData.length > 50 ? 0 : 3,
+                pointHoverRadius: 5,
+                borderWidth: 2,
+            }, {
+                label: 'Starting Capital',
+                data: eqData.map(p => ({x: p.x, y: startCash})),
+                borderColor: 'rgba(148, 163, 184, 0.3)',
+                borderDash: [5, 5],
+                borderWidth: 1,
+                pointRadius: 0,
+                fill: false,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { intersect: false, mode: 'index' },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    titleColor: '#94a3b8',
+                    bodyColor: '#e2e8f0',
+                    titleFont: { family: 'monospace', size: 10 },
+                    bodyFont: { family: 'monospace', size: 11 },
+                    callbacks: {
+                        label: function(ctx) {
+                            return `$${ctx.parsed.y.toFixed(2)}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: { unit: 'hour', displayFormats: { hour: 'MMM d HH:mm' } },
+                    grid: { color: 'rgba(148, 163, 184, 0.05)' },
+                    ticks: { color: '#64748b', font: { family: 'monospace', size: 9 } }
+                },
+                y: {
+                    grid: { color: 'rgba(148, 163, 184, 0.05)' },
+                    ticks: {
+                        color: '#64748b',
+                        font: { family: 'monospace', size: 10 },
+                        callback: v => '$' + v.toFixed(0)
+                    }
+                }
+            }
+        }
+    });
+
+    // Terminal Log Polling
+    const term = document.getElementById('variant-terminal');
+    const logStatus = document.getElementById('log-status');
+    
+    function pollLogs() {
+        fetch('/api/evolution/variants/{{ variant.id }}/logs/')
+        .then(r => r.json())
+        .then(data => {
+            if(data.logs) {
+                const wasAtBottom = (term.scrollHeight - term.scrollTop) <= (term.clientHeight + 50);
+                const lines = data.logs.split('\n');
+                term.innerHTML = lines.map(line => {
+                    if(!line.trim()) return '';
+                    let color = 'text-slate-300';
+                    if(line.includes('[ERROR]') || line.includes('Failed') || line.includes('Traceback') || line.includes('Error')) color = 'text-rose-400 font-bold';
+                    else if(line.includes('BUY')) color = 'text-emerald-400';
+                    else if(line.includes('SELL')) color = 'text-amber-400';
+                    else if(line.includes('[EVOLUTION]')) color = 'text-brand-400';
+                    else if(line.includes('Signal:')) color = 'text-slate-500';
+                    return `<div class="${color} py-0.5 whitespace-pre-wrap">${line}</div>`;
+                }).join('');
+                if(wasAtBottom) term.scrollTop = term.scrollHeight;
+                logStatus.textContent = 'LIVE';
+                logStatus.className = 'px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+            }
+        })
+        .catch(() => {
+            logStatus.textContent = 'OFFLINE';
+            logStatus.className = 'px-2 py-0.5 rounded text-[9px] font-bold bg-slate-800 text-slate-500 border border-slate-700';
+        });
+    }
+    
+    pollLogs();
+    setInterval(pollLogs, 2000);
+});
+</script>
+{% endblock %}

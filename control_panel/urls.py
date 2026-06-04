@@ -70,6 +70,7 @@ urlpatterns = [
 
     # Neural Evolution Engine
     path('evolution-chamber/', views.evolution_hub_view, name='evolution_hub'),
+    path('evolution-chamber/variant/<int:variant_id>/', views.variant_details_view, name='variant_details'),
     path('api/evolution/variants/', views.evolution_variants_api, name='evolution_variants_api'),
     path('api/evolution/variants/<int:variant_id>/logs/', views.variant_logs_api, name='variant_logs_api'),
     path('api/evolution/promote/<int:variant_id>/', views.evolution_promote_api, name='evolution_promote_api'),
