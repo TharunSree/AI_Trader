@@ -92,13 +92,24 @@ def _spawn_background_process(command, log_file_path):
     Path(log_file_path).parent.mkdir(parents=True, exist_ok=True)
     
     log_handle = open(log_file_path, "a", encoding="utf-8")
+    env_vars = os.environ.copy()
+    try:
+        from control_panel.models import SystemSettings
+        db_settings = SystemSettings.load()
+        if db_settings.gemini_api_key: env_vars['GEMINI_API_KEY'] = db_settings.gemini_api_key
+        if db_settings.openai_api_key: env_vars['OPENAI_API_KEY'] = db_settings.openai_api_key
+        if db_settings.anthropic_api_key: env_vars['ANTHROPIC_API_KEY'] = db_settings.anthropic_api_key
+    except Exception:
+        pass
+        
     popen_kwargs = {
         'cwd': str(Path(__file__).parent.parent),
         'stdout': log_handle,
         'stderr': subprocess.STDOUT,
         'stdin': subprocess.DEVNULL,
         'bufsize': 1, # Line buffered
-        'universal_newlines': True
+        'universal_newlines': True,
+        'env': env_vars
     }
 
     if os.name == 'nt':
