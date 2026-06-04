@@ -295,16 +295,18 @@ class VirtualPaperEngine:
             win_rate=round(self.portfolio.win_rate, 2),
         )
     
-    def _log_virtual_trade(self, symbol, action, qty, price, notional):
+    async def _log_virtual_trade(self, symbol, action, qty, price, notional):
         """Log a virtual trade to the database."""
-        VirtualTrade.objects.create(
-            variant_id=self.variant_id,
-            symbol=symbol,
-            action=action.upper(),
-            quantity=Decimal(str(round(qty, 8))),
-            price=Decimal(str(round(price, 4))),
-            notional_value=Decimal(str(round(notional, 2))),
-            virtual_balance_after=Decimal(str(round(self.portfolio.cash, 2))),
+        await asyncio.to_thread(
+            lambda: VirtualTrade.objects.create(
+                variant_id=self.variant_id,
+                symbol=symbol,
+                action=action.upper(),
+                quantity=Decimal(str(round(qty, 8))),
+                price=Decimal(str(round(price, 4))),
+                notional_value=Decimal(str(round(notional, 2))),
+                virtual_balance_after=Decimal(str(round(self.portfolio.cash, 2))),
+            )
         )
     
     async def _execute_virtual_trade(self, action_val, symbol, current_price):
@@ -370,7 +372,7 @@ class VirtualPaperEngine:
             qty = self.portfolio.buy(symbol, current_price, trade_size)
             if qty > 0:
                 notional = qty * current_price
-                self._log_virtual_trade(symbol, 'BUY', qty, current_price, notional)
+                await self._log_virtual_trade(symbol, 'BUY', qty, current_price, notional)
                 logger.info(
                     f"[EVOLUTION] VIRTUAL BUY {qty:.6f} {symbol} @ ${current_price:,.2f} "
                     f"(${notional:.2f}) | Cash: ${self.portfolio.cash:.2f}"
@@ -384,7 +386,7 @@ class VirtualPaperEngine:
             qty_sold, pnl = self.portfolio.sell(symbol, current_price, sell_qty)
             if qty_sold > 0:
                 notional = qty_sold * current_price
-                self._log_virtual_trade(symbol, 'SELL', qty_sold, current_price, notional)
+                await self._log_virtual_trade(symbol, 'SELL', qty_sold, current_price, notional)
                 self._sell_cooldowns[symbol] = datetime.now(timezone.utc) + timedelta(minutes=5)
                 logger.info(
                     f"[EVOLUTION] VIRTUAL SELL {qty_sold:.6f} {symbol} @ ${current_price:,.2f} "
@@ -396,9 +398,11 @@ class VirtualPaperEngine:
         logger.info(f"[EVOLUTION] Starting virtual trading loop for Variant #{self.variant_id}")
         
         # Update status
-        ModelVariant.objects.filter(id=self.variant_id).update(
-            status='TESTING',
-            virtual_balance=self.variant.starting_cash,
+        await asyncio.to_thread(
+            lambda: ModelVariant.objects.filter(id=self.variant_id).update(
+                status='TESTING',
+                virtual_balance=self.variant.starting_cash,
+            )
         )
         
         # Discover tradeable crypto tickers (same as production)

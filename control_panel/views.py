@@ -2401,6 +2401,42 @@ def evolution_reject_api(request, variant_id):
 
 
 @login_required
+@require_POST
+def evolution_delete_api(request, variant_id):
+    """POST: Delete a variant, stop its virtual engine process, clean up logs, and delete DB record."""
+    from django.shortcuts import get_object_or_404, redirect
+    from .models import ModelVariant
+    import os
+    import signal
+    
+    variant = get_object_or_404(ModelVariant, id=variant_id)
+    
+    # Try to kill the virtual engine process
+    if variant.celery_task_id:
+        try:
+            os.kill(int(variant.celery_task_id), signal.SIGTERM)
+        except Exception:
+            pass
+            
+    # Try to delete the log file
+    from pathlib import Path
+    log_file = Path(__file__).parent.parent / "logs" / f"evolution_variant_{variant_id}.log"
+    if log_file.exists():
+        try:
+            log_file.unlink()
+        except Exception:
+            pass
+            
+    variant.delete()
+    
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json':
+        return JsonResponse({'status': 'success', 'message': f'Variant #{variant_id} deleted successfully.'})
+        
+    return redirect('evolution_hub')
+
+
+
+@login_required
 def evolution_evaluate_api(request):
     """POST: Manually trigger the evolution evaluator to check expired variants."""
     from src.core.evolution_evaluator import evaluate_expired_variants

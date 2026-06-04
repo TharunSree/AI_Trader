@@ -37,6 +37,12 @@
         </button>
       </form>
       {% endif %}
+      <form method="post" action="{% url 'evolution_delete_api' variant.id %}" class="inline" onsubmit="return confirm('Are you sure you want to delete this variant? This will permanently delete its history, trades, and logs.');">
+        {% csrf_token %}
+        <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-700 hover:bg-rose-600 dark:bg-slate-800 dark:hover:bg-rose-700 text-slate-300 hover:text-white transition-colors">
+          <i class="fas fa-trash-alt mr-1"></i> Delete
+        </button>
+      </form>
     </div>
   </div>
 </div>
@@ -170,29 +176,30 @@
       </div>
     </div>
 
-    <!-- AI Reasoning -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
-      <button onclick="this.nextElementSibling.classList.toggle('hidden')" class="w-full px-5 py-3 flex justify-between items-center hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+    <!-- Virtual Code History -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden flex flex-col">
+      <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
         <h3 class="text-xs uppercase tracking-widest font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-          <i class="fas fa-brain text-purple-500"></i> AI Mutation Reasoning
+          <i class="fas fa-history text-cyan-500"></i> Virtual Code History
         </h3>
-        <i class="fas fa-chevron-down text-slate-400 text-[10px]"></i>
-      </button>
-      <div class="px-5 pb-4 border-t border-slate-100 dark:border-slate-800">
-        <pre class="text-[11px] font-mono text-slate-400 whitespace-pre-wrap leading-relaxed mt-3">{{ variant.mutation_reasoning|default:"No AI reasoning recorded for this variant." }}</pre>
+        <!-- Simple Tab Buttons -->
+        <div class="flex items-center gap-2">
+          <button id="tab-btn-reasoning" onclick="switchCodeTab('reasoning')" class="px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-brand-500/10 text-brand-400 border border-brand-500/20">Reasoning</button>
+          <button id="tab-btn-diff" onclick="switchCodeTab('diff')" class="px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700">Code Diff</button>
+        </div>
       </div>
-    </div>
-
-    <!-- Code Diff -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
-      <button onclick="this.nextElementSibling.classList.toggle('hidden')" class="w-full px-5 py-3 flex justify-between items-center hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-        <h3 class="text-xs uppercase tracking-widest font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-          <i class="fas fa-code-branch text-cyan-500"></i> Code Diff
-        </h3>
-        <i class="fas fa-chevron-down text-slate-400 text-[10px]"></i>
-      </button>
-      <div class="px-5 pb-4 border-t border-slate-100 dark:border-slate-800 hidden">
-        <pre class="text-[11px] font-mono text-slate-400 whitespace-pre-wrap leading-relaxed mt-3 max-h-[400px] overflow-y-auto">{{ variant.diff_summary|default:"No diff available." }}</pre>
+      
+      <!-- Scrollable Tab Content Container -->
+      <div class="p-5 max-h-[350px] overflow-y-auto bg-[#0a0a0c]">
+        <!-- AI Mutation Reasoning Tab Content -->
+        <div id="tab-content-reasoning" class="block">
+          <pre class="text-[11px] font-mono text-slate-300 whitespace-pre-wrap leading-relaxed">{{ variant.mutation_reasoning|default:"No AI reasoning recorded for this variant." }}</pre>
+        </div>
+        
+        <!-- Code Diff Tab Content -->
+        <div id="tab-content-diff" class="hidden">
+          <pre class="text-[11px] font-mono text-slate-300 whitespace-pre-wrap leading-relaxed">{{ variant.diff_summary|default:"No diff available." }}</pre>
+        </div>
       </div>
     </div>
 
@@ -313,5 +320,28 @@ document.addEventListener('DOMContentLoaded', function() {
     pollLogs();
     setInterval(pollLogs, 2000);
 });
+
+function switchCodeTab(tab) {
+    const btnReasoning = document.getElementById('tab-btn-reasoning');
+    const btnDiff = document.getElementById('tab-btn-diff');
+    const contentReasoning = document.getElementById('tab-content-reasoning');
+    const contentDiff = document.getElementById('tab-content-diff');
+    
+    if (tab === 'reasoning') {
+        btnReasoning.className = 'px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-brand-500/10 text-brand-400 border border-brand-500/20';
+        btnDiff.className = 'px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700';
+        contentReasoning.classList.remove('hidden');
+        contentReasoning.classList.add('block');
+        contentDiff.classList.remove('block');
+        contentDiff.classList.add('hidden');
+    } else {
+        btnDiff.className = 'px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-brand-500/10 text-brand-400 border border-brand-500/20';
+        btnReasoning.className = 'px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700';
+        contentDiff.classList.remove('hidden');
+        contentDiff.classList.add('block');
+        contentReasoning.classList.remove('block');
+        contentReasoning.classList.add('hidden');
+    }
+}
 </script>
 {% endblock %}

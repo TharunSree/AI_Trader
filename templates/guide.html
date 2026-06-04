@@ -19,6 +19,7 @@
                 <li><a href="#section-exec" class="hover:text-brand-accent transition-colors flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-slate-600"></div> Autonomous Execution</a></li>
                 <li><a href="#section-heal" class="hover:text-brand-accent transition-colors flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse"></div> Cognitive Mutator & Auto-Heal</a></li>
                 <li><a href="#section-models" class="hover:text-brand-accent transition-colors flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-slate-600"></div> The Models Hub</a></li>
+                <li><a href="#section-history" class="hover:text-brand-accent transition-colors flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></div> Version & Update History</a></li>
             </ul>
         </div>
         
@@ -249,6 +250,10 @@
                     <h5 class="text-purple-400 font-mono text-xs uppercase mb-2 block">2. Manual Mutator Forcing</h5>
                     <p class="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Clicking [ FIRE MUTATOR ] on the Dashboard aggregates end-of-day markdown logs and forces Gemini to rewrite hyperparameters to adapt to the most recent 7-day trailing volatility signatures.</p>
                 </div>
+                <div class="bg-indigo-900/10 p-5 rounded-xl border border-indigo-500/20 col-span-1 md:col-span-2">
+                    <h5 class="text-indigo-400 font-mono text-xs uppercase mb-2 block">3. Variant Management & Lifecycle</h5>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Variants run in isolated sandboxes. If a variant generates exceptions or experiences severe drawdown, it can be permanently deleted to free up server overhead. Deleting a variant stops its background virtual trading runner, deletes its virtual trades history, and cleans up its physical logs. You can delete variants by clicking the trash icon next to them in the Evolution Hub list, or using the [ Delete ] button on the Variant Details page.</p>
+                </div>
             </div>
         </div>
 
@@ -263,6 +268,71 @@
                 <div class="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-xl border border-slate-700/50">
                     <h5 class="text-brand-accent font-mono text-xs uppercase mb-2 block">2. Historical Telemetry (Intelligence Vault)</h5>
                     <p class="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Your End-of-Day PDF markdown evaluations and A/B neural test results are routed to the <b>Intelligence Vault</b>. You can review offline strategy executions chronologically, complete with generated Matplotlib delta signals.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Version & Update History -->
+        <div id="section-history" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-8 relative overflow-hidden">
+            <h2 class="text-xl font-semibold text-slate-800 dark:text-slate-200 mb-4 tracking-widest uppercase border-b border-slate-700/50 pb-4 flex items-center gap-2">
+                <i class="fas fa-history text-purple-400"></i> Platform Version History
+            </h2>
+            <p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-6">
+                Changelog and feature updates for the Neural Evolution Platform. Version increments track system optimizations, AI model updates, and layout features.
+            </p>
+            
+            <div class="space-y-6 font-mono text-xs">
+                <!-- v1.03 -->
+                <div class="border-l-2 border-purple-500 pl-4 py-1">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="px-2 py-0.5 rounded bg-purple-500/10 text-purple-400 font-bold">v1.03</span>
+                        <span class="text-slate-500 text-[10px]">June 04, 2026</span>
+                    </div>
+                    <p class="text-slate-800 dark:text-slate-300 font-bold mb-1">UI Consolidation & Deletion APIs</p>
+                    <ul class="list-disc pl-4 space-y-1 text-slate-500 dark:text-slate-400">
+                        <li>Moved AI mutation reasoning and code diff into a single unified "Virtual Code History" scrollable panel to save vertical layout space.</li>
+                        <li>Exposed delete actions for testing/failed neural variants directly in the list view and detail dashboard.</li>
+                        <li>Integrated cleanup logic to kill running subprocess containers when a variant is deleted.</li>
+                    </ul>
+                </div>
+
+                <!-- v1.02 -->
+                <div class="border-l-2 border-blue-500 pl-4 py-1">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 font-bold">v1.02</span>
+                        <span class="text-slate-500 text-[10px]">June 04, 2026</span>
+                    </div>
+                    <p class="text-slate-800 dark:text-slate-300 font-bold mb-1">Asynchronous Context Lock Remediation</p>
+                    <ul class="list-disc pl-4 space-y-1 text-slate-500 dark:text-slate-400">
+                        <li>Fixed `SynchronousOnlyOperation` exception inside the Virtual Engine runner loops.</li>
+                        <li>Enwrapped all Django ORM reads and updates within thread-isolated execution pools using `asyncio.to_thread`.</li>
+                    </ul>
+                </div>
+
+                <!-- v1.01 -->
+                <div class="border-l-2 border-emerald-500 pl-4 py-1">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-bold">v1.01</span>
+                        <span class="text-slate-500 text-[10px]">June 04, 2026</span>
+                    </div>
+                    <p class="text-slate-800 dark:text-slate-300 font-bold mb-1">Variant Deep-Dive Analytics</p>
+                    <ul class="list-disc pl-4 space-y-1 text-slate-500 dark:text-slate-400">
+                        <li>Designed dynamic simulated equity curve charts leveraging Chart.js.</li>
+                        <li>Constructed chronological virtual trade ledger tables mapping executions.</li>
+                        <li>Developed real-time logs streamer polling execution metrics over SSE/AJAX.</li>
+                    </ul>
+                </div>
+
+                <!-- v1.00 -->
+                <div class="border-l-2 border-slate-500 pl-4 py-1">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="px-2 py-0.5 rounded bg-slate-500/10 text-slate-400 font-bold">v1.00</span>
+                        <span class="text-slate-500 text-[10px]">May 2026</span>
+                    </div>
+                    <p class="text-slate-800 dark:text-slate-300 font-bold mb-1">Initial Launch</p>
+                    <ul class="list-disc pl-4 space-y-1 text-slate-500 dark:text-slate-400">
+                        <li>Core reinforcement learning environment, self-healing compilation, and Alpaca streaming modules.</li>
+                    </ul>
                 </div>
             </div>
         </div>

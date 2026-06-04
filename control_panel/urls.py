@@ -75,5 +75,6 @@ urlpatterns = [
     path('api/evolution/variants/<int:variant_id>/logs/', views.variant_logs_api, name='variant_logs_api'),
     path('api/evolution/promote/<int:variant_id>/', views.evolution_promote_api, name='evolution_promote_api'),
     path('api/evolution/reject/<int:variant_id>/', views.evolution_reject_api, name='evolution_reject_api'),
+    path('api/evolution/delete/<int:variant_id>/', views.evolution_delete_api, name='evolution_delete_api'),
     path('api/evolution/evaluate/', views.evolution_evaluate_api, name='evolution_evaluate_api'),
 ]
