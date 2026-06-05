@@ -15,7 +15,7 @@
                 <p class="text-xs text-slate-500 font-mono mt-1">Version control registry and historical deployment logs for QuantTrader Node.</p>
             </div>
             <div class="flex items-center gap-2 font-mono text-xs font-bold">
-                <span class="px-2.5 py-1 rounded bg-brand-500/10 text-brand-500 border border-brand-500/20">Current: v1.0.12</span>
+                <span class="px-2.5 py-1 rounded bg-brand-500/10 text-brand-500 border border-brand-500/20">Current: v1.0.13</span>
                 <span class="text-slate-500 font-normal">Updated June 06, 2026</span>
             </div>
         </div>
@@ -47,10 +47,60 @@
         <!-- Left Column: Timeline Entries -->
         <div class="relative ml-4 md:ml-6">
         
+        <!-- v1.0.13 -->
+        <div id="v1.0.13" class="changelog-item relative pl-6 md:pl-8 pb-8 group" data-type="fix">
+            <!-- Vertical line segment -->
+            <div class="absolute left-0 top-2 bottom-0 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
+            <!-- Timeline dot -->
+            <div class="absolute -left-[5px] top-2 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
+            
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-brand-500/40 transition-all duration-300">
+                <!-- Header -->
+                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
+                    <div class="flex items-center gap-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.0.13</span>
+                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Layout Grid Remediation, Timeline Boundary Corrections, and Button Style Unification</h3>
+                    </div>
+                    <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
+                        <i class="far fa-calendar-alt"></i> June 06, 2026
+                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">v1.0.13-dev</span>
+                    </div>
+                </div>
+                
+                <!-- Body -->
+                <div class="p-6 space-y-4">
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
+                        This update resolves layout nesting bugs in the changelog viewport ledger, terminates the connecting timeline borders precisely at the initial release dot, and completes transition of solid buttons on secondary control dashboards.
+                    </p>
+                    
+                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
+                        <li><strong>Changelog Layout Un-nesting:</strong> Resolved a nesting issue where the Right Column legend was enclosed inside the Left Column timeline wrapper. Moved the legend card to be a direct sibling of the timeline container under the grid layout, allowing proper side-by-side positioning on desktop.</li>
+                        <li><strong>Timeline Line Termination:</strong> Corrected the vertical timeline line segment logic so that it terminates precisely at the v1.0.0 (Initial Launch) timeline dot, preventing any line leaks into lower legend margins.</li>
+                        <li><strong>UI Button Unification:</strong> Refactored the solid submit buttons in the Neural Training control dashboard to the standardized translucent/glass border style.</li>
+                    </ul>
+
+                    <!-- Expandable details -->
+                    <div class="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
+                        <button onclick="toggleDetails(this)" class="text-[10px] uppercase tracking-widest text-brand-500 hover:text-brand-400 font-bold font-mono flex items-center gap-1 cursor-pointer">
+                            <span>Show Tech Details</span> <i class="fas fa-chevron-down text-[8px]"></i>
+                        </button>
+                        <div class="hidden mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0a0a0c] border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] text-slate-500 dark:text-slate-400 space-y-3 leading-relaxed">
+                            <div><strong class="text-slate-700 dark:text-slate-200">Files Impacted:</strong></div>
+                            <div class="pl-2 space-y-1">
+                                <div>[MODIFY] [changelog.html](file:///D:/AI_Trader/templates/changelog.html) &middot; restructuring HTML layout columns and timeline endpoints</div>
+                                <div>[MODIFY] [training.html](file:///D:/AI_Trader/templates/training.html) &middot; converting single-job and meta-trainer launcher buttons to translucent style</div>
+                                <div>[MODIFY] [guide.html](file:///D:/AI_Trader/templates/guide.html) &middot; added accordion entry for version 1.0.13 details</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- v1.0.12 -->
         <div id="v1.0.12" class="changelog-item relative pl-6 md:pl-8 pb-8 group" data-type="feat">
             <!-- Vertical line segment -->
-            <div class="absolute left-0 top-2 bottom-0 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
+            <div class="absolute left-0 top-0 bottom-0 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
             <!-- Timeline dot -->
             <div class="absolute -left-[5px] top-2 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
             
@@ -617,6 +667,7 @@
                 </div>
             </div>
         </div>
+        </div> <!-- Close Left Column: Timeline Entries -->
 
         <!-- Right Column: Release Color Codes Legend -->
         <div style="position: sticky; top: 24px;" class="bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200 dark:border-slate-800/80 p-5 font-mono text-[10px] text-slate-500 dark:text-slate-400">
@@ -658,7 +709,6 @@
             </div>
         </div>
     </div>
-</div>
 {% endblock page_content %}
 
 {% block extra_javascript %}
