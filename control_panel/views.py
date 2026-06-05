@@ -675,6 +675,11 @@ def onboarding_view(request):
     return render(request, 'guide.html', _build_dashboard_context())
 
 @login_required
+def changelog_view(request):
+    return render(request, 'changelog.html', _build_dashboard_context())
+
+
+@login_required
 def training_view(request):
     from django.core.paginator import Paginator
 

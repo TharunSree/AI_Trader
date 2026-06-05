@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Platform Changelog | Update History{% endblock title %}
+{% block page_title %}System Update Ledger{% endblock page_title %}
+
+{% block page_content %}
+<div class="max-w-4xl mx-auto space-y-8 pb-12">
+    <!-- Header Summary Card -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-6 relative overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-r from-brand-500/5 to-transparent pointer-events-none"></div>
+        <div class="flex items-center justify-between flex-wrap gap-4 relative z-10">
+            <div>
+                <h2 class="text-lg font-bold text-slate-800 dark:text-white uppercase tracking-wider">Release Ledger</h2>
+                <p class="text-xs text-slate-500 font-mono mt-1">Version control registry and historical deployment logs for QuantTrader Node.</p>
+            </div>
+            <div class="flex items-center gap-2 font-mono text-xs font-bold">
+                <span class="px-2.5 py-1 rounded bg-brand-500/10 text-brand-500 border border-brand-500/20">Current: v1.07</span>
+                <span class="text-slate-500 font-normal">Updated today</span>
+            </div>
+        </div>
+        
+        <!-- Filter Pills -->
+        <div class="flex items-center gap-2 mt-6 flex-wrap">
+            <button onclick="filterChangelog('all')" id="filter-btn-all" class="px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-brand-500 text-white border border-brand-500 transition-all cursor-pointer">All Changes</button>
+            <button onclick="filterChangelog('feat')" id="filter-btn-feat" class="px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-400 border border-transparent hover:border-slate-700 transition-all cursor-pointer">Features</button>
+            <button onclick="filterChangelog('fix')" id="filter-btn-fix" class="px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-400 border border-transparent hover:border-slate-700 transition-all cursor-pointer">Bug Fixes</button>
+            <button onclick="filterChangelog('perf')" id="filter-btn-perf" class="px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-400 border border-transparent hover:border-slate-700 transition-all cursor-pointer">Performance</button>
+        </div>
+    </div>
+
+    <!-- Timeline Entries -->
+    <div class="relative border-l-2 border-slate-200 dark:border-slate-800 ml-4 md:ml-6 space-y-8">
+        
+        <!-- v1.07 -->
+        <div class="changelog-item relative pl-6 md:pl-8 group" data-type="feat">
+            <!-- Timeline dot -->
+            <div class="absolute -left-[7px] top-2 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
+            
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-brand-500/40 transition-all duration-300">
+                <!-- Header -->
+                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
+                    <div class="flex items-center gap-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.07</span>
+                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Real-time Metrics, Paginated Ledger, &amp; Smart Promotion Alerts</h3>
+                    </div>
+                    <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
+                        <i class="far fa-calendar-alt"></i> June 05, 2026
+                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">6905fc5</span>
+                    </div>
+                </div>
+                
+                <!-- Body -->
+                <div class="p-6 space-y-4">
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
+                        This update delivers real-time telemetry rendering and automatic browser notifications. It introduces dynamic metrics updates for variants, paginated trade tables, and marker overlays on Chart.js.
+                    </p>
+                    
+                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
+                        <li><strong>Real-time Polling:</strong> Added `/api/evolution/variants/<id>/metrics/` endpoint returning variant stats, trades count, and chart data without reloading.</li>
+                        <li><strong>Paginator Integration:</strong> Slices variant trades to a neat list of 10 rows per page client-side.</li>
+                        <li><strong>Annotated Charts:</strong> Plots scatter points on the Chart.js equity line representing buy (green) and sell (amber/red) executions.</li>
+                        <li><strong>Primary/Secondary Actions Grouping:</strong> Consolidated the clutter of variant action buttons into a smart Actions Dropdown menu (Restart, Delete), keeping Promote and Reject as primary tasks.</li>
+                        <li><strong>Smart Promotion Toasts:</strong> Background checker polls variants in base.html and displays a slide-up toast notification when any variant is ready to promote.</li>
+                    </ul>
+
+                    <!-- Expandable details -->
+                    <div class="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
+                        <button onclick="toggleDetails(this)" class="text-[10px] uppercase tracking-widest text-brand-500 hover:text-brand-400 font-bold font-mono flex items-center gap-1 cursor-pointer">
+                            <span>Show Tech Details</span> <i class="fas fa-chevron-down text-[8px]"></i>
+                        </button>
+                        <div class="hidden mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0a0a0c] border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] text-slate-500 dark:text-slate-400 space-y-3 leading-relaxed">
+                            <div><strong class="text-slate-700 dark:text-slate-200">Files Impacted:</strong></div>
+                            <div class="pl-2 space-y-1">
+                                <div>[MODIFY] [views.py](file:///D:/AI_Trader/control_panel/views.py) &middot; added `variant_metrics_api` endpoint</div>
+                                <div>[MODIFY] [urls.py](file:///D:/AI_Trader/control_panel/urls.py) &middot; added route for metrics API</div>
+                                <div>[MODIFY] [variant_details.html](file:///D:/AI_Trader/templates/variant_details.html) &middot; refactored javascript pollers and layout</div>
+                                <div>[MODIFY] [base.html](file:///D:/AI_Trader/templates/base.html) &middot; injected toast templates and notification checker</div>
+                                <div>[MODIFY] [virtual_paper_engine.py](file:///D:/AI_Trader/src/core/virtual_paper_engine.py) &middot; corrected variant trades count syncing from DB</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- v1.06 -->
+        <div class="changelog-item relative pl-6 md:pl-8 group" data-type="feat">
+            <div class="absolute -left-[7px] top-2 w-3 h-3 rounded-full bg-purple-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-purple-500/40 transition-all duration-300">
+                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
+                    <div class="flex items-center gap-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">v1.06</span>
+                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Neural Evolution Engine Control &amp; Logs Portability</h3>
+                    </div>
+                    <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
+                        <i class="far fa-calendar-alt"></i> June 05, 2026
+                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">1213b97</span>
+                    </div>
+                </div>
+                <div class="p-6 space-y-4">
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
+                        This update resolves controls for neural evolution variants and streamlines logs portability.
+                    </p>
+                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
+                        <li><strong>Restart Scope Expansion:</strong> Adjusted visibility for "Restart Engine" to appear on all active/failed statuses (TESTING, PENDING, FAILED, QUEUED) rather than FAILED only.</li>
+                        <li><strong>Clipboard Logs Copy:</strong> Injected a copy log button/icon in the header container of the virtual logs terminal with status-altering visual feedback.</li>
+                    </ul>
+                    <div class="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
+                        <button onclick="toggleDetails(this)" class="text-[10px] uppercase tracking-widest text-brand-500 hover:text-brand-400 font-bold font-mono flex items-center gap-1 cursor-pointer">
+                            <span>Show Tech Details</span> <i class="fas fa-chevron-down text-[8px]"></i>
+                        </button>
+                        <div class="hidden mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0a0a0c] border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] text-slate-500 dark:text-slate-400 space-y-3 leading-relaxed">
+                            <div><strong class="text-slate-700 dark:text-slate-200">Files Impacted:</strong></div>
+                            <div class="pl-2 space-y-1">
+                                <div>[MODIFY] [variant_details.html](file:///D:/AI_Trader/templates/variant_details.html) &middot; modified buttons template and added copy JS logs handler</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- v1.05 -->
+        <div class="changelog-item relative pl-6 md:pl-8 group" data-type="fix">
+            <div class="absolute -left-[7px] top-2 w-3 h-3 rounded-full bg-amber-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-amber-500/40 transition-all duration-300">
+                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
+                    <div class="flex items-center gap-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">v1.05</span>
+                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Virtual Engine Normalization Alignment</h3>
+                    </div>
+                    <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
+                        <i class="far fa-calendar-alt"></i> June 05, 2026
+                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">44174a3</span>
+                    </div>
+                </div>
+                <div class="p-6 space-y-4">
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
+                        This update patches feature tensor scaling to prevent model signal saturation.
+                    </p>
+                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
+                        <li><strong>Z-Score Normalization:</strong> Added sliding window mean and variance scaling to `_build_state_tensor` inside `virtual_paper_engine.py`. This aligns variant feature scaling with the production running node PPO environment.</li>
+                    </ul>
+                    <div class="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
+                        <button onclick="toggleDetails(this)" class="text-[10px] uppercase tracking-widest text-brand-500 hover:text-brand-400 font-bold font-mono flex items-center gap-1 cursor-pointer">
+                            <span>Show Tech Details</span> <i class="fas fa-chevron-down text-[8px]"></i>
+                        </button>
+                        <div class="hidden mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0a0a0c] border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] text-slate-500 dark:text-slate-400 space-y-3 leading-relaxed">
+                            <div><strong class="text-slate-700 dark:text-slate-200">Files Impacted:</strong></div>
+                            <div class="pl-2 space-y-1">
+                                <div>[MODIFY] [virtual_paper_engine.py](file:///D:/AI_Trader/src/core/virtual_paper_engine.py) &middot; added Z-score normalization scaling to state building function</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- v1.04 -->
+        <div class="changelog-item relative pl-6 md:pl-8 group" data-type="feat">
+            <div class="absolute -left-[7px] top-2 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-brand-500/40 transition-all duration-300">
+                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
+                    <div class="flex items-center gap-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.04</span>
+                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Self-Healing Loops &amp; Zombie Process Eviction</h3>
+                    </div>
+                    <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
+                        <i class="far fa-calendar-alt"></i> June 04, 2026
+                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">cfb9236</span>
+                    </div>
+                </div>
+                <div class="p-6 space-y-4">
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
+                        This update connects runtime exceptions to the mutation engine for automatic healing and patches resource leaks.
+                    </p>
+                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
+                        <li><strong>Traceback Triage:</strong> The cognitive code rewriter mutator now parses exception tracebacks from failed variants and instructs Gemini to correct them in subsequent iterations.</li>
+                        <li><strong>Zombie Process Release:</strong> Evicting or rejecting a variant terminates its physical process PID immediately, freeing CPU and database locks.</li>
+                        <li><strong>Restart Support:</strong> Added a "Restart Engine" button on failed variants.</li>
+                        <li><strong>Glassmorphic Buttons:</strong> Upgraded solid actions buttons with glowing translucent borders.</li>
+                    </ul>
+                    <div class="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
+                        <button onclick="toggleDetails(this)" class="text-[10px] uppercase tracking-widest text-brand-500 hover:text-brand-400 font-bold font-mono flex items-center gap-1 cursor-pointer">
+                            <span>Show Tech Details</span> <i class="fas fa-chevron-down text-[8px]"></i>
+                        </button>
+                        <div class="hidden mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0a0a0c] border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] text-slate-500 dark:text-slate-400 space-y-3 leading-relaxed">
+                            <div><strong class="text-slate-700 dark:text-slate-200">Files Impacted:</strong></div>
+                            <div class="pl-2 space-y-1">
+                                <div>[MODIFY] [code_rewriter.py](file:///D:/AI_Trader/src/core/code_rewriter.py) &middot; added spawn guard and traceback parser</div>
+                                <div>[MODIFY] [views.py](file:///D:/AI_Trader/control_panel/views.py) &middot; added `evolution_restart_api` view and PID kill logic</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- v1.03 -->
+        <div class="changelog-item relative pl-6 md:pl-8 group" data-type="perf">
+            <div class="absolute -left-[7px] top-2 w-3 h-3 rounded-full bg-cyan-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-cyan-500/40 transition-all duration-300">
+                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
+                    <div class="flex items-center gap-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">v1.03</span>
+                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">UI Consolidation &amp; Deletion APIs</h3>
+                    </div>
+                    <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
+                        <i class="far fa-calendar-alt"></i> June 04, 2026
+                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">338775e</span>
+                    </div>
+                </div>
+                <div class="p-6 space-y-4">
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
+                        This update optimizes layout heights and exposes variant deletion controllers.
+                    </p>
+                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
+                        <li><strong>Tabbed Layout Panel:</strong> Combined the vertical mutation reasoning blocks and git code diff into a compact, scrollable "Virtual Code History" tabbed dashboard.</li>
+                        <li><strong>Delete APIs:</strong> Registered backend routes to drop ModelVariant records, clear virtual trades, and clean up physical log outputs from disk.</li>
+                    </ul>
+                    <div class="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
+                        <button onclick="toggleDetails(this)" class="text-[10px] uppercase tracking-widest text-brand-500 hover:text-brand-400 font-bold font-mono flex items-center gap-1 cursor-pointer">
+                            <span>Show Tech Details</span> <i class="fas fa-chevron-down text-[8px]"></i>
+                        </button>
+                        <div class="hidden mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0a0a0c] border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] text-slate-500 dark:text-slate-400 space-y-3 leading-relaxed">
+                            <div><strong class="text-slate-700 dark:text-slate-200">Files Impacted:</strong></div>
+                            <div class="pl-2 space-y-1">
+                                <div>[MODIFY] [views.py](file:///D:/AI_Trader/control_panel/views.py) &middot; added `evolution_delete_api` view</div>
+                                <div>[MODIFY] [variant_details.html](file:///D:/AI_Trader/templates/variant_details.html) &middot; added reasoning/diff tabs layout and delete forms</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- v1.02 -->
+        <div class="changelog-item relative pl-6 md:pl-8 group" data-type="fix">
+            <div class="absolute -left-[7px] top-2 w-3 h-3 rounded-full bg-amber-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-amber-500/40 transition-all duration-300">
+                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
+                    <div class="flex items-center gap-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">v1.02</span>
+                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Asynchronous Context Lock Remediation</h3>
+                    </div>
+                    <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
+                        <i class="far fa-calendar-alt"></i> June 04, 2026
+                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">338775e</span>
+                    </div>
+                </div>
+                <div class="p-6 space-y-4">
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
+                        This update patches thread-safety issues during virtual database transactions.
+                    </p>
+                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
+                        <li><strong>Async Lock Prevention:</strong> Resolved `SynchronousOnlyOperation` exception inside the Virtual Paper Engine. Wrapped Django ORM writes, updates, and trade snapshots inside thread-isolated pools using `asyncio.to_thread`.</li>
+                    </ul>
+                    <div class="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
+                        <button onclick="toggleDetails(this)" class="text-[10px] uppercase tracking-widest text-brand-500 hover:text-brand-400 font-bold font-mono flex items-center gap-1 cursor-pointer">
+                            <span>Show Tech Details</span> <i class="fas fa-chevron-down text-[8px]"></i>
+                        </button>
+                        <div class="hidden mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0a0a0c] border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] text-slate-500 dark:text-slate-400 space-y-3 leading-relaxed">
+                            <div><strong class="text-slate-700 dark:text-slate-200">Files Impacted:</strong></div>
+                            <div class="pl-2 space-y-1">
+                                <div>[MODIFY] [virtual_paper_engine.py](file:///D:/AI_Trader/src/core/virtual_paper_engine.py) &middot; wrapped Django ORM updates in asyncio threads</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- v1.01 -->
+        <div class="changelog-item relative pl-6 md:pl-8 group" data-type="feat">
+            <div class="absolute -left-[7px] top-2 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-brand-500/40 transition-all duration-300">
+                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
+                    <div class="flex items-center gap-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.01</span>
+                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Variant Deep-Dive Analytics</h3>
+                    </div>
+                    <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
+                        <i class="far fa-calendar-alt"></i> June 04, 2026
+                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">338775e</span>
+                    </div>
+                </div>
+                <div class="p-6 space-y-4">
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
+                        This update creates deep-dive reporting tools for mutated variant agents.
+                    </p>
+                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
+                        <li><strong>Equity Curve Plotting:</strong> Integrated simulated equity curves using Chart.js on the variant details page.</li>
+                        <li><strong>Chronological Trade Ledger:</strong> Built clean HTML tables displaying virtual trades.</li>
+                        <li><strong>Log Streaming:</strong> Integrated terminal tail streamer polling variant log files via HTTP requests.</li>
+                    </ul>
+                    <div class="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
+                        <button onclick="toggleDetails(this)" class="text-[10px] uppercase tracking-widest text-brand-500 hover:text-brand-400 font-bold font-mono flex items-center gap-1 cursor-pointer">
+                            <span>Show Tech Details</span> <i class="fas fa-chevron-down text-[8px]"></i>
+                        </button>
+                        <div class="hidden mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0a0a0c] border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] text-slate-500 dark:text-slate-400 space-y-3 leading-relaxed">
+                            <div><strong class="text-slate-700 dark:text-slate-200">Files Impacted:</strong></div>
+                            <div class="pl-2 space-y-1">
+                                <div>[NEW] [variant_details.html](file:///D:/AI_Trader/templates/variant_details.html) &middot; created the dedicated details template</div>
+                                <div>[MODIFY] [views.py](file:///D:/AI_Trader/control_panel/views.py) &middot; created `variant_details_view`</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- v1.00 -->
+        <div class="changelog-item relative pl-6 md:pl-8 group" data-type="perf">
+            <div class="absolute -left-[7px] top-2 w-3 h-3 rounded-full bg-slate-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-slate-500/40 transition-all duration-300">
+                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
+                    <div class="flex items-center gap-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-500/10 text-slate-500 border border-slate-500/20">v1.00</span>
+                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Initial Launch</h3>
+                    </div>
+                    <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
+                        <i class="far fa-calendar-alt"></i> May 2026
+                    </div>
+                </div>
+                <div class="p-6 space-y-4">
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
+                        QuantTrader Neural Evolution node core release.
+                    </p>
+                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
+                        <li>Standard PPO agent architecture, self-mutation loop engine, Alpaca streaming sockets, and standard dashboard.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock page_content %}
+
+{% block extra_javascript %}
+<script>
+function toggleDetails(btn) {
+    const textNode = btn.querySelector('span');
+    const icon = btn.querySelector('i');
+    const detailsDiv = btn.nextElementSibling;
+    
+    if (detailsDiv.classList.contains('hidden')) {
+        detailsDiv.classList.remove('hidden');
+        textNode.textContent = 'Hide Tech Details';
+        icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
+    } else {
+        detailsDiv.classList.add('hidden');
+        textNode.textContent = 'Show Tech Details';
+        icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
+    }
+}
+
+function filterChangelog(type) {
+    const items = document.querySelectorAll('.changelog-item');
+    const buttons = {
+        all: document.getElementById('filter-btn-all'),
+        feat: document.getElementById('filter-btn-feat'),
+        fix: document.getElementById('filter-btn-fix'),
+        perf: document.getElementById('filter-btn-perf')
+    };
+
+    // Reset buttons styling
+    Object.keys(buttons).forEach(key => {
+        if(buttons[key]) {
+            buttons[key].className = "px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-400 border border-transparent hover:border-slate-700 transition-all cursor-pointer";
+        }
+    });
+
+    // Style active button
+    if(buttons[type]) {
+        buttons[type].className = "px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-brand-500 text-white border border-brand-500 transition-all cursor-pointer";
+    }
+
+    // Toggle items
+    items.forEach(item => {
+        const itemType = item.getAttribute('data-type');
+        if (type === 'all' || itemType === type) {
+            item.style.display = 'block';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+</script>
+{% endblock extra_javascript %}

@@ -278,120 +278,92 @@
                 <i class="fas fa-history text-purple-400"></i> Platform Version History
             </h2>
             <p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-6">
-                Changelog and feature updates for the Neural Evolution Platform. Version increments track system optimizations, AI model updates, and layout features.
+                Changelog and feature updates for the Neural Evolution Platform. Showing the latest deployments. Expand each entry below to see key highlights, or visit the dedicated Update History page for full specs.
             </p>
-            
-            <div class="space-y-6 font-mono text-xs">
-                <!-- v1.07 -->
-                <div class="border-l-2 border-brand-primary pl-4 py-1">
-                    <div class="flex items-center gap-2 mb-1">
-                        <span class="px-2 py-0.5 rounded bg-brand-primary/10 text-brand-primary font-bold">v1.07</span>
-                        <span class="text-slate-500 text-[10px]">June 05, 2026</span>
-                    </div>
-                    <p class="text-slate-800 dark:text-slate-300 font-bold mb-1">Real-time Metrics, Paginated Ledger, &amp; Smart Promotion Alerts</p>
-                    <ul class="list-disc pl-4 space-y-1 text-slate-500 dark:text-slate-400">
-                        <li>Implemented real-time polling API (`variant_metrics_api`) to automatically synchronize variant metrics, trades count, and status without manual refreshes.</li>
-                        <li>Refactored the virtual trade ledger to paginate executions to 10 rows per page client-side.</li>
-                        <li>Enhanced the equity curve chart with trade point annotations, overlaying green dots for BUYs and red/amber dots for SELLs with customized tooltips displaying transaction size and price.</li>
-                        <li>Consolidated secondary header buttons (Restart, Delete) into a clean, hover-triggered "Actions" dropdown menu to simplify layout.</li>
-                        <li>Developed a global background promotion checker and browser toast notification that pops up when a mutated model is ready for promotion.</li>
-                    </ul>
-                </div>
 
-                <!-- v1.06 -->
-                <div class="border-l-2 border-purple-500 pl-4 py-1">
-                    <div class="flex items-center gap-2 mb-1">
-                        <span class="px-2 py-0.5 rounded bg-purple-500/10 text-purple-400 font-bold">v1.06</span>
-                        <span class="text-slate-500 text-[10px]">June 05, 2026</span>
+            <div class="space-y-4 mb-6">
+                <!-- Accordion 1: v1.07 -->
+                <details class="group bg-slate-50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-800/80 rounded-xl transition-all duration-300 overflow-hidden">
+                    <summary class="flex items-center justify-between p-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden font-mono text-xs select-none">
+                        <div class="flex items-center gap-3">
+                            <span class="px-2 py-0.5 rounded bg-brand-primary/10 text-brand-primary font-bold">v1.07</span>
+                            <span class="text-slate-800 dark:text-slate-200 font-bold">Real-time Metrics, Paginated Ledger, &amp; Smart Promotion Alerts</span>
+                        </div>
+                        <div class="flex items-center gap-3 flex-shrink-0">
+                            <span class="text-slate-500 text-[10px] hidden sm:inline">June 05, 2026</span>
+                            <i class="fas fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform duration-200"></i>
+                        </div>
+                    </summary>
+                    <div class="p-4 border-t border-slate-200 dark:border-slate-800/80 text-slate-600 dark:text-slate-400 space-y-3 leading-relaxed">
+                        <ul class="list-disc pl-4 space-y-1 text-xs">
+                            <li>Implemented real-time polling API (`variant_metrics_api`) to automatically synchronize variant metrics, trades count, and status without manual refreshes.</li>
+                            <li>Refactored the virtual trade ledger to paginate executions to 10 rows per page client-side.</li>
+                            <li>Consolidated secondary header buttons (Restart, Delete) into a clean, hover-triggered "Actions" dropdown menu to simplify layout.</li>
+                        </ul>
+                        <div class="pt-2 text-right">
+                            <a href="{% url 'changelog' %}#v1.07" class="text-brand-accent hover:underline font-mono text-[10px] inline-flex items-center gap-1">
+                                View Full Details &amp; Tech Specs <i class="fas fa-arrow-right text-[8px]"></i>
+                            </a>
+                        </div>
                     </div>
-                    <p class="text-slate-800 dark:text-slate-300 font-bold mb-1">Neural Evolution Engine Control &amp; Logs Portability</p>
-                    <ul class="list-disc pl-4 space-y-1 text-slate-500 dark:text-slate-400">
-                        <li>Expanded "Restart Engine" button visibility to cover all non-promoted neural variants (TESTING, PENDING, FAILED, QUEUED) to allow manual recovery of hung or misbehaving processes.</li>
-                        <li>Integrated log clipboard copying with a dedicated copy button and icon inside the Virtual Engine Log terminal header.</li>
-                    </ul>
-                </div>
+                </details>
 
-                <!-- v1.05 -->
-                <div class="border-l-2 border-brand-primary pl-4 py-1">
-                    <div class="flex items-center gap-2 mb-1">
-                        <span class="px-2 py-0.5 rounded bg-brand-primary/10 text-brand-primary font-bold">v1.05</span>
-                        <span class="text-slate-500 text-[10px]">June 05, 2026</span>
+                <!-- Accordion 2: v1.06 -->
+                <details class="group bg-slate-50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-800/80 rounded-xl transition-all duration-300 overflow-hidden">
+                    <summary class="flex items-center justify-between p-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden font-mono text-xs select-none">
+                        <div class="flex items-center gap-3">
+                            <span class="px-2 py-0.5 rounded bg-purple-500/10 text-purple-400 font-bold">v1.06</span>
+                            <span class="text-slate-800 dark:text-slate-200 font-bold">Neural Evolution Engine Control &amp; Logs Portability</span>
+                        </div>
+                        <div class="flex items-center gap-3 flex-shrink-0">
+                            <span class="text-slate-500 text-[10px] hidden sm:inline">June 05, 2026</span>
+                            <i class="fas fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform duration-200"></i>
+                        </div>
+                    </summary>
+                    <div class="p-4 border-t border-slate-200 dark:border-slate-800/80 text-slate-600 dark:text-slate-400 space-y-3 leading-relaxed">
+                        <ul class="list-disc pl-4 space-y-1 text-xs">
+                            <li>Expanded "Restart Engine" button visibility to cover all non-promoted neural variants (TESTING, PENDING, FAILED, QUEUED) to allow manual recovery of hung or misbehaving processes.</li>
+                            <li>Integrated log clipboard copying with a dedicated copy button and icon inside the Virtual Engine Log terminal header.</li>
+                        </ul>
+                        <div class="pt-2 text-right">
+                            <a href="{% url 'changelog' %}#v1.06" class="text-brand-accent hover:underline font-mono text-[10px] inline-flex items-center gap-1">
+                                View Full Details &amp; Tech Specs <i class="fas fa-arrow-right text-[8px]"></i>
+                            </a>
+                        </div>
                     </div>
-                    <p class="text-slate-800 dark:text-slate-300 font-bold mb-1">Virtual Engine Normalization Alignment</p>
-                    <ul class="list-disc pl-4 space-y-1 text-slate-500 dark:text-slate-400">
-                        <li>Fixed state tensor saturation: Added Z-score normalization to the virtual paper engine (`_build_state_tensor` in `virtual_paper_engine.py`) to align feature scaling with the production engine.</li>
-                        <li>Ensured correct mathematical inputs are fed to the Actor-Critic networks for variants, enabling accurate buy and sell trading signals.</li>
-                    </ul>
-                </div>
+                </details>
 
-                <!-- v1.04 -->
-                <div class="border-l-2 border-indigo-500 pl-4 py-1">
-                    <div class="flex items-center gap-2 mb-1">
-                        <span class="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 font-bold">v1.04</span>
-                        <span class="text-slate-500 text-[10px]">June 04, 2026</span>
+                <!-- Accordion 3: v1.05 -->
+                <details class="group bg-slate-50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-800/80 rounded-xl transition-all duration-300 overflow-hidden">
+                    <summary class="flex items-center justify-between p-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden font-mono text-xs select-none">
+                        <div class="flex items-center gap-3">
+                            <span class="px-2 py-0.5 rounded bg-brand-primary/10 text-brand-primary font-bold">v1.05</span>
+                            <span class="text-slate-800 dark:text-slate-200 font-bold">Virtual Engine Normalization Alignment</span>
+                        </div>
+                        <div class="flex items-center gap-3 flex-shrink-0">
+                            <span class="text-slate-500 text-[10px] hidden sm:inline">June 05, 2026</span>
+                            <i class="fas fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform duration-200"></i>
+                        </div>
+                    </summary>
+                    <div class="p-4 border-t border-slate-200 dark:border-slate-800/80 text-slate-600 dark:text-slate-400 space-y-3 leading-relaxed">
+                        <ul class="list-disc pl-4 space-y-1 text-xs">
+                            <li>Fixed state tensor saturation: Added Z-score normalization to the virtual paper engine (`_build_state_tensor` in `virtual_paper_engine.py`) to align feature scaling with the production engine.</li>
+                            <li>Ensured correct mathematical inputs are fed to the Actor-Critic networks for variants, enabling accurate buy and sell trading signals.</li>
+                        </ul>
+                        <div class="pt-2 text-right">
+                            <a href="{% url 'changelog' %}#v1.05" class="text-brand-accent hover:underline font-mono text-[10px] inline-flex items-center gap-1">
+                                View Full Details &amp; Tech Specs <i class="fas fa-arrow-right text-[8px]"></i>
+                            </a>
+                        </div>
                     </div>
-                    <p class="text-slate-800 dark:text-slate-300 font-bold mb-1">Self-Healing Feedback Loops & Zombie Process Eviction</p>
-                    <ul class="list-disc pl-4 space-y-1 text-slate-500 dark:text-slate-400">
-                        <li>Closed the self-healing loop: The Cognitive Mutator now reads tracebacks/errors from failed variants and instructs Gemini to correct them in the next iteration.</li>
-                        <li>Implemented zombie PID eviction: testing slots automatically self-heal and release if their virtual processes are terminated or OOM-killed.</li>
-                        <li>Forced process termination: Evicting/rejecting/promoting variants now kills all respective running PIDs immediately to prevent CPU leaks.</li>
-                        <li>Added a "Restart Engine" button on failed variants to easily retry after settings updates.</li>
-                        <li>Upgraded action buttons: Replaced flat solid buttons (Promote, Reject, Force Mutate, Restart) with glowing translucent glassmorphism buttons.</li>
-                    </ul>
-                </div>
+                </details>
+            </div>
 
-                <!-- v1.03 -->
-                <div class="border-l-2 border-purple-500 pl-4 py-1">
-                    <div class="flex items-center gap-2 mb-1">
-                        <span class="px-2 py-0.5 rounded bg-purple-500/10 text-purple-400 font-bold">v1.03</span>
-                        <span class="text-slate-500 text-[10px]">June 04, 2026</span>
-                    </div>
-                    <p class="text-slate-800 dark:text-slate-300 font-bold mb-1">UI Consolidation & Deletion APIs</p>
-                    <ul class="list-disc pl-4 space-y-1 text-slate-500 dark:text-slate-400">
-                        <li>Moved AI mutation reasoning and code diff into a single unified "Virtual Code History" scrollable panel to save vertical layout space.</li>
-                        <li>Exposed delete actions for testing/failed neural variants directly in the list view and detail dashboard.</li>
-                        <li>Integrated cleanup logic to kill running subprocess containers when a variant is deleted.</li>
-                    </ul>
-                </div>
-
-                <!-- v1.02 -->
-                <div class="border-l-2 border-blue-500 pl-4 py-1">
-                    <div class="flex items-center gap-2 mb-1">
-                        <span class="px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 font-bold">v1.02</span>
-                        <span class="text-slate-500 text-[10px]">June 04, 2026</span>
-                    </div>
-                    <p class="text-slate-800 dark:text-slate-300 font-bold mb-1">Asynchronous Context Lock Remediation</p>
-                    <ul class="list-disc pl-4 space-y-1 text-slate-500 dark:text-slate-400">
-                        <li>Fixed `SynchronousOnlyOperation` exception inside the Virtual Engine runner loops.</li>
-                        <li>Enwrapped all Django ORM reads and updates within thread-isolated execution pools using `asyncio.to_thread`.</li>
-                    </ul>
-                </div>
-
-                <!-- v1.01 -->
-                <div class="border-l-2 border-emerald-500 pl-4 py-1">
-                    <div class="flex items-center gap-2 mb-1">
-                        <span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-bold">v1.01</span>
-                        <span class="text-slate-500 text-[10px]">June 04, 2026</span>
-                    </div>
-                    <p class="text-slate-800 dark:text-slate-300 font-bold mb-1">Variant Deep-Dive Analytics</p>
-                    <ul class="list-disc pl-4 space-y-1 text-slate-500 dark:text-slate-400">
-                        <li>Designed dynamic simulated equity curve charts leveraging Chart.js.</li>
-                        <li>Constructed chronological virtual trade ledger tables mapping executions.</li>
-                        <li>Developed real-time logs streamer polling execution metrics over SSE/AJAX.</li>
-                    </ul>
-                </div>
-
-                <!-- v1.00 -->
-                <div class="border-l-2 border-slate-500 pl-4 py-1">
-                    <div class="flex items-center gap-2 mb-1">
-                        <span class="px-2 py-0.5 rounded bg-slate-500/10 text-slate-400 font-bold">v1.00</span>
-                        <span class="text-slate-500 text-[10px]">May 2026</span>
-                    </div>
-                    <p class="text-slate-800 dark:text-slate-300 font-bold mb-1">Initial Launch</p>
-                    <ul class="list-disc pl-4 space-y-1 text-slate-500 dark:text-slate-400">
-                        <li>Core reinforcement learning environment, self-healing compilation, and Alpaca streaming modules.</li>
-                    </ul>
-                </div>
+            <!-- Footer Action -->
+            <div class="flex justify-center mt-6">
+                <a href="{% url 'changelog' %}" class="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/40 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800/80 text-slate-700 dark:text-slate-300 font-mono text-xs font-bold uppercase tracking-widest rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]">
+                    <i class="fas fa-history text-purple-400"></i> View Full Update Ledger
+                </a>
             </div>
         </div>
 

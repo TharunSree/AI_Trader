@@ -35,6 +35,7 @@ urlpatterns = [
     path('api/models/ready/<str:file_name>/', views.toggle_model_ready_api, name='toggle_model_ready_api'),
     
     path('guide/', views.onboarding_view, name='guide'),
+    path('changelog/', views.changelog_view, name='changelog'),
     
     # API Endpoints
     path('api/job-status/', views.job_status_api, name='job_status_api'),
