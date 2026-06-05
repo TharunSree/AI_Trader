@@ -191,22 +191,31 @@ def generate_mutation_pdf(model_name, reasoning, diff_str, simple_summary):
 
 def _read_key(name):
     """Read an API key from SystemSettings database, fallback to env vars or Django settings."""
+    def clean_val(v):
+        if not v:
+            return ''
+        v_str = str(v).strip()
+        if v_str.upper() in ['', 'YOUR_API_KEY', 'YOUR_GEMINI_API_KEY', 'YOUR_SECRET_KEY', 'YOUR_KEY', 'API_KEY_HERE']:
+            return ''
+        return v_str
+
     val = ''
     try:
         from control_panel.models import SystemSettings
         db_settings = SystemSettings.load()
         val = getattr(db_settings, name.lower(), '')
+        val = clean_val(val)
         print(f"[DEBUG _read_key] Loaded from DB '{name.lower()}': {'SET' if val else 'EMPTY'}")
     except Exception as e:
         print(f"[DEBUG _read_key] SystemSettings DB error: {e}")
         pass
         
     if not val:
-        val = os.environ.get(name, '')
+        val = clean_val(os.environ.get(name, ''))
     if not val:
-        val = getattr(settings, name, '') or ''
+        val = clean_val(getattr(settings, name, ''))
         
-    return val or ''
+    return val
 
 
 class _UnifiedAIClient:

@@ -1751,18 +1751,36 @@ def trader_activity_api(request):
 @login_required
 def reports_hub_view(request):
     """
-    Renders the Intelligence Vault listing all persisted EOD reports with timeframe filters.
+    Renders the Intelligence Vault listing all persisted EOD reports with timeframe filters and sorting.
     """
     from .models import TradingReport
     from django.utils import timezone
+    from django.core.paginator import Paginator
+    from django.db.models import Avg, Sum
     import datetime
     import calendar
     
     selected_month = request.GET.get('month', '')
     selected_week = request.GET.get('week_of_month', 'all')
+    selected_type = request.GET.get('report_type', 'all')
+    sort_by = request.GET.get('sort_by', '-timestamp')
+    page_number = request.GET.get('page', 1)
     
+    # Validate sort parameter
+    allowed_sorts = [
+        'timestamp', '-timestamp', 
+        'total_revenue', '-total_revenue', 
+        'win_rate', '-win_rate', 
+        'total_trades', '-total_trades'
+    ]
+    if sort_by not in allowed_sorts:
+        sort_by = '-timestamp'
+        
     reports = TradingReport.objects.all()
     
+    if selected_type and selected_type != 'all':
+        reports = reports.filter(report_type=selected_type)
+        
     if selected_month:
         try:
             year_str, month_str = selected_month.split('-')
@@ -1793,15 +1811,31 @@ def reports_hub_view(request):
                 start_date = datetime.datetime(year, month, start_day, tzinfo=tz)
                 end_date = start_date + datetime.timedelta(days=(end_day - start_day + 1))
                 reports = reports.filter(timestamp__gte=start_date, timestamp__lt=end_date)
-        except Exception as e:
+        except Exception:
             pass
             
-    reports = reports.order_by('-timestamp')
+    reports = reports.order_by(sort_by)
+    
+    # Calculate aggregate stats before pagination
+    total_count = reports.count()
+    total_revenue = float(reports.aggregate(total=Sum('total_revenue'))['total'] or 0.0)
+    avg_win_rate = float(reports.aggregate(avg=Avg('win_rate'))['avg'] or 0.0)
+    total_trades_sum = reports.aggregate(total=Sum('total_trades'))['total'] or 0
+    
+    # Paginate (10 items per page)
+    paginator = Paginator(reports, 10)
+    page_obj = paginator.get_page(page_number)
     
     context = {
-        'reports': reports,
+        'reports': page_obj,
         'selected_month': selected_month,
         'selected_week': selected_week,
+        'selected_type': selected_type,
+        'selected_sort': sort_by,
+        'total_count': total_count,
+        'total_revenue': total_revenue,
+        'avg_win_rate': avg_win_rate,
+        'total_trades_sum': total_trades_sum,
         'active_page': 'reports_hub'
     }
     return render(request, 'reports_hub.html', context)
@@ -1825,6 +1859,91 @@ def download_report_pdf_view(request, report_id):
         filename = os.path.basename(report.pdf_path)
         response['Content-Disposition'] = f'inline; filename="{filename}"'
         return response
+
+
+@login_required
+def view_report_view(request, report_id):
+    """
+    Renders the compiled HTML of a report's markdown file using the report_viewer.html template.
+    """
+    import os
+    import markdown
+    from django.http import Http404
+    from .models import TradingReport
+    
+    report = get_object_or_404(TradingReport, id=report_id)
+    if not report.markdown_path or not os.path.exists(report.markdown_path):
+        raise Http404("Markdown file not found on disk.")
+        
+    with open(report.markdown_path, 'r', encoding='utf-8') as f:
+        md_text = f.read()
+        
+    html_content = markdown.markdown(md_text, extensions=['tables', 'fenced_code', 'nl2br'])
+    
+    context = {
+        'report': report,
+        'report_date': report.timestamp,
+        'report_html': html_content,
+        'active_page': 'reports_hub'
+    }
+    return render(request, 'report_viewer.html', context)
+
+
+@login_required
+def download_report_markdown_view(request, report_id):
+    """
+    Downloads the raw markdown of a previously stored intelligence report.
+    """
+    import os
+    from django.http import HttpResponse, Http404
+    from .models import TradingReport
+    
+    report = get_object_or_404(TradingReport, id=report_id)
+    if not report.markdown_path or not os.path.exists(report.markdown_path):
+        raise Http404("Markdown file not found on disk.")
+        
+    with open(report.markdown_path, 'r', encoding='utf-8') as f:
+        response = HttpResponse(f.read(), content_type='text/markdown')
+        filename = os.path.basename(report.markdown_path)
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+
+
+@login_required
+def report_content_api(request, report_id):
+    """
+    JSON endpoint returning the compiled HTML content of a report for AJAX loading.
+    """
+    import os
+    import markdown
+    from django.http import JsonResponse
+    from .models import TradingReport
+    
+    report = TradingReport.objects.filter(id=report_id).first()
+    if not report:
+        return JsonResponse({"status": "error", "message": "Report not found."}, status=404)
+        
+    if not report.markdown_path or not os.path.exists(report.markdown_path):
+        return JsonResponse({"status": "error", "message": "Markdown file not found on disk."}, status=404)
+        
+    try:
+        with open(report.markdown_path, 'r', encoding='utf-8') as f:
+            md_text = f.read()
+            
+        html_content = markdown.markdown(md_text, extensions=['tables', 'fenced_code', 'nl2br'])
+        
+        return JsonResponse({
+            "status": "success",
+            "id": report.id,
+            "report_type": report.report_type,
+            "timestamp": report.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            "total_trades": report.total_trades,
+            "total_revenue": float(report.total_revenue),
+            "win_rate": float(report.win_rate),
+            "html": html_content
+        })
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": f"Error compiling markdown: {str(e)}"}, status=500)
 
 @login_required
 def delete_trader_api(request, trader_id):
@@ -1986,8 +2105,12 @@ def dismiss_alert_api(request, alert_id):
         if alert:
             alert.is_read = True
             alert.save()
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json' or 'application/json' in request.headers.get('Accept', ''):
+                return JsonResponse({"status": "success", "message": "Alert dismissed."})
             messages.success(request, "A/B Swap Recommendation dismissed.")
         else:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json' or 'application/json' in request.headers.get('Accept', ''):
+                return JsonResponse({"status": "error", "message": "Alert not found."}, status=404)
             messages.error(request, "Alert not found.")
     return redirect('dashboard')
 

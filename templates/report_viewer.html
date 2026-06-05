@@ -1,121 +1,194 @@
 {% extends "base.html" %}
 
-{% block title %}Report Viewer{% endblock title %}
+{% block title %}Report Viewer | {{ report.report_type }} Report{% endblock title %}
 {% block page_title %}Report Viewer{% endblock page_title %}
 
 {% block page_content %}
+<div class="mb-4">
+    <a href="{% url 'reports_hub' %}" class="text-xs text-brand-500 hover:text-brand-400 font-mono flex items-center gap-1 transition-colors">
+        <i class="fas fa-arrow-left"></i> Back to Intelligence Vault
+    </a>
+</div>
+
 <div class="grid grid-cols-1 xl:grid-cols-[1.35fr_0.65fr] gap-6 mb-6">
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-6 border border-slate-700/40">
-        <p class="text-xs uppercase tracking-[0.32em] text-brand-accent/80 font-mono mb-2">QuantTrader Archive</p>
-        <h2 class="text-2xl font-semibold text-slate-800 dark:text-slate-200">End-Of-Day Intelligence Report</h2>
-        <p class="mt-3 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 font-mono">{{ report_date|date:"Y-m-d" }}</p>
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-6 flex flex-col justify-between">
+        <div>
+            <div class="flex items-center gap-3 mb-2">
+                {% if report.report_type == 'DAILY' %}
+                <span class="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest bg-blue-500/10 text-blue-400 border border-blue-500/20">Daily Summary</span>
+                {% elif report.report_type == 'WEEKLY' %}
+                <span class="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest bg-purple-500/10 text-purple-400 border border-purple-500/20">Weekly Review</span>
+                {% else %}
+                <span class="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest bg-amber-500/10 text-amber-400 border border-amber-500/20">Monthly Dossier</span>
+                {% endif %}
+                <p class="text-xs uppercase tracking-[0.2em] text-slate-400 font-mono">Intelligence Archive</p>
+            </div>
+            <h2 class="text-xl font-bold text-slate-800 dark:text-slate-100 font-mono uppercase">QuantTrader Performance Dossier</h2>
+        </div>
+        <p class="mt-3 text-xs text-slate-500 dark:text-slate-400 font-mono flex items-center gap-1.5">
+            <i class="far fa-calendar-alt"></i> {{ report_date|date:"Y-m-d H:i:s" }}
+        </p>
     </div>
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-6 border border-slate-700/40">
-        <p class="text-xs uppercase tracking-[0.32em] text-brand-primary/80 font-mono mb-4">Export Controls</p>
-        <div class="flex flex-wrap gap-3">
-            <a href="{% url 'generate_report' %}" target="_blank" class="px-4 py-2 rounded-xl border border-brand-primary/30 text-brand-primary hover:bg-brand-primary/10 transition-all text-xs font-mono uppercase tracking-[0.2em] text-center">Open Raw MD</a>
-            <a href="{% url 'generate_report' %}?format=pdf" class="px-4 py-2 rounded-xl border border-brand-accent/30 text-brand-accent hover:bg-brand-accent/10 transition-all text-xs font-mono uppercase tracking-[0.2em] text-center">Download PDF</a>
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-6 flex flex-col justify-between">
+        <div>
+            <p class="text-xs uppercase tracking-[0.2em] text-slate-400 font-mono mb-2">Export Controls</p>
+            <p class="text-[10px] text-slate-500 font-mono mb-4">Export this intelligence record as raw Markdown source or print-ready PDF binary format.</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a href="{% url 'download_report_markdown' report.id %}" class="px-3 py-1.5 rounded-xl border border-brand-500/30 text-brand-500 hover:bg-brand-500/10 transition-all text-[9px] font-bold font-mono uppercase tracking-widest text-center flex-1">
+                <i class="fab fa-markdown"></i> Markdown
+            </a>
+            <a href="{% url 'download_report_pdf' report.id %}" target="_blank" class="px-3 py-1.5 rounded-xl border border-rose-500/30 text-rose-500 hover:bg-rose-500/10 transition-all text-[9px] font-bold font-mono uppercase tracking-widest text-center flex-1">
+                <i class="fas fa-file-pdf"></i> Download PDF
+            </a>
         </div>
     </div>
 </div>
 
-<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl border border-slate-700/40 overflow-hidden">
-    <div class="px-6 py-4 border-b border-slate-700/40 flex items-center justify-between gap-4">
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-between gap-4">
         <div>
-            <p class="text-xs uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400 dark:text-slate-500 font-mono">Markdown Viewer</p>
-            <p class="text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500 mt-1">Rendered directly from the generated QuantTrader report artifact.</p>
+            <p class="text-xs uppercase tracking-[0.2em] text-slate-400 font-mono">Dossier Log Content</p>
+            <p class="text-[10px] text-slate-500 mt-0.5">Rendered directly from the archived QuantTrader intelligence ledger on disk.</p>
+        </div>
+        <!-- Summary Stats inside Viewer -->
+        <div class="flex items-center gap-4 font-mono text-[10px]">
+            <div class="text-right">
+                <span class="text-slate-500 text-[8px] uppercase block">PnL</span>
+                <span class="font-bold {% if report.total_revenue > 0 %}text-emerald-500{% elif report.total_revenue < 0 %}text-rose-500{% else %}text-slate-450{% endif %}">
+                    {% if report.total_revenue >= 0 %}+{% endif %}${{ report.total_revenue|floatformat:2 }}
+                </span>
+            </div>
+            <div class="text-right">
+                <span class="text-slate-500 text-[8px] uppercase block">Win Rate</span>
+                <span class="font-bold text-slate-200">{{ report.win_rate|floatformat:1 }}%</span>
+            </div>
+            <div class="text-right">
+                <span class="text-slate-500 text-[8px] uppercase block">Trades</span>
+                <span class="font-bold text-slate-200">{{ report.total_trades }}</span>
+            </div>
         </div>
     </div>
     <div class="px-6 py-8">
-        <article class="report-prose max-w-none">{{ report_html|safe }}</article>
+        <article class="report-prose max-w-none text-slate-700 dark:text-slate-350 font-sans text-sm leading-relaxed">{{ report_html|safe }}</article>
     </div>
 </div>
 {% endblock page_content %}
 
 {% block extra_css %}
 <style>
+    /* Report Viewer Prose Styles */
     .report-prose {
-        color: #d7e2f0;
         line-height: 1.75;
-        font-size: 0.98rem;
     }
     .report-prose h1,
     .report-prose h2,
     .report-prose h3 {
-        color: #f8fafc;
         font-weight: 700;
         letter-spacing: 0.02em;
+        margin-top: 1.75rem;
+        margin-bottom: 0.75rem;
+    }
+    .dark .report-prose h1,
+    .dark .report-prose h2,
+    .dark .report-prose h3 {
+        color: #f8fafc;
     }
     .report-prose h1 {
-        font-size: 2.1rem;
-        margin-bottom: 1rem;
-        padding-bottom: 0.8rem;
-        border-bottom: 1px solid rgba(59, 130, 246, 0.35);
+        font-size: 1.9rem;
+        border-bottom: 1px solid rgba(59, 130, 246, 0.25);
+        padding-bottom: 0.5rem;
     }
     .report-prose h2 {
         font-size: 1.1rem;
-        margin-top: 2rem;
-        margin-bottom: 0.8rem;
         text-transform: uppercase;
-        letter-spacing: 0.24em;
-        color: #60a5fa;
+        letter-spacing: 0.2em;
+        color: #3b82f6;
     }
     .report-prose h3 {
         font-size: 1rem;
-        margin-top: 1.35rem;
-        margin-bottom: 0.5rem;
-        color: #34d399;
+        color: #10b981;
     }
     .report-prose p,
     .report-prose li {
-        color: #cbd5e1;
+        margin-bottom: 1rem;
+    }
+    .report-prose ul {
+        list-style-type: disc;
+        padding-left: 1.5rem;
+        margin-bottom: 1rem;
     }
     .report-prose blockquote {
-        margin: 1rem 0 1.25rem 0;
-        padding: 0.9rem 1rem;
-        border-left: 3px solid rgba(16, 185, 129, 0.75);
-        background: rgba(15, 23, 42, 0.85);
+        margin: 1.5rem 0;
+        padding: 0.75rem 1rem;
+        border-left: 3px solid #10b981;
+        background: rgba(15, 23, 42, 0.05);
+        color: #1e3a8a;
+        border-radius: 0 0.5rem 0.5rem 0;
+    }
+    .dark .report-prose blockquote {
+        background: rgba(15, 23, 42, 0.75);
         color: #93c5fd;
     }
     .report-prose code {
+        color: #2563eb;
+        background: rgba(15, 23, 42, 0.05);
+        padding: 0.1rem 0.3rem;
+        border-radius: 0.25rem;
+        font-size: 0.85em;
+        font-family: monospace;
+    }
+    .dark .report-prose code {
         color: #93c5fd;
-        background: rgba(15, 23, 42, 0.9);
-        padding: 0.1rem 0.35rem;
-        border-radius: 0.35rem;
-        font-size: 0.9em;
+        background: rgba(15, 23, 42, 0.85);
     }
     .report-prose hr {
         border: 0;
-        border-top: 1px solid rgba(51, 65, 85, 0.9);
-        margin: 1.5rem 0;
+        border-top: 1px solid rgba(148, 163, 184, 0.15);
+        margin: 2rem 0;
     }
     .report-prose table {
         width: 100%;
         border-collapse: collapse;
-        margin: 1rem 0 1.5rem 0;
+        margin: 1.5rem 0;
         overflow: hidden;
-        border-radius: 1rem;
-        background: rgba(2, 6, 23, 0.82);
-        border: 1px solid rgba(51, 65, 85, 0.65);
+        border-radius: 0.75rem;
+        background: rgba(248, 250, 252, 0.8);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        font-size: 0.85rem;
+    }
+    .dark .report-prose table {
+        background: rgba(2, 6, 23, 0.7);
+        border: 1px solid rgba(51, 65, 85, 0.6);
     }
     .report-prose thead {
-        background: rgba(15, 23, 42, 0.95);
+        background: rgba(241, 245, 249, 0.9);
+    }
+    .dark .report-prose thead {
+        background: rgba(15, 23, 42, 0.85);
     }
     .report-prose th,
     .report-prose td {
-        padding: 0.85rem 0.95rem;
+        padding: 0.75rem 0.85rem;
         text-align: left;
         vertical-align: top;
-        border-bottom: 1px solid rgba(30, 41, 59, 0.9);
+        border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+    }
+    .dark .report-prose th,
+    .dark .report-prose td {
+        border-bottom: 1px solid rgba(30, 41, 59, 0.8);
     }
     .report-prose th {
-        color: #f8fafc;
-        font-size: 0.72rem;
+        font-weight: bold;
         text-transform: uppercase;
-        letter-spacing: 0.18em;
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.7rem;
+        letter-spacing: 0.1em;
+        font-family: monospace;
     }
-    .report-prose td {
+    .dark .report-prose th {
+        color: #f1f5f9;
+    }
+    .dark .report-prose td {
         color: #dbeafe;
     }
     .report-prose tr:last-child td {

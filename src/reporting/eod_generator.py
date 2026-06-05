@@ -11,16 +11,25 @@ from django.db.models import Sum, Value, DecimalField
 from django.db.models.functions import Coalesce
 from control_panel.models import TradeLog, PaperTrader, TradingReport, TrainingJob
 
+def clean_key(val):
+    if not val:
+        return ''
+    val_str = str(val).strip()
+    if val_str.upper() in ['', 'YOUR_API_KEY', 'YOUR_GEMINI_API_KEY', 'YOUR_SECRET_KEY', 'YOUR_KEY', 'API_KEY_HERE']:
+        return ''
+    return val_str
+
 try:
     from google import genai
     from google.genai import types
-    # Try OS environ first, fallback to Django settings
-    GEMINI_KEY = (
+    # OS environ / Django settings check for import warning
+    GEMINI_KEY_TEMP = (
         os.environ.get("GEMINI_API_KEY") or 
         getattr(settings, 'GEMINI_API_KEY', None) or 
         getattr(settings, 'API_KEY', None) or 
         ''
     )
+    GEMINI_KEY = clean_key(GEMINI_KEY_TEMP)
     if not GEMINI_KEY:
         import logging as _log
         _log.getLogger("rl_trading_backend").warning(
@@ -175,20 +184,20 @@ def fetch_daily_metrics(report_date=None, target_bot=None, report_type='DAILY'):
     ai_analysis = "No AI Analysis available."
     session_summary = "Standard analytical data available in logs."
     
-    # Try environment/settings first, then database settings (fallback)
+    # Prioritize database settings if available, fallback to env/settings
     db_key = ''
     try:
         db_settings = SystemSettings.load()
         if db_settings and db_settings.gemini_api_key:
-            db_key = db_settings.gemini_api_key
+            db_key = clean_key(db_settings.gemini_api_key)
     except Exception:
         pass
         
     gemini_key = (
-        os.environ.get("GEMINI_API_KEY") or 
-        getattr(settings, 'GEMINI_API_KEY', None) or 
-        getattr(settings, 'API_KEY', None) or 
         db_key or
+        clean_key(os.environ.get("GEMINI_API_KEY")) or 
+        clean_key(getattr(settings, 'GEMINI_API_KEY', None)) or 
+        clean_key(getattr(settings, 'API_KEY', None)) or 
         ''
     )
     

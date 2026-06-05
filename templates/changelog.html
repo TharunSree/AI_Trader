@@ -15,7 +15,7 @@
                 <p class="text-xs text-slate-500 font-mono mt-1">Version control registry and historical deployment logs for QuantTrader Node.</p>
             </div>
             <div class="flex items-center gap-2 font-mono text-xs font-bold">
-                <span class="px-2.5 py-1 rounded bg-brand-500/10 text-brand-500 border border-brand-500/20">Current: v1.10</span>
+                <span class="px-2.5 py-1 rounded bg-brand-500/10 text-brand-500 border border-brand-500/20">Current: v1.12</span>
                 <span class="text-slate-500 font-normal">Updated today</span>
             </div>
         </div>
@@ -32,6 +32,91 @@
     <!-- Timeline Entries -->
     <div class="relative border-l-2 border-slate-200 dark:border-slate-800 ml-4 md:ml-6 space-y-8">
         
+        <!-- v1.12 -->
+        <div class="changelog-item relative pl-6 md:pl-8 group" data-type="feat">
+            <!-- Timeline dot -->
+            <div class="absolute -left-[7px] top-2 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
+            
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-brand-500/40 transition-all duration-300">
+                <!-- Header -->
+                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
+                    <div class="flex items-center gap-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.12</span>
+                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Glassmorphic Reports Hub Redesign, Inline Modal Viewer &amp; AJAX Alert Dismissal</h3>
+                    </div>
+                    <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
+                        <i class="far fa-calendar-alt"></i> June 06, 2026
+                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">v1.12-dev</span>
+                    </div>
+                </div>
+                
+                <!-- Body -->
+                <div class="p-6 space-y-4">
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
+                        This update delivers a premium, highly responsive dark-themed visual overhaul of the Reports Hub (Intelligence Vault) including dynamic sorting, inline modal viewer, AJAX-based dashboard alert dismissals, and database-priority API key fixes.
+                    </p>
+                    
+                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
+                        <li><strong>Inline Modal Report Viewer:</strong> Implemented a glassmorphic reports viewer modal that dynamically loads compiled Markdown HTML content inline, eliminating new tab/page redirects.</li>
+                        <li><strong>AJAX Alert Dismissal:</strong> Replaced POST redirects for system alerts with smooth AJAX fades, preventing dashboard page refreshes.</li>
+                        <li><strong>Dynamic Multi-Column Sorting:</strong> Enabled sorting by Date, Net Revenue, Win Rate, and Trades count directly in the filters panel and table headers.</li>
+                        <li><strong>Gemini API Key Prioritization:</strong> Configured key loading to clean out default placeholders (e.g. `YOUR_GEMINI_API_KEY`) and prioritize DB settings, fixing failed PDF AI analysis messages.</li>
+                    </ul>
+
+                    <!-- Expandable details -->
+                    <div class="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
+                        <button onclick="toggleDetails(this)" class="text-[10px] uppercase tracking-widest text-brand-500 hover:text-brand-400 font-bold font-mono flex items-center gap-1 cursor-pointer">
+                            <span>Show Tech Details</span> <i class="fas fa-chevron-down text-[8px]"></i>
+                        </button>
+                        <div class="hidden mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0a0a0c] border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] text-slate-500 dark:text-slate-400 space-y-3 leading-relaxed">
+                            <div><strong class="text-slate-700 dark:text-slate-200">Files Impacted:</strong></div>
+                            <div class="pl-2 space-y-1">
+                                <div>[MODIFY] [views.py](file:///D:/AI_Trader/control_panel/views.py) &middot; added sort parameters, standalone/content API views, and AJAX alerts JSON response</div>
+                                <div>[MODIFY] [urls.py](file:///D:/AI_Trader/control_panel/urls.py) &middot; registered view, markdown, and content api routes</div>
+                                <div>[MODIFY] [eod_generator.py](file:///D:/AI_Trader/src/reporting/eod_generator.py) &middot; prioritized DB keys and ignored placeholders</div>
+                                <div>[MODIFY] [code_rewriter.py](file:///D:/AI_Trader/src/core/code_rewriter.py) &middot; added placeholder key filters inside key resolver</div>
+                                <div>[MODIFY] [reports_hub.html](file:///D:/AI_Trader/templates/reports_hub.html) &middot; layout overhaul, inline modal rendering with JS fetch, and sort forms</div>
+                                <div>[MODIFY] [report_viewer.html](file:///D:/AI_Trader/templates/report_viewer.html) &middot; fixed dead links, updated CSS classes and back indicators</div>
+                                <div>[MODIFY] [dashboard.html](file:///D:/AI_Trader/templates/dashboard.html) &middot; integrated async AJAX dismiss function and card DOM removal animations</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- v1.11 -->
+        <div class="changelog-item relative pl-6 md:pl-8 group" data-type="feat">
+            <!-- Timeline dot -->
+            <div class="absolute -left-[7px] top-2 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
+            
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-brand-500/40 transition-all duration-300">
+                <!-- Header -->
+                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
+                    <div class="flex items-center gap-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.11</span>
+                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Backend Pagination &amp; Filter Foundations</h3>
+                    </div>
+                    <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
+                        <i class="far fa-calendar-alt"></i> June 06, 2026
+                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">d362064</span>
+                    </div>
+                </div>
+                
+                <!-- Body -->
+                <div class="p-6 space-y-4">
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
+                        This update builds backend Django pagination support and filters for EOD/weekly/monthly reports, optimizing data retrieval for large archived logs.
+                    </p>
+                    
+                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
+                        <li><strong>Backend Django Paginator:</strong> Integrated `Paginator` in `reports_hub_view` to cap page loads at 10 items.</li>
+                        <li><strong>Query Filter Expansion:</strong> Implemented request filtering based on report types, month ranges, and week segment offsets.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
         <!-- v1.10 -->
         <div class="changelog-item relative pl-6 md:pl-8 group" data-type="feat">
             <!-- Timeline dot -->

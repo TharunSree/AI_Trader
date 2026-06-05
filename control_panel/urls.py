@@ -47,6 +47,9 @@ urlpatterns = [
 
     path('intelligence-vault/', views.reports_hub_view, name='reports_hub'),
     path('intelligence-vault/download/<int:report_id>/', views.download_report_pdf_view, name='download_report_pdf'),
+    path('intelligence-vault/view/<int:report_id>/', views.view_report_view, name='view_report'),
+    path('intelligence-vault/markdown/<int:report_id>/', views.download_report_markdown_view, name='download_report_markdown'),
+    path('api/reports/<int:report_id>/content/', views.report_content_api, name='report_content_api'),
 
     path('real-trading/', views.realtrading_view, name='realtrading'),
     path('real-trading/start/', views.start_real_trader_view, name='start_real_trader'),

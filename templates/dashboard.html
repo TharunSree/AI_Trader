@@ -380,13 +380,10 @@
             <div id="log-panel-alerts" class="p-2.5 flex-1 overflow-y-auto space-y-1.5 bg-slate-50/50 dark:bg-slate-900">
                 {% if system_alerts %}
                     {% for alert in system_alerts %}
-                    <div class="p-2 rounded border {% if alert.level == 'CRITICAL' %}bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-500/30{% elif alert.level == 'EVOLUTION' %}bg-indigo-50 border-indigo-200 dark:bg-indigo-900/20 dark:border-indigo-500/30{% elif alert.level == 'WARNING' %}bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-500/30{% else %}bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700{% endif %}">
+                    <div id="alert-card-{{ alert.id }}" class="p-2 rounded border transition-all duration-300 {% if alert.level == 'CRITICAL' %}bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-500/30{% elif alert.level == 'EVOLUTION' %}bg-indigo-50 border-indigo-200 dark:bg-indigo-900/20 dark:border-indigo-500/30{% elif alert.level == 'WARNING' %}bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-500/30{% else %}bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700{% endif %}">
                         <div class="flex justify-between items-start mb-0.5">
                             <span class="text-[9px] font-bold font-mono {% if alert.level == 'CRITICAL' %}text-red-600 dark:text-red-400{% elif alert.level == 'EVOLUTION' %}text-indigo-600 dark:text-indigo-400{% elif alert.level == 'WARNING' %}text-amber-600 dark:text-amber-400{% else %}text-slate-700 dark:text-slate-300{% endif %} uppercase tracking-wider truncate max-w-[180px]">{{ alert.title }}</span>
-                            <form action="{% url 'dismiss_alert_api' alert_id=alert.id %}" method="post" class="inline ml-1">
-                                {% csrf_token %}
-                                <button type="submit" class="text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"><i class="fas fa-times"></i></button>
-                            </form>
+                            <button type="button" onclick="dismissAlert({{ alert.id }})" class="text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors cursor-pointer"><i class="fas fa-times"></i></button>
                         </div>
                         <p class="text-[10px] text-slate-600 dark:text-slate-400 font-mono line-clamp-2">{{ alert.message|truncatewords:25 }}</p>
                         <div class="text-[8px] text-slate-400 font-mono mt-1">{{ alert.timestamp|timesince }} ago</div>
@@ -777,6 +774,51 @@
         }).catch(e => alert('Rejection failed: ' + e));
     }
     window.rejectVariant = rejectVariant;
+
+    function dismissAlert(alertId) {
+        const card = document.getElementById(`alert-card-${alertId}`);
+        if (!card) return;
+        fetch(`/api/alerts/${alertId}/dismiss/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '',
+                'Accept': 'application/json'
+            }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Fade out card and remove it
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    card.remove();
+                    // If no alerts left, show the placeholder
+                    const alertsContainer = document.getElementById('log-panel-alerts');
+                    const remainingCards = alertsContainer.querySelectorAll('[id^="alert-card-"]');
+                    if (remainingCards.length === 0) {
+                        // Keep only latest report link if present, otherwise clear
+                        const reportLink = alertsContainer.querySelector('.border-t');
+                        alertsContainer.innerHTML = `
+                            <div class="text-center py-8">
+                                <i class="fas fa-check-circle text-green-500/20 text-3xl mb-2"></i>
+                                <div class="text-[10px] text-slate-400 dark:text-slate-600 font-mono tracking-widest uppercase">
+                                    All systems operational
+                                </div>
+                            </div>
+                        `;
+                        if (reportLink) {
+                            alertsContainer.appendChild(reportLink);
+                        }
+                    }
+                }, 300);
+            } else {
+                alert('Failed to dismiss alert: ' + data.message);
+            }
+        })
+        .catch(e => console.error('Error dismissing alert:', e));
+    }
+    window.dismissAlert = dismissAlert;
 
     // ====== SYSTEM LOGS VIEW ======
     let systemLogInterval = null;
