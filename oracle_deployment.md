@@ -91,5 +91,40 @@ sudo systemctl enable jarvis_brain
 sudo systemctl start jarvis_brain
 ```
 
+## 5. Persistent Self-Healing Auto-Updater
+
+To enable remote git-push deployments that automatically update packages, apply database migrations, and reload the server with built-in rollback fallback safety, configure the update watchdog:
+
+1. Create a `systemd` watchdog unit file:
+```bash
+sudo nano /etc/systemd/system/jarvis_watcher.service
+```
+
+2. Paste the following configuration:
+```ini
+[Unit]
+Description=Jarvis AI Trader Auto-Update Watcher
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/AI_Trader
+ExecStart=/home/ubuntu/AI_Trader/.venv/bin/python update_watcher.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+3. Enable and boot the updater:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable jarvis_watcher
+sudo systemctl start jarvis_watcher
+```
+
+Now, pushing code changes remotely to `master` will trigger an automatic pull, dependency sync, migration check, and hot-reload. If the build fails (e.g. database schema lock, python library mismatch), it will automatically roll back the directory to the last stable SHA to keep the server online.
+
 ## Verification
 You can now access your hardened AI Dashboard globally via `http://<your_oracle_ip>:8000`. The engine will autonomously trade using the memory footprint, protected by the neural rewriter.
