@@ -194,7 +194,35 @@ class Broker:
                 yf_df = YFinanceLoader([yf_symbol], start_date, end_date).load_data()
                 
                 if yf_df.empty:
-                    logger.warning(f"No bars returned for {symbol} via YFinanceLoader")
+                    logger.warning(f"No bars returned for {symbol} via YFinanceLoader. Trying Alpaca fallback...")
+                    try:
+                        bars = self.api.get_bars(
+                            symbol,
+                            TimeFrame.Day,
+                            limit=limit
+                        )
+                        if bars:
+                            df = pd.DataFrame([
+                                {
+                                    "timestamp": getattr(bar, "t", getattr(bar, "timestamp", None)),
+                                    "Open": float(bar.o),
+                                    "High": float(bar.h),
+                                    "Low": float(bar.l),
+                                    "Close": float(bar.c),
+                                    "Volume": float(bar.v),
+                                    "symbol": symbol
+                                }
+                                for bar in bars
+                            ])
+                            if not df.empty:
+                                df = df.drop_duplicates(subset=["timestamp"]).reset_index(drop=True)
+                                if "timestamp" in df.columns:
+                                    df = df.drop(columns=["timestamp"])
+                                df = df.dropna()
+                                logger.info(f"Successfully fetched {len(df)} bars from Alpaca fallback for {symbol}")
+                                return df
+                    except Exception as fallback_err:
+                        logger.error(f"Alpaca fallback failed for {symbol}: {fallback_err}")
                     return pd.DataFrame()
                     
                 yf_df['symbol'] = symbol

@@ -33,7 +33,6 @@ from decimal import Decimal, InvalidOperation
 
 # Add (if not already present):
 from collections import defaultdict
-import yfinance as yf
 
 logger = logging.getLogger(__name__)
 

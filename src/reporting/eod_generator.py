@@ -101,24 +101,34 @@ def markdown_to_html(markdown_string):
 
 def fetch_daily_metrics(report_date=None, target_bot=None):
     from datetime import timedelta
+    from control_panel.models import ModelVariant, VirtualTrade, SystemSettings
     today = timezone.now().date()
     end_date = timezone.now()
     start_date = end_date - timedelta(hours=24)
     
+    is_variant = isinstance(target_bot, ModelVariant)
+    
     model_name = "Isolated Fleet (No Activity)"
-    try:
-        if target_bot and target_bot.model_file:
-            if str(target_bot.model_file).startswith('db:'):
-                job_id = str(target_bot.model_file).split(':')[1]
-                tj = TrainingJob.objects.get(id=job_id)
-                model_name = tj.name
-            else:
-                model_name = Path(target_bot.model_file).stem
-    except Exception:
-        pass  # model_name stays as default
+    if is_variant:
+        model_name = target_bot.name
+    else:
+        try:
+            if target_bot and target_bot.model_file:
+                if str(target_bot.model_file).startswith('db:'):
+                    job_id = str(target_bot.model_file).split(':')[1]
+                    tj = TrainingJob.objects.get(id=job_id)
+                    model_name = tj.name
+                else:
+                    model_name = Path(target_bot.model_file).stem
+        except Exception:
+            pass  # model_name stays as default
 
     # Get recent trades exclusively for this target bot over the past exact 24 hours
-    trades = TradeLog.objects.filter(trader=target_bot, timestamp__gte=start_date).order_by('-timestamp')
+    if is_variant:
+        trades = VirtualTrade.objects.filter(variant=target_bot, timestamp__gte=start_date).order_by('-timestamp')
+    else:
+        trades = TradeLog.objects.filter(trader=target_bot, timestamp__gte=start_date).order_by('-timestamp')
+        
     total_trades = trades.count()
     zero_money = Value(0, output_field=DecimalField(max_digits=20, decimal_places=2))
     buy_volume = float(trades.filter(action='BUY').aggregate(total=Coalesce(Sum('notional_value'), zero_money))['total'])
@@ -127,19 +137,31 @@ def fetch_daily_metrics(report_date=None, target_bot=None):
     symbols_traded = sorted({t.symbol for t in trades})
     
     yesterday_start = start_date - timedelta(hours=24)
-    yesterday_trades = TradeLog.objects.filter(trader=target_bot, timestamp__gte=yesterday_start, timestamp__lt=start_date)
+    if is_variant:
+        yesterday_trades = VirtualTrade.objects.filter(variant=target_bot, timestamp__gte=yesterday_start, timestamp__lt=start_date)
+    else:
+        yesterday_trades = TradeLog.objects.filter(trader=target_bot, timestamp__gte=yesterday_start, timestamp__lt=start_date)
+        
     y_buy = float(yesterday_trades.filter(action='BUY').aggregate(total=Coalesce(Sum('notional_value'), zero_money))['total'])
     y_sell = float(yesterday_trades.filter(action='SELL').aggregate(total=Coalesce(Sum('notional_value'), zero_money))['total'])
     yesterday_net_flow = y_sell - y_buy
     
     week_start = end_date - timedelta(days=7)
-    week_trades = TradeLog.objects.filter(trader=target_bot, timestamp__gte=week_start)
+    if is_variant:
+        week_trades = VirtualTrade.objects.filter(variant=target_bot, timestamp__gte=week_start)
+    else:
+        week_trades = TradeLog.objects.filter(trader=target_bot, timestamp__gte=week_start)
+        
     w_buy = float(week_trades.filter(action='BUY').aggregate(total=Coalesce(Sum('notional_value'), zero_money))['total'])
     w_sell = float(week_trades.filter(action='SELL').aggregate(total=Coalesce(Sum('notional_value'), zero_money))['total'])
     week_net_flow = w_sell - w_buy
 
     month_start = end_date - timedelta(days=30)
-    month_trades = TradeLog.objects.filter(trader=target_bot, timestamp__gte=month_start)
+    if is_variant:
+        month_trades = VirtualTrade.objects.filter(variant=target_bot, timestamp__gte=month_start)
+    else:
+        month_trades = TradeLog.objects.filter(trader=target_bot, timestamp__gte=month_start)
+        
     m_buy = float(month_trades.filter(action='BUY').aggregate(total=Coalesce(Sum('notional_value'), zero_money))['total'])
     m_sell = float(month_trades.filter(action='SELL').aggregate(total=Coalesce(Sum('notional_value'), zero_money))['total'])
     month_net_flow = m_sell - m_buy
@@ -147,10 +169,27 @@ def fetch_daily_metrics(report_date=None, target_bot=None):
     ai_analysis = "No AI Analysis available."
     session_summary = "Standard analytical data available in logs."
     
-    if genai and GEMINI_KEY:
+    # Try environment/settings first, then database settings (fallback)
+    db_key = ''
+    try:
+        db_settings = SystemSettings.load()
+        if db_settings and db_settings.gemini_api_key:
+            db_key = db_settings.gemini_api_key
+    except Exception:
+        pass
+        
+    gemini_key = (
+        os.environ.get("GEMINI_API_KEY") or 
+        getattr(settings, 'GEMINI_API_KEY', None) or 
+        getattr(settings, 'API_KEY', None) or 
+        db_key or
+        ''
+    )
+    
+    if genai and gemini_key:
         import time
         try:
-            client = genai.Client(api_key=GEMINI_KEY)
+            client = genai.Client(api_key=gemini_key)
             
             symbols_str = ", ".join(symbols_traded[:10]) if symbols_traded else "None"
             
@@ -466,6 +505,7 @@ def generate_pdf_bytes_native(metrics):
 
 def write_report_artifacts(report_date=None):
     from datetime import timedelta
+    from control_panel.models import ModelVariant, VirtualTrade
     date_obj = report_date or timezone.now().date()
     _ensure_reports_dir()
     
@@ -500,5 +540,33 @@ def write_report_artifacts(report_date=None):
             win_rate=(metrics['sell_volume']/max(metrics['buy_volume'], 1))*100
         )
         artifacts.append({"bot_id": bot.id, "md_path": md_path, "pdf_path": pdf_path, "pdf_bytes": pdf_bytes})
+
+    # Now handle active virtual evolution variants!
+    variant_ids = set(VirtualTrade.objects.filter(timestamp__gte=start).values_list('variant_id', flat=True))
+    if not variant_ids:
+        variant_ids = set(VirtualTrade.objects.filter(timestamp__date=date_obj).values_list('variant_id', flat=True))
+        
+    latest_variants = ModelVariant.objects.filter(id__in=variant_ids)
+    if not latest_variants.exists():
+        latest_variants = ModelVariant.objects.filter(status='TESTING')
+        
+    for variant in latest_variants:
+        metrics = fetch_daily_metrics(report_date=date_obj, target_bot=variant)
+        md_text = generate_markdown_report_string(metrics)
+        pdf_bytes = generate_pdf_bytes_native(metrics)
+        
+        fname = f"report_{date_obj.strftime('%Y%m%d')}_variant{variant.id}"
+        md_path = REPORTS_DIR / f"{fname}.md"
+        pdf_path = REPORTS_DIR / f"{fname}.pdf"
+        md_path.write_text(md_text, encoding='utf-8')
+        pdf_path.write_bytes(pdf_bytes)
+        
+        TradingReport.objects.create(
+            report_type='DAILY', markdown_path=str(md_path), pdf_path=str(pdf_path),
+            total_revenue=metrics['net_flow'], total_trades=metrics['total_trades'],
+            win_rate=(metrics['sell_volume']/max(metrics['buy_volume'], 1))*100
+        )
+        artifacts.append({"bot_id": f"v{variant.id}", "md_path": md_path, "pdf_path": pdf_path, "pdf_bytes": pdf_bytes})
+        
     return artifacts
 
