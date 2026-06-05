@@ -148,36 +148,34 @@
         margin: 2rem 0;
     }
     .report-prose table {
-        width: 100%;
-        border-collapse: collapse;
+        display: table !important;
+        width: 100% !important;
+        border-collapse: collapse !important;
         margin: 1.5rem 0;
-        overflow-x: auto;
-        display: block;
-        border-radius: 0.75rem;
-        background: rgba(248, 250, 252, 0.8);
-        border: 1px solid rgba(226, 232, 240, 0.8);
-        font-size: 0.85rem;
+        font-size: 0.8rem;
+        background-color: transparent !important;
+        background: transparent !important;
+        border-top: 1.5px solid rgba(226, 232, 240, 0.8) !important;
+        border-bottom: 1.5px solid rgba(226, 232, 240, 0.8) !important;
     }
     .dark .report-prose table {
-        background: rgba(2, 6, 23, 0.7);
-        border: 1px solid rgba(51, 65, 85, 0.6);
+        border-top: 1.5px solid rgba(255, 255, 255, 0.2) !important;
+        border-bottom: 1.5px solid rgba(255, 255, 255, 0.2) !important;
     }
-    .report-prose thead {
-        background: rgba(241, 245, 249, 0.9);
-    }
-    .dark .report-prose thead {
-        background: rgba(15, 23, 42, 0.85);
+    .report-prose thead,
+    .report-prose tbody,
+    .report-prose tfoot,
+    .report-prose tr {
+        background-color: transparent !important;
+        background: transparent !important;
     }
     .report-prose th,
     .report-prose td {
-        padding: 0.75rem 0.85rem;
+        padding: 0.6rem 0.85rem;
         text-align: left;
-        vertical-align: top;
-        border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-    }
-    .dark .report-prose th,
-    .dark .report-prose td {
-        border-bottom: 1px solid rgba(30, 41, 59, 0.8);
+        vertical-align: middle;
+        background-color: transparent !important;
+        background: transparent !important;
     }
     .report-prose th {
         font-weight: bold;
@@ -185,15 +183,46 @@
         font-size: 0.7rem;
         letter-spacing: 0.1em;
         font-family: monospace;
+        border-bottom: 1.5px solid rgba(226, 232, 240, 0.8) !important;
     }
     .dark .report-prose th {
         color: #f1f5f9;
+        border-bottom: 1.5px solid rgba(255, 255, 255, 0.2) !important;
+    }
+    .report-prose td {
+        border-bottom: 1px solid rgba(226, 232, 240, 0.3) !important;
     }
     .dark .report-prose td {
-        color: #dbeafe;
+        color: #cad3f5;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
     }
-    .report-prose tr:last-child td {
-        border-bottom: 0;
+    .report-prose tr:hover td {
+        background-color: rgba(241, 245, 249, 0.4) !important;
+    }
+    .dark .report-prose tr:hover td {
+        background-color: rgba(255, 255, 255, 0.02) !important;
     }
 </style>
 {% endblock extra_css %}
+
+{% block extra_javascript %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const proseBox = document.querySelector('.report-prose');
+    if (proseBox) {
+        proseBox.querySelectorAll('table').forEach(table => {
+            const styleAttr = table.getAttribute('style') || '';
+            if (styleAttr.includes('width: 100px') || table.style.width === '100px') {
+                return; // Skip inline progress bars
+            }
+            if (table.parentElement && !table.parentElement.classList.contains('overflow-x-auto')) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'overflow-x-auto w-full my-4';
+                table.parentNode.insertBefore(wrapper, table);
+                wrapper.appendChild(table);
+            }
+        });
+    }
+});
+</script>
+{% endblock extra_javascript %}
