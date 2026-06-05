@@ -1882,6 +1882,8 @@ def view_report_view(request, report_id):
     with open(report.markdown_path, 'r', encoding='utf-8') as f:
         md_text = f.read()
         
+    import re
+    md_text = re.sub(r'([^\n])\s*(##+ )', r'\1\n\n\2', md_text)
     html_content = markdown.markdown(md_text, extensions=['tables', 'fenced_code', 'nl2br'])
     
     context = {
@@ -1934,6 +1936,8 @@ def report_content_api(request, report_id):
         with open(report.markdown_path, 'r', encoding='utf-8') as f:
             md_text = f.read()
             
+        import re
+        md_text = re.sub(r'([^\n])\s*(##+ )', r'\1\n\n\2', md_text)
         html_content = markdown.markdown(md_text, extensions=['tables', 'fenced_code', 'nl2br'])
         
         return JsonResponse({

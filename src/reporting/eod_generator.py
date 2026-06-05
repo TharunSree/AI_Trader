@@ -324,7 +324,7 @@ def generate_markdown_report_string(metrics):
     md += f"---\n\n"
     
     md += f"## Mission Summary\n{metrics['session_summary']}\n\n"
-    md += f"## Generative AI Insights & Diagnostics\n{metrics['ai_analysis']}"
+    md += f"## Generative AI Insights & Diagnostics\n{metrics['ai_analysis']}\n\n"
     
     md += f"## Session Scorecard\n"
     md += f"| Metric | Value |\n| --- | ---: |\n"
