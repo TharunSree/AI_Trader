@@ -5,7 +5,7 @@
 {% block page_title %}System Update Ledger{% endblock page_title %}
 
 {% block page_content %}
-<div class="max-w-4xl mx-auto space-y-8 pb-12">
+<div class="max-w-6xl mx-auto space-y-8 pb-12">
     <!-- Header Summary Card -->
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-6 relative overflow-hidden">
         <div class="absolute inset-0 bg-gradient-to-r from-brand-500/5 to-transparent pointer-events-none"></div>
@@ -15,7 +15,7 @@
                 <p class="text-xs text-slate-500 font-mono mt-1">Version control registry and historical deployment logs for QuantTrader Node.</p>
             </div>
             <div class="flex items-center gap-2 font-mono text-xs font-bold">
-                <span class="px-2.5 py-1 rounded bg-brand-500/10 text-brand-500 border border-brand-500/20">Current: v1.12</span>
+                <span class="px-2.5 py-1 rounded bg-brand-500/10 text-brand-500 border border-brand-500/20">Current: v1.0.12</span>
                 <span class="text-slate-500 font-normal">Updated today</span>
             </div>
         </div>
@@ -29,11 +29,13 @@
         </div>
     </div>
 
-    <!-- Timeline Entries -->
-    <div class="relative border-l-2 border-slate-200 dark:border-slate-800 ml-4 md:ml-6 space-y-8">
+    <!-- 2-column Grid Layout: Left Timeline, Right Release Legend -->
+    <div class="grid grid-cols-1 lg:grid-cols-[2.1fr_0.9fr] gap-6 items-start">
+        <!-- Left Column: Timeline Entries -->
+        <div class="relative border-l-2 border-slate-200 dark:border-slate-800 ml-4 md:ml-6 space-y-8">
         
-        <!-- v1.12 -->
-        <div class="changelog-item relative pl-6 md:pl-8 group" data-type="feat">
+        <!-- v1.0.12 -->
+        <div id="v1.0.12" class="changelog-item relative pl-6 md:pl-8 group" data-type="feat">
             <!-- Timeline dot -->
             <div class="absolute -left-[7px] top-2 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
             
@@ -41,12 +43,12 @@
                 <!-- Header -->
                 <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
                     <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.12</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.0.12</span>
                         <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Unified Platform Redesign, Settings Hub, Login Overhaul, and AJAX Alerts</h3>
                     </div>
                     <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
                         <i class="far fa-calendar-alt"></i> June 06, 2026
-                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">v1.12-dev</span>
+                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">v1.0.12-dev</span>
                     </div>
                 </div>
                 
@@ -89,8 +91,8 @@
             </div>
         </div>
 
-        <!-- v1.11 -->
-        <div class="changelog-item relative pl-6 md:pl-8 group" data-type="feat">
+        <!-- v1.0.11 -->
+        <div id="v1.0.11" class="changelog-item relative pl-6 md:pl-8 group" data-type="feat">
             <!-- Timeline dot -->
             <div class="absolute -left-[7px] top-2 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
             
@@ -98,7 +100,7 @@
                 <!-- Header -->
                 <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
                     <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.11</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.0.11</span>
                         <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Backend Pagination &amp; Filter Foundations</h3>
                     </div>
                     <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
@@ -121,8 +123,8 @@
             </div>
         </div>
 
-        <!-- v1.10 -->
-        <div class="changelog-item relative pl-6 md:pl-8 group" data-type="feat">
+        <!-- v1.0.10 -->
+        <div id="v1.0.10" class="changelog-item relative pl-6 md:pl-8 group" data-type="feat">
             <!-- Timeline dot -->
             <div class="absolute -left-[7px] top-2 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
             
@@ -130,7 +132,7 @@
                 <!-- Header -->
                 <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
                     <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.10</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.0.10</span>
                         <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Automated Weekly/Monthly Reports, Self-Healing Backfill &amp; Post-Deploy Pipeline</h3>
                     </div>
                     <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
@@ -168,8 +170,8 @@
             </div>
         </div>
 
-        <!-- v1.09 -->
-        <div class="changelog-item relative pl-6 md:pl-8 group" data-type="fix">
+        <!-- v1.0.9 -->
+        <div id="v1.0.9" class="changelog-item relative pl-6 md:pl-8 group" data-type="fix">
             <!-- Timeline dot -->
             <div class="absolute -left-[7px] top-2 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
             
@@ -177,7 +179,7 @@
                 <!-- Header -->
                 <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
                     <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.09</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.0.9</span>
                         <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Unused Import Cleanup, Gemini Key DB Query, and Alpaca Crypto Fallback</h3>
                     </div>
                     <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
@@ -216,8 +218,8 @@
             </div>
         </div>
 
-        <!-- v1.08 -->
-        <div class="changelog-item relative pl-6 md:pl-8 group" data-type="feat">
+        <!-- v1.0.8 -->
+        <div id="v1.0.8" class="changelog-item relative pl-6 md:pl-8 group" data-type="feat">
             <!-- Timeline dot -->
             <div class="absolute -left-[7px] top-2 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
             
@@ -225,7 +227,7 @@
                 <!-- Header -->
                 <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
                     <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.08</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.0.8</span>
                         <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Decentralized Changelog, Realized P/L, and Self-Healing Deploy Watchdog</h3>
                     </div>
                     <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
@@ -269,8 +271,8 @@
             </div>
         </div>
 
-        <!-- v1.07 -->
-        <div class="changelog-item relative pl-6 md:pl-8 group" data-type="feat">
+        <!-- v1.0.7 -->
+        <div id="v1.0.7" class="changelog-item relative pl-6 md:pl-8 group" data-type="feat">
             <!-- Timeline dot -->
             <div class="absolute -left-[7px] top-2 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
             
@@ -278,7 +280,7 @@
                 <!-- Header -->
                 <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
                     <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.07</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.0.7</span>
                         <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Real-time Metrics, Paginated Ledger, &amp; Smart Promotion Alerts</h3>
                     </div>
                     <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
@@ -321,13 +323,13 @@
             </div>
         </div>
 
-        <!-- v1.06 -->
-        <div class="changelog-item relative pl-6 md:pl-8 group" data-type="feat">
+        <!-- v1.0.6 -->
+        <div id="v1.0.6" class="changelog-item relative pl-6 md:pl-8 group" data-type="feat">
             <div class="absolute -left-[7px] top-2 w-3 h-3 rounded-full bg-purple-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
             <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-purple-500/40 transition-all duration-300">
                 <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
                     <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">v1.06</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">v1.0.6</span>
                         <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Neural Evolution Engine Control &amp; Logs Portability</h3>
                     </div>
                     <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
@@ -358,13 +360,13 @@
             </div>
         </div>
 
-        <!-- v1.05 -->
-        <div class="changelog-item relative pl-6 md:pl-8 group" data-type="fix">
+        <!-- v1.0.5 -->
+        <div id="v1.0.5" class="changelog-item relative pl-6 md:pl-8 group" data-type="fix">
             <div class="absolute -left-[7px] top-2 w-3 h-3 rounded-full bg-amber-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
             <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-amber-500/40 transition-all duration-300">
                 <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
                     <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">v1.05</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">v1.0.5</span>
                         <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Virtual Engine Normalization Alignment</h3>
                     </div>
                     <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
@@ -394,13 +396,13 @@
             </div>
         </div>
 
-        <!-- v1.04 -->
-        <div class="changelog-item relative pl-6 md:pl-8 group" data-type="feat">
+        <!-- v1.0.4 -->
+        <div id="v1.0.4" class="changelog-item relative pl-6 md:pl-8 group" data-type="feat">
             <div class="absolute -left-[7px] top-2 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
             <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-brand-500/40 transition-all duration-300">
                 <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
                     <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.04</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.0.4</span>
                         <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Self-Healing Loops &amp; Zombie Process Eviction</h3>
                     </div>
                     <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
@@ -434,13 +436,13 @@
             </div>
         </div>
 
-        <!-- v1.03 -->
-        <div class="changelog-item relative pl-6 md:pl-8 group" data-type="perf">
+        <!-- v1.0.3 -->
+        <div id="v1.0.3" class="changelog-item relative pl-6 md:pl-8 group" data-type="perf">
             <div class="absolute -left-[7px] top-2 w-3 h-3 rounded-full bg-cyan-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
             <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-cyan-500/40 transition-all duration-300">
                 <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
                     <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">v1.03</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">v1.0.3</span>
                         <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">UI Consolidation &amp; Deletion APIs</h3>
                     </div>
                     <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
@@ -472,13 +474,13 @@
             </div>
         </div>
 
-        <!-- v1.02 -->
-        <div class="changelog-item relative pl-6 md:pl-8 group" data-type="fix">
+        <!-- v1.0.2 -->
+        <div id="v1.0.2" class="changelog-item relative pl-6 md:pl-8 group" data-type="fix">
             <div class="absolute -left-[7px] top-2 w-3 h-3 rounded-full bg-amber-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
             <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-amber-500/40 transition-all duration-300">
                 <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
                     <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">v1.02</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">v1.0.2</span>
                         <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Asynchronous Context Lock Remediation</h3>
                     </div>
                     <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
@@ -508,13 +510,13 @@
             </div>
         </div>
 
-        <!-- v1.01 -->
-        <div class="changelog-item relative pl-6 md:pl-8 group" data-type="feat">
+        <!-- v1.0.1 -->
+        <div id="v1.0.1" class="changelog-item relative pl-6 md:pl-8 group" data-type="feat">
             <div class="absolute -left-[7px] top-2 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
             <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-brand-500/40 transition-all duration-300">
                 <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
                     <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.01</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.0.1</span>
                         <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Variant Deep-Dive Analytics</h3>
                     </div>
                     <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
@@ -547,13 +549,13 @@
             </div>
         </div>
 
-        <!-- v1.00 -->
-        <div class="changelog-item relative pl-6 md:pl-8 group" data-type="perf">
+        <!-- v1.0.0 -->
+        <div id="v1.0.0" class="changelog-item relative pl-6 md:pl-8 group" data-type="perf">
             <div class="absolute -left-[7px] top-2 w-3 h-3 rounded-full bg-slate-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
             <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-slate-500/40 transition-all duration-300">
                 <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
                     <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-500/10 text-slate-500 border border-slate-500/20">v1.00</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-500/10 text-slate-500 border border-slate-500/20">v1.0.0</span>
                         <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Initial Launch</h3>
                     </div>
                     <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
@@ -571,6 +573,45 @@
             </div>
         </div>
 
+        <!-- Right Column: Release Color Codes Legend -->
+        <div class="bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200 dark:border-slate-800/80 p-5 font-mono text-[10px] text-slate-500 dark:text-slate-400">
+            <h3 class="text-[10px] uppercase tracking-widest font-bold text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800/80 pb-2.5 mb-4 flex items-center gap-2">
+                <i class="fas fa-tags text-brand-500"></i> Release Color Codes
+            </h3>
+            <p class="text-[9px] mb-4 leading-relaxed font-sans">
+                Badges and indicators on update entries designate target systems and feature classifications:
+            </p>
+            <div class="space-y-4">
+                <div class="flex items-start gap-2.5">
+                    <span class="w-2.5 h-2.5 rounded bg-brand-500 border border-white dark:border-slate-950 mt-1 flex-shrink-0 shadow-sm"></span>
+                    <div>
+                        <span class="text-slate-800 dark:text-slate-200 font-bold block mb-1">Blue (Core Capabilities)</span>
+                        <span class="text-[9px] leading-relaxed block">Major functionality extensions, new routes, database schema upgrades, and core architectural components.</span>
+                    </div>
+                </div>
+                <div class="flex items-start gap-2.5">
+                    <span class="w-2.5 h-2.5 rounded bg-purple-500 border border-white dark:border-slate-950 mt-1 flex-shrink-0 shadow-sm"></span>
+                    <div>
+                        <span class="text-purple-600 dark:text-purple-400 font-bold block mb-1">Purple (Neural Evolution)</span>
+                        <span class="text-[9px] leading-relaxed block">Self-repair code mutator protocols, variant details, AI engine settings, and optimization feedback.</span>
+                    </div>
+                </div>
+                <div class="flex items-start gap-2.5">
+                    <span class="w-2.5 h-2.5 rounded bg-amber-500 border border-white dark:border-slate-950 mt-1 flex-shrink-0 shadow-sm"></span>
+                    <div>
+                        <span class="text-amber-600 dark:text-amber-400 font-bold block mb-1">Orange (Fixes &amp; Hotpatches)</span>
+                        <span class="text-[9px] leading-relaxed block">Remediation of thread blocks, sync locks, rate-limit workarounds, and critical database repairs.</span>
+                    </div>
+                </div>
+                <div class="flex items-start gap-2.5">
+                    <span class="w-2.5 h-2.5 rounded bg-cyan-500 border border-white dark:border-slate-950 mt-1 flex-shrink-0 shadow-sm"></span>
+                    <div>
+                        <span class="text-cyan-600 dark:text-cyan-400 font-bold block mb-1">Cyan (UI &amp; Performance)</span>
+                        <span class="text-[9px] leading-relaxed block">Refactoring visual interfaces, adding UI utilities (like copy to clipboard), and viewport responsiveness.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock page_content %}

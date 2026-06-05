@@ -338,7 +338,7 @@
                     <a id="modal-btn-md" href="#" class="bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 font-mono text-[9px] font-bold uppercase tracking-widest flex items-center gap-1.5 transition-colors cursor-pointer">
                         <i class="fab fa-markdown text-blue-500"></i> Source
                     </a>
-                    <a id="modal-btn-full" href="#" class="bg-brand-500 hover:bg-brand-600 text-white border border-transparent rounded-xl px-3 py-1.5 font-mono text-[9px] font-bold uppercase tracking-widest flex items-center gap-1.5 transition-colors cursor-pointer">
+                    <a id="modal-btn-full" href="#" target="_blank" class="bg-brand-500 hover:bg-brand-600 text-white border border-transparent rounded-xl px-3 py-1.5 font-mono text-[9px] font-bold uppercase tracking-widest flex items-center gap-1.5 transition-colors cursor-pointer">
                         <i class="fas fa-external-link-alt"></i> Full Screen
                     </a>
                 </div>
@@ -446,7 +446,7 @@
         background: transparent !important;
     }
     .report-prose th,
-    .report-prose td {
+    .report-prose td:not([style*="background"]) {
         padding: 0.6rem 0.85rem;
         text-align: left;
         vertical-align: middle;

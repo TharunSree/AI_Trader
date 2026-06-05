@@ -303,11 +303,10 @@ def generate_markdown_report_string(metrics):
     # Inline progress bar HTML for exit efficiency
     bar_w = max(win_proxy, 1)
     bar_html = (
-        f"<table style='width: 100px; margin: 0; padding: 0; border: none; background-color: #313244; "
-        f"display: inline-table; vertical-align: middle;'><tr>"
-        f"<td style='width: {bar_w}%; background-color: #a6e3a1; padding: 3px 0; border: none;'></td>"
-        f"<td style='width: {100-bar_w}%; border: none;'></td>"
-        f"</tr></table> <span style='color: #a6e3a1;'>{win_proxy:.1f}%</span>"
+        f"<div style='width: 80px; height: 6px; background-color: rgba(148, 163, 184, 0.2); "
+        f"display: inline-block; vertical-align: middle; border-radius: 3px; overflow: hidden; margin-right: 6px;'>"
+        f"<div style='width: {min(bar_w, 100)}%; height: 100%; background-color: #10b981;'></div>"
+        f"</div> <span style='color: #10b981; font-weight: bold;'>{win_proxy:.1f}%</span>"
     )
 
     report_title = "End-of-Day Intelligence Report"
