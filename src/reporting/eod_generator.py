@@ -99,14 +99,20 @@ def markdown_to_html(markdown_string):
         html_parts.append(f"<p>{_render_inline_markdown(' '.join(paragraph_lines))}</p>")
     return ''.join(html_parts)
 
-def fetch_daily_metrics(report_date=None, target_bot=None):
+def fetch_daily_metrics(report_date=None, target_bot=None, report_type='DAILY'):
     from datetime import timedelta
     from control_panel.models import ModelVariant, VirtualTrade, SystemSettings
     today = timezone.now().date()
     end_date = timezone.now()
-    start_date = end_date - timedelta(hours=24)
     
     is_variant = isinstance(target_bot, ModelVariant)
+    
+    if report_type == 'DAILY':
+        start_date = end_date - timedelta(hours=24)
+    elif report_type == 'WEEKLY':
+        start_date = end_date - timedelta(days=7)
+    else: # MONTHLY
+        start_date = end_date - timedelta(days=30)
     
     model_name = "Isolated Fleet (No Activity)"
     if is_variant:
@@ -193,20 +199,33 @@ def fetch_daily_metrics(report_date=None, target_bot=None):
             
             symbols_str = ", ".join(symbols_traded[:10]) if symbols_traded else "None"
             
+            if report_type == 'DAILY':
+                timeframe_label = "daily"
+                pnl_label = "Today's Net PnL"
+                volume_label = f"Buy Volume: ${buy_volume:,.2f} | Sell Volume: ${sell_volume:,.2f}"
+            elif report_type == 'WEEKLY':
+                timeframe_label = "weekly"
+                pnl_label = "Weekly Cumulative PnL"
+                volume_label = f"Weekly Buy Volume: ${buy_volume:,.2f} | Weekly Sell Volume: ${sell_volume:,.2f}"
+            else: # MONTHLY
+                timeframe_label = "monthly"
+                pnl_label = "Monthly Cumulative PnL"
+                volume_label = f"Monthly Buy Volume: ${buy_volume:,.2f} | Monthly Sell Volume: ${sell_volume:,.2f}"
+            
             # High-fidelity 300-400 word diagnostic
             diag_prompt = (
                 f"You are an elite quantitative analyst and AI systems engineer reviewing a live autonomous trading system. "
-                f"Provide a HIGH-FIDELITY, extremely comprehensive professional diagnostic report (300-400 words) for the trading model '{model_name}'.\n\n"
+                f"Provide a HIGH-FIDELITY, extremely comprehensive professional {timeframe_label} diagnostic report (300-400 words) for the trading model '{model_name}'.\n\n"
                 f"SESSION METRICS:\n"
-                f"- Today's Net PnL: ${net_flow:,.2f}\n"
+                f"- {pnl_label}: ${net_flow:,.2f}\n"
                 f"- Total Trades Executed: {total_trades}\n"
-                f"- Buy Volume: ${buy_volume:,.2f} | Sell Volume: ${sell_volume:,.2f}\n"
+                f"- {volume_label}\n"
                 f"- Symbols Traded: {symbols_str}\n"
                 f"- Yesterday's PnL: ${yesterday_net_flow:,.2f}\n"
                 f"- 7-Day Cumulative PnL: ${week_net_flow:,.2f}\n\n"
                 "Your report MUST include these sections:\n"
                 "1. Deep Performance Diagnostic - Analyze win rates, capital efficiency, and risk exposure\n"
-                "2. Strategic Roadmap - Concrete recommendations for the next trading session\n"
+                "2. Strategic Roadmap - Concrete recommendations for the next trading period\n"
                 "3. Production Readiness Assessment - Is the model fit for continued autonomous operation?\n"
                 "Maintain a precise, technical tone. Do NOT use markdown headers or formatting."
             )
@@ -217,7 +236,7 @@ def fetch_daily_metrics(report_date=None, target_bot=None):
             
             # 300-400 word session narrative
             sum_prompt = (
-                f"Write a professional executive mission summary (300-400 words) for an autonomous trading session.\n\n"
+                f"Write a professional executive mission summary (300-400 words) for an autonomous trading {timeframe_label} period.\n\n"
                 f"Date: {report_date or today}\n"
                 f"Model: {model_name}\n"
                 f"Net Profit/Loss: ${net_flow:,.2f}\n"
@@ -249,7 +268,8 @@ def fetch_daily_metrics(report_date=None, target_bot=None):
         'hist_7d': week_net_flow,
         'hist_30d': month_net_flow,
         'ai_analysis': ai_analysis,
-        'session_summary': session_summary
+        'session_summary': session_summary,
+        'report_type': report_type
     }
 
 def generate_markdown_report_string(metrics):
@@ -281,8 +301,14 @@ def generate_markdown_report_string(metrics):
         f"</tr></table> <span style='color: #a6e3a1;'>{win_proxy:.1f}%</span>"
     )
 
+    report_title = "End-of-Day Intelligence Report"
+    if metrics.get('report_type') == 'WEEKLY':
+        report_title = "Weekly Rolling Intelligence Analysis"
+    elif metrics.get('report_type') == 'MONTHLY':
+        report_title = "Monthly Performance Intelligence Portfolio"
+        
     md = f"# {metrics['model_name']}\n"
-    md += f"> Jarvis End-of-Day Intelligence Report\n\n"
+    md += f"> Jarvis {report_title}\n\n"
     md += f"**Session Date:** {metrics['date']}  \n"
     md += f"**Model Reference:** `{metrics['model_name']}`  \n"
     md += f"**Primary Symbols:** {metrics['symbols_traded']}\n\n"
@@ -363,9 +389,15 @@ def generate_pdf_bytes_native(metrics):
     mantle  = (41, 44, 60)     # #292c3c
     f = pdf.default_font
     pdf.set_font(f, "B", 20); pdf.set_text_color(*mauve)
+    report_title = "End-of-Day Intelligence Report"
+    if metrics.get('report_type') == 'WEEKLY':
+        report_title = "Weekly Rolling Intelligence Analysis"
+    elif metrics.get('report_type') == 'MONTHLY':
+        report_title = "Monthly Performance Intelligence Portfolio"
+        
     pdf.cell(0, 12, metrics['model_name'].title(), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.set_font(f, "I", 10); pdf.set_text_color(*subtext)
-    pdf.cell(0, 6, "Jarvis End-of-Day Intelligence Report", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 6, f"Jarvis {report_title}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.ln(5)
 
     def draw_hdr(title, color):
@@ -505,43 +537,37 @@ def generate_pdf_bytes_native(metrics):
 
 def write_report_artifacts(report_date=None):
     from datetime import timedelta
-    from control_panel.models import ModelVariant, VirtualTrade
+    from control_panel.models import ModelVariant, VirtualTrade, TradingReport
     date_obj = report_date or timezone.now().date()
     _ensure_reports_dir()
     
-    # Use a 24-hour rolling window to find active bots, avoiding timezone date-boundary issues
+    # 1. Determine which report types we need to generate today
+    # Always generate DAILY reports
+    report_types = ['DAILY']
+    
+    # Generate WEEKLY report if Sunday (weekday 6) OR if no weekly report exists in the database
+    six_days_ago = timezone.now() - timedelta(days=6)
+    has_recent_weekly = TradingReport.objects.filter(report_type='WEEKLY', timestamp__gte=six_days_ago).exists()
+    if not has_recent_weekly or date_obj.weekday() == 6:
+        report_types.append('WEEKLY')
+        
+    # Generate MONTHLY report if 1st of month OR if no monthly report exists in the database
+    twenty_eight_days_ago = timezone.now() - timedelta(days=28)
+    has_recent_monthly = TradingReport.objects.filter(report_type='MONTHLY', timestamp__gte=twenty_eight_days_ago).exists()
+    if not has_recent_monthly or date_obj.day == 1:
+        report_types.append('MONTHLY')
+        
+    # 2. Get active bots and variants
     end = timezone.now()
     start = end - timedelta(hours=24)
     bot_ids = set(TradeLog.objects.filter(timestamp__gte=start).values_list('trader_id', flat=True))
-    
-    # Fallback: also check for exact date match (handles both UTC and local TZ)
     if not bot_ids:
         bot_ids = set(TradeLog.objects.filter(timestamp__date=date_obj).values_list('trader_id', flat=True))
     
     latest_bots = PaperTrader.objects.filter(id__in=bot_ids)
     if not latest_bots.exists():
         latest_bots = PaperTrader.objects.filter(status='RUNNING')
-    
-    artifacts = []
-    for bot in latest_bots:
-        metrics = fetch_daily_metrics(report_date=date_obj, target_bot=bot)
-        md_text = generate_markdown_report_string(metrics)
-        pdf_bytes = generate_pdf_bytes_native(metrics)
         
-        fname = f"report_{date_obj.strftime('%Y%m%d')}_bot{bot.id}"
-        md_path = REPORTS_DIR / f"{fname}.md"
-        pdf_path = REPORTS_DIR / f"{fname}.pdf"
-        md_path.write_text(md_text, encoding='utf-8')
-        pdf_path.write_bytes(pdf_bytes)
-        
-        TradingReport.objects.create(
-            report_type='DAILY', markdown_path=str(md_path), pdf_path=str(pdf_path),
-            total_revenue=metrics['net_flow'], total_trades=metrics['total_trades'],
-            win_rate=(metrics['sell_volume']/max(metrics['buy_volume'], 1))*100
-        )
-        artifacts.append({"bot_id": bot.id, "md_path": md_path, "pdf_path": pdf_path, "pdf_bytes": pdf_bytes})
-
-    # Now handle active virtual evolution variants!
     variant_ids = set(VirtualTrade.objects.filter(timestamp__gte=start).values_list('variant_id', flat=True))
     if not variant_ids:
         variant_ids = set(VirtualTrade.objects.filter(timestamp__date=date_obj).values_list('variant_id', flat=True))
@@ -550,23 +576,47 @@ def write_report_artifacts(report_date=None):
     if not latest_variants.exists():
         latest_variants = ModelVariant.objects.filter(status='TESTING')
         
-    for variant in latest_variants:
-        metrics = fetch_daily_metrics(report_date=date_obj, target_bot=variant)
-        md_text = generate_markdown_report_string(metrics)
-        pdf_bytes = generate_pdf_bytes_native(metrics)
-        
-        fname = f"report_{date_obj.strftime('%Y%m%d')}_variant{variant.id}"
-        md_path = REPORTS_DIR / f"{fname}.md"
-        pdf_path = REPORTS_DIR / f"{fname}.pdf"
-        md_path.write_text(md_text, encoding='utf-8')
-        pdf_path.write_bytes(pdf_bytes)
-        
-        TradingReport.objects.create(
-            report_type='DAILY', markdown_path=str(md_path), pdf_path=str(pdf_path),
-            total_revenue=metrics['net_flow'], total_trades=metrics['total_trades'],
-            win_rate=(metrics['sell_volume']/max(metrics['buy_volume'], 1))*100
-        )
-        artifacts.append({"bot_id": f"v{variant.id}", "md_path": md_path, "pdf_path": pdf_path, "pdf_bytes": pdf_bytes})
-        
+    artifacts = []
+    for rtype in report_types:
+        # Generate for PaperTraders
+        for bot in latest_bots:
+            metrics = fetch_daily_metrics(report_date=date_obj, target_bot=bot, report_type=rtype)
+            md_text = generate_markdown_report_string(metrics)
+            pdf_bytes = generate_pdf_bytes_native(metrics)
+            
+            suffix = f"_{rtype.lower()}" if rtype != 'DAILY' else ""
+            fname = f"report_{date_obj.strftime('%Y%m%d')}{suffix}_bot{bot.id}"
+            md_path = REPORTS_DIR / f"{fname}.md"
+            pdf_path = REPORTS_DIR / f"{fname}.pdf"
+            md_path.write_text(md_text, encoding='utf-8')
+            pdf_path.write_bytes(pdf_bytes)
+            
+            TradingReport.objects.create(
+                report_type=rtype, markdown_path=str(md_path), pdf_path=str(pdf_path),
+                total_revenue=metrics['net_flow'], total_trades=metrics['total_trades'],
+                win_rate=(metrics['sell_volume']/max(metrics['buy_volume'], 1))*100
+            )
+            artifacts.append({"bot_id": f"{bot.id}{suffix}", "md_path": md_path, "pdf_path": pdf_path, "pdf_bytes": pdf_bytes})
+            
+        # Generate for ModelVariants
+        for variant in latest_variants:
+            metrics = fetch_daily_metrics(report_date=date_obj, target_bot=variant, report_type=rtype)
+            md_text = generate_markdown_report_string(metrics)
+            pdf_bytes = generate_pdf_bytes_native(metrics)
+            
+            suffix = f"_{rtype.lower()}" if rtype != 'DAILY' else ""
+            fname = f"report_{date_obj.strftime('%Y%m%d')}{suffix}_variant{variant.id}"
+            md_path = REPORTS_DIR / f"{fname}.md"
+            pdf_path = REPORTS_DIR / f"{fname}.pdf"
+            md_path.write_text(md_text, encoding='utf-8')
+            pdf_path.write_bytes(pdf_bytes)
+            
+            TradingReport.objects.create(
+                report_type=rtype, markdown_path=str(md_path), pdf_path=str(pdf_path),
+                total_revenue=metrics['net_flow'], total_trades=metrics['total_trades'],
+                win_rate=(metrics['sell_volume']/max(metrics['buy_volume'], 1))*100
+            )
+            artifacts.append({"bot_id": f"v{variant.id}{suffix}", "md_path": md_path, "pdf_path": pdf_path, "pdf_bytes": pdf_bytes})
+            
     return artifacts
 

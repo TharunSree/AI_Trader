@@ -106,6 +106,14 @@ def execute_update(stable_sha):
     # 4. Restart Python Server
     logger.info("Deploy succeeded. Restarting trading bot service...")
     restart_server()
+    
+    # 5. Regenerate reports (Daily, Weekly, Monthly) after update
+    logger.info("Regenerating all report metrics after deployment...")
+    try:
+        run_cmd([python_path, 'send_eod_now.py'])
+    except Exception as e:
+        logger.error(f"Failed to regenerate reports: {e}")
+        
     return True
 
 def rollback(stable_sha):
