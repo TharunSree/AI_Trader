@@ -70,7 +70,7 @@
         </div>
     </div>
     <div class="px-6 py-8">
-        <article class="report-prose max-w-none text-slate-700 dark:text-slate-350 font-sans text-sm leading-relaxed">{{ report_html|safe }}</article>
+        <article class="report-prose max-w-4xl mx-auto text-slate-700 dark:text-slate-350 font-sans text-sm leading-relaxed">{{ report_html|safe }}</article>
     </div>
 </div>
 {% endblock page_content %}
@@ -151,7 +151,8 @@
         width: 100%;
         border-collapse: collapse;
         margin: 1.5rem 0;
-        overflow: hidden;
+        overflow-x: auto;
+        display: block;
         border-radius: 0.75rem;
         background: rgba(248, 250, 252, 0.8);
         border: 1px solid rgba(226, 232, 240, 0.8);

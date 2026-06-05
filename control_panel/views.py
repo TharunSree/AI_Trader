@@ -1822,6 +1822,9 @@ def reports_hub_view(request):
     avg_win_rate = float(reports.aggregate(avg=Avg('win_rate'))['avg'] or 0.0)
     total_trades_sum = reports.aggregate(total=Sum('total_trades'))['total'] or 0
     
+    # Extract available months dynamically from report history
+    available_months = TradingReport.objects.dates('timestamp', 'month', order='DESC')
+    
     # Paginate (10 items per page)
     paginator = Paginator(reports, 10)
     page_obj = paginator.get_page(page_number)
@@ -1832,6 +1835,7 @@ def reports_hub_view(request):
         'selected_week': selected_week,
         'selected_type': selected_type,
         'selected_sort': sort_by,
+        'available_months': available_months,
         'total_count': total_count,
         'total_revenue': total_revenue,
         'avg_win_rate': avg_win_rate,

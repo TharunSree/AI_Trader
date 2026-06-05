@@ -42,7 +42,7 @@
                 <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
                     <div class="flex items-center gap-3">
                         <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.12</span>
-                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Glassmorphic Reports Hub Redesign, Inline Modal Viewer &amp; AJAX Alert Dismissal</h3>
+                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Unified Platform Redesign, Settings Hub, Login Overhaul, and AJAX Alerts</h3>
                     </div>
                     <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
                         <i class="far fa-calendar-alt"></i> June 06, 2026
@@ -53,14 +53,15 @@
                 <!-- Body -->
                 <div class="p-6 space-y-4">
                     <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
-                        This update delivers a premium, highly responsive dark-themed visual overhaul of the Reports Hub (Intelligence Vault) including dynamic sorting, inline modal viewer, AJAX-based dashboard alert dismissals, and database-priority API key fixes.
+                        This update delivers a comprehensive professional UI facelift across settings, authentication portals, and diagnostic utilities, alongside Reports Hub inline modal viewers and async dashboard alerts.
                     </p>
                     
                     <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
-                        <li><strong>Inline Modal Report Viewer:</strong> Implemented a glassmorphic reports viewer modal that dynamically loads compiled Markdown HTML content inline, eliminating new tab/page redirects.</li>
-                        <li><strong>AJAX Alert Dismissal:</strong> Replaced POST redirects for system alerts with smooth AJAX fades, preventing dashboard page refreshes.</li>
-                        <li><strong>Dynamic Multi-Column Sorting:</strong> Enabled sorting by Date, Net Revenue, Win Rate, and Trades count directly in the filters panel and table headers.</li>
-                        <li><strong>Gemini API Key Prioritization:</strong> Configured key loading to clean out default placeholders (e.g. `YOUR_GEMINI_API_KEY`) and prioritize DB settings, fixing failed PDF AI analysis messages.</li>
+                        <li><strong>Inline Modal Report Viewer:</strong> Glassmorphic reports viewer modal that dynamically loads Markdown HTML content inline, eliminating tab/page redirects.</li>
+                        <li><strong>Settings Hub Reorganization:</strong> Rebuilt the system settings into a clean, responsive two-column grid. Diagnostic tools are now grouped on the left, connection nodes and environment protocols on the right.</li>
+                        <li><strong>Non-Reloading SMTP Testing:</strong> Replaced POST redirects for the SMTP relay test with a smooth, asynchronous overlay feedback system.</li>
+                        <li><strong>Authentication Overhaul:</strong> Upgraded the main login panel with an elegant glassmorphic structure, scanner beams, and pulsing Q-logo elements. Added glow transitions on lockscreen passcodes.</li>
+                        <li><strong>Dashboard Layout Rebalance:</strong> Removed forced grid heights and empty spaces below widgets, allowing the dashboard columns to collapse and fit naturally.</li>
                     </ul>
 
                     <!-- Expandable details -->
@@ -76,8 +77,11 @@
                                 <div>[MODIFY] [eod_generator.py](file:///D:/AI_Trader/src/reporting/eod_generator.py) &middot; prioritized DB keys and ignored placeholders</div>
                                 <div>[MODIFY] [code_rewriter.py](file:///D:/AI_Trader/src/core/code_rewriter.py) &middot; added placeholder key filters inside key resolver</div>
                                 <div>[MODIFY] [reports_hub.html](file:///D:/AI_Trader/templates/reports_hub.html) &middot; layout overhaul, inline modal rendering with JS fetch, and sort forms</div>
-                                <div>[MODIFY] [report_viewer.html](file:///D:/AI_Trader/templates/report_viewer.html) &middot; fixed dead links, updated CSS classes and back indicators</div>
-                                <div>[MODIFY] [dashboard.html](file:///D:/AI_Trader/templates/dashboard.html) &middot; integrated async AJAX dismiss function and card DOM removal animations</div>
+                                <div>[MODIFY] [report_viewer.html](file:///D:/AI_Trader/templates/report_viewer.html) &middot; fixed dead links, updated CSS classes, layout width, and horizontal scroll wrappers</div>
+                                <div>[MODIFY] [settings.html](file:///D:/AI_Trader/templates/settings.html) &middot; rebuilt grid system, added focus glows, and implemented non-reloading SMTP feedback</div>
+                                <div>[MODIFY] [login.html](file:///D:/AI_Trader/templates/login.html) &middot; redesigned authentication panel with glassmorphic layout, scanner beams, and animations</div>
+                                <div>[MODIFY] [dashboard.html](file:///D:/AI_Trader/templates/dashboard.html) &middot; adjusted dashboard grid height class to h-auto and integrated AJAX card dismissal</div>
+                                <div>[MODIFY] [base.html](file:///D:/AI_Trader/templates/base.html) &middot; updated lockscreen overlay visual parameters, focus glow states, and unlock button hover effects</div>
                             </div>
                         </div>
                     </div>

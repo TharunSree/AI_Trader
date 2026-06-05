@@ -5,244 +5,266 @@
 {% block page_title %}System Configuration{% endblock page_title %}
 
 {% block page_content %}
-<div class="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-6 w-full">
+<div class="grid grid-cols-1 lg:grid-cols-[1.2fr_1.8fr] gap-6 w-full items-start">
   
-  <!-- System Diagnostics -->
+  <!-- Left Column: System Diagnostics & AI Engine -->
   <div class="flex flex-col gap-6">
-      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded p-5">
-        <h3 class="text-[10px] uppercase tracking-widest font-bold text-slate-800 dark:text-slate-200 border-b border-slate-100 dark:border-slate-800 pb-2 mb-4">Diagnostics & Utilities</h3>
-        <p class="text-xs text-slate-500 dark:text-slate-400 font-mono mb-6">Test backend relays, SMTP routing, and execution engines.</p>
+      <!-- Diagnostics & Utilities -->
+      <div class="bg-white dark:bg-slate-900/60 dark:backdrop-blur-md border border-slate-200 dark:border-slate-800/80 shadow-lg rounded-2xl p-6 transition-all duration-300 hover:border-brand-500/20">
+        <h3 class="text-xs uppercase tracking-[0.15em] font-bold text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-2.5 mb-5 flex items-center gap-2">
+            <i class="fas fa-tools text-brand-500"></i> Diagnostics & Utilities
+        </h3>
+        <p class="text-xs text-slate-500 dark:text-slate-400 font-mono mb-6 leading-relaxed">Test backend relays, SMTP routing, and execution engines.</p>
         
         <div class="flex flex-col gap-3">
-            <button id="btn-test-email" class="w-full bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded font-mono text-xs uppercase font-bold tracking-widest transition-colors flex items-center justify-between">
+            <button id="btn-test-email" class="w-full bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/40 dark:hover:bg-slate-800/80 text-slate-700 dark:text-slate-350 border border-slate-200 dark:border-slate-800 px-4 py-3 rounded-xl font-mono text-xs uppercase font-bold tracking-widest transition-all flex items-center justify-between">
                 <span>Test SMTP Relay</span>
                 <i class="fas fa-paper-plane text-slate-400"></i>
             </button>
-            <button id="btn-test-ai-key" class="w-full bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded font-mono text-xs uppercase font-bold tracking-widest transition-colors flex items-center justify-between">
+            <button id="btn-test-ai-key" class="w-full bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/40 dark:hover:bg-slate-800/80 text-slate-700 dark:text-slate-350 border border-slate-200 dark:border-slate-800 px-4 py-3 rounded-xl font-mono text-xs uppercase font-bold tracking-widest transition-all flex items-center justify-between">
                 <span>Test AI Key</span>
                 <i class="fas fa-robot text-slate-400"></i>
             </button>
-            <button id="btn-test-rewriter" class="w-full bg-brand-50 hover:bg-brand-100 dark:bg-brand-500/10 dark:hover:bg-brand-500/20 text-brand-600 dark:text-brand-400 border border-brand-200 dark:border-brand-500/30 px-4 py-2.5 rounded font-mono text-xs uppercase font-bold tracking-widest transition-colors flex items-center justify-between">
+            <button id="btn-test-rewriter" class="w-full bg-brand-50 hover:bg-brand-100 dark:bg-brand-500/10 dark:hover:bg-brand-500/20 text-brand-600 dark:text-brand-400 border border-brand-200 dark:border-brand-500/30 px-4 py-3 rounded-xl font-mono text-xs uppercase font-bold tracking-widest transition-all flex items-center justify-between">
                 <span>Fire Cognitive Mutator</span>
                 <i class="fas fa-dna text-brand-400"></i>
             </button>
         </div>
       </div>
 
-      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded p-5">
-        <h3 class="text-[10px] uppercase tracking-widest font-bold text-slate-800 dark:text-slate-200 border-b border-slate-100 dark:border-slate-800 pb-2 mb-4 flex items-center gap-2"><i class="fas fa-brain text-purple-400"></i> AI Engine</h3>
-        <p class="text-xs text-slate-500 dark:text-slate-400 font-mono mb-4">Configure AI keys for neural evolution, PDF insights, and self-mutation. At least one key is required. Priority: Gemini &gt; OpenAI &gt; Anthropic.</p>
+      <!-- AI Engine -->
+      <div class="bg-white dark:bg-slate-900/60 dark:backdrop-blur-md border border-slate-200 dark:border-slate-800/80 shadow-lg rounded-2xl p-6 transition-all duration-300 hover:border-purple-500/20">
+        <h3 class="text-xs uppercase tracking-[0.15em] font-bold text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-2.5 mb-5 flex items-center gap-2">
+            <i class="fas fa-brain text-purple-400"></i> AI Engine
+        </h3>
+        <p class="text-xs text-slate-500 dark:text-slate-400 font-mono mb-5 leading-relaxed">Configure AI keys for neural evolution, PDF insights, and self-mutation. Priority: Gemini &gt; OpenAI &gt; Anthropic.</p>
         
         <form method="POST" action="" id="gemini-key-form">
             {% csrf_token %}
-            <div class="flex flex-col gap-3">
+            <div class="flex flex-col gap-4">
                 <!-- Gemini -->
                 <div>
-                    <label class="block text-[9px] uppercase tracking-widest text-slate-500 font-mono mb-1 flex items-center gap-1.5">
+                    <label class="block text-[10px] uppercase tracking-widest text-slate-500 font-mono mb-1.5 flex items-center gap-1.5">
                         <i class="fas fa-gem text-blue-400"></i> Gemini API Key
                     </label>
                     <div class="relative">
-                        <input type="password" name="gemini_api_key" id="gemini-key-input" value="{{ gemini_api_key|default:'' }}" placeholder="AIza..." class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded px-3 py-2 text-xs font-mono outline-none focus:border-blue-500 pr-10">
-                        <button type="button" onclick="var i=document.getElementById('gemini-key-input');i.type=i.type==='password'?'text':'password';" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><i class="fas fa-eye text-[10px]"></i></button>
+                        <input type="password" name="gemini_api_key" id="gemini-key-input" value="{{ gemini_api_key|default:'' }}" placeholder="AIza..." class="w-full bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2.5 text-xs font-mono outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20 transition-all pr-10">
+                        <button type="button" onclick="var i=document.getElementById('gemini-key-input');i.type=i.type==='password'?'text':'password';" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><i class="fas fa-eye text-xs"></i></button>
                     </div>
-                    <p class="text-[9px] font-mono mt-1 {% if gemini_api_key %}text-emerald-500{% else %}text-slate-400{% endif %}">{% if gemini_api_key %}<i class="fas fa-check-circle"></i> Configured{% else %}<i class="fas fa-minus-circle"></i> Not set{% endif %}</p>
+                    <p class="text-[9px] font-mono mt-1.5 {% if gemini_api_key %}text-emerald-500{% else %}text-slate-400{% endif %}">
+                        {% if gemini_api_key %}<i class="fas fa-check-circle mr-1"></i>Configured{% else %}<i class="fas fa-minus-circle mr-1"></i>Not set{% endif %}
+                    </p>
                 </div>
 
                 <!-- OpenAI -->
                 <div>
-                    <label class="block text-[9px] uppercase tracking-widest text-slate-500 font-mono mb-1 flex items-center gap-1.5">
+                    <label class="block text-[10px] uppercase tracking-widest text-slate-500 font-mono mb-1.5 flex items-center gap-1.5">
                         <i class="fas fa-robot text-green-400"></i> OpenAI API Key
                     </label>
                     <div class="relative">
-                        <input type="password" name="openai_api_key" id="openai-key-input" value="{{ openai_api_key|default:'' }}" placeholder="sk-..." class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded px-3 py-2 text-xs font-mono outline-none focus:border-green-500 pr-10">
-                        <button type="button" onclick="var i=document.getElementById('openai-key-input');i.type=i.type==='password'?'text':'password';" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><i class="fas fa-eye text-[10px]"></i></button>
+                        <input type="password" name="openai_api_key" id="openai-key-input" value="{{ openai_api_key|default:'' }}" placeholder="sk-..." class="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2.5 text-xs font-mono outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20 transition-all pr-10">
+                        <button type="button" onclick="var i=document.getElementById('openai-key-input');i.type=i.type==='password'?'text':'password';" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><i class="fas fa-eye text-xs"></i></button>
                     </div>
-                    <p class="text-[9px] font-mono mt-1 {% if openai_api_key %}text-emerald-500{% else %}text-slate-400{% endif %}">{% if openai_api_key %}<i class="fas fa-check-circle"></i> Configured{% else %}<i class="fas fa-minus-circle"></i> Not set{% endif %}</p>
+                    <p class="text-[9px] font-mono mt-1.5 {% if openai_api_key %}text-emerald-500{% else %}text-slate-400{% endif %}">
+                        {% if openai_api_key %}<i class="fas fa-check-circle mr-1"></i>Configured{% else %}<i class="fas fa-minus-circle mr-1"></i>Not set{% endif %}
+                    </p>
                 </div>
 
                 <!-- Anthropic -->
                 <div>
-                    <label class="block text-[9px] uppercase tracking-widest text-slate-500 font-mono mb-1 flex items-center gap-1.5">
+                    <label class="block text-[10px] uppercase tracking-widest text-slate-500 font-mono mb-1.5 flex items-center gap-1.5">
                         <i class="fas fa-microchip text-orange-400"></i> Anthropic API Key
                     </label>
                     <div class="relative">
-                        <input type="password" name="anthropic_api_key" id="anthropic-key-input" value="{{ anthropic_api_key|default:'' }}" placeholder="sk-ant-..." class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded px-3 py-2 text-xs font-mono outline-none focus:border-orange-500 pr-10">
-                        <button type="button" onclick="var i=document.getElementById('anthropic-key-input');i.type=i.type==='password'?'text':'password';" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><i class="fas fa-eye text-[10px]"></i></button>
+                        <input type="password" name="anthropic_api_key" id="anthropic-key-input" value="{{ anthropic_api_key|default:'' }}" placeholder="sk-ant-..." class="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2.5 text-xs font-mono outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20 transition-all pr-10">
+                        <button type="button" onclick="var i=document.getElementById('anthropic-key-input');i.type=i.type==='password'?'text':'password';" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><i class="fas fa-eye text-xs"></i></button>
                     </div>
-                    <p class="text-[9px] font-mono mt-1 {% if anthropic_api_key %}text-emerald-500{% else %}text-slate-400{% endif %}">{% if anthropic_api_key %}<i class="fas fa-check-circle"></i> Configured{% else %}<i class="fas fa-minus-circle"></i> Not set{% endif %}</p>
+                    <p class="text-[9px] font-mono mt-1.5 {% if anthropic_api_key %}text-emerald-500{% else %}text-slate-400{% endif %}">
+                        {% if anthropic_api_key %}<i class="fas fa-check-circle mr-1"></i>Configured{% else %}<i class="fas fa-minus-circle mr-1"></i>Not set{% endif %}
+                    </p>
                 </div>
 
-                <button type="submit" class="w-full px-4 py-2 bg-purple-50 hover:bg-purple-100 dark:bg-purple-500/10 dark:hover:bg-purple-500/20 border border-purple-200 dark:border-purple-500/30 text-purple-600 dark:text-purple-400 font-mono text-[9px] font-bold uppercase tracking-widest rounded transition-colors mt-1">Save AI Keys</button>
+                <button type="submit" class="w-full px-4 py-3 bg-purple-50 hover:bg-purple-100 dark:bg-purple-500/10 dark:hover:bg-purple-500/20 border border-purple-200 dark:border-purple-500/30 text-purple-600 dark:text-purple-400 font-mono text-xs font-bold uppercase tracking-widest rounded-xl transition-all mt-2">Save AI Keys</button>
             </div>
         </form>
       </div>
   </div>
 
-  <!-- Notification Management Protocols -->
-  <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded p-5 flex flex-col">
-    <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2 mb-4">
-        <h3 class="text-[10px] uppercase tracking-widest font-bold text-slate-800 dark:text-slate-200">Notification Protocols</h3>
-        <span class="text-[9px] font-mono text-slate-400 uppercase tracking-widest">Fleet Intelligence Relay Configuration</span>
-    </div>
-
-    <div class="flex flex-col gap-4">
-        <!-- EOD Report -->
-        <div class="flex items-start sm:items-center justify-between p-4 rounded border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex-col sm:flex-row gap-4">
-            <div>
-                <div class="text-xs text-slate-800 dark:text-slate-200 font-bold mb-1 font-mono uppercase tracking-widest flex items-center gap-2">
-                    <i class="fas fa-file-pdf text-slate-400"></i> EOD Intelligence
-                </div>
-                <p class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Automated delivery of high-fidelity performance artifacts at market close.</p>
-            </div>
-            <form action="{% url 'toggle_setting_api' 'notify_eod' %}" method="post" class="flex-shrink-0">
-                {% csrf_token %}
-                <button type="submit" class="text-[10px] font-bold font-mono px-4 py-2 rounded border {% if settings.notify_eod %}bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30{% else %}bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700{% endif %} transition-colors uppercase tracking-widest">
-                    {% if settings.notify_eod %}ACTIVE{% else %}DISABLED{% endif %}
-                </button>
-            </form>
+  <!-- Right Column: Notification Protocols, Broker Environments, Sync, Security -->
+  <div class="flex flex-col gap-6">
+      
+      <!-- Notification Protocols -->
+      <div class="bg-white dark:bg-slate-900/60 dark:backdrop-blur-md border border-slate-200 dark:border-slate-800/80 shadow-lg rounded-2xl p-6 transition-all duration-300 hover:border-brand-500/20">
+        <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2.5 mb-5">
+            <h3 class="text-xs uppercase tracking-[0.15em] font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                <i class="fas fa-bell text-brand-500"></i> Notification Protocols
+            </h3>
+            <span class="text-[9px] font-mono text-slate-400 uppercase tracking-widest hidden sm:inline">Relay Interface</span>
         </div>
 
-        <!-- SOS Alerts -->
-        <div class="flex items-start sm:items-center justify-between p-4 rounded border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex-col sm:flex-row gap-4">
-            <div>
-                <div class="text-xs text-slate-800 dark:text-slate-200 font-bold mb-1 font-mono uppercase tracking-widest flex items-center gap-2">
-                    <i class="fas fa-exclamation-circle text-red-400"></i> Anomaly Alerts
-                </div>
-                <p class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Priority interception of neural exceptions and engine-level failures.</p>
-            </div>
-            <form action="{% url 'toggle_setting_api' 'notify_sos' %}" method="post" class="flex-shrink-0">
-                {% csrf_token %}
-                <button type="submit" class="text-[10px] font-bold font-mono px-4 py-2 rounded border {% if settings.notify_sos %}bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30{% else %}bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700{% endif %} transition-colors uppercase tracking-widest">
-                    {% if settings.notify_sos %}ACTIVE{% else %}DISABLED{% endif %}
-                </button>
-            </form>
-        </div>
-
-        <!-- A/B Optimization -->
-        <div class="flex items-start sm:items-center justify-between p-4 rounded border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex-col sm:flex-row gap-4">
-            <div>
-                <div class="text-xs text-slate-800 dark:text-slate-200 font-bold mb-1 font-mono uppercase tracking-widest flex items-center gap-2">
-                    <i class="fas fa-code-branch text-brand-400"></i> Neural Swap
-                </div>
-                <p class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Notifications regarding autonomous strategy re-weighting suggestions.</p>
-            </div>
-            <form action="{% url 'toggle_setting_api' 'notify_ab_test' %}" method="post" class="flex-shrink-0">
-                {% csrf_token %}
-                <button type="submit" class="text-[10px] font-bold font-mono px-4 py-2 rounded border {% if settings.notify_ab_test %}bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30{% else %}bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700{% endif %} transition-colors uppercase tracking-widest">
-                    {% if settings.notify_ab_test %}ACTIVE{% else %}DISABLED{% endif %}
-                </button>
-            </form>
-        </div>
-    </div>
-  </div>
-
-  <!-- Broker Environments -->
-  <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded p-5 flex flex-col lg:col-span-2">
-    <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2 mb-4">
-        <h3 class="text-[10px] uppercase tracking-widest font-bold text-slate-800 dark:text-slate-200">Execution Environments</h3>
-        <span class="text-[9px] font-mono text-slate-400 uppercase tracking-widest">Broker & CCXT Node Connections</span>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Add Environment Form -->
-        <div class="bg-slate-50 dark:bg-slate-800/50 rounded border border-slate-100 dark:border-slate-800 p-4">
-            <h4 class="text-[9px] uppercase tracking-widest text-slate-500 font-mono mb-4 border-b border-slate-200 dark:border-slate-700 pb-2">Attach New Node</h4>
-            <form action="{% url 'add_broker_account_api' %}" method="post" class="flex flex-col gap-3">
-                {% csrf_token %}
-                <input type="text" name="name" placeholder="Node Alias (e.g. Binance VIP)" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded px-3 py-2 text-xs font-mono outline-none focus:border-brand-500" required>
-                <input type="text" name="api_key" placeholder="API Key (Optional for CCXT)" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded px-3 py-2 text-xs font-mono outline-none focus:border-brand-500">
-                <input type="password" name="secret_key" placeholder="API Secret (Optional for CCXT)" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded px-3 py-2 text-xs font-mono outline-none focus:border-brand-500">
-                <input type="text" name="base_url" placeholder="WSS / REST URL (If applicable)" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded px-3 py-2 text-xs font-mono outline-none focus:border-brand-500">
-                
-                <label class="flex items-center gap-2 cursor-pointer mt-1">
-                    <input type="checkbox" name="is_live" class="w-3 h-3 text-brand-600 bg-slate-100 border-slate-300 rounded focus:ring-brand-500 dark:focus:ring-brand-600 dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600">
-                    <span class="text-[10px] font-mono text-slate-600 dark:text-slate-400 uppercase tracking-widest">Mark as Live Production Node</span>
-                </label>
-                
-                <button type="submit" class="w-full mt-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-mono text-xs font-bold uppercase tracking-widest rounded transition-colors border border-slate-700">Attach Node</button>
-            </form>
-        </div>
-
-        <!-- Active Environments -->
-        <div class="flex flex-col gap-3">
-            <h4 class="text-[9px] uppercase tracking-widest text-slate-500 font-mono mb-1 border-b border-slate-200 dark:border-slate-700 pb-2">Active Bindings</h4>
-            {% for acc in broker_accounts %}
-            <div class="flex items-center justify-between p-3 rounded border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+        <div class="flex flex-col gap-4">
+            <!-- EOD Report -->
+            <div class="flex items-start sm:items-center justify-between p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-950/40 flex-col sm:flex-row gap-4">
                 <div>
-                    <div class="text-xs font-bold font-mono text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                        {{ acc.name }} 
-                        {% if acc.is_live %}
-                        <span class="px-1.5 py-0.5 rounded bg-red-50 text-red-600 border border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/30 text-[8px] uppercase tracking-widest">Production</span>
-                        {% else %}
-                        <span class="px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/30 text-[8px] uppercase tracking-widest">Sandbox</span>
-                        {% endif %}
+                    <div class="text-xs text-slate-800 dark:text-slate-200 font-bold mb-1 font-mono uppercase tracking-widest flex items-center gap-2">
+                        <i class="fas fa-file-pdf text-brand-400"></i> EOD Intelligence
                     </div>
-                    <div class="text-[9px] font-mono text-slate-400 truncate w-48 mt-1">{{ acc.base_url|default:"Internal Protocol" }}</div>
+                    <p class="text-[10px] text-slate-500 dark:text-slate-400 font-mono leading-relaxed">Automated delivery of high-fidelity performance artifacts at market close.</p>
                 </div>
-                <form action="{% url 'delete_broker_account_api' acc.id %}" method="post" onsubmit="return confirm('Sever this node connection? Models using this environment will crash.');">
+                <form action="{% url 'toggle_setting_api' 'notify_eod' %}" method="post" class="flex-shrink-0 w-full sm:w-auto">
                     {% csrf_token %}
-                    <button type="submit" class="text-slate-400 hover:text-red-500 transition-colors p-2"><i class="fas fa-trash-alt"></i></button>
+                    <button type="submit" class="w-full sm:w-auto text-[10px] font-bold font-mono px-4 py-2.5 rounded-lg border {% if settings.notify_eod %}bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30{% else %}bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700{% endif %} transition-all uppercase tracking-widest">
+                        {% if settings.notify_eod %}ACTIVE{% else %}DISABLED{% endif %}
+                    </button>
                 </form>
             </div>
-            {% empty %}
-            <div class="text-[10px] font-mono text-slate-400 uppercase tracking-widest text-center py-6 border border-dashed border-slate-200 dark:border-slate-700 rounded">No active nodes attached</div>
-            {% endfor %}
-        </div>
-    </div>
-    </div>
 
-    <!-- System Maintenance -->
-    <div class="bg-slate-900/80 backdrop-blur-sm border border-slate-700 p-6 relative overflow-hidden group">
-        <!-- Decoration -->
-        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-600 to-transparent"></div>
-        <div class="absolute right-[-20px] top-[-20px] opacity-5">
-            <i class="fas fa-server text-9xl"></i>
-        </div>
-
-        <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4 relative z-10">
-            <h4 class="text-[10px] uppercase tracking-[0.2em] text-brand-400 font-mono flex items-center gap-2">
-                <i class="fas fa-network-wired text-slate-500"></i> Core Protocol Sync
-            </h4>
-            <span class="px-2 py-1 bg-slate-800 text-slate-400 text-[8px] font-mono rounded border border-slate-700">NODE: ONLINE</span>
-        </div>
-        <p class="text-xs text-slate-400 mb-6 font-mono leading-relaxed relative z-10">Initialize a remote connection to the central architecture repository. This action will pull the latest intelligence models, interface patches, and backend optimizations directly into the production environment. Database schemas will be synchronized automatically.</p>
-        
-        <button id="btn-update-platform-settings" class="relative z-10 bg-slate-950 hover:bg-brand-900/30 text-brand-400 hover:text-brand-300 font-mono tracking-[0.3em] text-[10px] uppercase py-3 px-4 border border-brand-500/50 hover:border-brand-400 w-full transition-all flex items-center justify-center gap-3 group/btn">
-            <i class="fas fa-satellite-dish group-hover/btn:animate-pulse"></i> INITIATE OVERRIDE PROTOCOL
-        </button>
-    </div>
-
-    <!-- Security & Access Control -->
-    <div class="bg-slate-900 border border-slate-800 rounded p-6">
-        <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
-            <h4 class="text-[10px] uppercase tracking-widest text-emerald-500 font-mono tracking-widest flex items-center gap-2"><i class="fas fa-shield-alt"></i> Security & Access</h4>
-        </div>
-        <p class="text-xs text-slate-400 mb-6">Configure the global idle timeout lockscreen and authentication passcode.</p>
-        
-        <form id="form-security-settings" method="POST" action="{% url 'save_security_settings_api' %}">
-            {% csrf_token %}
-            <div class="space-y-4">
+            <!-- SOS Alerts -->
+            <div class="flex items-start sm:items-center justify-between p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-955 flex-col sm:flex-row gap-4">
                 <div>
-                    <label class="block text-[10px] uppercase tracking-widest text-slate-500 mb-2">Lockscreen Passcode</label>
-                    <input type="password" name="lockscreen_password" placeholder="Leave blank to disable passcode requirement" class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-500 transition-colors">
-                    <p class="text-[10px] text-slate-500 mt-1">If set, this PIN/Password will be required to unlock the session overlay.</p>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-[10px] uppercase tracking-widest text-slate-500 mb-2">Idle Lock (Minutes)</label>
-                        <input type="number" name="idle_lock_minutes" value="5" min="0" class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-500 transition-colors">
+                    <div class="text-xs text-slate-800 dark:text-slate-200 font-bold mb-1 font-mono uppercase tracking-widest flex items-center gap-2">
+                        <i class="fas fa-exclamation-circle text-red-400"></i> Anomaly Alerts
                     </div>
-                    <div>
-                        <label class="block text-[10px] uppercase tracking-widest text-slate-500 mb-2">Idle Logout (Minutes)</label>
-                        <input type="number" name="idle_logout_minutes" value="30" min="0" class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-500 transition-colors">
-                    </div>
+                    <p class="text-[10px] text-slate-500 dark:text-slate-400 font-mono leading-relaxed">Priority interception of neural exceptions and engine-level failures.</p>
                 </div>
-                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-mono tracking-widest text-[10px] uppercase py-2 px-4 rounded transition-colors mt-2">
-                    Save Security Policies
-                </button>
+                <form action="{% url 'toggle_setting_api' 'notify_sos' %}" method="post" class="flex-shrink-0 w-full sm:w-auto">
+                    {% csrf_token %}
+                    <button type="submit" class="w-full sm:w-auto text-[10px] font-bold font-mono px-4 py-2.5 rounded-lg border {% if settings.notify_sos %}bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30{% else %}bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700{% endif %} transition-all uppercase tracking-widest">
+                        {% if settings.notify_sos %}ACTIVE{% else %}DISABLED{% endif %}
+                    </button>
+                </form>
             </div>
-        </form>
-    </div>
+
+            <!-- A/B Optimization -->
+            <div class="flex items-start sm:items-center justify-between p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-955 flex-col sm:flex-row gap-4">
+                <div>
+                    <div class="text-xs text-slate-800 dark:text-slate-200 font-bold mb-1 font-mono uppercase tracking-widest flex items-center gap-2">
+                        <i class="fas fa-code-branch text-brand-400"></i> Neural Swap
+                    </div>
+                    <p class="text-[10px] text-slate-500 dark:text-slate-400 font-mono leading-relaxed">Notifications regarding autonomous strategy re-weighting suggestions.</p>
+                </div>
+                <form action="{% url 'toggle_setting_api' 'notify_ab_test' %}" method="post" class="flex-shrink-0 w-full sm:w-auto">
+                    {% csrf_token %}
+                    <button type="submit" class="w-full sm:w-auto text-[10px] font-bold font-mono px-4 py-2.5 rounded-lg border {% if settings.notify_ab_test %}bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30{% else %}bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700{% endif %} transition-all uppercase tracking-widest">
+                        {% if settings.notify_ab_test %}ACTIVE{% else %}DISABLED{% endif %}
+                    </button>
+                </form>
+            </div>
+        </div>
+      </div>
+
+      <!-- Execution Environments -->
+      <div class="bg-white dark:bg-slate-900/60 dark:backdrop-blur-md border border-slate-200 dark:border-slate-800/80 shadow-lg rounded-2xl p-6 transition-all duration-300 hover:border-brand-500/20">
+        <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2.5 mb-5">
+            <h3 class="text-xs uppercase tracking-[0.15em] font-bold text-slate-855 dark:text-slate-100 flex items-center gap-2">
+                <i class="fas fa-network-wired text-brand-500"></i> Execution Environments
+            </h3>
+            <span class="text-[9px] font-mono text-slate-400 uppercase tracking-widest hidden sm:inline">Node Bindings</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Add Environment Form -->
+            <div class="bg-slate-50 dark:bg-slate-950/40 rounded-xl border border-slate-100 dark:border-slate-800/80 p-4">
+                <h4 class="text-[9px] uppercase tracking-widest text-slate-500 font-mono mb-4 border-b border-slate-200 dark:border-slate-800 pb-2">Attach New Node</h4>
+                <form action="{% url 'add_broker_account_api' %}" method="post" class="flex flex-col gap-3">
+                    {% csrf_token %}
+                    <input type="text" name="name" placeholder="Node Alias (e.g. Binance VIP)" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2.5 text-xs font-mono outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20 transition-all" required>
+                    <input type="text" name="api_key" placeholder="API Key (Optional for CCXT)" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2.5 text-xs font-mono outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20 transition-all">
+                    <input type="password" name="secret_key" placeholder="API Secret (Optional for CCXT)" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2.5 text-xs font-mono outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20 transition-all">
+                    <input type="text" name="base_url" placeholder="WSS / REST URL (If applicable)" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2.5 text-xs font-mono outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20 transition-all">
+                    
+                    <label class="flex items-center gap-2 cursor-pointer mt-1 select-none">
+                        <input type="checkbox" name="is_live" class="w-3.5 h-3.5 text-brand-650 bg-slate-50 border-slate-200 rounded focus:ring-brand-500/40 focus:ring-2 dark:bg-slate-950 dark:border-slate-800">
+                        <span class="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-widest">Mark as Live Production Node</span>
+                    </label>
+                    
+                    <button type="submit" class="w-full mt-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-750 text-white font-mono text-xs font-bold uppercase tracking-widest rounded-xl transition-all border border-slate-700">Attach Node</button>
+                </form>
+            </div>
+
+            <!-- Active Environments -->
+            <div class="flex flex-col gap-3">
+                <h4 class="text-[9px] uppercase tracking-widest text-slate-500 font-mono mb-1 border-b border-slate-200 dark:border-slate-800 pb-2">Active Bindings</h4>
+                <div class="flex flex-col gap-3 overflow-y-auto max-h-[300px] pr-1 font-mono">
+                    {% for acc in broker_accounts %}
+                    <div class="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-955 shadow-sm">
+                        <div class="min-w-0 flex-1">
+                            <div class="text-xs font-bold text-slate-850 dark:text-slate-200 flex items-center gap-2 flex-wrap">
+                                <span class="truncate">{{ acc.name }}</span>
+                                {% if acc.is_live %}
+                                <span class="px-1.5 py-0.5 rounded bg-red-50 text-red-650 border border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/30 text-[8px] uppercase tracking-widest font-bold">Production</span>
+                                {% else %}
+                                <span class="px-1.5 py-0.5 rounded bg-blue-50 text-blue-655 border border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/30 text-[8px] uppercase tracking-widest font-bold">Sandbox</span>
+                                {% endif %}
+                            </div>
+                            <div class="text-[9px] font-mono text-slate-400 truncate mt-1 w-full">{{ acc.base_url|default:"Internal Protocol" }}</div>
+                        </div>
+                        <form action="{% url 'delete_broker_account_api' acc.id %}" method="post" onsubmit="return confirm('Sever this node connection? Models using this environment will crash.');" class="flex-shrink-0 ml-2">
+                            {% csrf_token %}
+                            <button type="submit" class="text-slate-400 hover:text-red-500 transition-colors p-2"><i class="fas fa-trash-alt text-xs"></i></button>
+                        </form>
+                    </div>
+                    {% empty %}
+                    <div class="text-[10px] font-mono text-slate-450 uppercase tracking-widest text-center py-10 border border-dashed border-slate-200 dark:border-slate-800/80 rounded-xl">No active nodes attached</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+      </div>
+
+      <!-- Core Protocol Sync -->
+      <div class="bg-slate-900/80 backdrop-blur-md border border-slate-700/80 rounded-2xl p-6 relative overflow-hidden group shadow-xl">
+          <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-500 to-transparent"></div>
+          <div class="absolute right-[-20px] top-[-20px] opacity-[0.03] pointer-events-none">
+              <i class="fas fa-server text-9xl"></i>
+          </div>
+
+          <div class="flex justify-between items-center mb-5 border-b border-slate-800 pb-3.5 relative z-10">
+              <h4 class="text-xs uppercase tracking-[0.15em] text-brand-400 font-mono flex items-center gap-2">
+                  <i class="fas fa-network-wired text-brand-400/80"></i> Core Protocol Sync
+              </h4>
+              <span class="px-2 py-0.5 bg-slate-800 text-slate-400 text-[8px] font-mono rounded border border-slate-700">NODE: ONLINE</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-6 font-mono leading-relaxed relative z-10">Initialize a remote connection to the central architecture repository. This action will pull the latest intelligence models, interface patches, and backend optimizations directly into the production environment. Database schemas will be synchronized automatically.</p>
+          
+          <button id="btn-update-platform-settings" class="relative z-10 bg-slate-950 hover:bg-brand-950 text-brand-400 hover:text-brand-300 font-mono tracking-[0.2em] text-[10px] uppercase py-3.5 px-4 border border-brand-500/50 hover:border-brand-400 rounded-xl w-full transition-all flex items-center justify-center gap-3 group/btn">
+              <i class="fas fa-satellite-dish group-hover/btn:animate-pulse"></i> INITIATE OVERRIDE PROTOCOL
+          </button>
+      </div>
+
+      <!-- Security & Access Control -->
+      <div class="bg-white dark:bg-slate-900/60 dark:backdrop-blur-md border border-slate-200 dark:border-slate-800/80 shadow-lg rounded-2xl p-6 transition-all duration-300 hover:border-emerald-500/20">
+          <div class="flex justify-between items-center mb-5 border-b border-slate-100 dark:border-slate-800 pb-2.5">
+              <h4 class="text-xs uppercase tracking-[0.15em] text-emerald-500 dark:text-emerald-400 font-mono flex items-center gap-2">
+                  <i class="fas fa-shield-alt"></i> Security & Access
+              </h4>
+          </div>
+          <p class="text-xs text-slate-550 dark:text-slate-400 mb-5 font-mono leading-relaxed">Configure the global idle timeout lockscreen and authentication passcode.</p>
+          
+          <form id="form-security-settings" method="POST" action="{% url 'save_security_settings_api' %}">
+              {% csrf_token %}
+              <div class="space-y-4">
+                  <div>
+                      <label class="block text-[10px] uppercase tracking-widest text-slate-550 font-mono mb-1.5">Lockscreen Passcode</label>
+                      <input type="password" name="lockscreen_password" placeholder="Leave blank to disable passcode requirement" class="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 text-slate-800 dark:text-slate-200 text-xs font-mono outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20 transition-all">
+                      <p class="text-[9px] text-slate-400 font-mono mt-1.5">If set, this password will be required to unlock the session overlay.</p>
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                          <label class="block text-[10px] uppercase tracking-widest text-slate-550 font-mono mb-1.5">Idle Lock (Minutes)</label>
+                          <input type="number" name="idle_lock_minutes" value="5" min="0" class="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 text-slate-800 dark:text-slate-200 text-xs font-mono outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20 transition-all">
+                      </div>
+                      <div>
+                          <label class="block text-[10px] uppercase tracking-widest text-slate-550 font-mono mb-1.5">Idle Logout (Minutes)</label>
+                          <input type="number" name="idle_logout_minutes" value="30" min="0" class="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 text-slate-800 dark:text-slate-200 text-xs font-mono outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20 transition-all">
+                      </div>
+                  </div>
+                  <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-mono tracking-widest text-xs uppercase py-3.5 px-4 rounded-xl transition-colors mt-2 font-bold">
+                      Save Security Policies
+                  </button>
+              </div>
+          </form>
+      </div>
 
   </div>
 </div>
@@ -260,8 +282,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 headers: {
                     'X-CSRFToken': '{{ csrf_token }}',
                     'Content-Type': 'application/json'
-                }}).then(r => {
-                window.location.reload();
+                }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if(data.status === 'SUCCESS' || data.status === 'success') {
+                    window.launchOverlay(null, 'SUCCESS: ' + data.message);
+                    setTimeout(() => {
+                        const overlay = document.getElementById('standard-overlay');
+                        if (overlay) overlay.classList.add('hidden');
+                    }, 2500);
+                } else {
+                    window.launchOverlay(null, 'FAILED: ' + data.message);
+                    setTimeout(() => {
+                        const overlay = document.getElementById('standard-overlay');
+                        if (overlay) overlay.classList.add('hidden');
+                    }, 3500);
+                }
+            })
+            .catch(err => {
+                window.launchOverlay(null, 'ERROR: Network or server error while testing SMTP relay.');
+                setTimeout(() => {
+                    const overlay = document.getElementById('standard-overlay');
+                    if (overlay) overlay.classList.add('hidden');
+                }, 3000);
             });
         });
     }
@@ -280,15 +324,24 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 if(data.status === 'ok') {
                     window.launchOverlay(null, 'SUCCESS: ' + data.message);
-                    setTimeout(() => document.getElementById('standard-overlay').classList.add('hidden'), 2000);
+                    setTimeout(() => {
+                        const overlay = document.getElementById('standard-overlay');
+                        if (overlay) overlay.classList.add('hidden');
+                    }, 2000);
                 } else {
                     window.launchOverlay(null, 'FAILED: ' + data.message);
-                    setTimeout(() => document.getElementById('standard-overlay').classList.add('hidden'), 3000);
+                    setTimeout(() => {
+                        const overlay = document.getElementById('standard-overlay');
+                        if (overlay) overlay.classList.add('hidden');
+                    }, 3000);
                 }
             })
             .catch(err => {
                 window.launchOverlay(null, 'ERROR: Network or server error while testing AI key.');
-                setTimeout(() => document.getElementById('standard-overlay').classList.add('hidden'), 3000);
+                setTimeout(() => {
+                    const overlay = document.getElementById('standard-overlay');
+                    if (overlay) overlay.classList.add('hidden');
+                }, 3000);
             });
         });
     }
@@ -316,7 +369,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     setTimeout(() => window.location.reload(), 1500);
                 } else {
                     window.launchOverlay(null, 'ERROR SAVING SETTINGS: ' + data.message);
-                    setTimeout(() => document.getElementById('standard-overlay').classList.add('hidden'), 2000);
+                    setTimeout(() => {
+                        const overlay = document.getElementById('standard-overlay');
+                        if (overlay) overlay.classList.add('hidden');
+                    }, 2000);
                 }
             });
         });

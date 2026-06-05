@@ -653,6 +653,23 @@
             background-size: 800px 1px;
             animation: shimmer 2.5s linear infinite;
         }
+        #pin-input {
+            transition: all 0.25s ease-in-out;
+        }
+        #pin-input:focus {
+            border-color: rgb(125 196 228) !important;
+            box-shadow: 0 0 15px rgba(125, 196, 228, 0.2) !important;
+            background: rgb(24 25 38) !important;
+        }
+        .ls-btn-unlock {
+            transition: all 0.25s ease-in-out;
+        }
+        .ls-btn-unlock:hover {
+            background: rgb(54 58 79) !important;
+            border-color: rgb(125 196 228) !important;
+            color: rgb(202 211 245) !important;
+            box-shadow: 0 0 15px rgba(125, 196, 228, 0.15) !important;
+        }
     </style>
 
     <div id="global-lockscreen-overlay"
@@ -716,7 +733,7 @@
                                    style="background: rgb(20 21 34); border: 1px solid rgb(55 58 80); color: rgb(202 211 245); font-size: 1.1rem; letter-spacing: 0.3em; caret-color: rgb(125 196 228);">
 
                             <button type="submit"
-                                    class="w-full py-2.5 rounded-xl text-[10px] uppercase tracking-[0.22em] font-semibold transition-all duration-200"
+                                    class="ls-btn-unlock w-full py-2.5 rounded-xl text-[10px] uppercase tracking-[0.22em] font-semibold transition-all duration-200"
                                     style="background: rgb(36 39 58); border: 1px solid rgb(80 100 160 / 0.5); color: rgb(138 173 244);">
                                 <i class="fas fa-unlock-alt mr-1.5 opacity-60"></i>Unlock
                             </button>

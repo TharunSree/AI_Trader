@@ -605,7 +605,16 @@ def write_report_artifacts(report_date=None):
                 total_revenue=metrics['net_flow'], total_trades=metrics['total_trades'],
                 win_rate=(metrics['sell_volume']/max(metrics['buy_volume'], 1))*100
             )
-            artifacts.append({"bot_id": f"{bot.id}{suffix}", "md_path": md_path, "pdf_path": pdf_path, "pdf_bytes": pdf_bytes})
+            artifacts.append({
+                "bot_id": f"Bot {bot.id}{suffix}", 
+                "md_path": md_path, 
+                "pdf_path": pdf_path, 
+                "pdf_bytes": pdf_bytes,
+                "net_flow": float(metrics['net_flow']),
+                "total_trades": int(metrics['total_trades']),
+                "win_rate": float((metrics['sell_volume']/max(metrics['buy_volume'], 1))*100),
+                "report_type": rtype
+            })
             
         # Generate for ModelVariants
         for variant in latest_variants:
@@ -625,7 +634,16 @@ def write_report_artifacts(report_date=None):
                 total_revenue=metrics['net_flow'], total_trades=metrics['total_trades'],
                 win_rate=(metrics['sell_volume']/max(metrics['buy_volume'], 1))*100
             )
-            artifacts.append({"bot_id": f"v{variant.id}{suffix}", "md_path": md_path, "pdf_path": pdf_path, "pdf_bytes": pdf_bytes})
+            artifacts.append({
+                "bot_id": f"Variant v{variant.id}{suffix}", 
+                "md_path": md_path, 
+                "pdf_path": pdf_path, 
+                "pdf_bytes": pdf_bytes,
+                "net_flow": float(metrics['net_flow']),
+                "total_trades": int(metrics['total_trades']),
+                "win_rate": float((metrics['sell_volume']/max(metrics['buy_volume'], 1))*100),
+                "report_type": rtype
+            })
             
     return artifacts
 
