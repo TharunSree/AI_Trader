@@ -63,6 +63,9 @@ EMAIL_HOST_USER="tarunsree@gmail.com"
 
 Create a `systemd` configuration so your trader stays alive automatically 24/7 if the server reboots:
 
+> [!IMPORTANT]
+> Make sure to substitute your system username and path (e.g., replacing `ubuntu` and `/home/ubuntu/AI_Trader` with `tharun` and `/home/tharun/AI_Trader` respectively) throughout all configuration files.
+
 ```bash
 sudo nano /etc/systemd/system/jarvis_brain.service
 ```

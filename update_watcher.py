@@ -38,6 +38,44 @@ def check_for_updates():
         return True, local_sha, remote_sha
     return False, local_sha, remote_sha
 
+def install_dependencies():
+    """Installs dependencies from requirements.txt, skipping known problematic ones like mysqlclient on Linux."""
+    pip_path = get_executable_path("pip")
+    req_file = Path("requirements.txt")
+    if not req_file.exists():
+        logger.warning("requirements.txt not found. Skipping dependency installation.")
+        return True
+        
+    try:
+        with open(req_file, "r") as f:
+            packages = f.read().splitlines()
+            
+        for pkg in packages:
+            pkg = pkg.strip()
+            if not pkg or pkg.startswith("#"):
+                continue
+                
+            # Skip mysqlclient on Linux systems to prevent compilation/header compilation errors
+            if "mysqlclient" in pkg and os.name != 'nt':
+                logger.info(f"Skipping {pkg} on Linux (not needed for SQLite/Postgres backend)")
+                continue
+                
+            # Install package
+            success, out, err = run_cmd([pip_path, 'install', pkg])
+            if not success:
+                # check if it is a critical package
+                critical_packages = ['django', 'numpy', 'requests', 'psutil', 'channels', 'torch', 'pandas', 'celery']
+                is_critical = any(crit in pkg.lower() for crit in critical_packages)
+                if is_critical:
+                    logger.error(f"Failed to install critical dependency {pkg}: {err}")
+                    return False
+                else:
+                    logger.warning(f"Failed to install non-critical dependency {pkg}: {err}. Continuing...")
+        return True
+    except Exception as e:
+        logger.error(f"Error reading or installing requirements.txt: {e}")
+        return False
+
 def execute_update(stable_sha):
     """Performs the upgrade process (git pull, pip install, migrate, reload)"""
     logger.info("Update detected! Starting auto-update protocol...")
@@ -52,10 +90,7 @@ def execute_update(stable_sha):
         
     # 2. Pip install
     logger.info("Installing updated dependencies...")
-    pip_path = get_executable_path("pip")
-    success, out, err = run_cmd([pip_path, 'install', '-r', 'requirements.txt'])
-    if not success:
-        logger.error(f"Pip install failed: {err}")
+    if not install_dependencies():
         rollback(stable_sha)
         return False
         
@@ -77,8 +112,7 @@ def rollback(stable_sha):
     """Rollback to the last known working git commit if the update process crashed."""
     logger.warning(f"AUTO-ROLLBACK: Restoring previous stable release ({stable_sha[:7]})...")
     run_cmd(['git', 'reset', '--hard', stable_sha])
-    pip_path = get_executable_path("pip")
-    run_cmd([pip_path, 'install', '-r', 'requirements.txt'])
+    install_dependencies()
     python_path = get_executable_path("python")
     run_cmd([python_path, 'manage.py', 'migrate'])
     logger.info("Rollback complete. Restarting server to restore online state.")
