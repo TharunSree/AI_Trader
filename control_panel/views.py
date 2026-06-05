@@ -2487,7 +2487,6 @@ def evolution_restart_api(request, variant_id):
     
     # Spawn process
     try:
-        from .views import _spawn_background_process
         log_dir = Path(__file__).resolve().parent.parent / "logs"
         log_dir.mkdir(exist_ok=True)
         log_file = log_dir / f"evolution_variant_{variant.id}.log"
