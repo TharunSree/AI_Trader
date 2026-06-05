@@ -673,8 +673,8 @@
     </style>
 
     <div id="global-lockscreen-overlay"
-         class="fixed inset-0 z-[10000] flex flex-col items-center justify-center overflow-hidden"
-         style="background: rgb(24 25 38); font-family: 'Inter', 'Roboto Mono', monospace;">
+         class="fixed inset-0 z-[10000] flex flex-col items-center justify-center overflow-hidden bg-slate-950/80 backdrop-blur-xl"
+         style="font-family: 'Inter', 'Roboto Mono', monospace;">
 
         <!-- Dot grid background -->
         <div class="absolute inset-0 pointer-events-none"
@@ -699,8 +699,7 @@
 
             <!-- Auth card -->
             <div class="ls-panel w-full">
-                <div class="rounded-2xl overflow-hidden"
-                     style="background: rgb(30 32 48); border: 1px solid rgb(64 68 90); box-shadow: 0 20px 60px rgb(0 0 0 / 0.5);">
+                <div class="rounded-2xl overflow-hidden bg-slate-900/40 backdrop-blur-md border border-slate-700/60 shadow-[0_25px_60px_rgba(0,0,0,0.6)]">
 
                     <div class="flex items-center justify-between px-4 py-2.5"
                          style="border-bottom: 1px solid rgb(45 48 65);">
