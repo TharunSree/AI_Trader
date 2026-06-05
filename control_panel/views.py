@@ -1868,31 +1868,10 @@ def download_report_pdf_view(request, report_id):
 @login_required
 def view_report_view(request, report_id):
     """
-    Renders the compiled HTML of a report's markdown file using the report_viewer.html template.
+    Redirects to the reports hub and automatically triggers the inline modal viewer for the given report.
     """
-    import os
-    import markdown
-    from django.http import Http404
-    from .models import TradingReport
-    
-    report = get_object_or_404(TradingReport, id=report_id)
-    if not report.markdown_path or not os.path.exists(report.markdown_path):
-        raise Http404("Markdown file not found on disk.")
-        
-    with open(report.markdown_path, 'r', encoding='utf-8') as f:
-        md_text = f.read()
-        
-    import re
-    md_text = re.sub(r'([^\n])\s*(##+ )', r'\1\n\n\2', md_text)
-    html_content = markdown.markdown(md_text, extensions=['tables', 'fenced_code', 'nl2br'])
-    
-    context = {
-        'report': report,
-        'report_date': report.timestamp,
-        'report_html': html_content,
-        'active_page': 'reports_hub'
-    }
-    return render(request, 'report_viewer.html', context)
+    from django.shortcuts import redirect
+    return redirect(f'/intelligence-vault/?open_report={report_id}')
 
 
 @login_required
