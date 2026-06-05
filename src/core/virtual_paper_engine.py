@@ -299,9 +299,12 @@ class VirtualPaperEngine:
         
         self.portfolio.record_daily_snapshot(total_equity)
         
+        from control_panel.models import VirtualTrade
+        trades_count = VirtualTrade.objects.filter(variant_id=self.variant_id).count()
+        
         ModelVariant.objects.filter(id=self.variant_id).update(
             virtual_balance=Decimal(str(round(total_equity, 2))),
-            virtual_trades_count=self.portfolio.wins + self.portfolio.losses,
+            virtual_trades_count=trades_count,
             virtual_pnl=Decimal(str(round(pnl, 2))),
             virtual_pnl_pct=round(pnl_pct, 4),
             sharpe_ratio=round(self.portfolio.sharpe_ratio, 4),

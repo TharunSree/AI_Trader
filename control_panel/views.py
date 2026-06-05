@@ -2249,7 +2249,58 @@ def variant_details_view(request, variant_id):
     }
     return render(request, 'variant_details.html', context)
 
+
 @login_required
+def variant_metrics_api(request, variant_id):
+    from .models import ModelVariant, VirtualTrade
+    variant = get_object_or_404(ModelVariant, id=variant_id)
+    trades = VirtualTrade.objects.filter(variant=variant).order_by('timestamp')
+    
+    trades_data = []
+    for t in trades:
+        trades_data.append({
+            'timestamp': t.timestamp.isoformat(),
+            'symbol': t.symbol,
+            'action': t.action,
+            'quantity': float(t.quantity),
+            'price': float(t.price),
+            'notional_value': float(t.notional_value),
+            'virtual_balance_after': float(t.virtual_balance_after),
+        })
+        
+    equity_curve = []
+    for t in trades:
+        equity_curve.append({
+            'x': t.timestamp.isoformat(),
+            'y': float(t.virtual_balance_after),
+        })
+        
+    if not equity_curve:
+        equity_curve = [{'x': variant.created_at.isoformat(), 'y': float(variant.starting_cash)}]
+        
+    total_buys = trades.filter(action='BUY').count()
+    total_sells = trades.filter(action='SELL').count()
+    
+    return JsonResponse({
+        'status': 'success',
+        'metrics': {
+            'status': variant.status,
+            'starting_cash': float(variant.starting_cash),
+            'virtual_balance': float(variant.virtual_balance),
+            'virtual_pnl': float(variant.virtual_pnl),
+            'virtual_pnl_pct': float(variant.virtual_pnl_pct),
+            'sharpe_ratio': float(variant.sharpe_ratio),
+            'max_drawdown_pct': float(variant.max_drawdown_pct),
+            'win_rate': float(variant.win_rate),
+            'virtual_trades_count': variant.virtual_trades_count,
+            'total_buys': total_buys,
+            'total_sells': total_sells,
+        },
+        'trades': trades_data,
+        'equity_curve': equity_curve,
+    })
+
+
 def evolution_variants_api(request):
     """GET: Returns all ModelVariant records with live metrics for the dashboard."""
     from .models import ModelVariant

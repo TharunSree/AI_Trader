@@ -212,7 +212,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="flex items-center justify-between text-[10px] font-mono border-t border-slate-100 dark:border-slate-800 pt-2 mt-2">
                             <span class="text-slate-500">P&L: <span class="${v.virtual_pnl > 0 ? 'text-emerald-500' : 'text-rose-500'} font-bold">$${v.virtual_pnl.toFixed(2)}</span></span>
                             <span class="text-slate-500">Trades: <span class="text-slate-300">${v.virtual_trades_count}</span></span>
-                            <span class="text-slate-500">Win: <span class="text-slate-300">${(v.win_rate*100).toFixed(0)}%</span></span>
+                            <span class="text-slate-500">Win: <span class="text-slate-300">${v.win_rate.toFixed(0)}%</span></span>
                         </div>
                     </a>
                     `;

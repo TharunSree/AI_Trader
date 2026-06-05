@@ -13,9 +13,9 @@
       <h2 class="text-xl font-bold text-slate-800 dark:text-white">{{ variant.name }}</h2>
       <p class="text-xs text-slate-500 font-mono">Created {{ variant.created_at|date:"M d, Y H:i" }} · {{ variant.days_remaining }} days remaining · Parent: T{{ variant.parent_trader_id|default:"N/A" }}</p>
     </div>
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-3" id="variant-action-container">
       <!-- Status Badge -->
-      <span class="px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider 
+      <span id="variant-status-badge" class="px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider 
         {% if variant.status == 'TESTING' %}bg-blue-500/10 text-blue-400 border border-blue-500/20
         {% elif variant.status == 'PROMOTED' %}bg-emerald-500/10 text-emerald-400 border border-emerald-500/20
         {% elif variant.status == 'FAILED' %}bg-rose-500/10 text-rose-400 border border-rose-500/20
@@ -23,34 +23,49 @@
         {% else %}bg-slate-500/10 text-slate-400 border border-slate-500/20{% endif %}">
         {{ variant.status }}
       </span>
-      {% if variant.status in 'TESTING,PENDING' %}
-      <form method="post" action="{% url 'evolution_promote_api' variant.id %}" class="inline">
-        {% csrf_token %}
-        <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 hover:border-emerald-500/50 text-emerald-400 hover:text-emerald-300 transition-all duration-300 shadow-[0_0_10px_rgba(16,185,129,0.1)] hover:shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-          <i class="fas fa-crown mr-1 text-emerald-500"></i> Promote
+      
+      <!-- Primary Actions -->
+      <div id="variant-primary-actions" class="flex items-center gap-2">
+        {% if variant.status in 'TESTING,PENDING' %}
+        <form method="post" action="{% url 'evolution_promote_api' variant.id %}" class="inline">
+          {% csrf_token %}
+          <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 hover:border-emerald-500/50 text-emerald-400 hover:text-emerald-300 transition-all duration-300 shadow-[0_0_10px_rgba(16,185,129,0.1)] hover:shadow-[0_0_15px_rgba(16,185,129,0.3)] cursor-pointer">
+            <i class="fas fa-crown mr-1 text-emerald-500"></i> Promote
+          </button>
+        </form>
+        <form method="post" action="{% url 'evolution_reject_api' variant.id %}" class="inline">
+          {% csrf_token %}
+          <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 hover:border-rose-500/50 text-rose-400 hover:text-rose-300 transition-all duration-300 shadow-[0_0_10px_rgba(244,63,94,0.1)] hover:shadow-[0_0_15px_rgba(244,63,94,0.3)] cursor-pointer">
+            <i class="fas fa-times mr-1 text-rose-500"></i> Reject
+          </button>
+        </form>
+        {% endif %}
+      </div>
+
+      <!-- Secondary Actions Dropdown -->
+      <div class="relative inline-block text-left group">
+        <button type="button" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-500/10 hover:bg-slate-500/20 border border-slate-500/20 hover:border-slate-500/40 text-slate-300 transition-all flex items-center gap-1.5 cursor-pointer">
+          <i class="fas fa-ellipsis-v"></i> Actions
         </button>
-      </form>
-      <form method="post" action="{% url 'evolution_reject_api' variant.id %}" class="inline">
-        {% csrf_token %}
-        <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 hover:border-rose-500/50 text-rose-400 hover:text-rose-300 transition-all duration-300 shadow-[0_0_10px_rgba(244,63,94,0.1)] hover:shadow-[0_0_15px_rgba(244,63,94,0.3)]">
-          <i class="fas fa-times mr-1 text-rose-500"></i> Reject
-        </button>
-      </form>
-      {% endif %}
-      <form method="post" action="{% url 'evolution_delete_api' variant.id %}" class="inline" onsubmit="return confirm('Are you sure you want to delete this variant? This will permanently delete its history, trades, and logs.');">
-        {% csrf_token %}
-        <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-500/10 hover:bg-rose-500/20 border border-slate-500/20 hover:border-rose-500/50 text-slate-400 hover:text-rose-400 transition-all duration-300">
-          <i class="fas fa-trash-alt mr-1"></i> Delete
-        </button>
-      </form>
-      {% if variant.status != 'PROMOTED' %}
-      <form method="post" action="{% url 'evolution_restart_api' variant.id %}" class="inline">
-        {% csrf_token %}
-        <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 hover:border-amber-500/50 text-amber-400 hover:text-amber-300 transition-all duration-300 shadow-[0_0_10px_rgba(245,158,11,0.1)] hover:shadow-[0_0_15px_rgba(245,158,11,0.3)]">
-          <i class="fas fa-redo mr-1 text-amber-500"></i> Restart Engine
-        </button>
-      </form>
-      {% endif %}
+        <div class="absolute right-0 mt-1 w-44 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl hidden group-hover:block hover:block z-50 overflow-hidden">
+          <div class="py-1" id="variant-dropdown-actions">
+            {% if variant.status != 'PROMOTED' %}
+            <form method="post" action="{% url 'evolution_restart_api' variant.id %}" class="w-full block">
+              {% csrf_token %}
+              <button type="submit" class="w-full text-left px-4 py-2 text-xs font-mono text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 cursor-pointer">
+                <i class="fas fa-redo text-amber-500"></i> Restart Engine
+              </button>
+            </form>
+            {% endif %}
+            <form method="post" action="{% url 'evolution_delete_api' variant.id %}" class="w-full block" onsubmit="return confirm('Are you sure you want to delete this variant? This will permanently delete its history, trades, and logs.');">
+              {% csrf_token %}
+              <button type="submit" class="w-full text-left px-4 py-2 text-xs font-mono text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 cursor-pointer">
+                <i class="fas fa-trash-alt text-rose-500"></i> Delete Variant
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -73,30 +88,30 @@
   <!-- Virtual Balance -->
   <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
     <p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1">Virtual Balance</p>
-    <p class="text-lg font-bold font-mono {% if variant.virtual_pnl >= 0 %}text-emerald-500{% else %}text-rose-500{% endif %}">${{ variant.virtual_balance|floatformat:2 }}</p>
+    <p class="text-lg font-bold font-mono {% if variant.virtual_pnl >= 0 %}text-emerald-500{% else %}text-rose-500{% endif %}" id="metric-balance">${{ variant.virtual_balance|floatformat:2 }}</p>
     <p class="text-[10px] text-slate-500 font-mono">Starting: ${{ variant.starting_cash|floatformat:2 }}</p>
   </div>
   <!-- Net P&L -->
   <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
     <p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1">Net P&L</p>
-    <p class="text-lg font-bold font-mono {% if variant.virtual_pnl >= 0 %}text-emerald-500{% else %}text-rose-500{% endif %}">
+    <p class="text-lg font-bold font-mono {% if variant.virtual_pnl >= 0 %}text-emerald-500{% else %}text-rose-500{% endif %}" id="metric-pnl">
       {% if variant.virtual_pnl >= 0 %}+{% endif %}${{ variant.virtual_pnl|floatformat:2 }}
     </p>
-    <p class="text-[10px] font-mono {% if variant.virtual_pnl_pct >= 0 %}text-emerald-500{% else %}text-rose-500{% endif %}">
+    <p class="text-[10px] font-mono {% if variant.virtual_pnl_pct >= 0 %}text-emerald-500{% else %}text-rose-500{% endif %}" id="metric-pnl-pct">
       {% if variant.virtual_pnl_pct >= 0 %}+{% endif %}{{ variant.virtual_pnl_pct|floatformat:2 }}%
     </p>
   </div>
   <!-- Win Rate -->
   <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
     <p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1">Win Rate</p>
-    <p class="text-lg font-bold font-mono text-slate-200">{{ variant.win_rate|floatformat:1 }}%</p>
-    <p class="text-[10px] text-slate-500 font-mono">{{ trade_count }} trades ({{ total_buys }}B / {{ total_sells }}S)</p>
+    <p class="text-lg font-bold font-mono text-slate-200" id="metric-winrate">{{ variant.win_rate|floatformat:1 }}%</p>
+    <p class="text-[10px] text-slate-500 font-mono" id="metric-trades">{{ trade_count }} trades ({{ total_buys }}B / {{ total_sells }}S)</p>
   </div>
   <!-- Risk -->
   <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
     <p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1">Risk Metrics</p>
-    <p class="text-lg font-bold font-mono text-slate-200">{{ variant.sharpe_ratio|floatformat:2 }}</p>
-    <p class="text-[10px] text-slate-500 font-mono">Sharpe · DD: {{ variant.max_drawdown_pct|floatformat:2 }}%</p>
+    <p class="text-lg font-bold font-mono text-slate-200" id="metric-sharpe">{{ variant.sharpe_ratio|floatformat:2 }}</p>
+    <p class="text-[10px] text-slate-500 font-mono" id="metric-drawdown">Sharpe · DD: {{ variant.max_drawdown_pct|floatformat:2 }}%</p>
   </div>
 </div>
 
@@ -122,7 +137,7 @@
         <h3 class="text-xs uppercase tracking-widest font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
           <i class="fas fa-exchange-alt text-slate-400"></i> Virtual Trade History
         </h3>
-        <span class="text-[10px] font-mono text-slate-500">{{ trade_count }} total</span>
+        <span class="text-[10px] font-mono text-slate-500" id="trades-count-label">{{ trade_count }} total</span>
       </div>
       <div class="overflow-x-auto max-h-[400px] overflow-y-auto">
         <table class="w-full text-xs font-mono">
@@ -137,32 +152,22 @@
               <th class="text-right px-4 py-2 text-slate-500 font-bold uppercase tracking-wider">Balance</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-            {% for trade in trades %}
-            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-              <td class="px-4 py-2 text-slate-400">{{ trade.timestamp|date:"M d H:i:s" }}</td>
-              <td class="px-4 py-2 text-slate-300 font-bold">{{ trade.symbol }}</td>
-              <td class="px-4 py-2">
-                <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase
-                  {% if trade.action == 'BUY' %}bg-emerald-500/10 text-emerald-400{% else %}bg-rose-500/10 text-rose-400{% endif %}">
-                  {{ trade.action }}
-                </span>
-              </td>
-              <td class="px-4 py-2 text-right text-slate-400">{{ trade.quantity|floatformat:6 }}</td>
-              <td class="px-4 py-2 text-right text-slate-300">${{ trade.price|floatformat:2 }}</td>
-              <td class="px-4 py-2 text-right text-slate-400">${{ trade.notional_value|floatformat:2 }}</td>
-              <td class="px-4 py-2 text-right text-slate-300 font-bold">${{ trade.virtual_balance_after|floatformat:2 }}</td>
-            </tr>
-            {% empty %}
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800" id="variant-trades-body">
+            <!-- Paginated trades rendered via JS -->
             <tr>
               <td colspan="7" class="px-4 py-10 text-center text-slate-500">
                 <i class="fas fa-ghost text-2xl mb-2 text-slate-600"></i><br>
                 No virtual trades recorded yet.
               </td>
             </tr>
-            {% endfor %}
           </tbody>
         </table>
+      </div>
+      <!-- Client-side Paginator -->
+      <div class="px-5 py-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between font-mono text-[10px] text-slate-500">
+        <button id="trades-prev-btn" onclick="prevTradesPage()" class="hover:text-slate-200 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer" disabled>&larr; PREVIOUS</button>
+        <span id="trades-page-label">PAGE 1 OF 1</span>
+        <button id="trades-next-btn" onclick="nextTradesPage()" class="hover:text-slate-200 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer" disabled>NEXT &rarr;</button>
       </div>
     </div>
   </div>
@@ -228,53 +233,78 @@
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Equity Curve Chart
-    const eqData = {{ equity_curve_json|safe }};
-    const ctx = document.getElementById('equity-chart').getContext('2d');
+    // Global State variables
     const startCash = {{ variant.starting_cash }};
-    
-    const isProfitable = eqData.length > 0 && eqData[eqData.length-1].y >= startCash;
-    const lineColor = isProfitable ? 'rgb(16, 185, 129)' : 'rgb(244, 63, 94)';
-    const fillColor = isProfitable ? 'rgba(16, 185, 129, 0.1)' : 'rgba(244, 63, 94, 0.1)';
-    
-    new Chart(ctx, {
+    const variantId = {{ variant.id }};
+    let allTrades = [];
+    let currentTradesPage = 1;
+    let equityChart = null;
+
+    // CSRF token
+    const csrfToken = document.querySelector('#csrf-form [name=csrfmiddlewaretoken]')?.value || '';
+
+    // Initialize Chart.js
+    const ctx = document.getElementById('equity-chart').getContext('2d');
+    equityChart = new Chart(ctx, {
         type: 'line',
         data: {
             datasets: [{
                 label: 'Virtual Balance',
-                data: eqData,
-                borderColor: lineColor,
-                backgroundColor: fillColor,
+                data: [],
+                borderColor: 'rgb(148, 163, 184)',
+                backgroundColor: 'rgba(148, 163, 184, 0.1)',
                 fill: true,
                 tension: 0.3,
-                pointRadius: eqData.length > 50 ? 0 : 3,
-                pointHoverRadius: 5,
+                pointRadius: 0,
+                pointHoverRadius: 6,
                 borderWidth: 2,
             }, {
                 label: 'Starting Capital',
-                data: eqData.map(p => ({x: p.x, y: startCash})),
+                data: [],
                 borderColor: 'rgba(148, 163, 184, 0.3)',
                 borderDash: [5, 5],
                 borderWidth: 1,
                 pointRadius: 0,
                 fill: false,
+            }, {
+                label: 'BUY Actions',
+                data: [],
+                borderColor: 'rgb(16, 185, 129)',
+                backgroundColor: 'rgb(16, 185, 129)',
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                showLine: false,
+            }, {
+                label: 'SELL Actions',
+                data: [],
+                borderColor: 'rgb(245, 158, 11)',
+                backgroundColor: 'rgb(245, 158, 11)',
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                showLine: false,
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            interaction: { intersect: false, mode: 'index' },
+            interaction: { intersect: false, mode: 'nearest' },
             plugins: {
                 legend: { display: false },
                 tooltip: {
-                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
                     titleColor: '#94a3b8',
                     bodyColor: '#e2e8f0',
                     titleFont: { family: 'monospace', size: 10 },
                     bodyFont: { family: 'monospace', size: 11 },
                     callbacks: {
                         label: function(ctx) {
-                            return `$${ctx.parsed.y.toFixed(2)}`;
+                            const raw = ctx.raw;
+                            if (ctx.datasetIndex === 2) {
+                                return `BUY ${raw.qty.toFixed(4)} ${raw.symbol} @ $${raw.price.toFixed(2)}`;
+                            } else if (ctx.datasetIndex === 3) {
+                                return `SELL ${raw.qty.toFixed(4)} ${raw.symbol} @ $${raw.price.toFixed(2)}`;
+                            }
+                            return `Balance: $${ctx.parsed.y.toFixed(2)}`;
                         }
                     }
                 }
@@ -303,7 +333,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const logStatus = document.getElementById('log-status');
     
     function pollLogs() {
-        fetch('/api/evolution/variants/{{ variant.id }}/logs/')
+        fetch(`/api/evolution/variants/${variantId}/logs/`)
         .then(r => r.json())
         .then(data => {
             if(data.logs) {
@@ -329,9 +359,210 @@ document.addEventListener('DOMContentLoaded', function() {
             logStatus.className = 'px-2 py-0.5 rounded text-[9px] font-bold bg-slate-800 text-slate-500 border border-slate-700';
         });
     }
-    
+
+    // Dynamic UI Update from Metrics API
+    function updateMetricsAndChart() {
+        fetch(`/api/evolution/variants/${variantId}/metrics/`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const m = data.metrics;
+                
+                // 1. Update Metrics Cards
+                const balEl = document.getElementById('metric-balance');
+                balEl.textContent = `$${m.virtual_balance.toFixed(2)}`;
+                balEl.className = `text-lg font-bold font-mono ${m.virtual_pnl >= 0 ? 'text-emerald-500' : 'text-rose-500'}`;
+                
+                const pnlEl = document.getElementById('metric-pnl');
+                pnlEl.textContent = `${m.virtual_pnl >= 0 ? '+' : ''}$${m.virtual_pnl.toFixed(2)}`;
+                pnlEl.className = `text-lg font-bold font-mono ${m.virtual_pnl >= 0 ? 'text-emerald-500' : 'text-rose-500'}`;
+                
+                const pnlPctEl = document.getElementById('metric-pnl-pct');
+                pnlPctEl.textContent = `${m.virtual_pnl_pct >= 0 ? '+' : ''}${m.virtual_pnl_pct.toFixed(2)}%`;
+                pnlPctEl.className = `text-[10px] font-mono ${m.virtual_pnl_pct >= 0 ? 'text-emerald-500' : 'text-rose-500'}`;
+                
+                document.getElementById('metric-winrate').textContent = `${m.win_rate.toFixed(1)}%`;
+                document.getElementById('metric-trades').textContent = `${m.virtual_trades_count} trades (${m.total_buys}B / ${m.total_sells}S)`;
+                document.getElementById('metric-sharpe').textContent = m.sharpe_ratio.toFixed(2);
+                document.getElementById('metric-drawdown').textContent = `Sharpe · DD: ${m.max_drawdown_pct.toFixed(2)}%`;
+
+                // 2. Update Status Badge
+                const badge = document.getElementById('variant-status-badge');
+                badge.textContent = m.status;
+                let badgeClass = 'bg-slate-500/10 text-slate-400 border border-slate-500/20';
+                if(m.status === 'TESTING') badgeClass = 'bg-blue-500/10 text-blue-400 border border-blue-500/20';
+                else if(m.status === 'PROMOTED') badgeClass = 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+                else if(m.status === 'FAILED') badgeClass = 'bg-rose-500/10 text-rose-400 border border-rose-500/20';
+                else if(m.status === 'PENDING') badgeClass = 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
+                badge.className = `px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider ${badgeClass}`;
+
+                // 3. Update Action Buttons dynamically
+                updateActionButtons(m.status);
+
+                // 4. Update Trades List & Paginator
+                allTrades = data.trades || [];
+                document.getElementById('trades-count-label').textContent = `${allTrades.length} total`;
+                renderTradesTable();
+
+                // 5. Update Chart datasets
+                const eqCurve = data.equity_curve || [];
+                const isProfitable = eqCurve.length > 0 && eqCurve[eqCurve.length-1].y >= startCash;
+                const lineColor = isProfitable ? 'rgb(16, 185, 129)' : 'rgb(244, 63, 94)';
+                const fillColor = isProfitable ? 'rgba(16, 185, 129, 0.08)' : 'rgba(244, 63, 94, 0.08)';
+
+                // Separate buys & sells for scatter points on the chart
+                const buysData = [];
+                const sellsData = [];
+                allTrades.forEach(t => {
+                    const point = {
+                        x: t.timestamp,
+                        y: t.virtual_balance_after,
+                        qty: t.quantity,
+                        price: t.price,
+                        symbol: t.symbol
+                    };
+                    if (t.action === 'BUY') buysData.push(point);
+                    else sellsData.push(point);
+                });
+
+                equityChart.data.datasets[0].data = eqCurve;
+                equityChart.data.datasets[0].borderColor = lineColor;
+                equityChart.data.datasets[0].backgroundColor = fillColor;
+                equityChart.data.datasets[1].data = eqCurve.map(p => ({x: p.x, y: startCash}));
+                equityChart.data.datasets[2].data = buysData;
+                equityChart.data.datasets[3].data = sellsData;
+                equityChart.update('none'); // Update without animation for smooth polling
+            }
+        })
+        .catch(err => console.error("Error polling metrics: ", err));
+    }
+
+    function updateActionButtons(status) {
+        const primActions = document.getElementById('variant-primary-actions');
+        const dropdownActions = document.getElementById('variant-dropdown-actions');
+        if (!primActions || !dropdownActions) return;
+
+        // Update Promote/Reject buttons
+        if (status === 'TESTING' || status === 'PENDING') {
+            primActions.innerHTML = `
+                <form method="post" action="/api/evolution/promote/${variantId}/" class="inline">
+                  <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                  <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 hover:border-emerald-500/50 text-emerald-400 hover:text-emerald-300 transition-all duration-300 shadow-[0_0_10px_rgba(16,185,129,0.1)] hover:shadow-[0_0_15px_rgba(16,185,129,0.3)] cursor-pointer">
+                    <i class="fas fa-crown mr-1 text-emerald-500"></i> Promote
+                  </button>
+                </form>
+                <form method="post" action="/api/evolution/reject/${variantId}/" class="inline">
+                  <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                  <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 hover:border-rose-500/50 text-rose-400 hover:text-rose-300 transition-all duration-300 shadow-[0_0_10px_rgba(244,63,94,0.1)] hover:shadow-[0_0_15px_rgba(244,63,94,0.3)] cursor-pointer">
+                    <i class="fas fa-times mr-1 text-rose-500"></i> Reject
+                  </button>
+                </form>
+            `;
+        } else {
+            primActions.innerHTML = '';
+        }
+
+        // Update dropdown options
+        let restartHtml = '';
+        if (status !== 'PROMOTED') {
+            restartHtml = `
+                <form method="post" action="/api/evolution/restart/${variantId}/" class="w-full block">
+                  <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                  <button type="submit" class="w-full text-left px-4 py-2 text-xs font-mono text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 cursor-pointer">
+                    <i class="fas fa-redo text-amber-500"></i> Restart Engine
+                  </button>
+                </form>
+            `;
+        }
+
+        dropdownActions.innerHTML = `
+            ${restartHtml}
+            <form method="post" action="/api/evolution/delete/${variantId}/" class="w-full block" onsubmit="return confirm('Are you sure you want to delete this variant? This will permanently delete its history, trades, and logs.');">
+              <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+              <button type="submit" class="w-full text-left px-4 py-2 text-xs font-mono text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 cursor-pointer">
+                <i class="fas fa-trash-alt text-rose-500"></i> Delete Variant
+              </button>
+            </form>
+        `;
+    }
+
+    // Client-side Trade Table Pagination (10 per page)
+    window.renderTradesTable = function() {
+        const tbody = document.getElementById('variant-trades-body');
+        if(!tbody) return;
+
+        const totalTrades = allTrades.length;
+        const totalPages = Math.max(1, Math.ceil(totalTrades / 10));
+        
+        // Boundaries
+        if (currentTradesPage > totalPages) currentTradesPage = totalPages;
+        if (currentTradesPage < 1) currentTradesPage = 1;
+
+        const startIdx = (currentTradesPage - 1) * 10;
+        const endIdx = startIdx + 10;
+        const paginatedTrades = allTrades.slice(startIdx, endIdx);
+
+        if(paginatedTrades.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                  <td colspan="7" class="px-4 py-10 text-center text-slate-500">
+                    <i class="fas fa-ghost text-2xl mb-2 text-slate-600"></i><br>
+                    No virtual trades recorded yet.
+                  </td>
+                </tr>
+            `;
+        } else {
+            tbody.innerHTML = paginatedTrades.map(trade => {
+                const actionClass = trade.action === 'BUY' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400';
+                // Format timestamp nicely
+                const dateObj = new Date(trade.timestamp);
+                const timeStr = dateObj.toLocaleDateString('en-US', {month:'short', day:'numeric'}) + ' ' + 
+                                dateObj.toLocaleTimeString('en-US', {hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit'});
+                return `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                      <td class="px-4 py-2 text-slate-400">${timeStr}</td>
+                      <td class="px-4 py-2 text-slate-300 font-bold">${trade.symbol}</td>
+                      <td class="px-4 py-2">
+                        <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase ${actionClass}">
+                          ${trade.action}
+                        </span>
+                      </td>
+                      <td class="px-4 py-2 text-right text-slate-400">${trade.quantity.toFixed(6)}</td>
+                      <td class="px-4 py-2 text-right text-slate-300">$${trade.price.toFixed(2)}</td>
+                      <td class="px-4 py-2 text-right text-slate-400">$${trade.notional_value.toFixed(2)}</td>
+                      <td class="px-4 py-2 text-right text-slate-300 font-bold">$${trade.virtual_balance_after.toFixed(2)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Update pagination labels
+        document.getElementById('trades-page-label').textContent = `PAGE ${currentTradesPage} OF ${totalPages}`;
+        document.getElementById('trades-prev-btn').disabled = (currentTradesPage === 1);
+        document.getElementById('trades-next-btn').disabled = (currentTradesPage === totalPages);
+    };
+
+    window.prevTradesPage = function() {
+        if(currentTradesPage > 1) {
+            currentTradesPage--;
+            renderTradesTable();
+        }
+    };
+
+    window.nextTradesPage = function() {
+        const totalPages = Math.ceil(allTrades.length / 10);
+        if(currentTradesPage < totalPages) {
+            currentTradesPage++;
+            renderTradesTable();
+        }
+    };
+
+    // Initial log and metrics check
     pollLogs();
     setInterval(pollLogs, 2000);
+    
+    updateMetricsAndChart();
+    setInterval(updateMetricsAndChart, 3000);
 });
 
 function switchCodeTab(tab) {

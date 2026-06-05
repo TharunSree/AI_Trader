@@ -762,6 +762,25 @@
         </div>
     </div>
 
+    <!-- Global Evolution Promotion Toast (Bottom-Right) -->
+    <div id="evolution-promotion-toast" class="fixed bottom-24 right-6 z-[10001] hidden transform translate-y-6 opacity-0 transition-all duration-300 font-mono" style="width: 360px;">
+        <div class="bg-white dark:bg-slate-900 border border-purple-500/20 dark:border-purple-500/30 rounded-xl shadow-2xl p-4 flex items-center gap-4">
+            <div class="w-10 h-10 rounded-full bg-purple-500/10 dark:bg-purple-500/20 flex items-center justify-center text-purple-600 dark:text-purple-400 border border-purple-500/30 shrink-0">
+                <i class="fas fa-dna animate-pulse"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <h4 class="text-slate-800 dark:text-slate-200 text-xs font-bold uppercase tracking-widest">Model Ready</h4>
+                <p class="text-slate-600 dark:text-slate-400 text-[10px] mt-1 whitespace-normal leading-relaxed" id="evo-toast-msg">A mutated variant outperformed the parent!</p>
+                <a id="evo-toast-link" href="/evolution-chamber/" class="text-[9px] uppercase tracking-widest text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-bold mt-2 inline-block">
+                    Review Variant &rarr;
+                </a>
+            </div>
+            <button onclick="dismissEvoToast()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 self-start">
+                <i class="fas fa-times text-xs"></i>
+            </button>
+        </div>
+    </div>
+
     <!-- System Update Progress Overlay (Lockscreen-themed) -->
     <div id="update-terminal-overlay" class="fixed inset-0 bg-[#0a0f18]/95 backdrop-blur-md z-[10000] hidden flex-col items-center justify-center transition-all duration-300 opacity-0 overflow-hidden font-mono">
         
@@ -1201,6 +1220,64 @@
                 overlay.classList.remove('flex');
             }, 300);
         });
+
+        // --- Evolution Promotion Notification Checker ---
+        let lastNotifiedVariantId = localStorage.getItem('last_notified_variant_id') || '';
+        
+        function checkPromotionVariants() {
+            if (window.location.pathname.includes('/login/') || window.location.pathname.includes('/logout/')) {
+                return;
+            }
+            fetch("/api/evolution/variants/")
+            .then(res => { if(!res.ok) throw new Error(); return res.json(); })
+            .then(data => {
+                if(data.status === 'success' && data.variants) {
+                    const pendingVariant = data.variants.find(v => v.status === 'PENDING');
+                    if(pendingVariant) {
+                        const variantIdStr = String(pendingVariant.id);
+                        if(lastNotifiedVariantId !== variantIdStr) {
+                            showEvoToast(pendingVariant);
+                        }
+                    } else {
+                        if(lastNotifiedVariantId) {
+                            localStorage.removeItem('last_notified_variant_id');
+                            lastNotifiedVariantId = '';
+                        }
+                    }
+                }
+            })
+            .catch(() => {});
+        }
+        
+        function showEvoToast(variant) {
+            const toast = document.getElementById('evolution-promotion-toast');
+            const msg = document.getElementById('evo-toast-msg');
+            const link = document.getElementById('evo-toast-link');
+            if(!toast) return;
+            
+            msg.textContent = `${variant.name} outperformed its parent model and is ready for promotion!`;
+            link.href = `/evolution-chamber/variant/${variant.id}/`;
+            
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.remove('translate-y-6', 'opacity-0');
+            }, 50);
+            
+            localStorage.setItem('last_notified_variant_id', String(variant.id));
+            lastNotifiedVariantId = String(variant.id);
+        }
+        
+        window.dismissEvoToast = function() {
+            const toast = document.getElementById('evolution-promotion-toast');
+            if(!toast) return;
+            toast.classList.add('translate-y-6', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 300);
+        };
+        
+        setInterval(checkPromotionVariants, 15000);
+        setTimeout(checkPromotionVariants, 2000);
 
     </script>
     {% block extra_javascript %}{% endblock %}
