@@ -16,7 +16,7 @@
             </div>
             <div class="flex items-center gap-2 font-mono text-xs font-bold">
                 <span class="px-2.5 py-1 rounded bg-brand-500/10 text-brand-500 border border-brand-500/20">Current: v1.0.12</span>
-                <span class="text-slate-500 font-normal">Updated today</span>
+                <span class="text-slate-500 font-normal">Updated June 06, 2026</span>
             </div>
         </div>
         
@@ -30,9 +30,9 @@
     </div>
 
     <!-- 2-column Grid Layout: Left Timeline, Right Release Legend -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
         <!-- Left Column: Timeline Entries -->
-        <div class="lg:col-span-2 relative ml-4 md:ml-6">
+        <div class="md:col-span-2 relative ml-4 md:ml-6">
         
         <!-- v1.0.12 -->
         <div id="v1.0.12" class="changelog-item relative pl-6 md:pl-8 pb-8 group" data-type="feat">
@@ -61,6 +61,9 @@
                     </p>
                     
                     <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
+                        <li><strong>Corporate Light-Themed Emails:</strong> Re-engineered the EOD email dispatch pipeline with a premium light-themed layout featuring company logo branding.</li>
+                        <li><strong>Dynamic Progress Bar Conversions:</strong> Integrated frontend JavaScript filters to automatically convert old table-based exit efficiency scorecard indicators into thin, rounded divs.</li>
+                        <li><strong>Translucent UI Button Styling:</strong> Converted remaining solid-colored buttons in Settings, Models Hub, and Backtest Lab to the signature translucent glass style.</li>
                         <li><strong>Inline Modal Report Viewer:</strong> Glassmorphic reports viewer modal that dynamically loads Markdown HTML content inline, eliminating tab/page redirects.</li>
                         <li><strong>Settings Hub Reorganization:</strong> Rebuilt the system settings into a clean, responsive two-column grid. Diagnostic tools are now grouped on the left, connection nodes and environment protocols on the right.</li>
                         <li><strong>Non-Reloading SMTP Testing:</strong> Replaced POST redirects for the SMTP relay test with a smooth, asynchronous overlay feedback system.</li>
@@ -76,6 +79,9 @@
                         <div class="hidden mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0a0a0c] border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] text-slate-500 dark:text-slate-400 space-y-3 leading-relaxed">
                             <div><strong class="text-slate-700 dark:text-slate-200">Files Impacted:</strong></div>
                             <div class="pl-2 space-y-1">
+                                <div>[MODIFY] [email_dispatcher.py](file:///D:/AI_Trader/src/reporting/email_dispatcher.py) &middot; redesigned email layout to light corporate branding theme</div>
+                                <div>[MODIFY] [models_hub.html](file:///D:/AI_Trader/templates/models_hub.html) &middot; updated recommendation button to translucent style</div>
+                                <div>[MODIFY] [backtest_lab.html](file:///D:/AI_Trader/templates/backtest_lab.html) &middot; updated launch button to translucent style</div>
                                 <div>[MODIFY] [views.py](file:///D:/AI_Trader/control_panel/views.py) &middot; added sort parameters, standalone/content API views, and AJAX alerts JSON response</div>
                                 <div>[MODIFY] [urls.py](file:///D:/AI_Trader/control_panel/urls.py) &middot; registered view, markdown, and content api routes</div>
                                 <div>[MODIFY] [eod_generator.py](file:///D:/AI_Trader/src/reporting/eod_generator.py) &middot; prioritized DB keys and ignored placeholders</div>
@@ -600,7 +606,7 @@
         </div>
 
         <!-- Right Column: Release Color Codes Legend -->
-        <div class="lg:col-span-1 sticky top-6 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200 dark:border-slate-800/80 p-5 font-mono text-[10px] text-slate-500 dark:text-slate-400">
+        <div class="md:col-span-1 sticky top-6 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200 dark:border-slate-800/80 p-5 font-mono text-[10px] text-slate-500 dark:text-slate-400">
             <h3 class="text-[10px] uppercase tracking-widest font-bold text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800/80 pb-2.5 mb-4 flex items-center gap-2">
                 <i class="fas fa-tags text-brand-500"></i> Release Color Codes
             </h3>
