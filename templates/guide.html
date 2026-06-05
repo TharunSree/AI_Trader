@@ -282,7 +282,33 @@
             </p>
 
             <div class="space-y-4 mb-6">
-                <!-- Accordion 1: v1.07 -->
+                <!-- Accordion 1: v1.08 -->
+                <details class="group bg-slate-50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-800/80 rounded-xl transition-all duration-300 overflow-hidden">
+                    <summary class="flex items-center justify-between p-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden font-mono text-xs select-none">
+                        <div class="flex items-center gap-3">
+                            <span class="px-2 py-0.5 rounded bg-brand-primary/10 text-brand-primary font-bold">v1.08</span>
+                            <span class="text-slate-800 dark:text-slate-200 font-bold">Decentralized Changelog, Realized P/L, &amp; Self-Healing Watchdog</span>
+                        </div>
+                        <div class="flex items-center gap-3 flex-shrink-0">
+                            <span class="text-slate-500 text-[10px] hidden sm:inline">June 05, 2026</span>
+                            <i class="fas fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform duration-200"></i>
+                        </div>
+                    </summary>
+                    <div class="p-4 border-t border-slate-200 dark:border-slate-800/80 text-slate-600 dark:text-slate-400 space-y-3 leading-relaxed">
+                        <ul class="list-disc pl-4 space-y-1 text-xs">
+                            <li>Decentralized Version Registry: Moved full logs to `/changelog/` with categories, adding a compact accordion widget in the guide.</li>
+                            <li>Realized P/L in Trade History: Tracked weighted cost basis to calculate realized profit on all virtual sell transactions.</li>
+                            <li>Self-Healing Watchdog Daemon: Deployed a background updater service with automatic rollbacks if remote git updates fail.</li>
+                        </ul>
+                        <div class="pt-2 text-right">
+                            <a href="{% url 'changelog' %}#v1.08" class="text-brand-accent hover:underline font-mono text-[10px] inline-flex items-center gap-1">
+                                View Full Details &amp; Tech Specs <i class="fas fa-arrow-right text-[8px]"></i>
+                            </a>
+                        </div>
+                    </div>
+                </details>
+
+                <!-- Accordion 2: v1.07 -->
                 <details class="group bg-slate-50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-800/80 rounded-xl transition-all duration-300 overflow-hidden">
                     <summary class="flex items-center justify-between p-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden font-mono text-xs select-none">
                         <div class="flex items-center gap-3">
@@ -308,7 +334,7 @@
                     </div>
                 </details>
 
-                <!-- Accordion 2: v1.06 -->
+                <!-- Accordion 3: v1.06 -->
                 <details class="group bg-slate-50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-800/80 rounded-xl transition-all duration-300 overflow-hidden">
                     <summary class="flex items-center justify-between p-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden font-mono text-xs select-none">
                         <div class="flex items-center gap-3">
@@ -327,31 +353,6 @@
                         </ul>
                         <div class="pt-2 text-right">
                             <a href="{% url 'changelog' %}#v1.06" class="text-brand-accent hover:underline font-mono text-[10px] inline-flex items-center gap-1">
-                                View Full Details &amp; Tech Specs <i class="fas fa-arrow-right text-[8px]"></i>
-                            </a>
-                        </div>
-                    </div>
-                </details>
-
-                <!-- Accordion 3: v1.05 -->
-                <details class="group bg-slate-50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-800/80 rounded-xl transition-all duration-300 overflow-hidden">
-                    <summary class="flex items-center justify-between p-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden font-mono text-xs select-none">
-                        <div class="flex items-center gap-3">
-                            <span class="px-2 py-0.5 rounded bg-brand-primary/10 text-brand-primary font-bold">v1.05</span>
-                            <span class="text-slate-800 dark:text-slate-200 font-bold">Virtual Engine Normalization Alignment</span>
-                        </div>
-                        <div class="flex items-center gap-3 flex-shrink-0">
-                            <span class="text-slate-500 text-[10px] hidden sm:inline">June 05, 2026</span>
-                            <i class="fas fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform duration-200"></i>
-                        </div>
-                    </summary>
-                    <div class="p-4 border-t border-slate-200 dark:border-slate-800/80 text-slate-600 dark:text-slate-400 space-y-3 leading-relaxed">
-                        <ul class="list-disc pl-4 space-y-1 text-xs">
-                            <li>Fixed state tensor saturation: Added Z-score normalization to the virtual paper engine (`_build_state_tensor` in `virtual_paper_engine.py`) to align feature scaling with the production engine.</li>
-                            <li>Ensured correct mathematical inputs are fed to the Actor-Critic networks for variants, enabling accurate buy and sell trading signals.</li>
-                        </ul>
-                        <div class="pt-2 text-right">
-                            <a href="{% url 'changelog' %}#v1.05" class="text-brand-accent hover:underline font-mono text-[10px] inline-flex items-center gap-1">
                                 View Full Details &amp; Tech Specs <i class="fas fa-arrow-right text-[8px]"></i>
                             </a>
                         </div>

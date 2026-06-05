@@ -15,7 +15,7 @@
                 <p class="text-xs text-slate-500 font-mono mt-1">Version control registry and historical deployment logs for QuantTrader Node.</p>
             </div>
             <div class="flex items-center gap-2 font-mono text-xs font-bold">
-                <span class="px-2.5 py-1 rounded bg-brand-500/10 text-brand-500 border border-brand-500/20">Current: v1.07</span>
+                <span class="px-2.5 py-1 rounded bg-brand-500/10 text-brand-500 border border-brand-500/20">Current: v1.08</span>
                 <span class="text-slate-500 font-normal">Updated today</span>
             </div>
         </div>
@@ -32,6 +32,59 @@
     <!-- Timeline Entries -->
     <div class="relative border-l-2 border-slate-200 dark:border-slate-800 ml-4 md:ml-6 space-y-8">
         
+        <!-- v1.08 -->
+        <div class="changelog-item relative pl-6 md:pl-8 group" data-type="feat">
+            <!-- Timeline dot -->
+            <div class="absolute -left-[7px] top-2 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
+            
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-brand-500/40 transition-all duration-300">
+                <!-- Header -->
+                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
+                    <div class="flex items-center gap-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.08</span>
+                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Decentralized Changelog, Realized P/L, and Self-Healing Deploy Watchdog</h3>
+                    </div>
+                    <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
+                        <i class="far fa-calendar-alt"></i> June 05, 2026
+                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">a276104</span>
+                    </div>
+                </div>
+                
+                <!-- Body -->
+                <div class="p-6 space-y-4">
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
+                        This update restructures the platform changelog pipeline, implements client-side transaction realized P/L tracking, customizes the chart branding, and deploys a self-healing remote update watchdog service.
+                    </p>
+                    
+                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
+                        <li><strong>Changelog Restructuring:</strong> Moved the platform version registry from the guide page to a dedicated `/changelog/` page, adding search filters and tech drawers. Added a compact accordion preview to the guide page.</li>
+                        <li><strong>Realized P/L Logging:</strong> Implemented on-the-fly weighted average cost basis tracking to compute realized gains/losses on all virtual sell transactions.</li>
+                        <li><strong>Graph Branding:</strong> Styled Chart.js datasets with signature Sapphire Blue and translucent lavender colors.</li>
+                        <li><strong>Self-Healing Git Watchdog:</strong> Created `update_watcher.py` to poll GitHub, run dependencies line-by-line (skipping mysqlclient on Linux), execute migrations, restart the server, and roll back automatically to the last stable SHA on failure.</li>
+                    </ul>
+
+                    <!-- Expandable details -->
+                    <div class="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
+                        <button onclick="toggleDetails(this)" class="text-[10px] uppercase tracking-widest text-brand-500 hover:text-brand-400 font-bold font-mono flex items-center gap-1 cursor-pointer">
+                            <span>Show Tech Details</span> <i class="fas fa-chevron-down text-[8px]"></i>
+                        </button>
+                        <div class="hidden mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0a0a0c] border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] text-slate-500 dark:text-slate-400 space-y-3 leading-relaxed">
+                            <div><strong class="text-slate-700 dark:text-slate-200">Files Impacted:</strong></div>
+                            <div class="pl-2 space-y-1">
+                                <div>[NEW] [update_watcher.py](file:///D:/AI_Trader/update_watcher.py) &middot; created auto-updater watchdog script</div>
+                                <div>[MODIFY] [views.py](file:///D:/AI_Trader/control_panel/views.py) &middot; added `changelog_view` controller and on-the-fly P/L calculator</div>
+                                <div>[MODIFY] [urls.py](file:///D:/AI_Trader/control_panel/urls.py) &middot; registered route for dedicated changelog page</div>
+                                <div>[MODIFY] [base.html](file:///D:/AI_Trader/templates/base.html) &middot; added Update History link to sidebar</div>
+                                <div>[MODIFY] [guide.html](file:///D:/AI_Trader/templates/guide.html) &middot; refactored history section into compact native details accordion</div>
+                                <div>[MODIFY] [variant_details.html](file:///D:/AI_Trader/templates/variant_details.html) &middot; added P/L table column and set brand sapphire graph colors</div>
+                                <div>[MODIFY] [oracle_deployment.md](file:///D:/AI_Trader/oracle_deployment.md) &middot; added auto-updater service config guide</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- v1.07 -->
         <div class="changelog-item relative pl-6 md:pl-8 group" data-type="feat">
             <!-- Timeline dot -->
