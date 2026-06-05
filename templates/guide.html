@@ -281,9 +281,22 @@
                 Changelog and feature updates for the Neural Evolution Platform. Showing the latest deployments. Expand each entry below to see key highlights, or visit the dedicated Update History page for full specs.
             </p>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+            <style>
+                .guide-layout-grid {
+                    display: grid;
+                    grid-template-columns: 1fr;
+                    gap: 24px;
+                    align-items: start;
+                }
+                @media (min-width: 768px) {
+                    .guide-layout-grid {
+                        grid-template-columns: 2.1fr 0.9fr;
+                    }
+                }
+            </style>
+            <div class="guide-layout-grid">
                 <!-- Left: Accordion list of latest updates -->
-                <div class="md:col-span-2 space-y-4">
+                <div class="space-y-4">
                     <!-- Accordion 1: v1.0.12 -->
                     <details class="group bg-slate-50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-800/80 rounded-xl transition-all duration-300 overflow-hidden" open>
                         <summary class="flex items-center justify-between p-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden font-mono text-xs select-none">
@@ -366,7 +379,7 @@
                 </div>
 
                 <!-- Right: Legend Panel -->
-                <div class="md:col-span-1 sticky top-6 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200 dark:border-slate-800/80 p-5 font-mono text-[10px] text-slate-500 dark:text-slate-400">
+                <div style="position: sticky; top: 24px;" class="bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200 dark:border-slate-800/80 p-5 font-mono text-[10px] text-slate-500 dark:text-slate-400">
                     <h3 class="text-[10px] uppercase tracking-widest font-bold text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800/80 pb-2.5 mb-4 flex items-center gap-2">
                         <i class="fas fa-tags text-brand-500"></i> Release Color Codes
                     </h3>

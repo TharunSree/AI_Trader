@@ -29,10 +29,23 @@
         </div>
     </div>
 
+    <style>
+        .changelog-layout-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+        @media (min-width: 768px) {
+            .changelog-layout-grid {
+                grid-template-columns: 2.1fr 0.9fr;
+            }
+        }
+    </style>
     <!-- 2-column Grid Layout: Left Timeline, Right Release Legend -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+    <div class="changelog-layout-grid">
         <!-- Left Column: Timeline Entries -->
-        <div class="md:col-span-2 relative ml-4 md:ml-6">
+        <div class="relative ml-4 md:ml-6">
         
         <!-- v1.0.12 -->
         <div id="v1.0.12" class="changelog-item relative pl-6 md:pl-8 pb-8 group" data-type="feat">
@@ -606,7 +619,7 @@
         </div>
 
         <!-- Right Column: Release Color Codes Legend -->
-        <div class="md:col-span-1 sticky top-6 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200 dark:border-slate-800/80 p-5 font-mono text-[10px] text-slate-500 dark:text-slate-400">
+        <div style="position: sticky; top: 24px;" class="bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200 dark:border-slate-800/80 p-5 font-mono text-[10px] text-slate-500 dark:text-slate-400">
             <h3 class="text-[10px] uppercase tracking-widest font-bold text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800/80 pb-2.5 mb-4 flex items-center gap-2">
                 <i class="fas fa-tags text-brand-500"></i> Release Color Codes
             </h3>
