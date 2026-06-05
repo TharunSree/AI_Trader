@@ -149,6 +149,7 @@
               <th class="text-right px-4 py-2 text-slate-500 font-bold uppercase tracking-wider">Qty</th>
               <th class="text-right px-4 py-2 text-slate-500 font-bold uppercase tracking-wider">Price</th>
               <th class="text-right px-4 py-2 text-slate-500 font-bold uppercase tracking-wider">Notional</th>
+              <th class="text-right px-4 py-2 text-slate-500 font-bold uppercase tracking-wider">P/L</th>
               <th class="text-right px-4 py-2 text-slate-500 font-bold uppercase tracking-wider">Balance</th>
             </tr>
           </thead>
@@ -251,8 +252,8 @@ document.addEventListener('DOMContentLoaded', function() {
             datasets: [{
                 label: 'Virtual Balance',
                 data: [],
-                borderColor: 'rgb(148, 163, 184)',
-                backgroundColor: 'rgba(148, 163, 184, 0.1)',
+                borderColor: 'rgb(125, 196, 228)',
+                backgroundColor: 'rgba(125, 196, 228, 0.05)',
                 fill: true,
                 tension: 0.3,
                 pointRadius: 0,
@@ -261,7 +262,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }, {
                 label: 'Starting Capital',
                 data: [],
-                borderColor: 'rgba(148, 163, 184, 0.3)',
+                borderColor: 'rgba(138, 173, 244, 0.4)',
                 borderDash: [5, 5],
                 borderWidth: 1,
                 pointRadius: 0,
@@ -407,8 +408,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 5. Update Chart datasets
                 const eqCurve = data.equity_curve || [];
                 const isProfitable = eqCurve.length > 0 && eqCurve[eqCurve.length-1].y >= startCash;
-                const lineColor = isProfitable ? 'rgb(16, 185, 129)' : 'rgb(244, 63, 94)';
-                const fillColor = isProfitable ? 'rgba(16, 185, 129, 0.08)' : 'rgba(244, 63, 94, 0.08)';
+                const lineColor = isProfitable ? 'rgb(125, 196, 228)' : 'rgb(244, 63, 94)';
+                const fillColor = isProfitable ? 'rgba(125, 196, 228, 0.08)' : 'rgba(244, 63, 94, 0.08)';
 
                 // Separate buys & sells for scatter points on the chart
                 const buysData = [];
@@ -505,7 +506,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if(paginatedTrades.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                  <td colspan="7" class="px-4 py-10 text-center text-slate-500">
+                  <td colspan="8" class="px-4 py-10 text-center text-slate-500">
                     <i class="fas fa-ghost text-2xl mb-2 text-slate-600"></i><br>
                     No virtual trades recorded yet.
                   </td>
@@ -518,6 +519,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 const dateObj = new Date(trade.timestamp);
                 const timeStr = dateObj.toLocaleDateString('en-US', {month:'short', day:'numeric'}) + ' ' + 
                                 dateObj.toLocaleTimeString('en-US', {hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit'});
+                
+                // Format P/L
+                let pnlStr = '<span class="text-slate-500">-</span>';
+                if (trade.action === 'SELL' && trade.pnl !== undefined) {
+                    const pnlVal = trade.pnl;
+                    const pnlPctVal = trade.pnl_pct || 0;
+                    const pnlClass = pnlVal >= 0 ? 'text-emerald-500 font-semibold' : 'text-rose-500 font-semibold';
+                    const sign = pnlVal >= 0 ? '+' : '';
+                    pnlStr = `<span class="${pnlClass}">${sign}$${pnlVal.toFixed(2)} (${sign}${pnlPctVal.toFixed(2)}%)</span>`;
+                }
+
                 return `
                     <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                       <td class="px-4 py-2 text-slate-400">${timeStr}</td>
@@ -530,6 +542,7 @@ document.addEventListener('DOMContentLoaded', function() {
                       <td class="px-4 py-2 text-right text-slate-400">${trade.quantity.toFixed(6)}</td>
                       <td class="px-4 py-2 text-right text-slate-300">$${trade.price.toFixed(2)}</td>
                       <td class="px-4 py-2 text-right text-slate-400">$${trade.notional_value.toFixed(2)}</td>
+                      <td class="px-4 py-2 text-right">${pnlStr}</td>
                       <td class="px-4 py-2 text-right text-slate-300 font-bold">$${trade.virtual_balance_after.toFixed(2)}</td>
                     </tr>
                 `;

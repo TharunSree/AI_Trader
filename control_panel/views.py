@@ -2262,15 +2262,44 @@ def variant_metrics_api(request, variant_id):
     trades = VirtualTrade.objects.filter(variant=variant).order_by('timestamp')
     
     trades_data = []
+    positions = {}  # symbol -> {'qty': float, 'entry_price': float}
+    
     for t in trades:
+        symbol = t.symbol
+        qty = float(t.quantity)
+        price = float(t.price)
+        pnl = 0.0
+        pnl_pct = 0.0
+        
+        if t.action == 'BUY':
+            if symbol not in positions:
+                positions[symbol] = {'qty': 0.0, 'entry_price': 0.0}
+            pos = positions[symbol]
+            new_qty = pos['qty'] + qty
+            if new_qty > 0:
+                pos['entry_price'] = ((pos['entry_price'] * pos['qty']) + (price * qty)) / new_qty
+            pos['qty'] = new_qty
+        elif t.action == 'SELL':
+            if symbol in positions:
+                pos = positions[symbol]
+                sell_qty = min(qty, pos['qty'])
+                if sell_qty > 0:
+                    pnl = (price - pos['entry_price']) * sell_qty
+                    pnl_pct = ((price - pos['entry_price']) / pos['entry_price'] * 100) if pos['entry_price'] > 0 else 0.0
+                    pos['qty'] -= sell_qty
+                if pos['qty'] <= 1e-9:
+                    positions.pop(symbol, None)
+                    
         trades_data.append({
             'timestamp': t.timestamp.isoformat(),
             'symbol': t.symbol,
             'action': t.action,
-            'quantity': float(t.quantity),
-            'price': float(t.price),
+            'quantity': qty,
+            'price': price,
             'notional_value': float(t.notional_value),
             'virtual_balance_after': float(t.virtual_balance_after),
+            'pnl': round(pnl, 2),
+            'pnl_pct': round(pnl_pct, 4),
         })
         
     equity_curve = []
@@ -2301,7 +2330,7 @@ def variant_metrics_api(request, variant_id):
             'total_buys': total_buys,
             'total_sells': total_sells,
         },
-        'trades': trades_data,
+        'trades': list(reversed(trades_data)),
         'equity_curve': equity_curve,
     })
 
