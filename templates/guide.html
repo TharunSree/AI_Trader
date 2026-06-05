@@ -282,6 +282,19 @@
             </p>
             
             <div class="space-y-6 font-mono text-xs">
+                <!-- v1.05 -->
+                <div class="border-l-2 border-brand-primary pl-4 py-1">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="px-2 py-0.5 rounded bg-brand-primary/10 text-brand-primary font-bold">v1.05</span>
+                        <span class="text-slate-500 text-[10px]">June 05, 2026</span>
+                    </div>
+                    <p class="text-slate-800 dark:text-slate-300 font-bold mb-1">Virtual Engine Normalization Alignment</p>
+                    <ul class="list-disc pl-4 space-y-1 text-slate-500 dark:text-slate-400">
+                        <li>Fixed state tensor saturation: Added Z-score normalization to the virtual paper engine (`_build_state_tensor` in `virtual_paper_engine.py`) to align feature scaling with the production engine.</li>
+                        <li>Ensured correct mathematical inputs are fed to the Actor-Critic networks for variants, enabling accurate buy and sell trading signals.</li>
+                    </ul>
+                </div>
+
                 <!-- v1.04 -->
                 <div class="border-l-2 border-indigo-500 pl-4 py-1">
                     <div class="flex items-center gap-2 mb-1">
