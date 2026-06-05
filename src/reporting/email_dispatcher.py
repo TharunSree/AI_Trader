@@ -4,57 +4,117 @@ from django.conf import settings
 
 def _build_premium_email_html(title, subtitle, category_tag, badge_color, main_content_html, accent_gradient=None):
     """
-    Renders a premium institutional light-themed HTML notification with corporate branding.
+    Renders a premium institutional light-themed HTML notification with corporate branding and animations.
     """
-    accent_bar = accent_gradient or "linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%)"
+    # Determing pulse indicator color based on badge_color
+    pulse_class = "pulse-blue"
+    if badge_color == "#ef4444":
+        pulse_class = "pulse-red"
+    elif badge_color == "#a855f7":
+        pulse_class = "pulse-purple"
+    elif badge_color == "#0d9488":
+        pulse_class = "pulse-teal"
     
     return f"""
-    <div style="background-color: #f8fafc; padding: 40px 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.5; color: #334155;">
-        <div style="max-width: 580px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);">
-            <!-- Elegant Accent Bar -->
-            <div style="height: 4px; background: {accent_bar}; width: 100%;"></div>
-            
-            <div style="padding: 32px 28px;">
-                <!-- Header Logo & Branding -->
-                <table cellpadding="0" cellspacing="0" border="0" style="width: 100%; margin-bottom: 24px; border-bottom: 1px solid #f1f5f9; padding-bottom: 16px;">
-                    <tr>
-                        <td style="font-size: 16px; font-weight: 800; color: #0f172a; font-family: sans-serif; letter-spacing: 0.5px;">
-                            QUANT<span style="color: #3b82f6;">TRADER</span>
-                            <span style="font-size: 9px; font-weight: bold; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #dbeafe; padding: 2px 6px; border-radius: 4px; font-family: monospace; margin-left: 8px; vertical-align: middle; text-transform: uppercase; letter-spacing: 0.5px;">AI ENGINE</span>
-                        </td>
-                        <td style="text-align: right;">
-                            <span style="background-color: {badge_color}15; color: {badge_color}; border: 1px solid {badge_color}30; padding: 3px 8px; border-radius: 6px; font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-family: monospace;">
-                                {category_tag}
-                            </span>
-                        </td>
-                    </tr>
-                </table>
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            @keyframes pulse {{
+                0% {{ opacity: 0.45; transform: scale(0.92); }}
+                50% {{ opacity: 1; transform: scale(1.08); }}
+                100% {{ opacity: 0.45; transform: scale(0.92); }}
+            }}
+            @keyframes slide-in {{
+                from {{ opacity: 0; transform: translateY(12px); }}
+                to {{ opacity: 1; transform: translateY(0); }}
+            }}
+            .pulse-dot {{
+                display: inline-block;
+                width: 9px;
+                height: 9px;
+                background-color: #3b82f6;
+                border-radius: 50%;
+                box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+                animation: pulse 2s infinite ease-in-out;
+            }}
+            .pulse-red {{
+                background-color: #ef4444;
+                box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+            }}
+            .pulse-purple {{
+                background-color: #8b5cf6;
+                box-shadow: 0 0 8px rgba(139, 92, 246, 0.6);
+            }}
+            .pulse-teal {{
+                background-color: #0d9488;
+                box-shadow: 0 0 8px rgba(13, 148, 136, 0.6);
+            }}
+            .card-glow {{
+                animation: slide-in 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            }}
+        </style>
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+        <div style="background-color: #f8fafc; padding: 40px 15px; min-height: 100%;">
+            <div class="card-glow" style="max-width: 580px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);">
+                <!-- Thin Green Accent Line (replacing thick headers) -->
+                <div style="height: 2px; background-color: #10b981; width: 100%;"></div>
                 
-                <!-- Title & Subtitle -->
-                <h1 style="color: #0f172a; font-size: 20px; font-weight: 800; margin: 0 0 6px 0; letter-spacing: -0.02em;">
-                    {title}
-                </h1>
-                <p style="color: #64748b; font-size: 10.5px; margin: 0 0 24px 0; font-family: monospace; text-transform: uppercase; letter-spacing: 0.5px;">
-                    {subtitle}
-                </p>
-                
-                <!-- Main Body Content -->
-                <div style="font-size: 13.5px; color: #334155;">
-                    {main_content_html}
-                </div>
-                
-                <!-- Corporate Footer -->
-                <div style="margin-top: 36px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center;">
-                    <p style="font-size: 9px; color: #94a3b8; font-family: monospace; margin: 0; text-transform: uppercase; letter-spacing: 1px;">
-                        SYSTEM STATUS: ACTIVE &bull; SECURE QUANT LINK
-                    </p>
+                <div style="padding: 32px 28px;">
+                    <!-- Header Logo & Branding -->
+                    <table cellpadding="0" cellspacing="0" border="0" style="width: 100%; margin-bottom: 24px; border-bottom: 1px solid #f1f5f9; padding-bottom: 16px;">
+                        <tr>
+                            <td style="font-size: 15px; font-weight: 800; color: #0f172a; font-family: sans-serif; letter-spacing: 0.5px; vertical-align: middle;">
+                                📈 QUANT<span style="color: #3b82f6;">TRADER</span>
+                                <span style="font-size: 9px; font-weight: bold; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #dbeafe; padding: 2px 6px; border-radius: 4px; font-family: monospace; margin-left: 8px; vertical-align: middle; text-transform: uppercase; letter-spacing: 0.5px;">AI ENGINE</span>
+                            </td>
+                            <td style="text-align: right; vertical-align: middle;">
+                                <span style="background-color: {badge_color}15; color: {badge_color}; border: 1px solid {badge_color}30; padding: 3px 8px; border-radius: 6px; font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-family: monospace;">
+                                    {category_tag}
+                                </span>
+                            </td>
+                        </tr>
+                    </table>
+                    
+                    <!-- Title & Subtitle -->
+                    <table cellpadding="0" cellspacing="0" border="0" style="width: 100%; margin-bottom: 24px;">
+                        <tr>
+                            <td style="vertical-align: middle;">
+                                <h1 style="color: #0f172a; font-size: 20px; font-weight: 800; margin: 0 0 6px 0; letter-spacing: -0.02em;">
+                                    {title}
+                                </h1>
+                                <p style="color: #64748b; font-size: 10.5px; margin: 0; font-family: monospace; text-transform: uppercase; letter-spacing: 0.5px;">
+                                    {subtitle}
+                                </p>
+                            </td>
+                            <td style="width: 30px; text-align: right; vertical-align: middle;">
+                                <div class="pulse-dot {pulse_class}"></div>
+                            </td>
+                        </tr>
+                    </table>
+                    
+                    <!-- Main Body Content -->
+                    <div style="font-size: 13.5px; color: #334155; line-height: 1.6;">
+                        {main_content_html}
+                    </div>
+                    
+                    <!-- Corporate Footer -->
+                    <div style="margin-top: 36px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center;">
+                        <p style="font-size: 9px; color: #94a3b8; font-family: monospace; margin: 0; text-transform: uppercase; letter-spacing: 1px;">
+                            ⚙️ SYSTEM STATUS: ACTIVE &bull; SECURE QUANT LINK
+                        </p>
+                    </div>
                 </div>
             </div>
+            <div style="text-align: center; margin-top: 24px; font-size: 9px; color: #94a3b8; font-family: monospace; text-transform: uppercase; letter-spacing: 0.5px;">
+                QUANTTRADER TECHNOLOGIES &bull; CONFIDENTIAL TRANSMISSION
+            </div>
         </div>
-        <div style="text-align: center; margin-top: 24px; font-size: 9px; color: #94a3b8; font-family: monospace; text-transform: uppercase; letter-spacing: 0.5px;">
-            QUANTTRADER TECHNOLOGIES &bull; CONFIDENTIAL TRANSMISSION
-        </div>
-    </div>
+    </body>
+    </html>
     """
 
 def send_sos_alert(model_name, traceback_str):
@@ -67,18 +127,18 @@ def send_sos_alert(model_name, traceback_str):
     </p>
     
     <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 20px; font-family: monospace;">
-        <span style="color: #64748b; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; display: block; font-weight: bold;">Affected Neural Core</span>
+        <span style="color: #64748b; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; display: block; font-weight: bold;">🚨 Affected Neural Core</span>
         <strong style="color: #0f172a; font-size: 14px; display: block; margin-top: 2px;">{model_name}</strong>
     </div>
 
     <div style="background-color: #fef2f2; padding: 16px; border: 1px solid #fee2e2; border-radius: 8px; overflow-x: auto; margin-bottom: 20px; font-family: monospace;">
-        <span style="color: #b91c1c; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px;">Stack Exception Traceback</span>
+        <span style="color: #b91c1c; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px;">💻 Stack Exception Traceback</span>
         <code style="color: #991b1b; font-size: 11.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; display: block; line-height: 1.6; word-break: break-all;">{traceback_str}</code>
     </div>
 
     <div style="background-color: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 12px; text-align: center;">
         <p style="font-size: 11px; color: #b91c1c; font-weight: 600; margin: 0; font-family: monospace; text-transform: uppercase; letter-spacing: 0.5px;">
-            Watchdog Action: Initiating rollback / self-repair protocols.
+            ⚠️ Watchdog Action: Initiating rollback / self-repair protocols.
         </p>
     </div>
     """
@@ -117,7 +177,7 @@ def send_report_email(report_type, markdown_content, pdf_bytes=None, filename="r
     
     <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 24px; text-align: center; margin-bottom: 15px;">
         <div style="font-size: 28px; margin-bottom: 12px;">📊</div>
-        <h3 style="color: #0f172a; font-weight: 700; font-size: 14px; margin: 0 0 6px 0; text-transform: uppercase; letter-spacing: 0.5px;">Performance Ledger Enclosed</h3>
+        <h3 style="color: #0f172a; font-weight: 700; font-size: 14px; margin: 0 0 6px 0; text-transform: uppercase; letter-spacing: 0.5px;">📁 Performance Ledger Enclosed</h3>
         <p style="color: #64748b; font-size: 11px; margin: 0; font-family: monospace;">
             A detailed, print-ready PDF performance ledger has been attached to this email.
         </p>
@@ -190,11 +250,11 @@ def send_bundled_report_email(artifacts_list, date_str):
         <table style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead>
                 <tr style="background-color: #f8fafc; border-bottom: 1.5px solid #e2e8f0;">
-                    <th style="padding: 10px 8px; font-family: monospace; font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px;">Agent</th>
-                    <th style="padding: 10px 8px; font-family: monospace; font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; text-align: center; letter-spacing: 0.5px;">Type</th>
-                    <th style="padding: 10px 8px; font-family: monospace; font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; text-align: right; letter-spacing: 0.5px;">Net Yield</th>
-                    <th style="padding: 10px 8px; font-family: monospace; font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; text-align: right; letter-spacing: 0.5px;">Trades</th>
-                    <th style="padding: 10px 8px; font-family: monospace; font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; text-align: right; letter-spacing: 0.5px;">Win Rate</th>
+                    <th style="padding: 10px 8px; font-family: monospace; font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px;">🤖 Agent</th>
+                    <th style="padding: 10px 8px; font-family: monospace; font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; text-align: center; letter-spacing: 0.5px;">🏷️ Type</th>
+                    <th style="padding: 10px 8px; font-family: monospace; font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; text-align: right; letter-spacing: 0.5px;">💰 Net Yield</th>
+                    <th style="padding: 10px 8px; font-family: monospace; font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; text-align: right; letter-spacing: 0.5px;">📊 Trades</th>
+                    <th style="padding: 10px 8px; font-family: monospace; font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; text-align: right; letter-spacing: 0.5px;">🎯 Win Rate</th>
                 </tr>
             </thead>
             <tbody>
@@ -205,7 +265,7 @@ def send_bundled_report_email(artifacts_list, date_str):
 
     <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px; text-align: center;">
         <div style="font-size: 22px; margin-bottom: 8px;">📚</div>
-        <h3 style="color: #0f172a; font-weight: 700; font-size: 13px; margin: 0 0 4px 0; text-transform: uppercase; letter-spacing: 0.5px;">PDF Performance Dossiers Enclosed</h3>
+        <h3 style="color: #0f172a; font-weight: 700; font-size: 13px; margin: 0 0 4px 0; text-transform: uppercase; letter-spacing: 0.5px;">📚 PDF Performance Dossiers Enclosed</h3>
         <p style="color: #64748b; font-size: 10.5px; margin: 0; font-family: monospace;">
             Individual, detailed PDF breakdowns for each agent are attached to this transmission packet.
         </p>
@@ -251,13 +311,13 @@ def send_mutator_alert(status_message, diff_text=None, pdf_path=None, simple_sum
     </p>
     
     <div style="background-color: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 8px; padding: 16px; margin-bottom: 20px; font-family: monospace;">
-        <span style="color: #7c3aed; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; display: block; font-weight: bold; margin-bottom: 6px;">Evolution Summary</span>
+        <span style="color: #7c3aed; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; display: block; font-weight: bold; margin-bottom: 6px;">🧠 Evolution Summary</span>
         <p style="color: #0f172a; font-size: 12.5px; margin: 0; line-height: 1.5;">{simple_summary or status_message}</p>
     </div>
 
     <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px; text-align: center;">
         <div style="font-size: 22px; margin-bottom: 8px;">📄</div>
-        <h3 style="color: #0f172a; font-weight: 700; font-size: 13px; margin: 0 0 4px 0; text-transform: uppercase; letter-spacing: 0.5px;">Technical Delta Report Attached</h3>
+        <h3 style="color: #0f172a; font-weight: 700; font-size: 13px; margin: 0 0 4px 0; text-transform: uppercase; letter-spacing: 0.5px;">📝 Technical Delta Report Attached</h3>
         <p style="color: #64748b; font-size: 10.5px; margin: 0; font-family: monospace;">
             A PDF breakdown containing code diffs and diagnostic reasoning is attached.
         </p>
@@ -298,11 +358,11 @@ def send_node_status_email(node_type, identifier, status, message):
     </p>
     
     <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;">
-        <span style="color: #64748b; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; display: block; font-family: monospace;">Trigger Isolation Node</span>
+        <span style="color: #64748b; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; display: block; font-family: monospace;">📡 Trigger Isolation Node</span>
         <strong style="color: #0f172a; font-size: 14px; font-family: monospace; display: block; margin-top: 2px;">{node_type} &middot; {identifier}</strong>
         
         <div style="margin-top: 14px; padding: 12px; background-color: #f0fdfa; border-radius: 6px; border: 1px solid #ccfbf1; font-family: monospace; font-size: 11.5px; color: #0f172a; line-height: 1.5;">
-            <span style="color: #64748b; font-size: 8.5px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">STATE CODE</span>
+            <span style="color: #64748b; font-size: 8.5px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">🔄 STATE CODE</span>
             <strong style="color: {status_color};">[{status.upper()}]</strong> {message}
         </div>
     </div>
