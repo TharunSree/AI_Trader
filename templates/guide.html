@@ -281,9 +281,9 @@
                 Changelog and feature updates for the Neural Evolution Platform. Showing the latest deployments. Expand each entry below to see key highlights, or visit the dedicated Update History page for full specs.
             </p>
 
-            <div class="grid grid-cols-1 lg:grid-cols-[2.1fr_0.9fr] gap-6 items-start">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
                 <!-- Left: Accordion list of latest updates -->
-                <div class="space-y-4">
+                <div class="md:col-span-2 space-y-4">
                     <!-- Accordion 1: v1.0.12 -->
                     <details class="group bg-slate-50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-800/80 rounded-xl transition-all duration-300 overflow-hidden" open>
                         <summary class="flex items-center justify-between p-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden font-mono text-xs select-none">
@@ -298,6 +298,9 @@
                         </summary>
                         <div class="p-4 border-t border-slate-200 dark:border-slate-800/80 text-slate-600 dark:text-slate-400 space-y-3 leading-relaxed">
                             <ul class="list-disc pl-4 space-y-1 text-xs">
+                                <li>Re-engineered EOD emails with CSS animations and light-themed corporate branding.</li>
+                                <li>Added frontend filters to automatically convert table progress bars into rounded divs.</li>
+                                <li>Styled all settings, models, and backtest buttons with translucent glass colors.</li>
                                 <li>Reorganized system configuration into a modern, responsive two-column grid.</li>
                                 <li>Introduced an inline modal report viewer, removing redirects for dossiers.</li>
                                 <li>Implemented an asynchronous overlay response protocol for SMTP connection testing.</li>
@@ -363,7 +366,7 @@
                 </div>
 
                 <!-- Right: Legend Panel -->
-                <div class="bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200 dark:border-slate-800/80 p-5 font-mono text-[10px] text-slate-500 dark:text-slate-400">
+                <div class="md:col-span-1 sticky top-6 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200 dark:border-slate-800/80 p-5 font-mono text-[10px] text-slate-500 dark:text-slate-400">
                     <h3 class="text-[10px] uppercase tracking-widest font-bold text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800/80 pb-2.5 mb-4 flex items-center gap-2">
                         <i class="fas fa-tags text-brand-500"></i> Release Color Codes
                     </h3>
