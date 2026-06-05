@@ -31,7 +31,7 @@
                         }
                     },
                     animation: {
-                        'fade-in': 'fadeIn 1.2s ease-out forwards',
+                        'fade-in': 'fadeIn 1s ease-out forwards',
                         'slide-up': 'slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
                         'float': 'float 12s ease-in-out infinite',
                         'glow': 'glow 4s ease-in-out infinite alternate',
@@ -42,7 +42,7 @@
                             '100%': { opacity: '1' },
                         },
                         slideUp: {
-                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '0%': { opacity: '0', transform: 'translateY(30px)' },
                             '100%': { opacity: '1', transform: 'translateY(0)' },
                         },
                         float: {
@@ -100,18 +100,18 @@
     
     <!-- Full Screen Background Image -->
     <div class="absolute inset-0 z-0 bg-macchiato-crust overflow-hidden">
-        <!-- The image will display sharply -->
-        <img src="{% static 'img/login_art.jpg' %}" alt="Algorithmic Trading Background" class="w-full h-full object-cover opacity-50 scale-105 transform hover:scale-110 transition-transform duration-[35s] ease-out mix-blend-screen">
+        <!-- The image will display sharply. User can replace 'login_art.jpg' with their own high-res asset -->
+        <img src="{% static 'img/login_art.jpg' %}" alt="Algorithmic Trading Background" class="w-full h-full object-cover opacity-60 scale-105 transform hover:scale-110 transition-transform duration-[30s] ease-out mix-blend-screen">
         
         <!-- Gradient Overlay to ensure text readability and smooth blending to the form side -->
-        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-macchiato-crust/40 to-macchiato-crust z-10 pointer-events-none"></div>
-        <div class="absolute inset-0 bg-gradient-to-t from-macchiato-crust via-transparent to-macchiato-crust/40 z-10 pointer-events-none"></div>
+        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-macchiato-crust/50 to-macchiato-crust z-10 pointer-events-none"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-macchiato-crust via-transparent to-macchiato-crust/50 z-10 pointer-events-none"></div>
     </div>
     
     <!-- Floating Text on the left side -->
     <div class="absolute left-16 bottom-16 z-20 max-w-lg hidden lg:block animate-fade-in">
-        <h1 class="text-4xl font-bold tracking-tight text-white mb-4 drop-shadow-lg leading-tight">Institutional Grade <br><span class="text-transparent bg-clip-text bg-gradient-to-r from-macchiato-sapphire to-macchiato-blue">Neural Execution</span></h1>
-        <p class="text-macchiato-subtext0 text-sm leading-relaxed drop-shadow-md font-mono opacity-80">Securing dynamic alpha through proprietary deep reinforcement learning protocols across volatile asset classes.</p>
+        <h1 class="text-5xl font-bold tracking-tight text-white mb-4 drop-shadow-lg">Institutional Grade <br><span class="text-transparent bg-clip-text bg-gradient-to-r from-macchiato-sapphire to-macchiato-blue">Neural Execution</span></h1>
+        <p class="text-macchiato-text text-base leading-relaxed drop-shadow-md">Securing dynamic alpha through proprietary deep reinforcement learning protocols across volatile asset classes.</p>
     </div>
 
     <!-- Login Panel -->
