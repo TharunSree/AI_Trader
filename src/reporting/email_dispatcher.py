@@ -4,47 +4,55 @@ from django.conf import settings
 
 def _build_premium_email_html(title, subtitle, category_tag, badge_color, main_content_html, accent_gradient=None):
     """
-    Renders a premium institutional HTML notification from scratch.
+    Renders a premium institutional light-themed HTML notification with corporate branding.
     """
-    accent_bar = accent_gradient or "linear-gradient(90deg, #6366f1 0%, #a855f7 100%)"
+    accent_bar = accent_gradient or "linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%)"
     
     return f"""
-    <div style="background-color: #08090d; padding: 45px 15px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.5; color: #b0b5c6;">
-        <div style="max-width: 580px; margin: 0 auto; background-color: #0f111a; border: 1px solid #1c1e2b; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);">
-            <!-- Neon Accent Bar -->
-            <div style="height: 3.5px; background: {accent_bar}; width: 100%;"></div>
+    <div style="background-color: #f8fafc; padding: 40px 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.5; color: #334155;">
+        <div style="max-width: 580px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);">
+            <!-- Elegant Accent Bar -->
+            <div style="height: 4px; background: {accent_bar}; width: 100%;"></div>
             
             <div style="padding: 32px 28px;">
-                <!-- Header Category Tag -->
-                <div style="margin-bottom: 16px;">
-                    <span style="background-color: {badge_color}1a; color: {badge_color}; border: 1px solid {badge_color}2b; padding: 3px 8px; border-radius: 6px; font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; font-family: ui-monospace, monospace;">
-                        {category_tag}
-                    </span>
-                </div>
+                <!-- Header Logo & Branding -->
+                <table cellpadding="0" cellspacing="0" border="0" style="width: 100%; margin-bottom: 24px; border-bottom: 1px solid #f1f5f9; padding-bottom: 16px;">
+                    <tr>
+                        <td style="font-size: 16px; font-weight: 800; color: #0f172a; font-family: sans-serif; letter-spacing: 0.5px;">
+                            QUANT<span style="color: #3b82f6;">TRADER</span>
+                            <span style="font-size: 9px; font-weight: bold; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #dbeafe; padding: 2px 6px; border-radius: 4px; font-family: monospace; margin-left: 8px; vertical-align: middle; text-transform: uppercase; letter-spacing: 0.5px;">AI ENGINE</span>
+                        </td>
+                        <td style="text-align: right;">
+                            <span style="background-color: {badge_color}15; color: {badge_color}; border: 1px solid {badge_color}30; padding: 3px 8px; border-radius: 6px; font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-family: monospace;">
+                                {category_tag}
+                            </span>
+                        </td>
+                    </tr>
+                </table>
                 
                 <!-- Title & Subtitle -->
-                <h1 style="color: #ffffff; font-size: 19px; font-weight: 800; margin: 0 0 6px 0; letter-spacing: -0.02em;">
+                <h1 style="color: #0f172a; font-size: 20px; font-weight: 800; margin: 0 0 6px 0; letter-spacing: -0.02em;">
                     {title}
                 </h1>
-                <p style="color: #6a7185; font-size: 11px; margin: 0 0 28px 0; font-family: ui-monospace, monospace; text-transform: uppercase; letter-spacing: 0.5px;">
+                <p style="color: #64748b; font-size: 10.5px; margin: 0 0 24px 0; font-family: monospace; text-transform: uppercase; letter-spacing: 0.5px;">
                     {subtitle}
                 </p>
                 
                 <!-- Main Body Content -->
-                <div style="font-size: 13.5px; color: #cad3f5;">
+                <div style="font-size: 13.5px; color: #334155;">
                     {main_content_html}
                 </div>
                 
-                <!-- Minimalist Footer -->
-                <div style="margin-top: 36px; padding-top: 20px; border-top: 1px solid #1c1e2b; text-align: center;">
-                    <p style="font-size: 9px; color: #474c5d; font-family: ui-monospace, monospace; margin: 0; text-transform: uppercase; letter-spacing: 1.5px;">
-                        SYSTEM: OPERATIONAL &bull; SECURE RELAY GATEWAY
+                <!-- Corporate Footer -->
+                <div style="margin-top: 36px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center;">
+                    <p style="font-size: 9px; color: #94a3b8; font-family: monospace; margin: 0; text-transform: uppercase; letter-spacing: 1px;">
+                        SYSTEM STATUS: ACTIVE &bull; SECURE QUANT LINK
                     </p>
                 </div>
             </div>
         </div>
-        <div style="text-align: center; margin-top: 20px; font-size: 9px; color: #3d404d; font-family: ui-monospace, monospace; text-transform: uppercase; letter-spacing: 1px;">
-            QUANTTRADER CENTRAL ARCHITECTURE PROTOCOL &bull; DO NOT REPLY
+        <div style="text-align: center; margin-top: 24px; font-size: 9px; color: #94a3b8; font-family: monospace; text-transform: uppercase; letter-spacing: 0.5px;">
+            QUANTTRADER TECHNOLOGIES &bull; CONFIDENTIAL TRANSMISSION
         </div>
     </div>
     """
@@ -54,22 +62,22 @@ def send_sos_alert(model_name, traceback_str):
     text_content = f"Execution interrupted.\n\nTraceback:\n{traceback_str}"
     
     main_content = f"""
-    <p style="margin-top: 0; margin-bottom: 20px; color: #a5adcb; font-size: 13.5px; line-height: 1.6;">
+    <p style="margin-top: 0; margin-bottom: 20px; color: #475569; font-size: 13.5px; line-height: 1.6;">
         An execution node encountered an unhandled critical exception. The self-healing watchdog daemon has logged the traceback sequence below:
     </p>
     
-    <div style="background-color: #161722; border: 1px solid #232536; border-radius: 8px; padding: 14px; margin-bottom: 20px; font-family: ui-monospace, monospace;">
-        <span style="color: #7a7e8c; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; display: block;">Affected Neural Core</span>
-        <strong style="color: #ffffff; font-size: 14px; display: block; margin-top: 2px;">{model_name}</strong>
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 20px; font-family: monospace;">
+        <span style="color: #64748b; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; display: block; font-weight: bold;">Affected Neural Core</span>
+        <strong style="color: #0f172a; font-size: 14px; display: block; margin-top: 2px;">{model_name}</strong>
     </div>
 
-    <div style="background-color: #08090d; padding: 16px; border: 1px solid #1c1e2b; border-radius: 8px; overflow-x: auto; margin-bottom: 20px;">
-        <span style="color: #fca5a5; font-size: 10px; font-family: ui-monospace, monospace; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px;">Stack Exception Traceback</span>
-        <code style="color: #f87171; font-size: 11.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; display: block; line-height: 1.6; word-break: break-all;">{traceback_str}</code>
+    <div style="background-color: #fef2f2; padding: 16px; border: 1px solid #fee2e2; border-radius: 8px; overflow-x: auto; margin-bottom: 20px; font-family: monospace;">
+        <span style="color: #b91c1c; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px;">Stack Exception Traceback</span>
+        <code style="color: #991b1b; font-size: 11.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; display: block; line-height: 1.6; word-break: break-all;">{traceback_str}</code>
     </div>
 
-    <div style="background-color: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 12px; text-align: center;">
-        <p style="font-size: 11px; color: #fca5a5; font-weight: 600; margin: 0; font-family: ui-monospace, monospace; text-transform: uppercase; letter-spacing: 0.5px;">
+    <div style="background-color: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 12px; text-align: center;">
+        <p style="font-size: 11px; color: #b91c1c; font-weight: 600; margin: 0; font-family: monospace; text-transform: uppercase; letter-spacing: 0.5px;">
             Watchdog Action: Initiating rollback / self-repair protocols.
         </p>
     </div>
@@ -103,14 +111,14 @@ def send_report_email(report_type, markdown_content, pdf_bytes=None, filename="r
     text_content = markdown_content
     
     main_content = f"""
-    <p style="margin-top: 0; margin-bottom: 20px; color: #a5adcb; font-size: 13.5px; line-height: 1.6;">
+    <p style="margin-top: 0; margin-bottom: 20px; color: #475569; font-size: 13.5px; line-height: 1.6;">
         The system has compiled the rolling performance reports and created a print-ready intelligence record. Key metrics have been committed to the secure database ledger.
     </p>
     
-    <div style="background-color: #161722; border: 1px solid #232536; border-radius: 10px; padding: 24px; text-align: center; margin-bottom: 15px;">
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 24px; text-align: center; margin-bottom: 15px;">
         <div style="font-size: 28px; margin-bottom: 12px;">📊</div>
-        <h3 style="color: #ffffff; font-weight: 700; font-size: 14px; margin: 0 0 6px 0; text-transform: uppercase; letter-spacing: 0.5px;">Performance Ledger Enclosed</h3>
-        <p style="color: #8e95a5; font-size: 11px; margin: 0; font-family: ui-monospace, monospace;">
+        <h3 style="color: #0f172a; font-weight: 700; font-size: 14px; margin: 0 0 6px 0; text-transform: uppercase; letter-spacing: 0.5px;">Performance Ledger Enclosed</h3>
+        <p style="color: #64748b; font-size: 11px; margin: 0; font-family: monospace;">
             A detailed, print-ready PDF performance ledger has been attached to this email.
         </p>
     </div>
@@ -147,15 +155,15 @@ def send_bundled_report_email(artifacts_list, date_str):
     table_rows = ""
     for a in artifacts_list:
         pnl = a.get('net_flow', 0.0)
-        pnl_color = "#34d399" if pnl >= 0 else "#f87171"
+        pnl_color = "#16a34a" if pnl >= 0 else "#dc2626"
         pnl_sign = "+" if pnl >= 0 else ""
         table_rows += f"""
-        <tr style="border-bottom: 1px solid #1c1e2b;">
-            <td style="padding: 10px 8px; font-family: ui-monospace, monospace; font-size: 11.5px; color: #ffffff; text-align: left;">{a.get('bot_id', 'Unknown')}</td>
-            <td style="padding: 10px 8px; font-family: ui-monospace, monospace; font-size: 10.5px; color: #8e95a5; text-align: center;">{a.get('report_type', 'DAILY')}</td>
-            <td style="padding: 10px 8px; font-family: ui-monospace, monospace; font-size: 11.5px; color: {pnl_color}; text-align: right; font-weight: bold;">{pnl_sign}${pnl:,.2f}</td>
-            <td style="padding: 10px 8px; font-family: ui-monospace, monospace; font-size: 11.5px; color: #b0b5c6; text-align: right;">{a.get('total_trades', 0)}</td>
-            <td style="padding: 10px 8px; font-family: ui-monospace, monospace; font-size: 11.5px; color: #60a5fa; text-align: right; font-weight: bold;">{a.get('win_rate', 0.0):.1f}%</td>
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="padding: 10px 8px; font-family: monospace; font-size: 11.5px; color: #0f172a; text-align: left;">{a.get('bot_id', 'Unknown')}</td>
+            <td style="padding: 10px 8px; font-family: monospace; font-size: 10.5px; color: #475569; text-align: center;">{a.get('report_type', 'DAILY')}</td>
+            <td style="padding: 10px 8px; font-family: monospace; font-size: 11.5px; color: {pnl_color}; text-align: right; font-weight: bold;">{pnl_sign}${pnl:,.2f}</td>
+            <td style="padding: 10px 8px; font-family: monospace; font-size: 11.5px; color: #64748b; text-align: right;">{a.get('total_trades', 0)}</td>
+            <td style="padding: 10px 8px; font-family: monospace; font-size: 11.5px; color: #2563eb; text-align: right; font-weight: bold;">{a.get('win_rate', 0.0):.1f}%</td>
         </tr>
         """
         
@@ -173,20 +181,20 @@ def send_bundled_report_email(artifacts_list, date_str):
     text_content = combined_markdown
     
     main_content = f"""
-    <p style="margin-top: 0; margin-bottom: 20px; color: #a5adcb; font-size: 13.5px; line-height: 1.6;">
+    <p style="margin-top: 0; margin-bottom: 20px; color: #475569; font-size: 13.5px; line-height: 1.6;">
         The multi-agent trading fleet has completed EOD operations. Integrated performance metrics across active sandbox and live nodes are detailed in the ledger below:
     </p>
 
     <!-- Performance Table Wrapper -->
-    <div style="border-radius: 10px; border: 1px solid #1c1e2b; margin-bottom: 24px; overflow: hidden; background-color: #0c0d12;">
+    <div style="border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 24px; overflow: hidden; background-color: #ffffff;">
         <table style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead>
-                <tr style="background-color: #12131a; border-bottom: 1.5px solid #1c1e2b;">
-                    <th style="padding: 10px 8px; font-family: ui-monospace, monospace; font-size: 9px; color: #8e95a5; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px;">Agent</th>
-                    <th style="padding: 10px 8px; font-family: ui-monospace, monospace; font-size: 9px; color: #8e95a5; text-transform: uppercase; font-weight: bold; text-align: center; letter-spacing: 0.5px;">Type</th>
-                    <th style="padding: 10px 8px; font-family: ui-monospace, monospace; font-size: 9px; color: #8e95a5; text-transform: uppercase; font-weight: bold; text-align: right; letter-spacing: 0.5px;">Net Yield</th>
-                    <th style="padding: 10px 8px; font-family: ui-monospace, monospace; font-size: 9px; color: #8e95a5; text-transform: uppercase; font-weight: bold; text-align: right; letter-spacing: 0.5px;">Trades</th>
-                    <th style="padding: 10px 8px; font-family: ui-monospace, monospace; font-size: 9px; color: #8e95a5; text-transform: uppercase; font-weight: bold; text-align: right; letter-spacing: 0.5px;">Win Rate</th>
+                <tr style="background-color: #f8fafc; border-bottom: 1.5px solid #e2e8f0;">
+                    <th style="padding: 10px 8px; font-family: monospace; font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px;">Agent</th>
+                    <th style="padding: 10px 8px; font-family: monospace; font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; text-align: center; letter-spacing: 0.5px;">Type</th>
+                    <th style="padding: 10px 8px; font-family: monospace; font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; text-align: right; letter-spacing: 0.5px;">Net Yield</th>
+                    <th style="padding: 10px 8px; font-family: monospace; font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; text-align: right; letter-spacing: 0.5px;">Trades</th>
+                    <th style="padding: 10px 8px; font-family: monospace; font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; text-align: right; letter-spacing: 0.5px;">Win Rate</th>
                 </tr>
             </thead>
             <tbody>
@@ -195,10 +203,10 @@ def send_bundled_report_email(artifacts_list, date_str):
         </table>
     </div>
 
-    <div style="background-color: #161722; border: 1px solid #232536; border-radius: 10px; padding: 18px; text-align: center;">
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px; text-align: center;">
         <div style="font-size: 22px; margin-bottom: 8px;">📚</div>
-        <h3 style="color: #ffffff; font-weight: 700; font-size: 13px; margin: 0 0 4px 0; text-transform: uppercase; letter-spacing: 0.5px;">PDF Performance Dossiers Enclosed</h3>
-        <p style="color: #8e95a5; font-size: 10.5px; margin: 0; font-family: ui-monospace, monospace;">
+        <h3 style="color: #0f172a; font-weight: 700; font-size: 13px; margin: 0 0 4px 0; text-transform: uppercase; letter-spacing: 0.5px;">PDF Performance Dossiers Enclosed</h3>
+        <p style="color: #64748b; font-size: 10.5px; margin: 0; font-family: monospace;">
             Individual, detailed PDF breakdowns for each agent are attached to this transmission packet.
         </p>
     </div>
@@ -238,19 +246,19 @@ def send_mutator_alert(status_message, diff_text=None, pdf_path=None, simple_sum
     text_content = f"Mutator Diagnostic: {status_message}\nSummary: {simple_summary}"
     
     main_content = f"""
-    <p style="margin-top: 0; margin-bottom: 20px; color: #a5adcb; font-size: 13.5px; line-height: 1.6;">
+    <p style="margin-top: 0; margin-bottom: 20px; color: #475569; font-size: 13.5px; line-height: 1.6;">
         The neural rewriter mutator has finalized an autonomous strategy evolution block. The runtime environment has adjusted dynamic weights successfully.
     </p>
     
-    <div style="background-color: #161722; border: 1px solid #232536; border-radius: 8px; padding: 16px; margin-bottom: 20px; font-family: ui-monospace, monospace;">
-        <span style="color: #8b5cf6; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; display: block; font-weight: bold; margin-bottom: 6px;">Evolution Summary</span>
-        <p style="color: #ffffff; font-size: 12.5px; margin: 0; line-height: 1.5;">{simple_summary or status_message}</p>
+    <div style="background-color: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 8px; padding: 16px; margin-bottom: 20px; font-family: monospace;">
+        <span style="color: #7c3aed; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; display: block; font-weight: bold; margin-bottom: 6px;">Evolution Summary</span>
+        <p style="color: #0f172a; font-size: 12.5px; margin: 0; line-height: 1.5;">{simple_summary or status_message}</p>
     </div>
 
-    <div style="background-color: #08090d; border: 1px solid #1c1e2b; border-radius: 10px; padding: 18px; text-align: center;">
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px; text-align: center;">
         <div style="font-size: 22px; margin-bottom: 8px;">📄</div>
-        <h3 style="color: #ffffff; font-weight: 700; font-size: 13px; margin: 0 0 4px 0; text-transform: uppercase; letter-spacing: 0.5px;">Technical Delta Report Attached</h3>
-        <p style="color: #8e95a5; font-size: 10.5px; margin: 0; font-family: ui-monospace, monospace;">
+        <h3 style="color: #0f172a; font-weight: 700; font-size: 13px; margin: 0 0 4px 0; text-transform: uppercase; letter-spacing: 0.5px;">Technical Delta Report Attached</h3>
+        <p style="color: #64748b; font-size: 10.5px; margin: 0; font-family: monospace;">
             A PDF breakdown containing code diffs and diagnostic reasoning is attached.
         </p>
     </div>
@@ -282,19 +290,19 @@ def send_node_status_email(node_type, identifier, status, message):
     subject = f"JARVIS ORCHESTRATION // {node_type.upper()} {status.upper()}"
     text_content = f"{node_type} [{identifier}] is now {status}.\nDetail: {message}"
     
-    status_color = "#34d399" if status.upper() == "STARTED" else "#f87171"
+    status_color = "#0d9488" if status.upper() == "STARTED" else "#dc2626"
     
     main_content = f"""
-    <p style="margin-top: 0; margin-bottom: 20px; color: #a5adcb; font-size: 13.5px; line-height: 1.6;">
+    <p style="margin-top: 0; margin-bottom: 20px; color: #475569; font-size: 13.5px; line-height: 1.6;">
         A cluster topology transition has occurred in the compute execution fleet:
     </p>
     
-    <div style="background-color: #161722; border: 1px solid #232536; border-radius: 10px; padding: 20px;">
-        <span style="color: #7a7e8c; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; display: block; font-family: ui-monospace, monospace;">Trigger Isolation Node</span>
-        <strong style="color: #ffffff; font-size: 14px; font-family: ui-monospace, monospace; display: block; margin-top: 2px;">{node_type} &middot; {identifier}</strong>
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;">
+        <span style="color: #64748b; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; display: block; font-family: monospace;">Trigger Isolation Node</span>
+        <strong style="color: #0f172a; font-size: 14px; font-family: monospace; display: block; margin-top: 2px;">{node_type} &middot; {identifier}</strong>
         
-        <div style="margin-top: 14px; padding: 12px; background-color: #08090d; border-radius: 6px; border: 1px solid #1c1e2b; font-family: ui-monospace, monospace; font-size: 11.5px; color: #cbd5e1; line-height: 1.5;">
-            <span style="color: #474c5d; font-size: 8.5px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">STATE CODE</span>
+        <div style="margin-top: 14px; padding: 12px; background-color: #f0fdfa; border-radius: 6px; border: 1px solid #ccfbf1; font-family: monospace; font-size: 11.5px; color: #0f172a; line-height: 1.5;">
+            <span style="color: #64748b; font-size: 8.5px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">STATE CODE</span>
             <strong style="color: {status_color};">[{status.upper()}]</strong> {message}
         </div>
     </div>

@@ -211,7 +211,30 @@ document.addEventListener('DOMContentLoaded', function() {
         proseBox.querySelectorAll('table').forEach(table => {
             const styleAttr = table.getAttribute('style') || '';
             if (styleAttr.includes('width: 100px') || table.style.width === '100px') {
-                return; // Skip inline progress bars
+                const firstTd = table.querySelector('td');
+                if (firstTd) {
+                    const widthPct = firstTd.style.width || '0%';
+                    const bgColor = firstTd.style.backgroundColor || '#10b981';
+                    
+                    const replacement = document.createElement('div');
+                    replacement.style.width = '80px';
+                    replacement.style.height = '6px';
+                    replacement.style.backgroundColor = 'rgba(148, 163, 184, 0.2)';
+                    replacement.style.display = 'inline-block';
+                    replacement.style.verticalAlign = 'middle';
+                    replacement.style.borderRadius = '3px';
+                    replacement.style.overflow = 'hidden';
+                    replacement.style.marginRight = '6px';
+                    
+                    const bar = document.createElement('div');
+                    bar.style.width = widthPct;
+                    bar.style.height = '100%';
+                    bar.style.backgroundColor = bgColor;
+                    
+                    replacement.appendChild(bar);
+                    table.parentNode.replaceChild(replacement, table);
+                }
+                return;
             }
             if (table.parentElement && !table.parentElement.classList.contains('overflow-x-auto')) {
                 const wrapper = document.createElement('div');
