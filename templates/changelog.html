@@ -14,7 +14,7 @@
                 <h2 class="text-lg font-bold text-slate-800 dark:text-white uppercase tracking-wider">Release Ledger</h2>
                 <p class="text-xs text-slate-500 font-mono mt-1">Version control registry and historical deployment logs for QuantTrader Node.</p>
             </div>
-            <div class="flex items-center gap-2 font-mono text-xs font-bold">
+            <div class="flex items-center gap-2 font-mono text-[10px] font-bold">
                 <span class="px-2.5 py-1 rounded bg-brand-500/10 text-brand-500 border border-brand-500/20">Current: v1.0.14</span>
                 <span class="text-slate-500 font-normal">Updated June 10, 2026</span>
             </div>
@@ -47,681 +47,75 @@
         <!-- Left Column: Timeline Entries -->
         <div class="relative ml-4 md:ml-6">
         
-        <!-- v1.0.14 -->
-        <div id="v1.0.14" class="changelog-item relative pl-6 md:pl-8 pb-8 group" data-type="feat">
+        {% for commit in git_commits %}
+        <div id="{% if commit.version %}{{ commit.version }}{% else %}{{ commit.short_hash }}{% endif %}" class="changelog-item relative pl-6 md:pl-8 pb-8 group" data-type="{{ commit.type }}">
             <!-- Vertical line segment -->
+            {% if forloop.first %}
             <div class="absolute left-0 top-2 bottom-0 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
-            <!-- Timeline dot -->
-            <div class="absolute -left-[5px] top-2 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
-            
-            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-brand-500/40 transition-all duration-300">
-                <!-- Header -->
-                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
-                    <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.0.14</span>
-                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Robust Pricing Fallbacks, Rejection Reasoning Feedback, Adaptive Selling, and Report Mode Badges</h3>
-                    </div>
-                    <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
-                        <i class="far fa-calendar-alt"></i> June 10, 2026
-                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">v1.0.14-dev</span>
-                    </div>
-                </div>
-                
-                <!-- Body -->
-                <div class="p-6 space-y-4">
-                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
-                        This update integrates public pricing fallback loops to prevent variant failures under unauthorized Alpaca states, creates user rejection reasoning prompts that feed negative feedback to the code mutator, aligns virtual trading thresholds with production scalp settings, and establishes clean execution mode badges.
-                    </p>
-                    
-                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
-                        <li><strong>Resilient Pricing Fallbacks:</strong> Caught Alpaca credential/auth failure gracefully during broker initialization to prevent engine boot crash. Implemented a fallback daily bars scraper via Yahoo Finance for stocks, ensuring model state observations never resolve to empty state arrays.</li>
-                        <li><strong>Rejection Feedback Prompts:</strong> Added user prompts to collect rejection reasoning details when a variant is discarded. Saved this context to the database, creating SystemAlert audit entries.</li>
-                        <li><strong>Negative Mutator Learning:</strong> Overhauled the mutation engine to query rejected variants and pass their code, rationales, and rejection reasons as critical negative context to the Gemini rewriter, warning the AI model not to repeat failed strategies.</li>
-                        <li><strong>Adaptive Selling Thresholds:</strong> Aligned virtual paper engines with production adaptive TP/SL logic (taking quick profits at 0.4% / 0.6% gains on micro/small portfolios) and integrated the Smart Profit Guard to protect position assets on minor hikes.</li>
-                        <li><strong>Run Mode Badges & Filters:</strong> Tagged all End-of-Day report generations as Evolution, Live, or Paper, adding filters and badges to the Intelligence Vault and report content view.</li>
-                    </ul>
-
-                    <!-- Expandable details -->
-                    <div class="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
-                        <button onclick="toggleDetails(this)" class="text-[10px] uppercase tracking-widest text-brand-500 hover:text-brand-400 font-bold font-mono flex items-center gap-1 cursor-pointer">
-                            <span>Show Tech Details</span> <i class="fas fa-chevron-down text-[8px]"></i>
-                        </button>
-                        <div class="hidden mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0a0a0c] border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] text-slate-500 dark:text-slate-400 space-y-3 leading-relaxed">
-                            <div><strong class="text-slate-700 dark:text-slate-200">Files Impacted:</strong></div>
-                            <div class="pl-2 space-y-1">
-                                <div>[MODIFY] [broker.py](file:///D:/AI_Trader/src/execution/broker.py) &middot; resilient initialization and stock daily bar fallback query</div>
-                                <div>[MODIFY] [virtual_paper_engine.py](file:///D:/AI_Trader/src/core/virtual_paper_engine.py) &middot; integrated production-aligned adaptive TP/SL and profit guard</div>
-                                <div>[MODIFY] [dashboard.html](file:///D:/AI_Trader/templates/dashboard.html) &middot; prompt for rejection reasoning and post payload</div>
-                                <div>[MODIFY] [variant_details.html](file:///D:/AI_Trader/templates/variant_details.html) &middot; intercepted reject button to prompt for reasoning</div>
-                                <div>[MODIFY] [eod_generator.py](file:///D:/AI_Trader/src/reporting/eod_generator.py) &middot; detect and display execution mode in EOD reports</div>
-                                <div>[MODIFY] [reports_hub.html](file:///D:/AI_Trader/templates/reports_hub.html) &middot; added run mode badge, filters, and modal subheaders</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- v1.0.13 -->
-        <div id="v1.0.13" class="changelog-item relative pl-6 md:pl-8 pb-8 group" data-type="fix">
-            <!-- Vertical line segment -->
-            <div class="absolute left-0 top-0 bottom-0 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
-            <!-- Timeline dot -->
-            <div class="absolute -left-[5px] top-2 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
-            
-            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-brand-500/40 transition-all duration-300">
-                <!-- Header -->
-                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
-                    <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.0.13</span>
-                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Layout Grid Remediation, Timeline Boundary Corrections, and Button Style Unification</h3>
-                    </div>
-                    <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
-                        <i class="far fa-calendar-alt"></i> June 06, 2026
-                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">v1.0.13-dev</span>
-                    </div>
-                </div>
-                
-                <!-- Body -->
-                <div class="p-6 space-y-4">
-                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
-                        This update resolves layout nesting bugs in the changelog viewport ledger, terminates the connecting timeline borders precisely at the initial release dot, and completes transition of solid buttons on secondary control dashboards.
-                    </p>
-                    
-                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
-                        <li><strong>Changelog Layout Un-nesting:</strong> Resolved a nesting issue where the Right Column legend was enclosed inside the Left Column timeline wrapper. Moved the legend card to be a direct sibling of the timeline container under the grid layout, allowing proper side-by-side positioning on desktop.</li>
-                        <li><strong>Timeline Line Termination:</strong> Corrected the vertical timeline line segment logic so that it terminates precisely at the v1.0.0 (Initial Launch) timeline dot, preventing any line leaks into lower legend margins.</li>
-                        <li><strong>UI Button Unification:</strong> Refactored the solid submit buttons in the Neural Training control dashboard to the standardized translucent/glass border style.</li>
-                    </ul>
-
-                    <!-- Expandable details -->
-                    <div class="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
-                        <button onclick="toggleDetails(this)" class="text-[10px] uppercase tracking-widest text-brand-500 hover:text-brand-400 font-bold font-mono flex items-center gap-1 cursor-pointer">
-                            <span>Show Tech Details</span> <i class="fas fa-chevron-down text-[8px]"></i>
-                        </button>
-                        <div class="hidden mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0a0a0c] border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] text-slate-500 dark:text-slate-400 space-y-3 leading-relaxed">
-                            <div><strong class="text-slate-700 dark:text-slate-200">Files Impacted:</strong></div>
-                            <div class="pl-2 space-y-1">
-                                <div>[MODIFY] [changelog.html](file:///D:/AI_Trader/templates/changelog.html) &middot; restructuring HTML layout columns and timeline endpoints</div>
-                                <div>[MODIFY] [training.html](file:///D:/AI_Trader/templates/training.html) &middot; converting single-job and meta-trainer launcher buttons to translucent style</div>
-                                <div>[MODIFY] [guide.html](file:///D:/AI_Trader/templates/guide.html) &middot; added accordion entry for version 1.0.13 details</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- v1.0.12 -->
-        <div id="v1.0.12" class="changelog-item relative pl-6 md:pl-8 pb-8 group" data-type="feat">
-            <!-- Vertical line segment -->
-            <div class="absolute left-0 top-0 bottom-0 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
-            <!-- Timeline dot -->
-            <div class="absolute -left-[5px] top-2 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
-            
-            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-brand-500/40 transition-all duration-300">
-                <!-- Header -->
-                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
-                    <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.0.12</span>
-                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Unified Platform Redesign, Settings Hub, Login Overhaul, and AJAX Alerts</h3>
-                    </div>
-                    <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
-                        <i class="far fa-calendar-alt"></i> June 06, 2026
-                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">v1.0.12-dev</span>
-                    </div>
-                </div>
-                
-                <!-- Body -->
-                <div class="p-6 space-y-4">
-                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
-                        This update delivers a comprehensive professional UI facelift across settings, authentication portals, and diagnostic utilities, alongside Reports Hub inline modal viewers and async dashboard alerts.
-                    </p>
-                    
-                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
-                        <li><strong>Corporate Light-Themed Emails:</strong> Re-engineered the EOD email dispatch pipeline with a premium light-themed layout featuring company logo branding.</li>
-                        <li><strong>Dynamic Progress Bar Conversions:</strong> Integrated frontend JavaScript filters to automatically convert old table-based exit efficiency scorecard indicators into thin, rounded divs.</li>
-                        <li><strong>Translucent UI Button Styling:</strong> Converted remaining solid-colored buttons in Settings, Models Hub, and Backtest Lab to the signature translucent glass style.</li>
-                        <li><strong>Inline Modal Report Viewer:</strong> Glassmorphic reports viewer modal that dynamically loads Markdown HTML content inline, eliminating tab/page redirects.</li>
-                        <li><strong>Settings Hub Reorganization:</strong> Rebuilt the system settings into a clean, responsive two-column grid. Diagnostic tools are now grouped on the left, connection nodes and environment protocols on the right.</li>
-                        <li><strong>Non-Reloading SMTP Testing:</strong> Replaced POST redirects for the SMTP relay test with a smooth, asynchronous overlay feedback system.</li>
-                        <li><strong>Authentication Overhaul:</strong> Upgraded the main login panel with an elegant glassmorphic structure, scanner beams, and pulsing Q-logo elements. Added glow transitions on lockscreen passcodes.</li>
-                        <li><strong>Dashboard Layout Rebalance:</strong> Removed forced grid heights and empty spaces below widgets, allowing the dashboard columns to collapse and fit naturally.</li>
-                    </ul>
-
-                    <!-- Expandable details -->
-                    <div class="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
-                        <button onclick="toggleDetails(this)" class="text-[10px] uppercase tracking-widest text-brand-500 hover:text-brand-400 font-bold font-mono flex items-center gap-1 cursor-pointer">
-                            <span>Show Tech Details</span> <i class="fas fa-chevron-down text-[8px]"></i>
-                        </button>
-                        <div class="hidden mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0a0a0c] border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] text-slate-500 dark:text-slate-400 space-y-3 leading-relaxed">
-                            <div><strong class="text-slate-700 dark:text-slate-200">Files Impacted:</strong></div>
-                            <div class="pl-2 space-y-1">
-                                <div>[MODIFY] [email_dispatcher.py](file:///D:/AI_Trader/src/reporting/email_dispatcher.py) &middot; redesigned email layout to light corporate branding theme</div>
-                                <div>[MODIFY] [models_hub.html](file:///D:/AI_Trader/templates/models_hub.html) &middot; updated recommendation button to translucent style</div>
-                                <div>[MODIFY] [backtest_lab.html](file:///D:/AI_Trader/templates/backtest_lab.html) &middot; updated launch button to translucent style</div>
-                                <div>[MODIFY] [views.py](file:///D:/AI_Trader/control_panel/views.py) &middot; added sort parameters, standalone/content API views, and AJAX alerts JSON response</div>
-                                <div>[MODIFY] [urls.py](file:///D:/AI_Trader/control_panel/urls.py) &middot; registered view, markdown, and content api routes</div>
-                                <div>[MODIFY] [eod_generator.py](file:///D:/AI_Trader/src/reporting/eod_generator.py) &middot; prioritized DB keys and ignored placeholders</div>
-                                <div>[MODIFY] [code_rewriter.py](file:///D:/AI_Trader/src/core/code_rewriter.py) &middot; added placeholder key filters inside key resolver</div>
-                                <div>[MODIFY] [reports_hub.html](file:///D:/AI_Trader/templates/reports_hub.html) &middot; layout overhaul, inline modal rendering with JS fetch, and sort forms</div>
-                                <div>[MODIFY] [report_viewer.html](file:///D:/AI_Trader/templates/report_viewer.html) &middot; fixed dead links, updated CSS classes, layout width, and horizontal scroll wrappers</div>
-                                <div>[MODIFY] [settings.html](file:///D:/AI_Trader/templates/settings.html) &middot; rebuilt grid system, added focus glows, and implemented non-reloading SMTP feedback</div>
-                                <div>[MODIFY] [login.html](file:///D:/AI_Trader/templates/login.html) &middot; redesigned authentication panel with glassmorphic layout, scanner beams, and animations</div>
-                                <div>[MODIFY] [dashboard.html](file:///D:/AI_Trader/templates/dashboard.html) &middot; adjusted dashboard grid height class to h-auto and integrated AJAX card dismissal</div>
-                                <div>[MODIFY] [base.html](file:///D:/AI_Trader/templates/base.html) &middot; updated lockscreen overlay visual parameters, focus glow states, and unlock button hover effects</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- v1.0.11 -->
-        <div id="v1.0.11" class="changelog-item relative pl-6 md:pl-8 pb-8 group" data-type="feat">
-            <!-- Vertical line segment -->
-            <div class="absolute left-0 top-0 bottom-0 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
-            <!-- Timeline dot -->
-            <div class="absolute -left-[5px] top-2 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
-            
-            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-brand-500/40 transition-all duration-300">
-                <!-- Header -->
-                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
-                    <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.0.11</span>
-                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Backend Pagination &amp; Filter Foundations</h3>
-                    </div>
-                    <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
-                        <i class="far fa-calendar-alt"></i> June 06, 2026
-                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">d362064</span>
-                    </div>
-                </div>
-                
-                <!-- Body -->
-                <div class="p-6 space-y-4">
-                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
-                        This update builds backend Django pagination support and filters for EOD/weekly/monthly reports, optimizing data retrieval for large archived logs.
-                    </p>
-                    
-                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
-                        <li><strong>Backend Django Paginator:</strong> Integrated `Paginator` in `reports_hub_view` to cap page loads at 10 items.</li>
-                        <li><strong>Query Filter Expansion:</strong> Implemented request filtering based on report types, month ranges, and week segment offsets.</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <!-- v1.0.10 -->
-        <div id="v1.0.10" class="changelog-item relative pl-6 md:pl-8 pb-8 group" data-type="feat">
-            <!-- Vertical line segment -->
-            <div class="absolute left-0 top-0 bottom-0 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
-            <!-- Timeline dot -->
-            <div class="absolute -left-[5px] top-2 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
-            
-            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-brand-500/40 transition-all duration-300">
-                <!-- Header -->
-                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
-                    <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.0.10</span>
-                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Automated Weekly/Monthly Reports, Self-Healing Backfill &amp; Post-Deploy Pipeline</h3>
-                    </div>
-                    <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
-                        <i class="far fa-calendar-alt"></i> June 06, 2026
-                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">32bd813</span>
-                    </div>
-                </div>
-                
-                <!-- Body -->
-                <div class="p-6 space-y-4">
-                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
-                        This update implements automated weekly rolling intelligence analyses and monthly performance intelligence portfolio reports with adapted Gemini analysis prompts. It also deploys a self-healing automatic backfill that generates missing weekly and monthly reports, and configures the auto-updater to regenerate reports upon deployment.
-                    </p>
-                    
-                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
-                        <li><strong>Weekly &amp; Monthly Analysis:</strong> Added support for weekly and monthly report types in the EOD generator, utilizing adapted Gemini prompts, custom headers, and performance metrics.</li>
-                        <li><strong>Self-Healing Backfill:</strong> Implemented automatic backfilling that generates missing weekly and monthly reports if they have not been generated in the last 6 and 28 days respectively.</li>
-                        <li><strong>Post-Deploy Trigger:</strong> Integrated automatic report regeneration directly into the deployment watcher loop.</li>
-                    </ul>
-
-                    <!-- Expandable details -->
-                    <div class="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
-                        <button onclick="toggleDetails(this)" class="text-[10px] uppercase tracking-widest text-brand-500 hover:text-brand-400 font-bold font-mono flex items-center gap-1 cursor-pointer">
-                            <span>Show Tech Details</span> <i class="fas fa-chevron-down text-[8px]"></i>
-                        </button>
-                        <div class="hidden mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0a0a0c] border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] text-slate-500 dark:text-slate-400 space-y-3 leading-relaxed">
-                            <div><strong class="text-slate-700 dark:text-slate-200">Files Impacted:</strong></div>
-                            <div class="pl-2 space-y-1">
-                                <div>[MODIFY] [eod_generator.py](file:///D:/AI_Trader/src/reporting/eod_generator.py) &middot; added weekly/monthly prompts, scorecard titles, and missing report backfill checks</div>
-                                <div>[MODIFY] [update_watcher.py](file:///D:/AI_Trader/update_watcher.py) &middot; added automatic report regeneration command after deployment success</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- v1.0.9 -->
-        <div id="v1.0.9" class="changelog-item relative pl-6 md:pl-8 pb-8 group" data-type="fix">
-            <!-- Vertical line segment -->
-            <div class="absolute left-0 top-0 bottom-0 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
-            <!-- Timeline dot -->
-            <div class="absolute -left-[5px] top-2 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
-            
-            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-brand-500/40 transition-all duration-300">
-                <!-- Header -->
-                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
-                    <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.0.9</span>
-                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Unused Import Cleanup, Gemini Key DB Query, and Alpaca Crypto Fallback</h3>
-                    </div>
-                    <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
-                        <i class="far fa-calendar-alt"></i> June 05, 2026
-                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">a2b0fe2</span>
-                    </div>
-                </div>
-                
-                <!-- Body -->
-                <div class="p-6 space-y-4">
-                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
-                        This update resolves web server and background service startup crashes on Linux environments by removing an unused yfinance import. It also adds a database lookup fallback for the Gemini API Key and an Alpaca REST fallback for crypto daily bars.
-                    </p>
-                    
-                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
-                        <li><strong>Unused Import Cleanup:</strong> Removed the unused `import yfinance as yf` statement from the Django views entry point to bypass server websockets dependency issues.</li>
-                        <li><strong>Gemini DB Key Fallback:</strong> Configured the PDF generator to query `SystemSettings` in the database dynamically for the Gemini API Key.</li>
-                        <li><strong>Alpaca Crypto Fallback:</strong> Added an Alpaca native REST API `get_bars` fallback for crypto daily bars to resolve empty historical bars.</li>
-                    </ul>
-
-                    <!-- Expandable details -->
-                    <div class="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
-                        <button onclick="toggleDetails(this)" class="text-[10px] uppercase tracking-widest text-brand-500 hover:text-brand-400 font-bold font-mono flex items-center gap-1 cursor-pointer">
-                            <span>Show Tech Details</span> <i class="fas fa-chevron-down text-[8px]"></i>
-                        </button>
-                        <div class="hidden mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0a0a0c] border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] text-slate-500 dark:text-slate-400 space-y-3 leading-relaxed">
-                            <div><strong class="text-slate-700 dark:text-slate-200">Files Impacted:</strong></div>
-                            <div class="pl-2 space-y-1">
-                                <div>[MODIFY] [views.py](file:///D:/AI_Trader/control_panel/views.py) &middot; removed unused yfinance import to prevent websockets.sync ModuleNotFoundError</div>
-                                <div>[MODIFY] [broker.py](file:///D:/AI_Trader/src/execution/broker.py) &middot; added Alpaca REST fallback for crypto daily bars if Yahoo Finance is rate-limited/blocked</div>
-                                <div>[MODIFY] [eod_generator.py](file:///D:/AI_Trader/src/reporting/eod_generator.py) &middot; added database lookup fallback for Gemini API Key and ModelVariant virtual trade report support</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- v1.0.8 -->
-        <div id="v1.0.8" class="changelog-item relative pl-6 md:pl-8 pb-8 group" data-type="feat">
-            <!-- Vertical line segment -->
-            <div class="absolute left-0 top-0 bottom-0 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
-            <!-- Timeline dot -->
-            <div class="absolute -left-[5px] top-2 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
-            
-            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-brand-500/40 transition-all duration-300">
-                <!-- Header -->
-                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
-                    <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.0.8</span>
-                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Decentralized Changelog, Realized P/L, and Self-Healing Deploy Watchdog</h3>
-                    </div>
-                    <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
-                        <i class="far fa-calendar-alt"></i> June 05, 2026
-                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">a276104</span>
-                    </div>
-                </div>
-                
-                <!-- Body -->
-                <div class="p-6 space-y-4">
-                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
-                        This update restructures the platform changelog pipeline, implements client-side transaction realized P/L tracking, customizes the chart branding, and deploys a self-healing remote update watchdog service.
-                    </p>
-                    
-                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
-                        <li><strong>Changelog Restructuring:</strong> Moved the platform version registry from the guide page to a dedicated `/changelog/` page, adding search filters and tech drawers. Added a compact accordion preview to the guide page.</li>
-                        <li><strong>Realized P/L Logging:</strong> Implemented on-the-fly weighted average cost basis tracking to compute realized gains/losses on all virtual sell transactions.</li>
-                        <li><strong>Graph Branding:</strong> Styled Chart.js datasets with signature Sapphire Blue and translucent lavender colors.</li>
-                        <li><strong>Self-Healing Git Watchdog:</strong> Created `update_watcher.py` to poll GitHub, run dependencies line-by-line (skipping mysqlclient on Linux), execute migrations, restart the server, and roll back automatically to the last stable SHA on failure.</li>
-                    </ul>
-
-                    <!-- Expandable details -->
-                    <div class="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
-                        <button onclick="toggleDetails(this)" class="text-[10px] uppercase tracking-widest text-brand-500 hover:text-brand-400 font-bold font-mono flex items-center gap-1 cursor-pointer">
-                            <span>Show Tech Details</span> <i class="fas fa-chevron-down text-[8px]"></i>
-                        </button>
-                        <div class="hidden mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0a0a0c] border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] text-slate-500 dark:text-slate-400 space-y-3 leading-relaxed">
-                            <div><strong class="text-slate-700 dark:text-slate-200">Files Impacted:</strong></div>
-                            <div class="pl-2 space-y-1">
-                                <div>[NEW] [update_watcher.py](file:///D:/AI_Trader/update_watcher.py) &middot; created auto-updater watchdog script</div>
-                                <div>[MODIFY] [views.py](file:///D:/AI_Trader/control_panel/views.py) &middot; added `changelog_view` controller and on-the-fly P/L calculator</div>
-                                <div>[MODIFY] [urls.py](file:///D:/AI_Trader/control_panel/urls.py) &middot; registered route for dedicated changelog page</div>
-                                <div>[MODIFY] [base.html](file:///D:/AI_Trader/templates/base.html) &middot; added Update History link to sidebar</div>
-                                <div>[MODIFY] [guide.html](file:///D:/AI_Trader/templates/guide.html) &middot; refactored history section into compact native details accordion</div>
-                                <div>[MODIFY] [variant_details.html](file:///D:/AI_Trader/templates/variant_details.html) &middot; added P/L table column and set brand sapphire graph colors</div>
-                                <div>[MODIFY] [oracle_deployment.md](file:///D:/AI_Trader/oracle_deployment.md) &middot; added auto-updater service config guide</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- v1.0.7 -->
-        <div id="v1.0.7" class="changelog-item relative pl-6 md:pl-8 pb-8 group" data-type="feat">
-            <!-- Vertical line segment -->
-            <div class="absolute left-0 top-0 bottom-0 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
-            <!-- Timeline dot -->
-            <div class="absolute -left-[5px] top-2 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
-            
-            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-brand-500/40 transition-all duration-300">
-                <!-- Header -->
-                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
-                    <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.0.7</span>
-                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Real-time Metrics, Paginated Ledger, &amp; Smart Promotion Alerts</h3>
-                    </div>
-                    <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
-                        <i class="far fa-calendar-alt"></i> June 05, 2026
-                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">6905fc5</span>
-                    </div>
-                </div>
-                
-                <!-- Body -->
-                <div class="p-6 space-y-4">
-                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
-                        This update delivers real-time telemetry rendering and automatic browser notifications. It introduces dynamic metrics updates for variants, paginated trade tables, and marker overlays on Chart.js.
-                    </p>
-                    
-                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
-                        <li><strong>Real-time Polling:</strong> Added `/api/evolution/variants/<id>/metrics/` endpoint returning variant stats, trades count, and chart data without reloading.</li>
-                        <li><strong>Paginator Integration:</strong> Slices variant trades to a neat list of 10 rows per page client-side.</li>
-                        <li><strong>Annotated Charts:</strong> Plots scatter points on the Chart.js equity line representing buy (green) and sell (amber/red) executions.</li>
-                        <li><strong>Primary/Secondary Actions Grouping:</strong> Consolidated the clutter of variant action buttons into a smart Actions Dropdown menu (Restart, Delete), keeping Promote and Reject as primary tasks.</li>
-                        <li><strong>Smart Promotion Toasts:</strong> Background checker polls variants in base.html and displays a slide-up toast notification when any variant is ready to promote.</li>
-                    </ul>
-
-                    <!-- Expandable details -->
-                    <div class="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
-                        <button onclick="toggleDetails(this)" class="text-[10px] uppercase tracking-widest text-brand-500 hover:text-brand-400 font-bold font-mono flex items-center gap-1 cursor-pointer">
-                            <span>Show Tech Details</span> <i class="fas fa-chevron-down text-[8px]"></i>
-                        </button>
-                        <div class="hidden mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0a0a0c] border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] text-slate-500 dark:text-slate-400 space-y-3 leading-relaxed">
-                            <div><strong class="text-slate-700 dark:text-slate-200">Files Impacted:</strong></div>
-                            <div class="pl-2 space-y-1">
-                                <div>[MODIFY] [views.py](file:///D:/AI_Trader/control_panel/views.py) &middot; added `variant_metrics_api` endpoint</div>
-                                <div>[MODIFY] [urls.py](file:///D:/AI_Trader/control_panel/urls.py) &middot; added route for metrics API</div>
-                                <div>[MODIFY] [variant_details.html](file:///D:/AI_Trader/templates/variant_details.html) &middot; refactored javascript pollers and layout</div>
-                                <div>[MODIFY] [base.html](file:///D:/AI_Trader/templates/base.html) &middot; injected toast templates and notification checker</div>
-                                <div>[MODIFY] [virtual_paper_engine.py](file:///D:/AI_Trader/src/core/virtual_paper_engine.py) &middot; corrected variant trades count syncing from DB</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- v1.0.6 -->
-        <div id="v1.0.6" class="changelog-item relative pl-6 md:pl-8 pb-8 group" data-type="feat">
-            <!-- Vertical line segment -->
-            <div class="absolute left-0 top-0 bottom-0 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
-            <div class="absolute -left-[5px] top-2 w-3 h-3 rounded-full bg-purple-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
-            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-purple-500/40 transition-all duration-300">
-                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
-                    <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">v1.0.6</span>
-                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Neural Evolution Engine Control &amp; Logs Portability</h3>
-                    </div>
-                    <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
-                        <i class="far fa-calendar-alt"></i> June 05, 2026
-                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">1213b97</span>
-                    </div>
-                </div>
-                <div class="p-6 space-y-4">
-                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
-                        This update resolves controls for neural evolution variants and streamlines logs portability.
-                    </p>
-                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
-                        <li><strong>Restart Scope Expansion:</strong> Adjusted visibility for "Restart Engine" to appear on all active/failed statuses (TESTING, PENDING, FAILED, QUEUED) rather than FAILED only.</li>
-                        <li><strong>Clipboard Logs Copy:</strong> Injected a copy log button/icon in the header container of the virtual logs terminal with status-altering visual feedback.</li>
-                    </ul>
-                    <div class="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
-                        <button onclick="toggleDetails(this)" class="text-[10px] uppercase tracking-widest text-brand-500 hover:text-brand-400 font-bold font-mono flex items-center gap-1 cursor-pointer">
-                            <span>Show Tech Details</span> <i class="fas fa-chevron-down text-[8px]"></i>
-                        </button>
-                        <div class="hidden mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0a0a0c] border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] text-slate-500 dark:text-slate-400 space-y-3 leading-relaxed">
-                            <div><strong class="text-slate-700 dark:text-slate-200">Files Impacted:</strong></div>
-                            <div class="pl-2 space-y-1">
-                                <div>[MODIFY] [variant_details.html](file:///D:/AI_Trader/templates/variant_details.html) &middot; modified buttons template and added copy JS logs handler</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- v1.0.5 -->
-        <div id="v1.0.5" class="changelog-item relative pl-6 md:pl-8 pb-8 group" data-type="fix">
-            <!-- Vertical line segment -->
-            <div class="absolute left-0 top-0 bottom-0 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
-            <div class="absolute -left-[5px] top-2 w-3 h-3 rounded-full bg-amber-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
-            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-amber-500/40 transition-all duration-300">
-                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
-                    <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">v1.0.5</span>
-                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Virtual Engine Normalization Alignment</h3>
-                    </div>
-                    <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
-                        <i class="far fa-calendar-alt"></i> June 05, 2026
-                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">44174a3</span>
-                    </div>
-                </div>
-                <div class="p-6 space-y-4">
-                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
-                        This update patches feature tensor scaling to prevent model signal saturation.
-                    </p>
-                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
-                        <li><strong>Z-Score Normalization:</strong> Added sliding window mean and variance scaling to `_build_state_tensor` inside `virtual_paper_engine.py`. This aligns variant feature scaling with the production running node PPO environment.</li>
-                    </ul>
-                    <div class="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
-                        <button onclick="toggleDetails(this)" class="text-[10px] uppercase tracking-widest text-brand-500 hover:text-brand-400 font-bold font-mono flex items-center gap-1 cursor-pointer">
-                            <span>Show Tech Details</span> <i class="fas fa-chevron-down text-[8px]"></i>
-                        </button>
-                        <div class="hidden mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0a0a0c] border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] text-slate-500 dark:text-slate-400 space-y-3 leading-relaxed">
-                            <div><strong class="text-slate-700 dark:text-slate-200">Files Impacted:</strong></div>
-                            <div class="pl-2 space-y-1">
-                                <div>[MODIFY] [virtual_paper_engine.py](file:///D:/AI_Trader/src/core/virtual_paper_engine.py) &middot; added Z-score normalization scaling to state building function</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- v1.0.4 -->
-        <div id="v1.0.4" class="changelog-item relative pl-6 md:pl-8 pb-8 group" data-type="feat">
-            <!-- Vertical line segment -->
-            <div class="absolute left-0 top-0 bottom-0 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
-            <div class="absolute -left-[5px] top-2 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
-            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-brand-500/40 transition-all duration-300">
-                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
-                    <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.0.4</span>
-                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Self-Healing Loops &amp; Zombie Process Eviction</h3>
-                    </div>
-                    <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
-                        <i class="far fa-calendar-alt"></i> June 04, 2026
-                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">cfb9236</span>
-                    </div>
-                </div>
-                <div class="p-6 space-y-4">
-                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
-                        This update connects runtime exceptions to the mutation engine for automatic healing and patches resource leaks.
-                    </p>
-                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
-                        <li><strong>Traceback Triage:</strong> The cognitive code rewriter mutator now parses exception tracebacks from failed variants and instructs Gemini to correct them in subsequent iterations.</li>
-                        <li><strong>Zombie Process Release:</strong> Evicting or rejecting a variant terminates its physical process PID immediately, freeing CPU and database locks.</li>
-                        <li><strong>Restart Support:</strong> Added a "Restart Engine" button on failed variants.</li>
-                        <li><strong>Glassmorphic Buttons:</strong> Upgraded solid actions buttons with glowing translucent borders.</li>
-                    </ul>
-                    <div class="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
-                        <button onclick="toggleDetails(this)" class="text-[10px] uppercase tracking-widest text-brand-500 hover:text-brand-400 font-bold font-mono flex items-center gap-1 cursor-pointer">
-                            <span>Show Tech Details</span> <i class="fas fa-chevron-down text-[8px]"></i>
-                        </button>
-                        <div class="hidden mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0a0a0c] border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] text-slate-500 dark:text-slate-400 space-y-3 leading-relaxed">
-                            <div><strong class="text-slate-700 dark:text-slate-200">Files Impacted:</strong></div>
-                            <div class="pl-2 space-y-1">
-                                <div>[MODIFY] [code_rewriter.py](file:///D:/AI_Trader/src/core/code_rewriter.py) &middot; added spawn guard and traceback parser</div>
-                                <div>[MODIFY] [views.py](file:///D:/AI_Trader/control_panel/views.py) &middot; added `evolution_restart_api` view and PID kill logic</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- v1.0.3 -->
-        <div id="v1.0.3" class="changelog-item relative pl-6 md:pl-8 pb-8 group" data-type="perf">
-            <!-- Vertical line segment -->
-            <div class="absolute left-0 top-0 bottom-0 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
-            <div class="absolute -left-[5px] top-2 w-3 h-3 rounded-full bg-cyan-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
-            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-cyan-500/40 transition-all duration-300">
-                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
-                    <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">v1.0.3</span>
-                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">UI Consolidation &amp; Deletion APIs</h3>
-                    </div>
-                    <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
-                        <i class="far fa-calendar-alt"></i> June 04, 2026
-                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">338775e</span>
-                    </div>
-                </div>
-                <div class="p-6 space-y-4">
-                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
-                        This update optimizes layout heights and exposes variant deletion controllers.
-                    </p>
-                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
-                        <li><strong>Tabbed Layout Panel:</strong> Combined the vertical mutation reasoning blocks and git code diff into a compact, scrollable "Virtual Code History" tabbed dashboard.</li>
-                        <li><strong>Delete APIs:</strong> Registered backend routes to drop ModelVariant records, clear virtual trades, and clean up physical log outputs from disk.</li>
-                    </ul>
-                    <div class="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
-                        <button onclick="toggleDetails(this)" class="text-[10px] uppercase tracking-widest text-brand-500 hover:text-brand-400 font-bold font-mono flex items-center gap-1 cursor-pointer">
-                            <span>Show Tech Details</span> <i class="fas fa-chevron-down text-[8px]"></i>
-                        </button>
-                        <div class="hidden mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0a0a0c] border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] text-slate-500 dark:text-slate-400 space-y-3 leading-relaxed">
-                            <div><strong class="text-slate-700 dark:text-slate-200">Files Impacted:</strong></div>
-                            <div class="pl-2 space-y-1">
-                                <div>[MODIFY] [views.py](file:///D:/AI_Trader/control_panel/views.py) &middot; added `evolution_delete_api` view</div>
-                                <div>[MODIFY] [variant_details.html](file:///D:/AI_Trader/templates/variant_details.html) &middot; added reasoning/diff tabs layout and delete forms</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- v1.0.2 -->
-        <div id="v1.0.2" class="changelog-item relative pl-6 md:pl-8 pb-8 group" data-type="fix">
-            <!-- Vertical line segment -->
-            <div class="absolute left-0 top-0 bottom-0 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
-            <div class="absolute -left-[5px] top-2 w-3 h-3 rounded-full bg-amber-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
-            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-amber-500/40 transition-all duration-300">
-                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
-                    <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">v1.0.2</span>
-                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Asynchronous Context Lock Remediation</h3>
-                    </div>
-                    <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
-                        <i class="far fa-calendar-alt"></i> June 04, 2026
-                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">338775e</span>
-                    </div>
-                </div>
-                <div class="p-6 space-y-4">
-                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
-                        This update patches thread-safety issues during virtual database transactions.
-                    </p>
-                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
-                        <li><strong>Async Lock Prevention:</strong> Resolved `SynchronousOnlyOperation` exception inside the Virtual Paper Engine. Wrapped Django ORM writes, updates, and trade snapshots inside thread-isolated pools using `asyncio.to_thread`.</li>
-                    </ul>
-                    <div class="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
-                        <button onclick="toggleDetails(this)" class="text-[10px] uppercase tracking-widest text-brand-500 hover:text-brand-400 font-bold font-mono flex items-center gap-1 cursor-pointer">
-                            <span>Show Tech Details</span> <i class="fas fa-chevron-down text-[8px]"></i>
-                        </button>
-                        <div class="hidden mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0a0a0c] border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] text-slate-500 dark:text-slate-400 space-y-3 leading-relaxed">
-                            <div><strong class="text-slate-700 dark:text-slate-200">Files Impacted:</strong></div>
-                            <div class="pl-2 space-y-1">
-                                <div>[MODIFY] [virtual_paper_engine.py](file:///D:/AI_Trader/src/core/virtual_paper_engine.py) &middot; wrapped Django ORM updates in asyncio threads</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- v1.0.1 -->
-        <div id="v1.0.1" class="changelog-item relative pl-6 md:pl-8 pb-8 group" data-type="feat">
-            <!-- Vertical line segment -->
-            <div class="absolute left-0 top-0 bottom-0 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
-            <div class="absolute -left-[5px] top-2 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
-            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-brand-500/40 transition-all duration-300">
-                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
-                    <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.0.1</span>
-                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Variant Deep-Dive Analytics</h3>
-                    </div>
-                    <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
-                        <i class="far fa-calendar-alt"></i> June 04, 2026
-                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">338775e</span>
-                    </div>
-                </div>
-                <div class="p-6 space-y-4">
-                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
-                        This update creates deep-dive reporting tools for mutated variant agents.
-                    </p>
-                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
-                        <li><strong>Equity Curve Plotting:</strong> Integrated simulated equity curves using Chart.js on the variant details page.</li>
-                        <li><strong>Chronological Trade Ledger:</strong> Built clean HTML tables displaying virtual trades.</li>
-                        <li><strong>Log Streaming:</strong> Integrated terminal tail streamer polling variant log files via HTTP requests.</li>
-                    </ul>
-                    <div class="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
-                        <button onclick="toggleDetails(this)" class="text-[10px] uppercase tracking-widest text-brand-500 hover:text-brand-400 font-bold font-mono flex items-center gap-1 cursor-pointer">
-                            <span>Show Tech Details</span> <i class="fas fa-chevron-down text-[8px]"></i>
-                        </button>
-                        <div class="hidden mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0a0a0c] border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] text-slate-500 dark:text-slate-400 space-y-3 leading-relaxed">
-                            <div><strong class="text-slate-700 dark:text-slate-200">Files Impacted:</strong></div>
-                            <div class="pl-2 space-y-1">
-                                <div>[NEW] [variant_details.html](file:///D:/AI_Trader/templates/variant_details.html) &middot; created the dedicated details template</div>
-                                <div>[MODIFY] [views.py](file:///D:/AI_Trader/control_panel/views.py) &middot; created `variant_details_view`</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- v1.0.0 -->
-        <div id="v1.0.0" class="changelog-item relative pl-6 md:pl-8 group" data-type="perf">
-            <!-- Vertical line segment -->
+            {% elif forloop.last %}
             <div class="absolute left-0 top-0 h-2 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
-            <div class="absolute -left-[5px] top-2 w-3 h-3 rounded-full bg-slate-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
-            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-slate-500/40 transition-all duration-300">
+            {% else %}
+            <div class="absolute left-0 top-0 bottom-0 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
+            {% endif %}
+            
+            <!-- Timeline dot -->
+            <div class="absolute -left-[5px] top-2 w-3 h-3 rounded-full {{ commit.dot_color|default:"bg-brand-500" }} border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
+            
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-brand-500/40 transition-all duration-300">
+                <!-- Header -->
                 <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
                     <div class="flex items-center gap-3">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-500/10 text-slate-500 border border-slate-500/20">v1.0.0</span>
-                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Initial Launch</h3>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold {{ commit.badge_color|default:"bg-brand-500/10 text-brand-500 border-brand-500/20" }}">
+                            {% if commit.version %}{{ commit.version }}{% else %}{{ commit.short_hash }}{% endif %}
+                        </span>
+                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">{{ commit.subject }}</h3>
                     </div>
                     <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
-                        <i class="far fa-calendar-alt"></i> May 2026
+                        <i class="far fa-calendar-alt"></i> {{ commit.date }}
+                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">{% if commit.version %}{{ commit.version }}-dev{% else %}{{ commit.short_hash }}{% endif %}</span>
                     </div>
                 </div>
+                
+                <!-- Body -->
                 <div class="p-6 space-y-4">
+                    {% if commit.intro_text %}
                     <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
-                        QuantTrader Neural Evolution node core release.
+                        {{ commit.intro_text }}
                     </p>
+                    {% endif %}
+                    
+                    {% if commit.bullet_lines %}
                     <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
-                        <li>Standard PPO agent architecture, self-mutation loop engine, Alpaca streaming sockets, and standard dashboard.</li>
+                        {% for bullet in commit.bullet_lines %}
+                        <li>{{ bullet }}</li>
+                        {% endfor %}
                     </ul>
+                    {% endif %}
+
+                    {% if commit.impacted_files %}
+                    <!-- Expandable details -->
+                    <div class="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
+                        <button onclick="toggleDetails(this)" class="text-[10px] uppercase tracking-widest text-brand-500 hover:text-brand-400 font-bold font-mono flex items-center gap-1 cursor-pointer">
+                            <span>Show Tech Details</span> <i class="fas fa-chevron-down text-[8px]"></i>
+                        </button>
+                        <div class="hidden mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0a0a0c] border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] text-slate-500 dark:text-slate-400 space-y-3 leading-relaxed">
+                            <div><strong class="text-slate-700 dark:text-slate-200">Files Impacted:</strong></div>
+                            <div class="pl-2 space-y-1">
+                                {% for file in commit.impacted_files %}
+                                <div>[{{ file.status }}] <a href="{{ file.uri }}" class="text-brand-500 hover:text-brand-400 hover:underline">{{ file.basename }}</a> &middot; {{ file.path }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
+        {% empty %}
+        <div class="p-8 text-center text-xs text-slate-500 font-mono">
+            No git commits found in the repository.
+        </div>
+        {% endfor %}
         </div> <!-- Close Left Column: Timeline Entries -->
 
         <!-- Right Column: Release Color Codes Legend -->
@@ -764,6 +158,7 @@
             </div>
         </div>
     </div>
+</div>
 {% endblock page_content %}
 
 {% block extra_javascript %}

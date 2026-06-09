@@ -673,9 +673,157 @@ def dashboard_view(request):
 def onboarding_view(request):
     return render(request, 'guide.html', _build_dashboard_context())
 
+def _get_git_changelog():
+    import subprocess
+    from pathlib import Path
+    from django.conf import settings
+    import logging
+    import re
+    
+    logger = logging.getLogger("rl_trading_backend")
+    commits = []
+    try:
+        repo_dir = str(Path(settings.BASE_DIR))
+        # Run a single git log with --name-status to capture both metadata and files impacted
+        res = subprocess.run(
+            ["git", "log", "-n", "30", "--name-status", "--pretty=format:%H|%ad|%s|%b|||", "--date=format:%B %d, %Y"],
+            cwd=repo_dir, capture_output=True, text=True, encoding='utf-8', errors='ignore'
+        )
+        if res.returncode == 0:
+            raw_text = res.stdout
+            
+            # Find all commit blocks using the 40-char SHA header pattern
+            pattern = re.compile(r'^([0-9a-fA-F]{40})\|', re.MULTILINE)
+            matches = list(pattern.finditer(raw_text))
+            
+            for i in range(len(matches)):
+                start = matches[i].start()
+                end = matches[i+1].start() if i + 1 < len(matches) else len(raw_text)
+                block = raw_text[start:end].strip()
+                if not block:
+                    continue
+                
+                # Split metadata from the file status list using the ||| delimiter
+                parts_split = block.split('|||', 1)
+                metadata_str = parts_split[0]
+                files_str = parts_split[1] if len(parts_split) > 1 else ''
+                
+                parts = metadata_str.split('|', 3)
+                if len(parts) >= 3:
+                    c_hash = parts[0].strip()
+                    c_date = parts[1].strip()
+                    c_subj = parts[2].strip()
+                    c_body = parts[3].strip() if len(parts) > 3 else ''
+                    
+                    subj_lower = c_subj.lower()
+                    
+                    # Extract version from subject/body if present
+                    version_match = re.search(r'\bv\d+\.\d+(?:\.\d+)?(?:-patch\d+)?\b', c_subj + ' ' + c_body)
+                    version = version_match.group(0) if version_match else None
+                    
+                    # Map colors, types, and dot classes based on standard release classifications
+                    if 'fix' in subj_lower or 'bug' in subj_lower:
+                        c_type = 'fix'
+                        badge_label = 'Fix'
+                        badge_color = 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                        dot_color = 'bg-amber-500'
+                    elif any(x in subj_lower for x in ('perf', 'opt', 'speed', 'clean', 'refactor', 'style', 'ui', 'layout', 'facelift', 'css')):
+                        c_type = 'perf'
+                        badge_label = 'Performance'
+                        if any(x in subj_lower for x in ('style', 'ui', 'layout', 'css', 'facelift')):
+                            badge_label = 'UI & Performance'
+                        badge_color = 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
+                        dot_color = 'bg-cyan-500'
+                    elif any(x in subj_lower for x in ('mutation', '🧬', 'promoted', 'variant', 'evolution')):
+                        c_type = 'feat'
+                        badge_label = '🧬 Mutation'
+                        badge_color = 'bg-purple-500/10 text-purple-500 border-purple-500/20'
+                        dot_color = 'bg-purple-500'
+                    else:
+                        c_type = 'feat'
+                        badge_label = 'Feature'
+                        badge_color = 'bg-brand-500/10 text-brand-500 border-brand-500/20'
+                        dot_color = 'bg-brand-500'
+                        
+                    # Separate intro text from bullet points in commit body
+                    intro_lines = []
+                    bullet_lines = []
+                    for line in c_body.split('\n'):
+                        stripped = line.strip()
+                        if not stripped:
+                            continue
+                        if stripped.startswith('-') or stripped.startswith('*'):
+                            bullet_lines.append(stripped.lstrip('-').lstrip('*').strip())
+                        else:
+                            if not bullet_lines:
+                                intro_lines.append(stripped)
+                            else:
+                                bullet_lines.append(stripped)
+                    
+                    intro_text = ' '.join(intro_lines)
+                    
+                    # Clean up conventional commit prefixes
+                    clean_subj = c_subj
+                    if ':' in c_subj:
+                        prefix, rest = c_subj.split(':', 1)
+                        if any(x in prefix.lower() for x in ('feat', 'fix', 'refactor', 'style', 'perf', 'docs', 'chore', 'test', 'mutation')):
+                            clean_subj = rest.strip()
+                            
+                    # Parse modified files
+                    impacted_files = []
+                    for line in files_str.split('\n'):
+                        line = line.strip()
+                        if not line:
+                            continue
+                        file_parts = line.split(None, 1)
+                        if len(file_parts) == 2:
+                            status_char = file_parts[0].strip()
+                            file_path = file_parts[1].strip()
+                            
+                            status_word = 'MODIFY'
+                            if status_char == 'A':
+                                status_word = 'NEW'
+                            elif status_char == 'D':
+                                status_word = 'DELETE'
+                                
+                            basename = Path(file_path).name
+                            abs_uri = f"file:///d:/AI_Trader/{file_path.replace('\\', '/')}"
+                            
+                            impacted_files.append({
+                                'status': status_word,
+                                'path': file_path,
+                                'basename': basename,
+                                'uri': abs_uri
+                            })
+                            
+                    commits.append({
+                        'hash': c_hash,
+                        'short_hash': c_hash[:7],
+                        'date': c_date,
+                        'subject': clean_subj,
+                        'raw_subject': c_subj,
+                        'intro_text': intro_text,
+                        'bullet_lines': bullet_lines,
+                        'body': c_body,
+                        'type': c_type,
+                        'badge_label': badge_label,
+                        'badge_color': badge_color,
+                        'dot_color': dot_color,
+                        'version': version,
+                        'impacted_files': impacted_files
+                    })
+    except Exception as e:
+        logger.error(f"Failed to fetch git log: {e}")
+        
+    return commits
+
+
+
 @login_required
 def changelog_view(request):
-    return render(request, 'changelog.html', _build_dashboard_context())
+    context = _build_dashboard_context()
+    context['git_commits'] = _get_git_changelog()
+    return render(request, 'changelog.html', context)
 
 
 @login_required
