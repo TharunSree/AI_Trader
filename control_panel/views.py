@@ -734,45 +734,82 @@ def _get_git_changelog():
     version_groups = []
     try:
         repo_dir = str(Path(settings.BASE_DIR))
-        # Run a single git log with --name-status to capture both metadata and files impacted (extract 250 commits to reach v1.0.0)
-        res = subprocess.run(
-            ["git", "log", "-n", "250", "--name-status", "--pretty=format:%H|%ad|%s|%b|||", "--date=format:%B %d, %Y"],
+        
+        # 1. Fetch recent commits with files impacted (capped at 300 commits for high performance)
+        recent_files = {} # hash -> list of file dicts
+        res_recent = subprocess.run(
+            ["git", "log", "-n", "300", "--name-status", "--pretty=format:%H|||", "--date=format:%B %d, %Y"],
             cwd=repo_dir, capture_output=True, text=True, encoding='utf-8', errors='ignore'
         )
-        if res.returncode == 0:
-            raw_text = res.stdout
-            
-            # Find all commit blocks using the 40-char SHA header pattern
-            pattern = re.compile(r'^([0-9a-fA-F]{40})\|', re.MULTILINE)
-            matches = list(pattern.finditer(raw_text))
-            
-            commits_raw = []
+        if res_recent.returncode == 0:
+            pattern = re.compile(r'^([0-9a-fA-F]{40})\|\|\|', re.MULTILINE)
+            matches = list(pattern.finditer(res_recent.stdout))
             for i in range(len(matches)):
                 start = matches[i].start()
-                end = matches[i+1].start() if i + 1 < len(matches) else len(raw_text)
-                block = raw_text[start:end].strip()
+                end = matches[i+1].start() if i + 1 < len(matches) else len(res_recent.stdout)
+                block = res_recent.stdout[start:end].strip()
                 if not block:
                     continue
-                
-                # Split metadata from the file status list using the ||| delimiter
                 parts_split = block.split('|||', 1)
-                metadata_str = parts_split[0]
+                c_hash = parts_split[0].strip()
                 files_str = parts_split[1] if len(parts_split) > 1 else ''
                 
-                parts = metadata_str.split('|', 3)
+                impacted_files = []
+                for line in files_str.split('\n'):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    file_parts = line.split(None, 1)
+                    if len(file_parts) == 2:
+                        status_char = file_parts[0].strip()
+                        file_path = file_parts[1].strip()
+                        
+                        status_word = 'MODIFY'
+                        if status_char == 'A':
+                            status_word = 'NEW'
+                        elif status_char == 'D':
+                            status_word = 'DELETE'
+                            
+                        basename = Path(file_path).name
+                        abs_uri = f"file:///d:/AI_Trader/{file_path.replace('\\', '/')}"
+                        
+                        impacted_files.append({
+                            'status': status_word,
+                            'path': file_path,
+                            'basename': basename,
+                            'uri': abs_uri
+                        })
+                recent_files[c_hash] = impacted_files
+                
+        # 2. Fetch ALL commits metadata (no files list) - extremely fast!
+        res_all = subprocess.run(
+            ["git", "log", "--pretty=format:%H|%ad|%s|%b|||", "--date=format:%B %d, %Y"],
+            cwd=repo_dir, capture_output=True, text=True, encoding='utf-8', errors='ignore'
+        )
+        if res_all.returncode == 0:
+            raw_text = res_all.stdout
+            raw_commits = raw_text.split('|||\n')
+            
+            commits_raw = []
+            for rc in raw_commits:
+                if not rc.strip():
+                    continue
+                parts = rc.split('|', 3)
                 if len(parts) >= 3:
                     c_hash = parts[0].strip()
                     c_date = parts[1].strip()
                     c_subj = parts[2].strip()
                     c_body = parts[3].strip() if len(parts) > 3 else ''
                     
+                    if c_body.endswith('|||'):
+                        c_body = c_body[:-3].strip()
+                        
                     subj_lower = c_subj.lower()
                     
-                    # Extract version from subject/body if present
+                    # Extract version
                     version_match = re.search(r'\bv\d+\.\d+(?:\.\d+)?(?:-patch\d+)?\b', c_subj + ' ' + c_body)
                     version = version_match.group(0) if version_match else None
                     
-                    # Map colors, types, and dot classes based on standard classifications
                     if 'fix' in subj_lower or 'bug' in subj_lower:
                         c_type = 'fix'
                         badge_label = 'Fix'
@@ -796,10 +833,8 @@ def _get_git_changelog():
                         badge_color = 'bg-brand-500/10 text-brand-500 border-brand-500/20'
                         dot_color = 'bg-brand-500'
                         
-                    # Clean subject and extract extra bullets dynamically
                     clean_subj, extra_bullets = _clean_subject_and_build_bullets(c_subj)
                     
-                    # Separate intro text from bullet points in commit body
                     intro_lines = []
                     body_bullets = []
                     for line in c_body.split('\n'):
@@ -814,37 +849,12 @@ def _get_git_changelog():
                             else:
                                 body_bullets.append(stripped)
                                 
-                    # Combine extra bullets from subject with body bullets
                     bullet_lines = [b for b in extra_bullets if b] + body_bullets
                     intro_text = ' '.join(intro_lines)
                     
-                    # Parse modified files
-                    impacted_files = []
-                    for line in files_str.split('\n'):
-                        line = line.strip()
-                        if not line:
-                            continue
-                        file_parts = line.split(None, 1)
-                        if len(file_parts) == 2:
-                            status_char = file_parts[0].strip()
-                            file_path = file_parts[1].strip()
-                            
-                            status_word = 'MODIFY'
-                            if status_char == 'A':
-                                status_word = 'NEW'
-                            elif status_char == 'D':
-                                status_word = 'DELETE'
-                                
-                            basename = Path(file_path).name
-                            abs_uri = f"file:///d:/AI_Trader/{file_path.replace('\\', '/')}"
-                            
-                            impacted_files.append({
-                                'status': status_word,
-                                'path': file_path,
-                                'basename': basename,
-                                'uri': abs_uri
-                            })
-                            
+                    # Look up impacted files from the recent files dict
+                    impacted_files = recent_files.get(c_hash, [])
+                    
                     commits_raw.append({
                         'hash': c_hash,
                         'short_hash': c_hash[:7],
@@ -875,8 +885,6 @@ def _get_git_changelog():
             
             for c in commits_raw:
                 current_group['commits'].append(c)
-                
-                # Check if this commit marks the version boundary
                 if c['version']:
                     current_group['version'] = c['version']
                     current_group['date'] = c['date']
