@@ -723,8 +723,6 @@ def _clean_subject_and_build_bullets(subject):
         subject = subject[0].upper() + subject[1:]
         
     return subject, bullets
-
-
 def _get_git_changelog():
     import subprocess
     from pathlib import Path
@@ -733,12 +731,12 @@ def _get_git_changelog():
     import re
     
     logger = logging.getLogger("rl_trading_backend")
-    commits = []
+    version_groups = []
     try:
         repo_dir = str(Path(settings.BASE_DIR))
-        # Run a single git log with --name-status to capture both metadata and files impacted (extract 120 commits)
+        # Run a single git log with --name-status to capture both metadata and files impacted (extract 250 commits to reach v1.0.0)
         res = subprocess.run(
-            ["git", "log", "-n", "120", "--name-status", "--pretty=format:%H|%ad|%s|%b|||", "--date=format:%B %d, %Y"],
+            ["git", "log", "-n", "250", "--name-status", "--pretty=format:%H|%ad|%s|%b|||", "--date=format:%B %d, %Y"],
             cwd=repo_dir, capture_output=True, text=True, encoding='utf-8', errors='ignore'
         )
         if res.returncode == 0:
@@ -748,6 +746,7 @@ def _get_git_changelog():
             pattern = re.compile(r'^([0-9a-fA-F]{40})\|', re.MULTILINE)
             matches = list(pattern.finditer(raw_text))
             
+            commits_raw = []
             for i in range(len(matches)):
                 start = matches[i].start()
                 end = matches[i+1].start() if i + 1 < len(matches) else len(raw_text)
@@ -773,7 +772,7 @@ def _get_git_changelog():
                     version_match = re.search(r'\bv\d+\.\d+(?:\.\d+)?(?:-patch\d+)?\b', c_subj + ' ' + c_body)
                     version = version_match.group(0) if version_match else None
                     
-                    # Map colors, types, and dot classes based on standard release classifications
+                    # Map colors, types, and dot classes based on standard classifications
                     if 'fix' in subj_lower or 'bug' in subj_lower:
                         c_type = 'fix'
                         badge_label = 'Fix'
@@ -846,7 +845,7 @@ def _get_git_changelog():
                                 'uri': abs_uri
                             })
                             
-                    commits.append({
+                    commits_raw.append({
                         'hash': c_hash,
                         'short_hash': c_hash[:7],
                         'date': c_date,
@@ -862,17 +861,127 @@ def _get_git_changelog():
                         'version': version,
                         'impacted_files': impacted_files
                     })
+                    
+            # Group commits reverse-chronologically by release boundary
+            current_group = {
+                'version': None,
+                'date': None,
+                'subject': None,
+                'commits': [],
+                'type': 'feat',
+                'badge_color': None,
+                'dot_color': None,
+            }
+            
+            for c in commits_raw:
+                current_group['commits'].append(c)
+                
+                # Check if this commit marks the version boundary
+                if c['version']:
+                    current_group['version'] = c['version']
+                    current_group['date'] = c['date']
+                    current_group['subject'] = c['subject']
+                    current_group['type'] = c['type']
+                    current_group['badge_color'] = c['badge_color']
+                    current_group['dot_color'] = c['dot_color']
+                    
+                    version_groups.append(current_group)
+                    
+                    current_group = {
+                        'version': None,
+                        'date': None,
+                        'subject': None,
+                        'commits': [],
+                        'type': 'feat',
+                        'badge_color': None,
+                        'dot_color': None,
+                    }
+            
+            # Append remaining dev commits at the top if any
+            if current_group['commits']:
+                next_version = 'vNext-dev'
+                for g in version_groups:
+                    if g['version']:
+                        next_version = f"{g['version']}-dev"
+                        break
+                        
+                current_group['version'] = next_version
+                current_group['date'] = current_group['commits'][0]['date']
+                current_group['subject'] = current_group['commits'][0]['subject']
+                current_group['type'] = current_group['commits'][0]['type']
+                current_group['badge_color'] = current_group['commits'][0]['badge_color']
+                current_group['dot_color'] = current_group['commits'][0]['dot_color']
+                
+                version_groups.insert(0, current_group)
+                
+            # Merge details across each group
+            for g in version_groups:
+                merged_bullets = []
+                seen_bullets = set()
+                merged_files = {}
+                intro_texts = []
+                
+                for c in g['commits']:
+                    if c['intro_text']:
+                        intro_texts.append(c['intro_text'])
+                    for b in c['bullet_lines']:
+                        if b.lower() not in seen_bullets:
+                            merged_bullets.append(b)
+                            seen_bullets.add(b.lower())
+                    for f in c['impacted_files']:
+                        path = f['path']
+                        if path not in merged_files:
+                            merged_files[path] = f
+                        else:
+                            if f['status'] == 'NEW':
+                                merged_files[path]['status'] = 'NEW'
+                            elif f['status'] == 'DELETE':
+                                merged_files[path]['status'] = 'DELETE'
+                                
+                g['intro_text'] = ' '.join(intro_texts) if intro_texts else ''
+                g['bullet_lines'] = merged_bullets
+                g['impacted_files'] = list(merged_files.values())
+                g['short_hash'] = g['commits'][0]['short_hash'] if g['commits'] else 'dev'
+                
+                # Determine major version number
+                major = 1
+                if g['version']:
+                    v_match = re.search(r'v(\d+)\.', g['version'])
+                    if v_match:
+                        major = int(v_match.group(1))
+                g['major_version'] = major
+                
     except Exception as e:
         logger.error(f"Failed to fetch git log: {e}")
         
-    return commits
-
+    return version_groups
 
 
 @login_required
 def changelog_view(request):
     context = _build_dashboard_context()
-    context['git_commits'] = _get_git_changelog()
+    release_groups = _get_git_changelog()
+    
+    # Identify the highest major version present
+    max_major = 1
+    for r in release_groups:
+        if r['major_version'] > max_major:
+            max_major = r['major_version']
+            
+    active_releases = []
+    legacy_releases = []
+    
+    for r in release_groups:
+        # If version has a major version <= 1 and there are versions > 1, collapse them into legacy
+        if max_major > 1 and r['major_version'] <= 1:
+            legacy_releases.append(r)
+        else:
+            active_releases.append(r)
+            
+    context['active_releases'] = active_releases
+    context['legacy_releases'] = legacy_releases
+    context['has_legacy'] = len(legacy_releases) > 0
+    
     return render(request, 'changelog.html', context)
 
 

@@ -47,12 +47,12 @@
         <!-- Left Column: Timeline Entries -->
         <div class="relative ml-4 md:ml-6">
         
-        {% for commit in git_commits %}
+        {% for commit in active_releases %}
         <div id="{% if commit.version %}{{ commit.version }}{% else %}{{ commit.short_hash }}{% endif %}" class="changelog-item relative pl-6 md:pl-8 pb-8 group" data-type="{{ commit.type }}">
             <!-- Vertical line segment -->
             {% if forloop.first %}
             <div class="absolute left-0 top-2 bottom-0 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
-            {% elif forloop.last %}
+            {% elif forloop.last and not has_legacy %}
             <div class="absolute left-0 top-0 h-2 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
             {% else %}
             <div class="absolute left-0 top-0 bottom-0 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
@@ -86,7 +86,7 @@
                     {% endif %}
                     
                     {% if commit.bullet_lines %}
-                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
+                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed font-mono">
                         {% for bullet in commit.bullet_lines %}
                         <li>{{ bullet }}</li>
                         {% endfor %}
@@ -115,9 +115,96 @@
         </div>
         {% empty %}
         <div class="p-8 text-center text-xs text-slate-500 font-mono">
-            No git commits found in the repository.
+            No active releases found in the repository.
         </div>
         {% endfor %}
+
+        {% if has_legacy %}
+        <!-- Legacy v1.x Updates Dropdown Section -->
+        <div class="changelog-item relative pl-6 md:pl-8 pb-8 group">
+            <!-- Timeline connection line terminating at dot -->
+            <div class="absolute left-0 top-0 h-2 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
+            <!-- Timeline dot -->
+            <div class="absolute -left-[5px] top-2 w-3 h-3 rounded-full bg-slate-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
+            
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-brand-500/40 transition-all duration-300">
+                <!-- Accordion Header -->
+                <button onclick="toggleLegacyUpdates()" class="w-full px-6 py-4 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors text-left cursor-pointer outline-none">
+                    <div class="flex items-center gap-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-slate-400 border border-slate-700">v1.x updates</span>
+                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Show Legacy Platform Updates (v1.0.0 &ndash; v1.x)</h3>
+                    </div>
+                    <i id="legacy-chevron" class="fas fa-chevron-down text-xs text-slate-400 transition-transform"></i>
+                </button>
+                
+                <!-- Accordion Content -->
+                <div id="legacy-container" class="hidden p-6 border-t border-slate-100 dark:border-slate-800 space-y-8 relative">
+                    <!-- Legacy timeline connecting line -->
+                    <div class="absolute left-10 top-6 bottom-6 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
+                    
+                    {% for commit in legacy_releases %}
+                    <div id="{% if commit.version %}{{ commit.version }}{% else %}{{ commit.short_hash }}{% endif %}" class="changelog-item relative pl-10 pb-8 group" data-type="{{ commit.type }}">
+                        <!-- Timeline dot -->
+                        <div class="absolute left-[35px] top-2 w-3 h-3 rounded-full {{ commit.dot_color|default:"bg-brand-500" }} border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
+                        
+                        <div class="bg-slate-50 dark:bg-[#0a0a0c] border border-slate-200 dark:border-slate-800/80 shadow-sm rounded-2xl overflow-hidden hover:border-brand-500/40 transition-all duration-300">
+                            <!-- Header -->
+                            <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-100/50 dark:bg-slate-950/50">
+                                <div class="flex items-center gap-3">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold {{ commit.badge_color|default:"bg-brand-500/10 text-brand-500 border-brand-500/20" }}">
+                                        {% if commit.version %}{{ commit.version }}{% else %}{{ commit.short_hash }}{% endif %}
+                                    </span>
+                                    <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">{{ commit.subject }}</h3>
+                                </div>
+                                <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
+                                    <i class="far fa-calendar-alt"></i> {{ commit.date }}
+                                    <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">{% if commit.version %}{{ commit.version }}-dev{% else %}{{ commit.short_hash }}{% endif %}</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Body -->
+                            {% if commit.intro_text or commit.bullet_lines or commit.impacted_files %}
+                            <div class="px-6 py-4 {% if commit.intro_text or commit.bullet_lines %}space-y-4{% endif %}">
+                                {% if commit.intro_text %}
+                                <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
+                                    {{ commit.intro_text }}
+                                </p>
+                                {% endif %}
+                                
+                                {% if commit.bullet_lines %}
+                                <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed font-mono font-mono">
+                                    {% for bullet in commit.bullet_lines %}
+                                    <li>{{ bullet }}</li>
+                                    {% endfor %}
+                                </ul>
+                                {% endif %}
+
+                                {% if commit.impacted_files %}
+                                <!-- Expandable details -->
+                                <div class="{% if commit.intro_text or commit.bullet_lines %}border-t border-slate-100 dark:border-slate-800 pt-4 mt-4{% endif %}">
+                                    <button onclick="toggleDetails(this)" class="text-[10px] uppercase tracking-widest text-brand-500 hover:text-brand-400 font-bold font-mono flex items-center gap-1 cursor-pointer">
+                                        <span>Show Tech Details</span> <i class="fas fa-chevron-down text-[8px]"></i>
+                                    </button>
+                                    <div class="hidden mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0a0a0c] border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] text-slate-500 dark:text-slate-400 space-y-3 leading-relaxed">
+                                        <div><strong class="text-slate-700 dark:text-slate-200">Files Impacted:</strong></div>
+                                        <div class="pl-2 space-y-1">
+                                            {% for file in commit.impacted_files %}
+                                            <div>[{{ file.status }}] <a href="{{ file.uri }}" class="text-brand-500 hover:text-brand-400 hover:underline">{{ file.basename }}</a> &middot; {{ file.path }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
         </div> <!-- Close Left Column: Timeline Entries -->
 
         <!-- Right Column: Release Color Codes Legend -->
@@ -181,6 +268,19 @@ function toggleDetails(btn) {
     }
 }
 
+function toggleLegacyUpdates() {
+    const container = document.getElementById('legacy-container');
+    const chevron = document.getElementById('legacy-chevron');
+    
+    if (container.classList.contains('hidden')) {
+        container.classList.remove('hidden');
+        chevron.classList.replace('fa-chevron-down', 'fa-chevron-up');
+    } else {
+        container.classList.add('hidden');
+        chevron.classList.replace('fa-chevron-up', 'fa-chevron-down');
+    }
+}
+
 function filterChangelog(type) {
     const items = document.querySelectorAll('.changelog-item');
     const buttons = {
@@ -205,6 +305,7 @@ function filterChangelog(type) {
     // Toggle items
     items.forEach(item => {
         const itemType = item.getAttribute('data-type');
+        if (!itemType) return; // Keep legacy dropdown containers always visible
         if (type === 'all' || itemType === type) {
             item.style.display = 'block';
         } else {
