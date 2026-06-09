@@ -763,13 +763,20 @@
     window.promoteVariant = promoteVariant;
 
     function rejectVariant(id) {
-        if (!confirm('Reject this variant? It will be marked as FAILED and its virtual engine will be stopped.')) return;
+        const reason = prompt('Reject this variant? It will be marked as FAILED and its virtual engine stopped.\n\nPlease enter the details / reasoning for rejection so the mutation engine doesn\'t repeat this strategy:');
+        if (reason === null) return; // cancelled
+        
         fetch(`/api/evolution/reject/${id}/`, {
             method: 'POST',
-            headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''}
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+            },
+            body: JSON.stringify({ reason: reason || 'Manually rejected from dashboard' })
         })
         .then(r => r.json())
         .then(data => {
+            alert(data.message || 'Variant rejected');
             fetchEvolutionVariants();
         }).catch(e => alert('Rejection failed: ' + e));
     }

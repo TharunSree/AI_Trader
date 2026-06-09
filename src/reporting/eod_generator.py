@@ -263,6 +263,7 @@ def fetch_daily_metrics(report_date=None, target_bot=None, report_type='DAILY'):
             ai_analysis = f"**AI Analysis Generation Failed**\n\nThe AI system was unable to generate insights for this session due to an error. This is usually caused by an invalid/missing GEMINI_API_KEY, network issues, or API rate limits.\n\n`{e}`"
             session_summary = f"Session summary generation failed. See AI Analysis section for details."
 
+    run_mode = 'EVOLUTION' if is_variant else ('LIVE' if getattr(target_bot, 'is_live', False) else 'PAPER')
     return {
         'date': report_date or today,
         'total_trades': total_trades,
@@ -278,7 +279,8 @@ def fetch_daily_metrics(report_date=None, target_bot=None, report_type='DAILY'):
         'hist_30d': month_net_flow,
         'ai_analysis': ai_analysis,
         'session_summary': session_summary,
-        'report_type': report_type
+        'report_type': report_type,
+        'run_mode': run_mode
     }
 
 def generate_markdown_report_string(metrics):
@@ -316,9 +318,12 @@ def generate_markdown_report_string(metrics):
         report_title = "Monthly Performance Intelligence Portfolio"
         
     md = f"# {metrics['model_name']}\n"
-    md += f"> Jarvis {report_title}\n\n"
+    run_mode = metrics.get('run_mode', 'PAPER')
+    mode_label = "Neural Evolution (Testing)" if run_mode == 'EVOLUTION' else ("Live Trading (Production)" if run_mode == 'LIVE' else "Paper Trading (Simulation)")
+    md += f"> Jarvis {report_title} · **{mode_label}**\n\n"
     md += f"**Session Date:** {metrics['date']}  \n"
     md += f"**Model Reference:** `{metrics['model_name']}`  \n"
+    md += f"**Execution Mode:** {mode_label}  \n"
     md += f"**Primary Symbols:** {metrics['symbols_traded']}\n\n"
     md += f"---\n\n"
     
@@ -403,9 +408,11 @@ def generate_pdf_bytes_native(metrics):
     elif metrics.get('report_type') == 'MONTHLY':
         report_title = "Monthly Performance Intelligence Portfolio"
         
+    run_mode = metrics.get('run_mode', 'PAPER')
+    mode_label = "Neural Evolution" if run_mode == 'EVOLUTION' else ("Live Trading" if run_mode == 'LIVE' else "Paper Trading")
     pdf.cell(0, 12, metrics['model_name'].title(), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.set_font(f, "I", 10); pdf.set_text_color(*subtext)
-    pdf.cell(0, 6, f"Jarvis {report_title}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 6, f"Jarvis {report_title} | Mode: {mode_label}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.ln(5)
 
     def draw_hdr(title, color):
@@ -599,10 +606,12 @@ def write_report_artifacts(report_date=None):
             md_path.write_text(md_text, encoding='utf-8')
             pdf_path.write_bytes(pdf_bytes)
             
+            run_mode = 'LIVE' if getattr(bot, 'is_live', False) else 'PAPER'
             TradingReport.objects.create(
                 report_type=rtype, markdown_path=str(md_path), pdf_path=str(pdf_path),
                 total_revenue=metrics['net_flow'], total_trades=metrics['total_trades'],
-                win_rate=(metrics['sell_volume']/max(metrics['buy_volume'], 1))*100
+                win_rate=(metrics['sell_volume']/max(metrics['buy_volume'], 1))*100,
+                run_mode=run_mode
             )
             artifacts.append({
                 "bot_id": f"Bot {bot.id}{suffix}", 
@@ -631,7 +640,8 @@ def write_report_artifacts(report_date=None):
             TradingReport.objects.create(
                 report_type=rtype, markdown_path=str(md_path), pdf_path=str(pdf_path),
                 total_revenue=metrics['net_flow'], total_trades=metrics['total_trades'],
-                win_rate=(metrics['sell_volume']/max(metrics['buy_volume'], 1))*100
+                win_rate=(metrics['sell_volume']/max(metrics['buy_volume'], 1))*100,
+                run_mode='EVOLUTION'
             )
             artifacts.append({
                 "bot_id": f"Variant v{variant.id}{suffix}", 

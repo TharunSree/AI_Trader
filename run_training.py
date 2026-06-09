@@ -110,7 +110,7 @@ def train_jarvis(job_id=None):
     def progress_callback(episode, max_episodes, reward):
         if job:
             job.progress = int((episode / max_episodes) * 100)
-            if reward > job.best_reward:
+            if episode == 1 or reward > job.best_reward:
                 job.best_reward = float(reward)
             job.save()
 

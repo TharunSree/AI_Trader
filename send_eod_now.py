@@ -37,13 +37,16 @@ def trigger_dispatch():
     # Phase 2: Auto-trigger daily cognitive mutation
     # This reads the EOD AI suggestions and implements them into the trading strategy
     if '--no-mutate' not in sys.argv:
-        print("\n[EOD PIPELINE] Phase 2: Triggering Daily Cognitive Mutation...")
-        try:
-            from src.core.code_rewriter import orchestrate_rewrite
-            orchestrate_rewrite()
-            print("[EOD PIPELINE] Mutation complete. Strategy evolved for next session.")
-        except Exception as e:
-            print(f"[EOD PIPELINE] Mutation failed (non-fatal): {e}")
+        if not artifacts_list:
+            print("[EOD PIPELINE] Mutation skipped: no reports were generated today.")
+        else:
+            print("\n[EOD PIPELINE] Phase 2: Triggering Daily Cognitive Mutation...")
+            try:
+                from src.core.code_rewriter import orchestrate_rewrite
+                orchestrate_rewrite()
+                print("[EOD PIPELINE] Mutation complete. Strategy evolved for next session.")
+            except Exception as e:
+                print(f"[EOD PIPELINE] Mutation failed (non-fatal): {e}")
     else:
         print("[EOD PIPELINE] Mutation skipped (--no-mutate flag).")
 

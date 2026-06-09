@@ -243,6 +243,7 @@ class VirtualPaperEngine:
         df = self.broker.get_historical_daily_bars(symbol, limit=limit)
         
         if df.empty:
+            logger.warning(f"[EVOLUTION] Historical bars DataFrame is empty for {symbol}. Returning zero state observation.")
             return np.zeros((self.agent.state_dim,), dtype=np.float32)
         
         last_idx = df.index[-1]
@@ -336,15 +337,43 @@ class VirtualPaperEngine:
         # TP/SL overrides (same as production)
         if held_qty > 0 and entry_price > 0:
             unrealized_pct = (current_price - entry_price) / entry_price
+            position_value = held_qty * current_price
+            
+            # --- Define TP/SL thresholds — ADAPTIVE based on position size ---
             if is_crypto:
-                tp, sl = 0.010, -0.005
+                if position_value < 50.0:
+                    tp = 0.004   # 0.4% gain
+                    sl = -0.050  # 5.0% loss
+                elif position_value < 200.0:
+                    tp = 0.006   # 0.6% gain
+                    sl = -0.035  # 3.5% loss
+                else:
+                    tp = 0.012   # 1.2% gain
+                    sl = -0.020  # 2.0% loss
             else:
-                tp, sl = 0.015, -0.020
+                tp = 0.008   # 0.8% gain
+                sl = -0.020  # 2.0% loss
+
+            # --- SMART PROFIT GUARD: Block loss sells on small positions ---
+            if unrealized_pct < 0:
+                if position_value < 50.0:
+                    logger.info(
+                        f"[EVOLUTION PROFIT GUARD] Blocking ALL loss sells on micro position {symbol} "
+                        f"(${position_value:.2f}) loss {unrealized_pct:.2%}. Holding for recovery."
+                    )
+                    return
+                elif position_value < 200.0 and unrealized_pct > sl:
+                    logger.info(
+                        f"[EVOLUTION PROFIT GUARD] Blocking noise sell on {symbol} — small position "
+                        f"(${position_value:.2f}) loss {unrealized_pct:.2%} is within SL range. Holding."
+                    )
+                    return
+
             if unrealized_pct >= tp:
-                logger.info(f"[EVOLUTION TP] {symbol} gain {unrealized_pct:.2%} → virtual SELL")
+                logger.info(f"[EVOLUTION TP] {symbol} gain {unrealized_pct:.2%} ≥ {tp:.2%} → virtual SELL")
                 action_val = -1.0
             elif unrealized_pct <= sl:
-                logger.info(f"[EVOLUTION SL] {symbol} loss {unrealized_pct:.2%} → virtual SELL")
+                logger.info(f"[EVOLUTION SL] {symbol} loss {unrealized_pct:.2%} ≤ {sl:.2%} → virtual SELL")
                 action_val = -1.0
         
         # Determine side

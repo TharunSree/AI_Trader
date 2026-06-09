@@ -60,8 +60,12 @@
         <div>
             <label class="text-[9px] text-slate-400 font-mono uppercase tracking-widest block mb-2">Filter by Dossier Class</label>
             <div class="flex items-center gap-2 flex-wrap">
+            <div class="flex items-center gap-2 flex-wrap">
                 <input type="hidden" name="report_type" id="report_type_input" value="{{ selected_type }}">
                 <input type="hidden" name="sort_by" id="sort_by_input" value="{{ selected_sort }}">
+                <input type="hidden" name="month" id="month_input" value="{{ selected_month }}">
+                <input type="hidden" name="week_of_month" id="week_input" value="{{ selected_week }}">
+                <input type="hidden" name="run_mode" id="mode_input" value="{{ selected_mode }}">
                 
                 <button type="button" onclick="setType('all')" class="type-pill px-4 py-1.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer border 
                     {% if selected_type == 'all' or not selected_type %}bg-brand-500 border-brand-500 text-white shadow-lg shadow-brand-500/20{% else %}bg-slate-100 dark:bg-slate-800 text-slate-400 border-transparent hover:border-slate-700{% endif %}">
@@ -82,53 +86,112 @@
             </div>
         </div>
 
-        <div class="flex flex-col md:flex-row gap-4 items-end border-t border-slate-100 dark:border-slate-800/80 pt-4">
-            <div class="flex-1 w-full">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 border-t border-slate-100 dark:border-slate-800/80 pt-4">
+            <!-- Target Month Dropdown -->
+            <div class="relative w-full" id="month-dropdown-container">
                 <label class="text-[9px] text-slate-400 font-mono uppercase tracking-widest block mb-1.5">Target Month</label>
-                <select name="month" class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-800 dark:text-slate-200 font-mono text-xs focus:border-brand-500 outline-none transition-colors">
-                    <option value="">All Months</option>
+                <button type="button" onclick="toggleDropdown('month-dropdown')" class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-800 dark:text-slate-200 font-mono text-xs focus:border-brand-500 outline-none transition-colors flex items-center justify-between cursor-pointer">
+                    <span id="month-dropdown-label" class="truncate">
+                        {% if selected_month %}
+                            {% for date in available_months %}
+                                {% if selected_month == date|date:'Y-m' %}{{ date|date:"F Y" }}{% endif %}
+                            {% endfor %}
+                        {% else %}
+                            All Months
+                        {% endif %}
+                    </span>
+                    <i class="fas fa-chevron-down text-[10px] text-slate-400 transition-transform duration-200"></i>
+                </button>
+                <div id="month-dropdown-menu" class="hidden absolute left-0 right-0 mt-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-30 max-h-60 overflow-y-auto py-1">
+                    <div onclick="selectDropdownOption('month', '', 'All Months')" class="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer font-mono text-xs text-slate-700 dark:text-slate-300">All Months</div>
                     {% for date in available_months %}
-                    <option value="{{ date|date:'Y-m' }}" {% if selected_month == date|date:'Y-m' %}selected{% endif %}>{{ date|date:"F Y" }}</option>
+                    <div onclick="selectDropdownOption('month', '{{ date|date:\'Y-m\' }}', '{{ date|date:\'F Y\' }}')" class="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer font-mono text-xs text-slate-700 dark:text-slate-300">{{ date|date:"F Y" }}</div>
                     {% endfor %}
-                </select>
+                </div>
             </div>
             
-            <div class="flex-1 w-full">
+            <!-- Week Segment Dropdown -->
+            <div class="relative w-full" id="week-dropdown-container">
                 <label class="text-[9px] text-slate-400 font-mono uppercase tracking-widest block mb-1.5">Week Segment</label>
-                <select name="week_of_month" class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-800 dark:text-slate-200 font-mono text-xs focus:border-brand-500 outline-none transition-colors">
-                    <option value="all" {% if selected_week == 'all' %}selected{% endif %}>Full Month (All Weeks)</option>
-                    <option value="1" {% if selected_week == '1' %}selected{% endif %}>Week 1 (Days 1 - 7)</option>
-                    <option value="2" {% if selected_week == '2' %}selected{% endif %}>Week 2 (Days 8 - 14)</option>
-                    <option value="3" {% if selected_week == '3' %}selected{% endif %}>Week 3 (Days 15 - 21)</option>
-                    <option value="4" {% if selected_week == '4' %}selected{% endif %}>Week 4 (Days 22+)</option>
-                </select>
+                <button type="button" onclick="toggleDropdown('week-dropdown')" class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-800 dark:text-slate-200 font-mono text-xs focus:border-brand-500 outline-none transition-colors flex items-center justify-between cursor-pointer">
+                    <span id="week-dropdown-label" class="truncate">
+                        {% if selected_week == '1' %}Week 1 (Days 1 - 7)
+                        {% elif selected_week == '2' %}Week 2 (Days 8 - 14)
+                        {% elif selected_week == '3' %}Week 3 (Days 15 - 21)
+                        {% elif selected_week == '4' %}Week 4 (Days 22+)
+                        {% else %}Full Month (All Weeks){% endif %}
+                    </span>
+                    <i class="fas fa-chevron-down text-[10px] text-slate-400 transition-transform duration-200"></i>
+                </button>
+                <div id="week-dropdown-menu" class="hidden absolute left-0 right-0 mt-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-30 py-1">
+                    <div onclick="selectDropdownOption('week', 'all', 'Full Month (All Weeks)')" class="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer font-mono text-xs text-slate-700 dark:text-slate-300">Full Month (All Weeks)</div>
+                    <div onclick="selectDropdownOption('week', '1', 'Week 1 (Days 1 - 7)')" class="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer font-mono text-xs text-slate-700 dark:text-slate-300">Week 1 (Days 1 - 7)</div>
+                    <div onclick="selectDropdownOption('week', '2', 'Week 2 (Days 8 - 14)')" class="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer font-mono text-xs text-slate-700 dark:text-slate-300">Week 2 (Days 8 - 14)</div>
+                    <div onclick="selectDropdownOption('week', '3', 'Week 3 (Days 15 - 21)')" class="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer font-mono text-xs text-slate-700 dark:text-slate-300">Week 3 (Days 15 - 21)</div>
+                    <div onclick="selectDropdownOption('week', '4', 'Week 4 (Days 22+)')" class="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer font-mono text-xs text-slate-700 dark:text-slate-300">Week 4 (Days 22+)</div>
+                </div>
             </div>
 
-            <div class="flex-1 w-full">
-                <label class="text-[9px] text-slate-400 font-mono uppercase tracking-widest block mb-1.5">Sort Order</label>
-                <select onchange="setSort(this.value)" class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-800 dark:text-slate-200 font-mono text-xs focus:border-brand-500 outline-none transition-colors">
-                    <option value="-timestamp" {% if selected_sort == '-timestamp' %}selected{% endif %}>Date (Newest First)</option>
-                    <option value="timestamp" {% if selected_sort == 'timestamp' %}selected{% endif %}>Date (Oldest First)</option>
-                    <option value="-total_revenue" {% if selected_sort == '-total_revenue' %}selected{% endif %}>PnL (Highest Yield)</option>
-                    <option value="total_revenue" {% if selected_sort == 'total_revenue' %}selected{% endif %}>PnL (Lowest Yield)</option>
-                    <option value="-win_rate" {% if selected_sort == '-win_rate' %}selected{% endif %}>Win Rate (Highest First)</option>
-                    <option value="win_rate" {% if selected_sort == 'win_rate' %}selected{% endif %}>Win Rate (Lowest First)</option>
-                    <option value="-total_trades" {% if selected_sort == '-total_trades' %}selected{% endif %}>Trades (Most Trades)</option>
-                    <option value="total_trades" {% if selected_sort == 'total_trades' %}selected{% endif %}>Trades (Fewest Trades)</option>
-                </select>
-            </div>
-            
-            <div class="flex gap-2 w-full md:w-auto">
-                <button type="submit" class="flex-1 md:flex-none bg-slate-800 hover:bg-slate-900 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 border border-transparent rounded-xl px-6 py-2 font-mono text-xs uppercase tracking-widest transition-colors font-bold cursor-pointer">
-                    Apply
+            <!-- Run Mode Dropdown -->
+            <div class="relative w-full" id="mode-dropdown-container">
+                <label class="text-[9px] text-slate-400 font-mono uppercase tracking-widest block mb-1.5">Run Mode</label>
+                <button type="button" onclick="toggleDropdown('mode-dropdown')" class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-800 dark:text-slate-200 font-mono text-xs focus:border-brand-500 outline-none transition-colors flex items-center justify-between cursor-pointer">
+                    <span id="mode-dropdown-label" class="truncate">
+                        {% if selected_mode == 'EVOLUTION' %}Evolution Model
+                        {% elif selected_mode == 'LIVE' %}Live Trading
+                        {% elif selected_mode == 'PAPER' %}Paper Trading
+                        {% else %}All Modes{% endif %}
+                    </span>
+                    <i class="fas fa-chevron-down text-[10px] text-slate-400 transition-transform duration-200"></i>
                 </button>
-                
-                {% if selected_month or selected_type != 'all' and selected_type or selected_sort != '-timestamp' or selected_week != 'all' %}
-                <a href="{% url 'reports_hub' %}" class="flex-1 md:flex-none bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 font-mono text-xs uppercase tracking-widest transition-colors font-bold text-center flex items-center justify-center cursor-pointer">
-                    Clear
-                </a>
-                {% endif %}
+                <div id="mode-dropdown-menu" class="hidden absolute left-0 right-0 mt-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-30 py-1">
+                    <div onclick="selectDropdownOption('mode', 'all', 'All Modes')" class="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer font-mono text-xs text-slate-700 dark:text-slate-300">All Modes</div>
+                    <div onclick="selectDropdownOption('mode', 'EVOLUTION', 'Evolution Model')" class="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer font-mono text-xs text-slate-700 dark:text-slate-300">Evolution Model</div>
+                    <div onclick="selectDropdownOption('mode', 'PAPER', 'Paper Trading')" class="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer font-mono text-xs text-slate-700 dark:text-slate-300">Paper Trading</div>
+                    <div onclick="selectDropdownOption('mode', 'LIVE', 'Live Trading')" class="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer font-mono text-xs text-slate-700 dark:text-slate-300">Live Trading</div>
+                </div>
             </div>
+
+            <!-- Sort Order Dropdown -->
+            <div class="relative w-full" id="sort-dropdown-container">
+                <label class="text-[9px] text-slate-400 font-mono uppercase tracking-widest block mb-1.5">Sort Order</label>
+                <button type="button" onclick="toggleDropdown('sort-dropdown')" class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-slate-800 dark:text-slate-200 font-mono text-xs focus:border-brand-500 outline-none transition-colors flex items-center justify-between cursor-pointer">
+                    <span id="sort-dropdown-label" class="truncate">
+                        {% if selected_sort == 'timestamp' %}Date (Oldest First)
+                        {% elif selected_sort == '-total_revenue' %}PnL (Highest Yield)
+                        {% elif selected_sort == 'total_revenue' %}PnL (Lowest Yield)
+                        {% elif selected_sort == '-win_rate' %}Win Rate (Highest First)
+                        {% elif selected_sort == 'win_rate' %}Win Rate (Lowest First)
+                        {% elif selected_sort == '-total_trades' %}Trades (Most Trades)
+                        {% elif selected_sort == 'total_trades' %}Trades (Fewest Trades)
+                        {% else %}Date (Newest First){% endif %}
+                    </span>
+                    <i class="fas fa-chevron-down text-[10px] text-slate-400 transition-transform duration-200"></i>
+                </button>
+                <div id="sort-dropdown-menu" class="hidden absolute left-0 right-0 mt-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-30 max-h-60 overflow-y-auto py-1">
+                    <div onclick="selectSortOption('-timestamp', 'Date (Newest First)')" class="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer font-mono text-xs text-slate-700 dark:text-slate-300">Date (Newest First)</div>
+                    <div onclick="selectSortOption('timestamp', 'Date (Oldest First)')" class="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer font-mono text-xs text-slate-700 dark:text-slate-300">Date (Oldest First)</div>
+                    <div onclick="selectSortOption('-total_revenue', 'PnL (Highest Yield)')" class="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer font-mono text-xs text-slate-700 dark:text-slate-300">PnL (Highest Yield)</div>
+                    <div onclick="selectSortOption('total_revenue', 'PnL (Lowest Yield)')" class="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer font-mono text-xs text-slate-700 dark:text-slate-300">PnL (Lowest Yield)</div>
+                    <div onclick="selectSortOption('-win_rate', 'Win Rate (Highest First)')" class="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer font-mono text-xs text-slate-700 dark:text-slate-300">Win Rate (Highest First)</div>
+                    <div onclick="selectSortOption('win_rate', 'Win Rate (Lowest First)')" class="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer font-mono text-xs text-slate-700 dark:text-slate-300">Win Rate (Lowest First)</div>
+                    <div onclick="selectSortOption('-total_trades', 'Trades (Most Trades)')" class="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer font-mono text-xs text-slate-700 dark:text-slate-300">Trades (Most Trades)</div>
+                    <div onclick="selectSortOption('total_trades', 'Trades (Fewest Trades)')" class="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer font-mono text-xs text-slate-700 dark:text-slate-300">Trades (Fewest Trades)</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex gap-2 w-full md:w-auto justify-end border-t border-slate-100 dark:border-slate-800/80 pt-4">
+            <button type="submit" class="w-full md:w-auto bg-slate-800 hover:bg-slate-900 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 border border-transparent rounded-xl px-6 py-2 font-mono text-xs uppercase tracking-widest transition-colors font-bold cursor-pointer">
+                Apply
+            </button>
+            
+            {% if selected_month or selected_type != 'all' and selected_type or selected_sort != '-timestamp' or selected_week != 'all' or selected_mode != 'all' and selected_mode %}
+            <a href="{% url 'reports_hub' %}" class="w-full md:w-auto bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 font-mono text-xs uppercase tracking-widest transition-colors font-bold text-center flex items-center justify-center cursor-pointer">
+                Clear
+            </a>
+            {% endif %}
+        </div>
         </div>
     </form>
 </div>
@@ -144,6 +207,7 @@
                         {% if selected_sort == '-timestamp' %}<i class="fas fa-sort-down ml-1 text-brand-500"></i>{% elif selected_sort == 'timestamp' %}<i class="fas fa-sort-up ml-1 text-brand-500"></i>{% endif %}
                     </th>
                     <th class="p-4 font-bold text-center">Type</th>
+                    <th class="p-4 font-bold text-center">Mode</th>
                     <th class="p-4 font-bold text-right cursor-pointer hover:text-slate-200 transition-colors" onclick="setSort('{% if selected_sort == '-total_trades' %}total_trades{% else %}-total_trades{% endif %}')">
                         Total Trades
                         {% if selected_sort == '-total_trades' %}<i class="fas fa-sort-down ml-1 text-brand-500"></i>{% elif selected_sort == 'total_trades' %}<i class="fas fa-sort-up ml-1 text-brand-500"></i>{% endif %}
@@ -194,6 +258,21 @@
                         </span>
                         {% endif %}
                     </td>
+                    <td class="p-4 text-center">
+                        {% if report.run_mode == 'EVOLUTION' %}
+                        <span class="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                            Evolution
+                        </span>
+                        {% elif report.run_mode == 'LIVE' %}
+                        <span class="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                            Live
+                        </span>
+                        {% else %}
+                        <span class="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                            Paper
+                        </span>
+                        {% endif %}
+                    </td>
                     <td class="p-4 font-mono text-xs text-slate-600 dark:text-slate-400 text-right">
                         {{ report.total_trades }}
                     </td>
@@ -224,7 +303,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="p-12 text-center">
+                    <td colspan="7" class="p-12 text-center">
                         <div class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-600">
                             <i class="fas fa-folder-open text-3xl mb-3 opacity-50"></i>
                             <p class="font-mono text-xs uppercase tracking-widest">Vault is Empty</p>
@@ -293,6 +372,7 @@
         <div class="px-6 py-4 border-b border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <span id="modal-report-type-badge" class="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest"></span>
+                <span id="modal-report-mode-badge" class="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest"></span>
                 <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200 font-mono flex items-center gap-2">
                     <i class="far fa-file-alt text-brand-500"></i> 
                     Intelligence Log: <span id="modal-report-timestamp" class="text-slate-500 font-normal"></span>
@@ -478,6 +558,65 @@
 </style>
 
 <script>
+function toggleDropdown(dropdownPrefix) {
+    const menu = document.getElementById(dropdownPrefix + '-menu');
+    const allMenus = ['month-dropdown-menu', 'week-dropdown-menu', 'mode-dropdown-menu', 'sort-dropdown-menu'];
+    
+    // Close all other menus first
+    allMenus.forEach(mId => {
+        if (mId !== dropdownPrefix + '-menu') {
+            const otherMenu = document.getElementById(mId);
+            if (otherMenu) otherMenu.classList.add('hidden');
+        }
+    });
+    
+    if (menu) {
+        menu.classList.toggle('hidden');
+    }
+}
+
+function selectDropdownOption(field, value, label) {
+    document.getElementById(field + '_input').value = value;
+    const labelSpan = document.getElementById(field + '-dropdown-label');
+    if (labelSpan) labelSpan.innerText = label;
+    const menu = document.getElementById(field + '-dropdown-menu');
+    if (menu) menu.classList.add('hidden');
+}
+
+function selectSortOption(value, label) {
+    document.getElementById('sort_by_input').value = value;
+    const labelSpan = document.getElementById('sort-dropdown-label');
+    if (labelSpan) labelSpan.innerText = label;
+    const menu = document.getElementById('sort-dropdown-menu');
+    if (menu) menu.classList.add('hidden');
+}
+
+// Close dropdowns if user clicks outside
+document.addEventListener('click', function(e) {
+    const dropdownContainers = [
+        'month-dropdown-container',
+        'week-dropdown-container',
+        'mode-dropdown-container',
+        'sort-dropdown-container'
+    ];
+    
+    let clickedInside = false;
+    dropdownContainers.forEach(containerId => {
+        const container = document.getElementById(containerId);
+        if (container && container.contains(e.target)) {
+            clickedInside = true;
+        }
+    });
+    
+    if (!clickedInside) {
+        const menus = ['month-dropdown-menu', 'week-dropdown-menu', 'mode-dropdown-menu', 'sort-dropdown-menu'];
+        menus.forEach(menuId => {
+            const menu = document.getElementById(menuId);
+            if (menu) menu.classList.add('hidden');
+        });
+    }
+});
+
 function setType(type) {
     document.getElementById('report_type_input').value = type;
     document.getElementById('filter-form').submit();
@@ -528,6 +667,18 @@ function openReportModal(reportId) {
                 badge.classList.add('bg-purple-500/10', 'text-purple-400', 'border', 'border-purple-500/20');
             } else {
                 badge.classList.add('bg-amber-500/10', 'text-amber-400', 'border', 'border-amber-500/20');
+            }
+            
+            // Setup Mode Badge
+            const modeBadge = document.getElementById('modal-report-mode-badge');
+            modeBadge.innerText = data.run_mode === 'EVOLUTION' ? 'Evolution' : (data.run_mode === 'LIVE' ? 'Live' : 'Paper');
+            modeBadge.className = "px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest ";
+            if (data.run_mode === 'EVOLUTION') {
+                modeBadge.classList.add('bg-purple-500/10', 'text-purple-400', 'border', 'border-purple-500/20');
+            } else if (data.run_mode === 'LIVE') {
+                modeBadge.classList.add('bg-rose-500/10', 'text-rose-400', 'border', 'border-rose-500/20');
+            } else {
+                modeBadge.classList.add('bg-blue-500/10', 'text-blue-400', 'border', 'border-blue-500/20');
             }
             
             // Setup PnL color

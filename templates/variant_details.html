@@ -33,12 +33,9 @@
             <i class="fas fa-crown mr-1 text-emerald-500"></i> Promote
           </button>
         </form>
-        <form method="post" action="{% url 'evolution_reject_api' variant.id %}" class="inline">
-          {% csrf_token %}
-          <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 hover:border-rose-500/50 text-rose-400 hover:text-rose-300 transition-all duration-300 shadow-[0_0_10px_rgba(244,63,94,0.1)] hover:shadow-[0_0_15px_rgba(244,63,94,0.3)] cursor-pointer">
-            <i class="fas fa-times mr-1 text-rose-500"></i> Reject
-          </button>
-        </form>
+        <button type="button" onclick="rejectVariantWithPrompt({{ variant.id }}, true)" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 hover:border-rose-500/50 text-rose-400 hover:text-rose-300 transition-all duration-300 shadow-[0_0_10px_rgba(244,63,94,0.1)] hover:shadow-[0_0_15px_rgba(244,63,94,0.3)] cursor-pointer">
+          <i class="fas fa-times mr-1 text-rose-500"></i> Reject
+        </button>
         {% endif %}
       </div>
 
@@ -452,12 +449,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     <i class="fas fa-crown mr-1 text-emerald-500"></i> Promote
                   </button>
                 </form>
-                <form method="post" action="/api/evolution/reject/${variantId}/" class="inline">
-                  <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
-                  <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 hover:border-rose-500/50 text-rose-400 hover:text-rose-300 transition-all duration-300 shadow-[0_0_10px_rgba(244,63,94,0.1)] hover:shadow-[0_0_15px_rgba(244,63,94,0.3)] cursor-pointer">
-                    <i class="fas fa-times mr-1 text-rose-500"></i> Reject
-                  </button>
-                </form>
+                <button type="button" onclick="rejectVariantWithPrompt(${variantId}, true)" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 hover:border-rose-500/50 text-rose-400 hover:text-rose-300 transition-all duration-300 shadow-[0_0_10px_rgba(244,63,94,0.1)] hover:shadow-[0_0_15px_rgba(244,63,94,0.3)] cursor-pointer">
+                  <i class="fas fa-times mr-1 text-rose-500"></i> Reject
+                </button>
             `;
         } else {
             primActions.innerHTML = '';
@@ -620,5 +614,33 @@ function copyVariantLogs(btn) {
         console.error('Failed to copy variant logs: ', err);
     });
 }
+
+function rejectVariantWithPrompt(id, redirectAfter = false) {
+    const reason = prompt('Reject this variant? It will be marked as FAILED and its virtual engine stopped.\n\nPlease enter the details / reasoning for rejection so the mutation engine doesn\'t repeat this strategy:');
+    if (reason === null) return; // cancelled
+    
+    // Get CSRF Token
+    const token = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+    
+    fetch(`/api/evolution/reject/${id}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': token
+        },
+        body: JSON.stringify({ reason: reason || 'Manually rejected from details page' })
+    })
+    .then(r => r.json())
+    .then(data => {
+        alert(data.message || 'Variant rejected');
+        if (redirectAfter) {
+            window.location.href = "{% url 'evolution_hub' %}";
+        } else {
+            window.location.reload();
+        }
+    })
+    .catch(e => alert('Rejection failed: ' + e));
+}
+window.rejectVariantWithPrompt = rejectVariantWithPrompt;
 </script>
 {% endblock %}

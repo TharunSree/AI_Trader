@@ -15,8 +15,8 @@
                 <p class="text-xs text-slate-500 font-mono mt-1">Version control registry and historical deployment logs for QuantTrader Node.</p>
             </div>
             <div class="flex items-center gap-2 font-mono text-xs font-bold">
-                <span class="px-2.5 py-1 rounded bg-brand-500/10 text-brand-500 border border-brand-500/20">Current: v1.0.13</span>
-                <span class="text-slate-500 font-normal">Updated June 06, 2026</span>
+                <span class="px-2.5 py-1 rounded bg-brand-500/10 text-brand-500 border border-brand-500/20">Current: v1.0.14</span>
+                <span class="text-slate-500 font-normal">Updated June 10, 2026</span>
             </div>
         </div>
         
@@ -47,10 +47,65 @@
         <!-- Left Column: Timeline Entries -->
         <div class="relative ml-4 md:ml-6">
         
+        <!-- v1.0.14 -->
+        <div id="v1.0.14" class="changelog-item relative pl-6 md:pl-8 pb-8 group" data-type="feat">
+            <!-- Vertical line segment -->
+            <div class="absolute left-0 top-2 bottom-0 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
+            <!-- Timeline dot -->
+            <div class="absolute -left-[5px] top-2 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
+            
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-brand-500/40 transition-all duration-300">
+                <!-- Header -->
+                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
+                    <div class="flex items-center gap-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20">v1.0.14</span>
+                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Robust Pricing Fallbacks, Rejection Reasoning Feedback, Adaptive Selling, and Report Mode Badges</h3>
+                    </div>
+                    <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
+                        <i class="far fa-calendar-alt"></i> June 10, 2026
+                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">v1.0.14-dev</span>
+                    </div>
+                </div>
+                
+                <!-- Body -->
+                <div class="p-6 space-y-4">
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
+                        This update integrates public pricing fallback loops to prevent variant failures under unauthorized Alpaca states, creates user rejection reasoning prompts that feed negative feedback to the code mutator, aligns virtual trading thresholds with production scalp settings, and establishes clean execution mode badges.
+                    </p>
+                    
+                    <ul class="list-disc pl-5 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 leading-relaxed">
+                        <li><strong>Resilient Pricing Fallbacks:</strong> Caught Alpaca credential/auth failure gracefully during broker initialization to prevent engine boot crash. Implemented a fallback daily bars scraper via Yahoo Finance for stocks, ensuring model state observations never resolve to empty state arrays.</li>
+                        <li><strong>Rejection Feedback Prompts:</strong> Added user prompts to collect rejection reasoning details when a variant is discarded. Saved this context to the database, creating SystemAlert audit entries.</li>
+                        <li><strong>Negative Mutator Learning:</strong> Overhauled the mutation engine to query rejected variants and pass their code, rationales, and rejection reasons as critical negative context to the Gemini rewriter, warning the AI model not to repeat failed strategies.</li>
+                        <li><strong>Adaptive Selling Thresholds:</strong> Aligned virtual paper engines with production adaptive TP/SL logic (taking quick profits at 0.4% / 0.6% gains on micro/small portfolios) and integrated the Smart Profit Guard to protect position assets on minor hikes.</li>
+                        <li><strong>Run Mode Badges & Filters:</strong> Tagged all End-of-Day report generations as Evolution, Live, or Paper, adding filters and badges to the Intelligence Vault and report content view.</li>
+                    </ul>
+
+                    <!-- Expandable details -->
+                    <div class="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
+                        <button onclick="toggleDetails(this)" class="text-[10px] uppercase tracking-widest text-brand-500 hover:text-brand-400 font-bold font-mono flex items-center gap-1 cursor-pointer">
+                            <span>Show Tech Details</span> <i class="fas fa-chevron-down text-[8px]"></i>
+                        </button>
+                        <div class="hidden mt-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0a0a0c] border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] text-slate-500 dark:text-slate-400 space-y-3 leading-relaxed">
+                            <div><strong class="text-slate-700 dark:text-slate-200">Files Impacted:</strong></div>
+                            <div class="pl-2 space-y-1">
+                                <div>[MODIFY] [broker.py](file:///D:/AI_Trader/src/execution/broker.py) &middot; resilient initialization and stock daily bar fallback query</div>
+                                <div>[MODIFY] [virtual_paper_engine.py](file:///D:/AI_Trader/src/core/virtual_paper_engine.py) &middot; integrated production-aligned adaptive TP/SL and profit guard</div>
+                                <div>[MODIFY] [dashboard.html](file:///D:/AI_Trader/templates/dashboard.html) &middot; prompt for rejection reasoning and post payload</div>
+                                <div>[MODIFY] [variant_details.html](file:///D:/AI_Trader/templates/variant_details.html) &middot; intercepted reject button to prompt for reasoning</div>
+                                <div>[MODIFY] [eod_generator.py](file:///D:/AI_Trader/src/reporting/eod_generator.py) &middot; detect and display execution mode in EOD reports</div>
+                                <div>[MODIFY] [reports_hub.html](file:///D:/AI_Trader/templates/reports_hub.html) &middot; added run mode badge, filters, and modal subheaders</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- v1.0.13 -->
         <div id="v1.0.13" class="changelog-item relative pl-6 md:pl-8 pb-8 group" data-type="fix">
             <!-- Vertical line segment -->
-            <div class="absolute left-0 top-2 bottom-0 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
+            <div class="absolute left-0 top-0 bottom-0 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
             <!-- Timeline dot -->
             <div class="absolute -left-[5px] top-2 w-3 h-3 rounded-full bg-brand-500 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
             

@@ -367,6 +367,10 @@ def rewrite_agent_code(client, d_report, w_report, current_code, crash_log=None,
     
     CRITICAL: If the trade reports show very high trade counts (e.g. > 50 trades/day) or a high concentration of day-trades, you MUST implement logic (like higher confidence thresholds or a time-based decay) to reduce churn and avoid Pattern Day Trading (PDT) rejections.
     
+    CRITICAL IMPLEMENTATION RULES:
+    1. Do NOT hardcode return values. Under no circumstances should the `predict()` method return a constant value (such as always returning `0.0`). It must be a fully dynamic PyTorch neural network forward-pass that computes and returns output actions based on the input state array and the current model weights.
+    2. Ensure the state array is correctly converted to a PyTorch tensor, passed through the model's actor network, and clamped to [-1.0, 1.0].
+    
     
     Here is the current code:
     ```python
@@ -470,6 +474,18 @@ def orchestrate_rewrite(crash_log=None):
     daily = TradingReport.objects.filter(report_type='DAILY').order_by('-timestamp').first()
     weekly = TradingReport.objects.filter(report_type='WEEKLY').order_by('-timestamp').first()
     
+    # Mutator Timing Constraint: Only mutate if a report was generated recently (last 3 hours)
+    if not crash_log:
+        if not daily:
+            print("[NEURAL EVOLUTION] No daily report found. Skipping mutation run.")
+            return
+        from django.utils import timezone
+        import datetime
+        age = timezone.now() - daily.timestamp
+        if age > datetime.timedelta(hours=3):
+            print(f"[NEURAL EVOLUTION] Latest daily report is too old ({age.total_seconds()/3600:.2f} hours ago). Skipping mutation run.")
+            return
+            
     # If no reports exist, generate a live performance snapshot from trade logs
     if not daily and not crash_log:
         try:
@@ -551,17 +567,22 @@ def orchestrate_rewrite(crash_log=None):
         except Exception:
             pass
 
-    # Collect error tracebacks from recently failed variants to avoid repeating errors
+    # Collect recently failed or manually rejected variants to avoid repeating errors/bad logic
     from control_panel.models import ModelVariant
-    failed_variants = ModelVariant.objects.filter(status='FAILED').exclude(error_message__isnull=True).exclude(error_message='').order_by('-id')[:2]
+    failed_variants = ModelVariant.objects.filter(status='FAILED').order_by('-id')[:3]
     failed_context = ""
     if failed_variants:
-        failed_context = "\nCRITICAL: The following recently generated model variant(s) crashed in the virtual testing sandbox. Review their errors and ensure your new code resolves or avoids these issues:\n"
+        failed_context = "\nCRITICAL NEGATIVE CONTEXT: The following recently generated model variant(s) failed or were manually rejected. You MUST review their code, reasoning rationale, and failure/rejection reasons, and ensure your new code does NOT repeat the same mistakes, patterns, or decisions:\n"
         for fv in failed_variants:
-            failed_context += f"--- Failed Variant #{fv.id} ({fv.name}) ---\n"
-            failed_context += f"Error: {fv.error_message}\n"
+            failed_context += f"--- Variant #{fv.id} ({fv.name}) ---\n"
+            if 'rejected' in (fv.error_message or '').lower():
+                failed_context += f"User Rejection Reason: {fv.error_message}\n"
+            else:
+                failed_context += f"Sandbox Crash Error: {fv.error_message}\n"
+            if fv.mutation_reasoning:
+                failed_context += f"Variant's Attempted Rationale: {fv.mutation_reasoning}\n"
             if fv.agent_code:
-                failed_context += f"Failed Agent Code:\n```python\n{fv.agent_code}\n```\n"
+                failed_context += f"Variant Agent Code:\n```python\n{fv.agent_code}\n```\n"
             failed_context += "----------------------------------------\n"
 
     try:
@@ -592,12 +613,26 @@ def orchestrate_rewrite(crash_log=None):
         # Catches NameError/TypeError hallucinations that compile() misses
         try:
             import types as _types
+            import numpy as np
             _sandbox_module = _types.ModuleType("sandbox_smoke_test")
             exec(compile(new_code, 'ppo_agent_smoke_test.py', 'exec'), _sandbox_module.__dict__)
             _SandboxAgent = getattr(_sandbox_module, 'PPOAgent', None)
             if _SandboxAgent:
-                _SandboxAgent(state_dim=50, action_dim=3)
-                del _SandboxAgent
+                # Initialize agent
+                agent_inst = _SandboxAgent(state_dim=50, action_dim=1)
+                
+                # Verify predict() does not return constant zeros
+                test_states = [np.random.randn(50).astype(np.float32) for _ in range(10)]
+                outputs = []
+                for state in test_states:
+                    out = agent_inst.predict(state)
+                    outputs.append(out)
+                
+                print(f"[NEURAL EVOLUTION] Smoke test predictions: {outputs}")
+                if all(abs(out) < 1e-9 for out in outputs):
+                    raise RuntimeError("Evolved model returned flat 0.0 outputs for all inputs. Zero signals detected.")
+                
+                del agent_inst
             del _sandbox_module
             print("[NEURAL EVOLUTION] Runtime smoke test passed.")
         except Exception as runtime_e:

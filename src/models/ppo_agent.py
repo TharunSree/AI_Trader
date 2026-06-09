@@ -211,7 +211,10 @@ class PPOAgent:
 
     def load_weights_from_bytes(self, payload: bytes, source: str = "database"):
         """Loads a serialized torch state_dict from an in-memory byte payload."""
-        buffer = io.BytesIO(payload)
-        self.policy.load_state_dict(torch.load(buffer, map_location=device, weights_only=True))
-        self.policy_old.load_state_dict(self.policy.state_dict())
-        logger.info(f"Loaded combat data from: {source}")
+        try:
+            buffer = io.BytesIO(payload)
+            self.policy.load_state_dict(torch.load(buffer, map_location=device, weights_only=True))
+            self.policy_old.load_state_dict(self.policy.state_dict())
+            logger.info(f"Loaded combat data from: {source}")
+        except Exception as e:
+            logger.error(f"Failed to load weights from payload for source {source} ({e}). Initializing with random/current weights.")

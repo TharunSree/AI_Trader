@@ -196,7 +196,13 @@ class TradingReport(models.Model):
         ('WEEKLY', 'Weekly Rolling Analysis'),
         ('MONTHLY', 'Monthly Performance'),
     ]
+    RUN_MODES = [
+        ('EVOLUTION', 'Evolution Model'),
+        ('PAPER', 'Paper Trading'),
+        ('LIVE', 'Live Trading'),
+    ]
     report_type = models.CharField(max_length=15, choices=REPORT_TYPES)
+    run_mode = models.CharField(max_length=20, choices=RUN_MODES, default='PAPER')
     timestamp = models.DateTimeField(auto_now_add=True)
     markdown_path = models.CharField(max_length=255)
     pdf_path = models.CharField(max_length=255, null=True, blank=True)
@@ -205,7 +211,7 @@ class TradingReport(models.Model):
     win_rate = models.FloatField(default=0.0)
 
     def __str__(self):
-        return f"{self.report_type} Report - {self.timestamp.strftime('%Y-%m-%d')}"
+        return f"{self.report_type} Report ({self.run_mode}) - {self.timestamp.strftime('%Y-%m-%d')}"
 
 class SystemAlert(models.Model):
     ALERT_TYPES = [

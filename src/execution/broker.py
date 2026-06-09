@@ -38,8 +38,7 @@ class Broker:
             acct = self.api.get_account()
             logger.info(f"Connected: status={acct.status} equity={acct.equity} buying_power={acct.buying_power}")
         except Exception as e:
-            logger.error(f"Broker init failed: {e}", exc_info=True)
-            raise
+            logger.error(f"Broker init failed: {e}. Fallbacks will be utilized if needed.")
 
     @staticmethod
     def _normalize_base_url(value: str) -> str:
@@ -168,7 +167,40 @@ class Broker:
         try:
             return self._get_latest_trade_price(symbol)
         except Exception as e:
-            logger.warning(f"Could not fetch current live price for {symbol}: {e}")
+            logger.warning(f"Could not fetch current live price for {symbol} via Alpaca: {e}. Trying Yahoo Finance fallback...")
+            try:
+                import requests
+                yf_symbol = symbol.replace("/", "-")
+                url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yf_symbol}"
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                }
+                res = requests.get(url, headers=headers, timeout=5)
+                if res.status_code == 200:
+                    data = res.json()
+                    result = data["chart"]["result"][0]
+                    price = float(result["meta"]["regularMarketPrice"])
+                    if price > 0:
+                        logger.info(f"Successfully fetched fallback price for {symbol} from Yahoo Finance: ${price:.2f}")
+                        return price
+            except Exception as yf_e:
+                logger.warning(f"Yahoo Finance fallback failed for {symbol}: {yf_e}")
+            
+            # Additional CoinGecko fallback for crypto
+            is_crypto = '/' in symbol or '-' in symbol or 'USD' in symbol.upper()
+            if is_crypto:
+                try:
+                    import requests
+                    coin = symbol.split('/')[0].split('-')[0].lower()
+                    url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin}&vs_currencies=usd"
+                    res = requests.get(url, timeout=5)
+                    if res.status_code == 200:
+                        price = res.json().get(coin, {}).get('usd', 0.0)
+                        if price > 0:
+                            logger.info(f"Successfully fetched fallback price for {symbol} from CoinGecko: ${price:.2f}")
+                            return float(price)
+                except Exception:
+                    pass
             return 0.0
 
     def get_historical_daily_bars(self, symbol: str, limit: int = 200) -> "pd.DataFrame":
@@ -232,36 +264,55 @@ class Broker:
                 return df
             else:
                 logger.info(f"Fetching {limit} historical daily stock bars for {symbol}")
-                bars = self.api.get_bars(
-                    symbol,
-                    TimeFrame.Day,
-                    limit=limit
-                )
-                
-                if not bars:
-                    logger.warning(f"No bars returned for {symbol} (limit={limit})")
-                    return pd.DataFrame()
+                try:
+                    bars = self.api.get_bars(
+                        symbol,
+                        TimeFrame.Day,
+                        limit=limit
+                    )
                     
-                df = pd.DataFrame([
-                    {
-                        "timestamp": getattr(bar, "t", getattr(bar, "timestamp", None)),
-                        "Open": float(bar.o),
-                        "High": float(bar.h),
-                        "Low": float(bar.l),
-                        "Close": float(bar.c),
-                        "Volume": float(bar.v),
-                        "symbol": symbol
-                    }
-                    for bar in bars
-                ])
-                
-                if not df.empty:
-                    df = df.drop_duplicates(subset=["timestamp"]).reset_index(drop=True)
-                    if "timestamp" in df.columns:
-                        df = df.drop(columns=["timestamp"])
+                    if not bars:
+                        logger.warning(f"No bars returned for {symbol} (limit={limit})")
+                        raise RuntimeError("No bars returned")
                         
-                df = df.dropna()
-                return df
+                    df = pd.DataFrame([
+                        {
+                            "timestamp": getattr(bar, "t", getattr(bar, "timestamp", None)),
+                            "Open": float(bar.o),
+                            "High": float(bar.h),
+                            "Low": float(bar.l),
+                            "Close": float(bar.c),
+                            "Volume": float(bar.v),
+                            "symbol": symbol
+                        }
+                        for bar in bars
+                    ])
+                    
+                    if not df.empty:
+                        df = df.drop_duplicates(subset=["timestamp"]).reset_index(drop=True)
+                        if "timestamp" in df.columns:
+                            df = df.drop(columns=["timestamp"])
+                            
+                    df = df.dropna()
+                    return df
+                except Exception as stock_err:
+                    logger.warning(f"Alpaca stock bars fetch failed for {symbol}: {stock_err}. Trying Yahoo Finance fallback...")
+                    try:
+                        from src.data.yfinance_loader import YFinanceLoader
+                        import datetime
+                        start_date = (datetime.date.today() - datetime.timedelta(days=int(limit*1.5))).strftime('%Y-%m-%d')
+                        end_date = (datetime.date.today() + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+                        yf_symbol = symbol.replace("/", "-") 
+                        yf_df = YFinanceLoader([yf_symbol], start_date, end_date).load_data()
+                        if not yf_df.empty:
+                            df = yf_df.tail(limit).reset_index(drop=True)
+                            if "timestamp" in df.columns:
+                                df = df.drop(columns=["timestamp"])
+                            logger.info(f"Successfully fetched {len(df)} stock bars from Yahoo Finance fallback for {symbol}")
+                            return df
+                    except Exception as yf_err:
+                        logger.error(f"Yahoo Finance stock fallback failed for {symbol}: {yf_err}")
+                    return pd.DataFrame()
         except Exception as e:
             logger.error(f"Failed to fetch historical bars for {symbol}: {e}", exc_info=True)
             return pd.DataFrame()

@@ -1763,6 +1763,7 @@ def reports_hub_view(request):
     selected_month = request.GET.get('month', '')
     selected_week = request.GET.get('week_of_month', 'all')
     selected_type = request.GET.get('report_type', 'all')
+    selected_mode = request.GET.get('run_mode', 'all')
     sort_by = request.GET.get('sort_by', '-timestamp')
     page_number = request.GET.get('page', 1)
     
@@ -1780,6 +1781,9 @@ def reports_hub_view(request):
     
     if selected_type and selected_type != 'all':
         reports = reports.filter(report_type=selected_type)
+        
+    if selected_mode and selected_mode != 'all':
+        reports = reports.filter(run_mode=selected_mode)
         
     if selected_month:
         try:
@@ -1834,6 +1838,7 @@ def reports_hub_view(request):
         'selected_month': selected_month,
         'selected_week': selected_week,
         'selected_type': selected_type,
+        'selected_mode': selected_mode,
         'selected_sort': sort_by,
         'available_months': available_months,
         'total_count': total_count,
@@ -1923,6 +1928,7 @@ def report_content_api(request, report_id):
             "status": "success",
             "id": report.id,
             "report_type": report.report_type,
+            "run_mode": report.run_mode,
             "timestamp": report.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
             "total_trades": report.total_trades,
             "total_revenue": float(report.total_revenue),
@@ -2556,11 +2562,114 @@ def evolution_promote_api(request, variant_id):
             except Exception as e:
                 logger.error(f"[EVOLUTION] Failed to restart trader #{trader.id}: {e}")
         
+        # 1. Programmatically update changelog.html
+        try:
+            changelog_path = Path(django_settings.BASE_DIR) / 'templates' / 'changelog.html'
+            if changelog_path.exists():
+                changelog_content = changelog_path.read_text(encoding='utf-8')
+                
+                # Find the timeline container start
+                target_str = '<div class="changelog-layout-grid">\n        <!-- Left Column: Timeline Entries -->\n        <div class="relative ml-4 md:ml-6">'
+                idx = changelog_content.find(target_str)
+                # Fallback if whitespace differs
+                if idx == -1:
+                    target_str = '<div class="relative ml-4 md:ml-6">'
+                    idx = changelog_content.find(target_str)
+                
+                if idx != -1:
+                    insert_pos = idx + len(target_str)
+                    
+                    # We also want to replace the first top-2 line segment with top-0
+                    # to connect the line segment. Let's find it after insert_pos.
+                    segment_str = 'absolute left-0 top-2 bottom-0 w-[2px]'
+                    seg_idx = changelog_content.find(segment_str, insert_pos)
+                    if seg_idx != -1:
+                        changelog_content = (
+                            changelog_content[:seg_idx] +
+                            'absolute left-0 top-0 bottom-0 w-[2px]' +
+                            changelog_content[seg_idx + len(segment_str):]
+                        )
+                    
+                    # Now construct the new entry HTML
+                    from django.utils import timezone
+                    formatted_date = timezone.now().strftime("%B %d, %Y")
+                    mutation_reasoning = (variant.mutation_reasoning or "Evolved strategy mutation promoted to production.").replace('\n', '<br>')
+                    diff_summary = variant.diff_summary or "No diff details provided."
+                    
+                    new_entry = f"""
+        <!-- Mutation Strategy Promotion: Variant v{variant.id} -->
+        <div id="variant-{variant.id}" class="changelog-item relative pl-6 md:pl-8 pb-8 group" data-type="feat">
+            <!-- Vertical line segment -->
+            <div class="absolute left-0 top-2 bottom-0 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
+            <!-- Timeline dot -->
+            <div class="absolute -left-[5px] top-2 w-3 h-3 rounded-full bg-purple-50 border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
+            
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden hover:border-purple-500/40 transition-all duration-300">
+                <!-- Header -->
+                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 bg-slate-50/50 dark:bg-slate-900/50">
+                    <div class="flex items-center gap-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-50/10 text-purple-400 border border-purple-500/20">🧬 MUTATION</span>
+                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Evolved Strategy Promoted: {variant.name}</h3>
+                    </div>
+                    <div class="flex items-center gap-2 font-mono text-[10px] text-slate-500">
+                        <i class="far fa-calendar-alt"></i> {formatted_date}
+                        <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">Variant #{variant.id}</span>
+                    </div>
+                </div>
+                
+                <!-- Body -->
+                <div class="p-6 space-y-4">
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
+                        {mutation_reasoning}
+                    </p>
+                    
+                    <div class="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
+                        <div class="font-mono text-[10px] text-slate-500 dark:text-slate-400 space-y-3 leading-relaxed">
+                            <div><strong class="text-slate-700 dark:text-slate-200">Mutation PnL:</strong> {variant.virtual_pnl_pct:.2f}% &middot; <strong class="text-slate-700 dark:text-slate-200">Win Rate:</strong> {variant.win_rate:.1f}% &middot; <strong class="text-slate-700 dark:text-slate-200">Sharpe:</strong> {variant.sharpe_ratio:.2f}</div>
+                            <div><strong class="text-slate-700 dark:text-slate-200">Diff Summary:</strong></div>
+                            <div class="pl-2 text-[10px] bg-slate-50 dark:bg-[#0a0a0c] p-3 rounded-lg border border-slate-250 dark:border-slate-800 font-mono whitespace-pre-wrap">{diff_summary}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+"""
+                    changelog_content = changelog_content[:insert_pos] + new_entry + changelog_content[insert_pos:]
+                    changelog_path.write_text(changelog_content, encoding='utf-8')
+                    logger.info(f"[EVOLUTION] Appended strategy promotion for Variant #{variant.id} to changelog.html")
+        except Exception as e:
+            logger.error(f"[EVOLUTION] Failed to write changelog update: {e}", exc_info=True)
+
+        # 2. Git Commit & Push Automation
+        git_committed = False
+        git_pushed = False
+        try:
+            import subprocess
+            repo_dir = str(Path(django_settings.BASE_DIR))
+            
+            # git add src/models/ppo_agent.py templates/changelog.html
+            subprocess.run(["git", "add", "src/models/ppo_agent.py", "templates/changelog.html"], cwd=repo_dir, check=True, capture_output=True, text=True)
+            
+            # git commit
+            commit_msg = f"[MUTATION] Promoted Evolved Variant #{variant.id}: {variant.name}"
+            subprocess.run(["git", "commit", "-m", commit_msg], cwd=repo_dir, check=True, capture_output=True, text=True)
+            git_committed = True
+            
+            # git push
+            push_res = subprocess.run(["git", "push"], cwd=repo_dir, capture_output=True, text=True)
+            if push_res.returncode == 0:
+                git_pushed = True
+                logger.info(f"[EVOLUTION] Git commit & push successful: {commit_msg}")
+            else:
+                logger.error(f"[EVOLUTION] Git push failed: {push_res.stderr}")
+        except Exception as git_err:
+            logger.error(f"[EVOLUTION] Git commit/push operation failed gracefully: {git_err}")
+
         # Create success alert
         SystemAlert.objects.create(
             level='INFO',
             title=f'🧬 Variant #{variant.id} Promoted to Production',
-            message=f"'{variant.name}' is now the active trading model. {restarted} trader(s) restarted.",
+            message=f"'{variant.name}' is now active. {restarted} trader(s) restarted. Changelog updated.{' Git committed & pushed.' if git_pushed else (' Git committed but push failed.' if git_committed else ' Git auto-commit failed.')}",
             related_model_reference=str(variant.id),
         )
         
@@ -2568,7 +2677,7 @@ def evolution_promote_api(request, variant_id):
         
         return JsonResponse({
             'status': 'success',
-            'message': f"Variant #{variant_id} promoted to production. {restarted} trader(s) restarted with evolved model."
+            'message': f"Variant #{variant_id} promoted to production. {restarted} trader(s) restarted with evolved model. Git status: Pushed={git_pushed}."
         })
     
     except Exception as e:
@@ -2583,14 +2692,23 @@ def evolution_promote_api(request, variant_id):
 @require_POST
 def evolution_reject_api(request, variant_id):
     """POST: Reject a variant — mark as FAILED and stop its virtual engine."""
-    from .models import ModelVariant
+    from .models import ModelVariant, SystemAlert
     
     variant = ModelVariant.objects.filter(id=variant_id).first()
     if not variant:
         return JsonResponse({'status': 'error', 'message': 'Variant not found'}, status=404)
     
+    reason = request.POST.get('reason') or request.GET.get('reason') or 'Manually rejected from dashboard'
+    if request.content_type == 'application/json':
+        try:
+            import json
+            data = json.loads(request.body)
+            reason = data.get('reason') or reason
+        except Exception:
+            pass
+            
     variant.status = 'FAILED'
-    variant.error_message = 'Manually rejected from dashboard'
+    variant.error_message = f"Rejected by user: {reason}"
     variant.save(update_fields=['status', 'error_message'])
     
     # Try to kill the virtual engine process
@@ -2600,8 +2718,16 @@ def evolution_reject_api(request, variant_id):
             os.kill(int(variant.celery_task_id), signal.SIGTERM)
         except Exception:
             pass
+            
+    # Create SystemAlert to track the audit log
+    SystemAlert.objects.create(
+        level='WARNING',
+        title=f'🧬 Variant #{variant.id} Rejected',
+        message=f"'{variant.name}' was manually rejected. Reason: {reason}",
+        related_model_reference=str(variant.id)
+    )
     
-    return JsonResponse({'status': 'success', 'message': f'Variant #{variant_id} rejected.'})
+    return JsonResponse({'status': 'success', 'message': f'Variant #{variant_id} rejected. Reason: {reason}'})
 
 
 @login_required
