@@ -673,6 +673,58 @@ def dashboard_view(request):
 def onboarding_view(request):
     return render(request, 'guide.html', _build_dashboard_context())
 
+def _clean_subject_and_build_bullets(subject):
+    # 1. Split on " - " if it separates a version/prefix from the actual message
+    if ' - ' in subject:
+        parts = [p.strip() for p in subject.split(' - ', 1) if p.strip()]
+        if len(parts) > 1:
+            subject = parts[1]
+            
+    # 2. Split on " | " if it separates items
+    if ' | ' in subject:
+        parts = [p.strip() for p in subject.split(' | ') if p.strip()]
+        if len(parts) > 1:
+            subject = parts[0]
+            extra_bullets = parts[1:]
+        else:
+            extra_bullets = []
+    else:
+        extra_bullets = []
+        
+    # 3. Clean up conventional commit prefixes (e.g. feat(scope): message -> message)
+    if ':' in subject:
+        parts = subject.split(':', 1)
+        prefix = parts[0].strip()
+        rest = parts[1].strip()
+        if any(x in prefix.lower() for x in ('feat', 'fix', 'refactor', 'style', 'perf', 'docs', 'chore', 'test', 'mutation', 'clean', 'enhancement', 'doc', 'ui')):
+            subject = rest
+            
+    # 4. If subject is long, split it dynamically on delimiters into a heading and bullet points
+    bullets = []
+    if len(subject) > 50:
+        normalized = subject
+        for delim in (', and ', ' and ', ', with ', ' with ', ' & ', ', '):
+            normalized = normalized.replace(delim, '|||')
+        parts = [p.strip() for p in normalized.split('|||') if p.strip()]
+        if len(parts) > 1:
+            subject = parts[0]
+            for p in parts[1:]:
+                if p:
+                    # Capitalize first letter of sentence
+                    bullets.append(p[0].upper() + p[1:])
+                
+    # Add any extra bullets from separator splits
+    for b in extra_bullets:
+        if b:
+            bullets.append(b[0].upper() + b[1:])
+            
+    # Normalize subject capitalization
+    if subject:
+        subject = subject[0].upper() + subject[1:]
+        
+    return subject, bullets
+
+
 def _get_git_changelog():
     import subprocess
     from pathlib import Path
@@ -684,9 +736,9 @@ def _get_git_changelog():
     commits = []
     try:
         repo_dir = str(Path(settings.BASE_DIR))
-        # Run a single git log with --name-status to capture both metadata and files impacted
+        # Run a single git log with --name-status to capture both metadata and files impacted (extract 120 commits)
         res = subprocess.run(
-            ["git", "log", "-n", "30", "--name-status", "--pretty=format:%H|%ad|%s|%b|||", "--date=format:%B %d, %Y"],
+            ["git", "log", "-n", "120", "--name-status", "--pretty=format:%H|%ad|%s|%b|||", "--date=format:%B %d, %Y"],
             cwd=repo_dir, capture_output=True, text=True, encoding='utf-8', errors='ignore'
         )
         if res.returncode == 0:
@@ -745,30 +797,28 @@ def _get_git_changelog():
                         badge_color = 'bg-brand-500/10 text-brand-500 border-brand-500/20'
                         dot_color = 'bg-brand-500'
                         
+                    # Clean subject and extract extra bullets dynamically
+                    clean_subj, extra_bullets = _clean_subject_and_build_bullets(c_subj)
+                    
                     # Separate intro text from bullet points in commit body
                     intro_lines = []
-                    bullet_lines = []
+                    body_bullets = []
                     for line in c_body.split('\n'):
                         stripped = line.strip()
                         if not stripped:
                             continue
                         if stripped.startswith('-') or stripped.startswith('*'):
-                            bullet_lines.append(stripped.lstrip('-').lstrip('*').strip())
+                            body_bullets.append(stripped.lstrip('-').lstrip('*').strip())
                         else:
-                            if not bullet_lines:
+                            if not body_bullets:
                                 intro_lines.append(stripped)
                             else:
-                                bullet_lines.append(stripped)
-                    
+                                body_bullets.append(stripped)
+                                
+                    # Combine extra bullets from subject with body bullets
+                    bullet_lines = [b for b in extra_bullets if b] + body_bullets
                     intro_text = ' '.join(intro_lines)
                     
-                    # Clean up conventional commit prefixes
-                    clean_subj = c_subj
-                    if ':' in c_subj:
-                        prefix, rest = c_subj.split(':', 1)
-                        if any(x in prefix.lower() for x in ('feat', 'fix', 'refactor', 'style', 'perf', 'docs', 'chore', 'test', 'mutation')):
-                            clean_subj = rest.strip()
-                            
                     # Parse modified files
                     impacted_files = []
                     for line in files_str.split('\n'):

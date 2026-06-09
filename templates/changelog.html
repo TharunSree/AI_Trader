@@ -77,7 +77,8 @@
                 </div>
                 
                 <!-- Body -->
-                <div class="p-6 space-y-4">
+                {% if commit.intro_text or commit.bullet_lines or commit.impacted_files %}
+                <div class="px-6 py-4 {% if commit.intro_text or commit.bullet_lines %}space-y-4{% endif %}">
                     {% if commit.intro_text %}
                     <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-mono">
                         {{ commit.intro_text }}
@@ -94,7 +95,7 @@
 
                     {% if commit.impacted_files %}
                     <!-- Expandable details -->
-                    <div class="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
+                    <div class="{% if commit.intro_text or commit.bullet_lines %}border-t border-slate-100 dark:border-slate-800 pt-4 mt-4{% endif %}">
                         <button onclick="toggleDetails(this)" class="text-[10px] uppercase tracking-widest text-brand-500 hover:text-brand-400 font-bold font-mono flex items-center gap-1 cursor-pointer">
                             <span>Show Tech Details</span> <i class="fas fa-chevron-down text-[8px]"></i>
                         </button>
@@ -109,6 +110,7 @@
                     </div>
                     {% endif %}
                 </div>
+                {% endif %}
             </div>
         </div>
         {% empty %}
