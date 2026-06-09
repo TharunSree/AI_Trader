@@ -817,6 +817,7 @@ def _get_git_changelog():
                         badge_label = 'Fix'
                         badge_color = 'bg-amber-500/10 text-amber-500 border-amber-500/20'
                         dot_color = 'bg-amber-500'
+                        hover_border = 'hover:border-amber-500/40'
                     elif any(x in subj_lower for x in ('perf', 'opt', 'speed', 'clean', 'refactor', 'style', 'ui', 'layout', 'facelift', 'css')):
                         c_type = 'perf'
                         badge_label = 'Performance'
@@ -824,16 +825,19 @@ def _get_git_changelog():
                             badge_label = 'UI & Performance'
                         badge_color = 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
                         dot_color = 'bg-cyan-500'
+                        hover_border = 'hover:border-cyan-500/40'
                     elif any(x in subj_lower for x in ('mutation', '🧬', 'promoted', 'variant', 'evolution')):
                         c_type = 'feat'
                         badge_label = '🧬 Mutation'
                         badge_color = 'bg-purple-500/10 text-purple-500 border-purple-500/20'
                         dot_color = 'bg-purple-500'
+                        hover_border = 'hover:border-purple-500/40'
                     else:
                         c_type = 'feat'
                         badge_label = 'Feature'
                         badge_color = 'bg-brand-500/10 text-brand-500 border-brand-500/20'
                         dot_color = 'bg-brand-500'
+                        hover_border = 'hover:border-brand-500/40'
                         
                     clean_subj, extra_bullets = _clean_subject_and_build_bullets(c_subj)
                     
@@ -870,6 +874,7 @@ def _get_git_changelog():
                         'badge_label': badge_label,
                         'badge_color': badge_color,
                         'dot_color': dot_color,
+                        'hover_border': hover_border,
                         'version': version,
                         'impacted_files': impacted_files
                     })
@@ -890,6 +895,7 @@ def _get_git_changelog():
                         'type': c['type'],
                         'badge_color': c['badge_color'],
                         'dot_color': c['dot_color'],
+                        'hover_border': c['hover_border'],
                     }
                 else:
                     if current_group is None:
@@ -901,6 +907,7 @@ def _get_git_changelog():
                             'type': c['type'],
                             'badge_color': c['badge_color'],
                             'dot_color': c['dot_color'],
+                            'hover_border': c['hover_border'],
                         }
                     else:
                         current_group['commits'].append(c)
