@@ -809,6 +809,8 @@ def _get_git_changelog():
                     # Extract version
                     version_match = re.search(r'\bv\d+\.\d+(?:\.\d+)?(?:-patch\d+)?\b', c_subj + ' ' + c_body)
                     version = version_match.group(0) if version_match else None
+                    if version == 'v1.0.0':
+                        version = None
                     
                     if 'fix' in subj_lower or 'bug' in subj_lower:
                         c_type = 'fix'
