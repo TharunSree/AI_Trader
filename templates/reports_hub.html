@@ -105,7 +105,7 @@
                 <div id="month-dropdown-menu" class="hidden absolute left-0 right-0 mt-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-30 max-h-60 overflow-y-auto py-1">
                     <div onclick="selectDropdownOption('month', '', 'All Months')" class="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer font-mono text-xs text-slate-700 dark:text-slate-300">All Months</div>
                     {% for date in available_months %}
-                    <div onclick="selectDropdownOption('month', '{{ date|date:\'Y-m\' }}', '{{ date|date:\'F Y\' }}')" class="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer font-mono text-xs text-slate-700 dark:text-slate-300">{{ date|date:"F Y" }}</div>
+                    <div onclick="selectDropdownOption('month', '{{ date|date:"Y-m" }}', '{{ date|date:"F Y" }}')" class="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer font-mono text-xs text-slate-700 dark:text-slate-300">{{ date|date:"F Y" }}</div>
                     {% endfor %}
                 </div>
             </div>

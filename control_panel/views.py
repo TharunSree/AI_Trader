@@ -2959,7 +2959,7 @@ def evolution_promote_api(request, variant_id):
             subprocess.run(["git", "add", "src/models/ppo_agent.py", "templates/changelog.html"], cwd=repo_dir, check=True, capture_output=True, text=True)
             
             # git commit
-            commit_msg = f"[MUTATION] Promoted Evolved Variant #{variant.id}: {variant.name}"
+            commit_msg = f"[MUTATION] [AI PUSHED] Promoted Evolved Variant #{variant.id}: {variant.name}"
             subprocess.run(["git", "commit", "-m", commit_msg], cwd=repo_dir, check=True, capture_output=True, text=True)
             git_committed = True
             
