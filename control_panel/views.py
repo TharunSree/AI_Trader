@@ -873,54 +873,47 @@ def _get_git_changelog():
                     })
                     
             # Group commits reverse-chronologically by release boundary
-            current_group = {
-                'version': None,
-                'date': None,
-                'subject': None,
-                'commits': [],
-                'type': 'feat',
-                'badge_color': None,
-                'dot_color': None,
-            }
+            version_groups = []
+            current_group = None
             
             for c in commits_raw:
-                current_group['commits'].append(c)
                 if c['version']:
-                    current_group['version'] = c['version']
-                    current_group['date'] = c['date']
-                    current_group['subject'] = c['subject']
-                    current_group['type'] = c['type']
-                    current_group['badge_color'] = c['badge_color']
-                    current_group['dot_color'] = c['dot_color']
-                    
-                    version_groups.append(current_group)
-                    
+                    if current_group:
+                        version_groups.append(current_group)
                     current_group = {
-                        'version': None,
-                        'date': None,
-                        'subject': None,
-                        'commits': [],
-                        'type': 'feat',
-                        'badge_color': None,
-                        'dot_color': None,
+                        'version': c['version'],
+                        'date': c['date'],
+                        'subject': c['subject'],
+                        'commits': [c],
+                        'type': c['type'],
+                        'badge_color': c['badge_color'],
+                        'dot_color': c['dot_color'],
                     }
+                else:
+                    if current_group is None:
+                        current_group = {
+                            'version': 'dev',
+                            'date': c['date'],
+                            'subject': c['subject'],
+                            'commits': [c],
+                            'type': c['type'],
+                            'badge_color': c['badge_color'],
+                            'dot_color': c['dot_color'],
+                        }
+                    else:
+                        current_group['commits'].append(c)
             
-            # Append remaining dev commits at the top if any
-            if current_group['commits']:
+            if current_group:
+                version_groups.append(current_group)
+                
+            # If the first group represents unversioned dev commits, resolve its version name
+            if version_groups and version_groups[0]['version'] == 'dev':
                 next_version = 'vNext-dev'
                 for g in version_groups:
-                    if g['version']:
+                    if g['version'] and g['version'] != 'dev':
                         next_version = f"{g['version']}-dev"
                         break
-                        
-                current_group['version'] = next_version
-                current_group['date'] = current_group['commits'][0]['date']
-                current_group['subject'] = current_group['commits'][0]['subject']
-                current_group['type'] = current_group['commits'][0]['type']
-                current_group['badge_color'] = current_group['commits'][0]['badge_color']
-                current_group['dot_color'] = current_group['commits'][0]['dot_color']
-                
-                version_groups.insert(0, current_group)
+                version_groups[0]['version'] = next_version
                 
             # Merge details across each group
             for g in version_groups:
