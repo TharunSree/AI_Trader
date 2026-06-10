@@ -3185,7 +3185,7 @@ from django.http import StreamingHttpResponse
 def check_updates_api(request):
     try:
         subprocess.run(['git', 'fetch', 'origin'], capture_output=True, check=False)
-        result = subprocess.run(['git', 'rev-list', 'HEAD...origin/master', '--count'], capture_output=True, text=True, check=False)
+        result = subprocess.run(['git', 'rev-list', 'HEAD..origin/master', '--count'], capture_output=True, text=True, check=False)
         commits_behind = int(result.stdout.strip()) if result.stdout.strip().isdigit() else 0
         return JsonResponse({'status': 'success', 'commits_behind': commits_behind})
     except Exception as e:
