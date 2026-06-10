@@ -431,10 +431,39 @@ def _enforce_spawn_guard(max_active=3):
             try:
                 pid = int(v.celery_task_id)
                 if not psutil.pid_exists(pid):
-                    print(f"[NEURAL EVOLUTION] Detected dead virtual engine process (PID {pid}) for Variant #{v.id}. Pruning slot to FAILED.")
-                    v.status = 'FAILED'
-                    v.error_message = 'Process exited unexpectedly (crashed or was terminated)'
-                    v.save(update_fields=['status', 'error_message'])
+                    print(f"[NEURAL EVOLUTION] Detected dead virtual engine process (PID {pid}) for Variant #{v.id}. Pruning slot.")
+                    
+                    # Create failure alert
+                    try:
+                        from control_panel.models import SystemAlert
+                        alert_msg = f"**Variant Name**: {v.name}\n"
+                        alert_msg += f"**Failure Type**: PROCESS DEAD (Crashed or Terminated)\n"
+                        alert_msg += f"**Error**: PID {pid} is no longer running.\n\n"
+                        
+                        alert_msg += "### 📊 Trade Performance Summary\n"
+                        alert_msg += f"- **Total Trades**: {v.virtual_trades_count}\n"
+                        alert_msg += f"- **Win Rate**: {v.win_rate:.1f}%\n"
+                        alert_msg += f"- **Starting Balance**: ${float(v.starting_cash):,.2f}\n"
+                        alert_msg += f"- **Final Balance**: ${float(v.virtual_balance):,.2f}\n"
+                        alert_msg += f"- **Net P/L**: {v.virtual_pnl_pct:+.2f}%\n"
+                        alert_msg += f"- **Sharpe Ratio**: {v.sharpe_ratio:.4f}\n"
+                        alert_msg += f"- **Max Drawdown**: {v.max_drawdown_pct:.2f}%\n\n"
+                        
+                        if v.mutation_reasoning:
+                            alert_msg += f"### 💡 Attempted Rationale\n{v.mutation_reasoning}\n\n"
+                        if v.agent_code:
+                            alert_msg += f"### 💻 Agent Code\n```python\n{v.agent_code}\n```\n"
+                            
+                        SystemAlert.objects.create(
+                            level='WARNING',
+                            title=f'🧬 Variant #{v.id} Failed: Process Dead',
+                            message=alert_msg,
+                            related_model_reference=str(v.id)
+                        )
+                    except Exception as alert_err:
+                        print(f"[NEURAL EVOLUTION] Failed to log dead process alert: {alert_err}")
+                        
+                    v.delete()
             except Exception as e:
                 print(f"[NEURAL EVOLUTION] Error checking process status for Variant #{v.id}: {e}")
 
@@ -462,9 +491,37 @@ def _enforce_spawn_guard(max_active=3):
             except Exception as kill_err:
                 print(f"[NEURAL EVOLUTION] Failed to kill PID {worst.celery_task_id} for Variant #{worst.id}: {kill_err}")
                 
-        worst.status = 'FAILED'
-        worst.error_message = 'Terminated by spawn guard to make room for new variant'
-        worst.save(update_fields=['status', 'error_message'])
+        # Create termination alert
+        try:
+            from control_panel.models import SystemAlert
+            alert_msg = f"**Variant Name**: {worst.name}\n"
+            alert_msg += f"**Failure Type**: TERMINATED BY SPAWN GUARD\n"
+            alert_msg += f"**Reason**: Terminated by spawn guard to make room for a new variant (worst performance: {worst.virtual_pnl_pct:+.2f}%).\n\n"
+            
+            alert_msg += "### 📊 Trade Performance Summary\n"
+            alert_msg += f"- **Total Trades**: {worst.virtual_trades_count}\n"
+            alert_msg += f"- **Win Rate**: {worst.win_rate:.1f}%\n"
+            alert_msg += f"- **Starting Balance**: ${float(worst.starting_cash):,.2f}\n"
+            alert_msg += f"- **Final Balance**: ${float(worst.virtual_balance):,.2f}\n"
+            alert_msg += f"- **Net P/L**: {worst.virtual_pnl_pct:+.2f}%\n"
+            alert_msg += f"- **Sharpe Ratio**: {worst.sharpe_ratio:.4f}\n"
+            alert_msg += f"- **Max Drawdown**: {worst.max_drawdown_pct:.2f}%\n\n"
+            
+            if worst.mutation_reasoning:
+                alert_msg += f"### 💡 Attempted Rationale\n{worst.mutation_reasoning}\n\n"
+            if worst.agent_code:
+                alert_msg += f"### 💻 Agent Code\n```python\n{worst.agent_code}\n```\n"
+                
+            SystemAlert.objects.create(
+                level='WARNING',
+                title=f'🧬 Variant #{worst.id} Failed: Terminated by Spawn Guard',
+                message=alert_msg,
+                related_model_reference=str(worst.id)
+            )
+        except Exception as alert_err:
+            print(f"[NEURAL EVOLUTION] Failed to log spawn guard termination alert: {alert_err}")
+            
+        worst.delete()
     
     return True
 
@@ -568,28 +625,21 @@ def orchestrate_rewrite(crash_log=None):
             pass
 
     # Collect recently failed or manually rejected variants to avoid repeating errors/bad logic
-    from control_panel.models import ModelVariant, SystemAlert
-    failed_variants = ModelVariant.objects.filter(status='FAILED').order_by('-id')[:3]
-    rejected_alerts = SystemAlert.objects.filter(level='WARNING', title__contains='Rejected').order_by('-id')[:3]
+    from control_panel.models import SystemAlert
+    from django.db.models import Q
+    negative_alerts = SystemAlert.objects.filter(
+        Q(level='WARNING') & (Q(title__contains='Rejected') | Q(title__contains='Failed'))
+    ).order_by('-id')[:5]
     failed_context = ""
     
-    if failed_variants or rejected_alerts:
+    if negative_alerts:
         failed_context = "\nCRITICAL NEGATIVE CONTEXT: The following recently generated model variant(s) failed or were manually rejected. You MUST review their code, reasoning rationale, and failure/rejection reasons (including performance metrics and user feedback comments), and ensure your new code does NOT repeat the same mistakes, patterns, or decisions:\n"
-        
-        # Add failed/crashed variants (from ModelVariant table)
-        for fv in failed_variants:
-            failed_context += f"--- Sandbox Crashed Variant #{fv.id} ({fv.name}) ---\n"
-            failed_context += f"Sandbox Crash Error: {fv.error_message}\n"
-            if fv.mutation_reasoning:
-                failed_context += f"Variant's Attempted Rationale: {fv.mutation_reasoning}\n"
-            if fv.agent_code:
-                failed_context += f"Variant Agent Code:\n```python\n{fv.agent_code}\n```\n"
-            failed_context += "----------------------------------------\n"
-            
-        # Add manually rejected variants (from alerts)
-        for alert in rejected_alerts:
-            failed_context += f"--- Manually Rejected Variant Audit Log ---\n"
-            failed_context += f"Rejection Details:\n{alert.message}\n"
+        for alert in negative_alerts:
+            if "Rejected" in alert.title:
+                failed_context += f"--- Manually Rejected Variant Audit Log ({alert.title}) ---\n"
+            else:
+                failed_context += f"--- Failed/Crashed Variant Audit Log ({alert.title}) ---\n"
+            failed_context += f"{alert.message}\n"
             failed_context += "----------------------------------------\n"
 
     try:
@@ -747,15 +797,49 @@ def orchestrate_rewrite(crash_log=None):
                   f"for Variant #{variant.id}. 14-day trial begins now.")
         except Exception as spawn_err:
             print(f"[NEURAL EVOLUTION] Failed to spawn virtual engine: {spawn_err}")
-            variant.status = 'FAILED'
-            variant.error_message = f"Failed to spawn virtual engine: {spawn_err}"
-            variant.save(update_fields=['status', 'error_message'])
+            # Create failure alert
+            try:
+                from control_panel.models import SystemAlert
+                alert_msg = f"**Variant Name**: {variant.name}\n"
+                alert_msg += f"**Failure Type**: SPAWN ERROR\n"
+                alert_msg += f"**Error Exception**: {str(spawn_err)}\n\n"
+                if variant.mutation_reasoning:
+                    alert_msg += f"### 💡 Attempted Rationale\n{variant.mutation_reasoning}\n\n"
+                if variant.agent_code:
+                    alert_msg += f"### 💻 Agent Code\n```python\n{variant.agent_code}\n```\n"
+                
+                SystemAlert.objects.create(
+                    level='WARNING',
+                    title=f'🧬 Variant #{variant.id} Failed: Spawn Error',
+                    message=alert_msg,
+                    related_model_reference=str(variant.id)
+                )
+            except Exception as alert_err:
+                print(f"[NEURAL EVOLUTION] Failed to log spawn failure alert: {alert_err}")
+            
+            variant.delete()
 
     except Exception as e:
         print(f"[NEURAL EVOLUTION] FATAL ANOMALY: {e}")
         import traceback
-        traceback.print_exc()
-        # No rollback needed — we never touched ppo_agent.py!
+        tb_str = traceback.format_exc()
+        try:
+            from control_panel.models import SystemAlert
+            alert_msg = f"**Mutation Run Failed**\n"
+            alert_msg += f"**Error**: {str(e)}\n\n"
+            alert_msg += f"### 🔴 Traceback\n```\n{tb_str}\n```\n\n"
+            if 'raw_response' in locals() and raw_response:
+                alert_msg += f"### 💡 Attempted Rationale\n{raw_response[:5000]}\n\n"
+            if 'new_code' in locals() and new_code:
+                alert_msg += f"### 💻 Agent Code\n```python\n{new_code}\n```\n"
+            
+            SystemAlert.objects.create(
+                level='WARNING',
+                title=f'🧬 Mutation Attempt Failed: {str(e)[:60]}',
+                message=alert_msg
+            )
+        except Exception as alert_err:
+            print(f"[NEURAL EVOLUTION] Failed to log failure alert: {alert_err}")
 
 if __name__ == "__main__":
     orchestrate_rewrite()

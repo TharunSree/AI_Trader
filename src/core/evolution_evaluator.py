@@ -41,6 +41,36 @@ def _delete_failed_variant(variant, reason_msg):
         except Exception as e:
             print(f"  [EVOLUTION EVAL] Failed to delete log file: {e}")
             
+    # Compile detailed failure alert for negative feedback context
+    alert_msg = f"**Variant Name**: {variant.name}\n"
+    alert_msg += f"**Failure Type**: EVALUATION LOSS / INSUFFICIENT DATA\n"
+    alert_msg += f"**Failure Reason**: {reason_msg}\n\n"
+    
+    # Compile performance metrics
+    alert_msg += "### 📊 Trade Performance Summary\n"
+    alert_msg += f"- **Total Trades**: {variant.virtual_trades_count}\n"
+    alert_msg += f"- **Win Rate**: {variant.win_rate:.1f}%\n"
+    alert_msg += f"- **Starting Balance**: ${float(variant.starting_cash):,.2f}\n"
+    alert_msg += f"- **Final Balance**: ${float(variant.virtual_balance):,.2f}\n"
+    alert_msg += f"- **Net P/L**: {variant.virtual_pnl_pct:+.2f}%\n"
+    alert_msg += f"- **Sharpe Ratio**: {variant.sharpe_ratio:.4f}\n"
+    alert_msg += f"- **Max Drawdown**: {variant.max_drawdown_pct:.2f}%\n\n"
+    
+    if variant.mutation_reasoning:
+        alert_msg += f"### 💡 Attempted Rationale\n{variant.mutation_reasoning}\n\n"
+    if variant.agent_code:
+        alert_msg += f"### 💻 Agent Code\n```python\n{variant.agent_code}\n```\n"
+        
+    try:
+        SystemAlert.objects.create(
+            level='WARNING',
+            title=f'🧬 Variant #{variant.id} Failed & Deleted: {reason_msg[:60]}',
+            message=alert_msg,
+            related_model_reference=str(variant.id)
+        )
+    except Exception as alert_err:
+        print(f"  [EVOLUTION EVAL] Failed to write SystemAlert: {alert_err}")
+
     # Delete variant record
     print(f"  [EVOLUTION EVAL] Deleting variant #{variant.id} record. Reason: {reason_msg}")
     variant.delete()

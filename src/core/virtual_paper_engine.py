@@ -535,6 +535,30 @@ async def main():
     except Exception as e:
         logger.error(f"[EVOLUTION] Fatal error in virtual engine: {e}", exc_info=True)
         try:
+            import traceback
+            tb_str = traceback.format_exc()
+            
+            from control_panel.models import ModelVariant, SystemAlert
+            variant = ModelVariant.objects.filter(id=args.variant_id).first()
+            
+            if variant:
+                # Compile detailed failure alert
+                alert_msg = f"**Variant Name**: {variant.name}\n"
+                alert_msg += f"**Failure Type**: RUNTIME CRASH\n"
+                alert_msg += f"**Error Exception**: {str(e)}\n\n"
+                alert_msg += f"### 🔴 Traceback\n```\n{tb_str}\n```\n\n"
+                if variant.mutation_reasoning:
+                    alert_msg += f"### 💡 Attempted Rationale\n{variant.mutation_reasoning}\n\n"
+                if variant.agent_code:
+                    alert_msg += f"### 💻 Agent Code\n```python\n{variant.agent_code}\n```\n"
+                
+                SystemAlert.objects.create(
+                    level='WARNING',
+                    title=f'🧬 Variant #{variant.id} Failed: {str(e)[:60]}',
+                    message=alert_msg,
+                    related_model_reference=str(variant.id)
+                )
+            
             from pathlib import Path
             from django.conf import settings as django_settings
             
@@ -549,7 +573,7 @@ async def main():
             # Delete variant record
             ModelVariant.objects.filter(id=args.variant_id).delete()
         except Exception as ex:
-            logger.error(f"[EVOLUTION] Failed to delete variant/log on fatal crash: {ex}")
+            logger.error(f"[EVOLUTION] Failed to handle variant crash alert/deletion: {ex}")
 
 
 if __name__ == "__main__":

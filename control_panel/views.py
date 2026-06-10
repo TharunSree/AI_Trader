@@ -3225,9 +3225,32 @@ def evolution_restart_api(request, variant_id):
         variant.celery_task_id = str(process.pid)
         variant.save(update_fields=['celery_task_id'])
     except Exception as spawn_err:
-        variant.status = 'FAILED'
-        variant.error_message = f"Failed to spawn virtual engine: {spawn_err}"
-        variant.save(update_fields=['status', 'error_message'])
+        # Create failure alert
+        try:
+            from control_panel.models import SystemAlert
+            alert_msg = f"**Variant Name**: {variant.name}\n"
+            alert_msg += f"**Failure Type**: SPAWN ERROR (Manual Restart)\n"
+            alert_msg += f"**Error Exception**: {str(spawn_err)}\n\n"
+            if variant.mutation_reasoning:
+                alert_msg += f"### 💡 Attempted Rationale\n{variant.mutation_reasoning}\n\n"
+            if variant.agent_code:
+                alert_msg += f"### 💻 Agent Code\n```python\n{variant.agent_code}\n```\n"
+            
+            SystemAlert.objects.create(
+                level='WARNING',
+                title=f'🧬 Variant #{variant.id} Failed: Spawn Error',
+                message=alert_msg,
+                related_model_reference=str(variant.id)
+            )
+        except Exception:
+            pass
+            
+        variant.delete()
+        
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json':
+            return JsonResponse({'status': 'error', 'message': f'Failed to spawn virtual engine: {spawn_err}'}, status=500)
+            
+        return redirect('evolution_hub')
         
     if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json':
         return JsonResponse({'status': 'success', 'message': f'Variant #{variant_id} restarted successfully.'})
