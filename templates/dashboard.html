@@ -425,35 +425,38 @@
     .pill-switch-container {
         position: relative;
         display: flex;
-        background: #0f172a; /* dark slate */
+        background: rgba(15, 23, 42, 0.4); /* slate-900 with opacity */
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
         border-radius: 9999px;
-        padding: 2px;
-        border: 1px solid #1e293b; /* border-slate-800 */
+        padding: 6px; /* Gap around pill */
+        border: 1px solid rgba(255, 255, 255, 0.08); /* glassmorphic border */
     }
     .pill-switch-slider {
         position: absolute;
-        top: 2px;
-        bottom: 2px;
-        left: 2px;
-        width: calc(50% - 2px);
-        background: #e11d48; /* bg-rose-600 */
+        top: 6px;
+        bottom: 6px;
+        left: 6px;
+        width: calc(50% - 12px);
+        background: rgba(244, 63, 94, 0.12); /* rose-500/12 translucent */
+        border: 1px solid rgba(244, 63, 94, 0.35); /* rose-500/35 border */
         border-radius: 9999px;
-        transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.35s ease;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.3s ease, border-color 0.3s ease;
+        box-shadow: 0 0 10px rgba(244, 63, 94, 0.1);
     }
     .pill-switch-btn {
         position: relative;
         flex: 1;
         text-align: center;
-        padding: 6px 12px;
+        padding: 10px 20px;
         font-size: 10px;
         font-family: monospace;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.1em;
+        letter-spacing: 0.12em;
         cursor: pointer;
         color: #64748b; /* text-slate-500 */
-        transition: color 0.35s ease;
+        transition: color 0.3s ease;
         z-index: 10;
         background: none;
         border: none;
@@ -465,86 +468,252 @@
     
     /* Rejection Modal Card transitions */
     #rejection-modal-card {
-        transition: max-width 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s ease, opacity 0.3s ease;
+        width: 520px;
+        min-height: 600px; /* Bigger height */
+        transition: width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), transform 0.3s ease, opacity 0.3s ease;
+    }
+    #rejection-modal-card.detailed-mode {
+        width: 960px; /* Bigger width in detailed mode */
+    }
+    
+    .rejection-form-panel {
+        width: 520px;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
     }
     
     /* Help Guide Panel transition */
     .rejection-guide-panel {
-        transition: opacity 0.4s ease, transform 0.4s ease, width 0.4s ease;
+        display: flex;
+        flex-direction: column;
+        width: 0;
+        opacity: 0;
+        overflow: hidden;
+        border-left: 0px solid rgba(51, 65, 85, 0.4);
+        transition: width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), border-width 0.4s ease;
+    }
+    .rejection-guide-panel.expanded {
+        width: 440px; /* Bigger width */
+        opacity: 1;
+        border-left: 1px solid rgba(51, 65, 85, 0.4);
+    }
+    
+    /* Detailed fields animation wrapper - Using CSS Grid for smooth height animation */
+    .detailed-fields-wrapper {
+        display: grid;
+        grid-template-rows: 0fr;
+        transition: grid-template-rows 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease, margin-bottom 0.4s ease;
+        opacity: 0;
+        margin-bottom: 0;
+    }
+    .detailed-fields-wrapper.expanded {
+        grid-template-rows: 1fr;
+        opacity: 1;
+        margin-bottom: 12px;
+    }
+    .detailed-fields-inner {
+        overflow: hidden;
+    }
+    
+    /* Glassmorphic dropdown & input styles */
+    .glass-textarea {
+        background-color: rgba(15, 23, 42, 0.55);
+        border: 1px solid rgba(51, 65, 85, 0.4);
+        border-radius: 12px;
+        color: #e2e8f0;
+        font-family: monospace;
+        font-size: 11px;
+        outline: none;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .glass-textarea:focus {
+        border-color: rgba(244, 63, 94, 0.6);
+        box-shadow: 0 0 10px rgba(244, 63, 94, 0.15);
+    }
+    
+    /* Custom Glass Dropdown - Completely replaces native select options */
+    .custom-dropdown {
+        position: relative;
+    }
+    .glass-select-trigger {
+        background-color: rgba(15, 23, 42, 0.55);
+        border: 1px solid rgba(51, 65, 85, 0.4);
+        border-radius: 12px;
+        color: #e2e8f0;
+        cursor: pointer;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .glass-select-trigger:focus, .glass-select-trigger.active {
+        border-color: rgba(244, 63, 94, 0.6);
+        box-shadow: 0 0 10px rgba(244, 63, 94, 0.15);
+    }
+    .custom-dropdown-options {
+        background: rgba(15, 23, 42, 0.85) !important;
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
+    }
+    .custom-dropdown-options.show {
+        pointer-events: auto !important;
+        opacity: 1 !important;
+        transform: scale(1) !important;
+    }
+    .custom-dropdown-option {
+        transition: background-color 0.2s ease, color 0.2s ease;
+    }
+    
+    @media (max-width: 768px) {
+        #rejection-modal-card {
+            width: 95% !important;
+            flex-direction: column !important;
+            min-height: auto !important;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        #rejection-modal-card.detailed-mode {
+            width: 95% !important;
+        }
+        .rejection-form-panel {
+            width: 100% !important;
+        }
+        .rejection-guide-panel {
+            width: 100% !important;
+            height: 0;
+            transition: height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .rejection-guide-panel.expanded {
+            height: auto;
+            width: 100% !important;
+            border-left: none !important;
+            border-top: 1px solid rgba(51, 65, 85, 0.4);
+        }
     }
 </style>
 
 <div id="rejection-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center transition-all duration-300 opacity-0 pointer-events-none">
     <div class="absolute inset-0 cursor-default" onclick="closeRejectionModal()"></div>
-    <div id="rejection-modal-card" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl w-full max-w-md flex flex-row overflow-hidden transform scale-95 transition-all duration-300 relative z-10 mx-4">
+    <div id="rejection-modal-card" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl w-full max-w-none flex flex-row overflow-hidden transform scale-95 transition-all duration-300 relative z-10 mx-4">
         
         <!-- Left Panel: Feedback Form -->
-        <div class="flex-1 p-6 flex flex-col min-w-0">
-            <!-- Header -->
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
-                <h3 class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                    <i class="fas fa-ban text-rose-500"></i> Reject Evolved Variant
-                </h3>
-                <button onclick="closeRejectionModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors cursor-pointer text-xs w-6 h-6 flex items-center justify-center rounded bg-slate-100 dark:bg-slate-800 border-none outline-none">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            
-            <p class="text-xs text-slate-500 dark:text-slate-400 font-mono mb-4 leading-relaxed">
-                Rejecting this variant will permanently terminate its virtual trading engine and delete the record.
-            </p>
-
-            <!-- Pill Switch -->
-            <div class="mb-4">
-                <div class="pill-switch-container">
-                    <div id="rejection-pill-slider" class="pill-switch-slider"></div>
-                    <button type="button" id="btn-report-minor" onclick="setRejectionReportType('minor')" class="pill-switch-btn active">Minor Feedback</button>
-                    <button type="button" id="btn-report-detailed" onclick="setRejectionReportType('detailed')" class="pill-switch-btn">Detailed Report</button>
+        <div class="rejection-form-panel p-6 justify-between">
+            <div>
+                <!-- Header -->
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
+                    <h3 class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                        <i class="fas fa-ban text-rose-500"></i> Reject Evolved Variant
+                    </h3>
+                    <button onclick="closeRejectionModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors cursor-pointer text-xs w-6 h-6 flex items-center justify-center rounded bg-slate-100 dark:bg-slate-800 border-none outline-none">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
-            </div>
-
-            <!-- Form Body -->
-            <div class="space-y-3 flex-1 overflow-y-auto max-h-[350px] pr-1">
-                <div id="rejection-error-msg" class="hidden p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-mono mb-2"></div>
                 
-                <!-- Category Select -->
-                <div>
-                    <label class="block text-[9px] uppercase tracking-widest text-slate-400 font-mono mb-1.5">Rejection Category</label>
-                    <select id="rejection-category-select" onchange="updateSelectedCategoryHelp()" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2 text-xs font-mono outline-none focus:border-rose-500">
-                        <option value="underperformance">Strategy Underperformance</option>
-                        <option value="drawdown">Excessive Drawdown / High Risk</option>
-                        <option value="timing">Poor Trade Timing (Early/Late)</option>
-                        <option value="overfitting">Overfitting / Insufficient Trades</option>
-                        <option value="errors">Runtime Errors / Bad Actions</option>
-                        <option value="other">Other / Custom Reason</option>
-                    </select>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 font-mono mb-4 leading-relaxed">
+                    Rejecting this variant will permanently terminate its virtual trading engine and delete the record.
+                </p>
+
+                <!-- Pill Switch -->
+                <div class="mb-4">
+                    <div class="pill-switch-container">
+                        <div id="rejection-pill-slider" class="pill-switch-slider"></div>
+                        <button type="button" id="btn-report-minor" onclick="setRejectionReportType('minor')" class="pill-switch-btn active">Minor Feedback</button>
+                        <button type="button" id="btn-report-detailed" onclick="setRejectionReportType('detailed')" class="pill-switch-btn">Detailed Report</button>
+                    </div>
                 </div>
 
-                <!-- Detailed Fields Section (Collapsed by default, shown when Detailed Report is selected) -->
-                <div id="detailed-report-fields" class="space-y-3 hidden">
-                    <!-- Mutation Directive Select -->
+                <!-- Form Body -->
+                <div class="space-y-4 pr-1">
+                    <div id="rejection-error-msg" class="hidden p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-mono mb-2"></div>
+                    
+                    <!-- Category Select -->
                     <div>
-                        <label class="block text-[9px] uppercase tracking-widest text-slate-400 font-mono mb-1.5">Suggested Directive for next mutation</label>
-                        <select id="rejection-directive-select" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2 text-xs font-mono outline-none focus:border-rose-500">
-                            <option value="none">No specific directive</option>
-                            <option value="tighten_sl">Tighten stop-loss / risk controls</option>
-                            <option value="improve_timing">Improve entry/exit timing parameters</option>
-                            <option value="optimize_winrate">Optimize for higher win rate</option>
-                            <option value="reduce_frequency">Reduce overall trading frequency</option>
-                        </select>
+                        <label class="block text-[9px] uppercase tracking-widest text-slate-400 font-mono mb-1.5">Rejection Category</label>
+                        <div class="relative custom-dropdown animate-dropdown" id="rejection-category-dropdown">
+                            <button type="button" class="w-full glass-select-trigger px-3 py-2 text-left flex items-center justify-between font-mono text-[11px] rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-900/40 text-slate-200 focus:outline-none transition-all">
+                                <span class="selected-value">Strategy Underperformance</span>
+                                <i class="fas fa-chevron-down text-slate-400 text-[10px] transition-transform duration-300"></i>
+                            </button>
+                            <div class="custom-dropdown-options absolute left-0 right-0 mt-1.5 bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-xl shadow-2xl py-1 z-50 pointer-events-none opacity-0 scale-95 origin-top transition-all duration-200">
+                                <div class="custom-dropdown-option px-3 py-2 hover:bg-rose-500/12 hover:text-rose-400 text-slate-300 font-mono text-[11px] cursor-pointer flex items-center justify-between" data-value="underperformance">
+                                    <span>Strategy Underperformance</span>
+                                    <i class="fas fa-check text-rose-500 text-[9px] opacity-0"></i>
+                                </div>
+                                <div class="custom-dropdown-option px-3 py-2 hover:bg-rose-500/12 hover:text-rose-400 text-slate-300 font-mono text-[11px] cursor-pointer flex items-center justify-between" data-value="drawdown">
+                                    <span>Excessive Drawdown / High Risk</span>
+                                    <i class="fas fa-check text-rose-500 text-[9px] opacity-0"></i>
+                                </div>
+                                <div class="custom-dropdown-option px-3 py-2 hover:bg-rose-500/12 hover:text-rose-400 text-slate-300 font-mono text-[11px] cursor-pointer flex items-center justify-between" data-value="timing">
+                                    <span>Poor Trade Timing (Early/Late)</span>
+                                    <i class="fas fa-check text-rose-500 text-[9px] opacity-0"></i>
+                                </div>
+                                <div class="custom-dropdown-option px-3 py-2 hover:bg-rose-500/12 hover:text-rose-400 text-slate-300 font-mono text-[11px] cursor-pointer flex items-center justify-between" data-value="overfitting">
+                                    <span>Overfitting / Insufficient Trades</span>
+                                    <i class="fas fa-check text-rose-500 text-[9px] opacity-0"></i>
+                                </div>
+                                <div class="custom-dropdown-option px-3 py-2 hover:bg-rose-500/12 hover:text-rose-400 text-slate-300 font-mono text-[11px] cursor-pointer flex items-center justify-between" data-value="errors">
+                                    <span>Runtime Errors / Bad Actions</span>
+                                    <i class="fas fa-check text-rose-500 text-[9px] opacity-0"></i>
+                                </div>
+                                <div class="custom-dropdown-option px-3 py-2 hover:bg-rose-500/12 hover:text-rose-400 text-slate-300 font-mono text-[11px] cursor-pointer flex items-center justify-between" data-value="other">
+                                    <span>Other / Custom Reason</span>
+                                    <i class="fas fa-check text-rose-500 text-[9px] opacity-0"></i>
+                                </div>
+                            </div>
+                            <input type="hidden" id="rejection-category-select" value="underperformance">
+                        </div>
                     </div>
 
-                    <!-- Checkbox for Trade Logs -->
-                    <div class="flex items-center gap-2 py-1">
-                        <input type="checkbox" id="rejection-attach-logs-checkbox" checked class="rounded bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-rose-500 focus:ring-rose-500 w-3.5 h-3.5">
-                        <label for="rejection-attach-logs-checkbox" class="text-[10px] text-slate-400 font-mono cursor-pointer select-none">Attach trade performance metrics</label>
-                    </div>
-                </div>
+                    <!-- Detailed Fields Section -->
+                    <div id="detailed-report-fields" class="detailed-fields-wrapper">
+                        <div class="detailed-fields-inner space-y-4 pt-1">
+                            <!-- Mutation Directive Select -->
+                            <div>
+                                <label class="block text-[9px] uppercase tracking-widest text-slate-400 font-mono mb-1.5">Suggested Directive for next mutation</label>
+                                <div class="relative custom-dropdown animate-dropdown" id="rejection-directive-dropdown">
+                                    <button type="button" class="w-full glass-select-trigger px-3 py-2 text-left flex items-center justify-between font-mono text-[11px] rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-900/40 text-slate-200 focus:outline-none transition-all">
+                                        <span class="selected-value">No specific directive</span>
+                                        <i class="fas fa-chevron-down text-slate-400 text-[10px] transition-transform duration-300"></i>
+                                    </button>
+                                    <div class="custom-dropdown-options absolute left-0 right-0 mt-1.5 bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-xl shadow-2xl py-1 z-50 pointer-events-none opacity-0 scale-95 origin-top transition-all duration-200">
+                                        <div class="custom-dropdown-option px-3 py-2 hover:bg-purple-500/12 hover:text-purple-400 text-slate-300 font-mono text-[11px] cursor-pointer flex items-center justify-between" data-value="none">
+                                            <span>No specific directive</span>
+                                            <i class="fas fa-check text-purple-500 text-[9px] opacity-0"></i>
+                                        </div>
+                                        <div class="custom-dropdown-option px-3 py-2 hover:bg-purple-500/12 hover:text-purple-400 text-slate-300 font-mono text-[11px] cursor-pointer flex items-center justify-between" data-value="tighten_sl">
+                                            <span>Tighten stop-loss / risk controls</span>
+                                            <i class="fas fa-check text-purple-500 text-[9px] opacity-0"></i>
+                                        </div>
+                                        <div class="custom-dropdown-option px-3 py-2 hover:bg-purple-500/12 hover:text-purple-400 text-slate-300 font-mono text-[11px] cursor-pointer flex items-center justify-between" data-value="improve_timing">
+                                            <span>Improve entry/exit timing parameters</span>
+                                            <i class="fas fa-check text-purple-500 text-[9px] opacity-0"></i>
+                                        </div>
+                                        <div class="custom-dropdown-option px-3 py-2 hover:bg-purple-500/12 hover:text-purple-400 text-slate-300 font-mono text-[11px] cursor-pointer flex items-center justify-between" data-value="optimize_winrate">
+                                            <span>Optimize for higher win rate</span>
+                                            <i class="fas fa-check text-purple-500 text-[9px] opacity-0"></i>
+                                        </div>
+                                        <div class="custom-dropdown-option px-3 py-2 hover:bg-purple-500/12 hover:text-purple-400 text-slate-300 font-mono text-[11px] cursor-pointer flex items-center justify-between" data-value="reduce_frequency">
+                                            <span>Reduce overall trading frequency</span>
+                                            <i class="fas fa-check text-purple-500 text-[9px] opacity-0"></i>
+                                        </div>
+                                    </div>
+                                    <input type="hidden" id="rejection-directive-select" value="none">
+                                </div>
+                            </div>
 
-                <!-- Custom Reasoning Textarea -->
-                <div>
-                    <label class="block text-[9px] uppercase tracking-widest text-slate-400 font-mono mb-1.5">Rejection Reasoning / Notes</label>
-                    <textarea id="rejection-reason-textarea" placeholder="e.g. Overfitted to recent pump, sold too early..." class="w-full h-20 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2 text-xs font-mono outline-none focus:border-rose-500 resize-none"></textarea>
+                            <!-- Checkbox for Trade Logs -->
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" id="rejection-attach-logs-checkbox" checked class="rounded bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-rose-500 focus:ring-rose-500 w-3.5 h-3.5">
+                                <label for="rejection-attach-logs-checkbox" class="text-[10px] text-slate-400 font-mono cursor-pointer select-none">Attach trade performance metrics</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Custom Reasoning Textarea -->
+                    <div>
+                        <label class="block text-[9px] uppercase tracking-widest text-slate-400 font-mono mb-1.5">Rejection Reasoning / Notes</label>
+                        <textarea id="rejection-reason-textarea" placeholder="e.g. Overfitted to recent pump, sold too early..." class="w-full h-24 glass-textarea px-3 py-2 resize-none"></textarea>
+                    </div>
                 </div>
             </div>
 
@@ -560,34 +729,38 @@
         </div>
 
         <!-- Right Panel: Help Guide -->
-        <div id="rejection-guide-panel" class="w-0 opacity-0 border-l border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-950/20 flex flex-col transition-all duration-300 overflow-hidden min-w-0 pointer-events-none">
-            <div class="p-6 flex flex-col h-full min-w-[280px] md:min-w-[320px]">
-                <h4 class="text-xs font-bold text-slate-800 dark:text-slate-300 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800 pb-2.5 mb-4 flex items-center gap-1.5 font-mono">
-                    <i class="fas fa-question-circle text-rose-400"></i> Rejection Guide
-                </h4>
-                
-                <div class="space-y-4 flex-1 overflow-y-auto pr-1 text-slate-500 dark:text-slate-400 font-sans text-xs">
-                    <div>
-                        <span class="text-slate-700 dark:text-slate-200 font-bold block mb-1 font-mono text-[10px] uppercase tracking-wider">Concepts Explanation:</span>
-                        <div id="rejection-guide-dynamic-help" class="bg-slate-100 dark:bg-slate-900/40 p-3 rounded-lg border border-slate-200 dark:border-slate-800/80 space-y-2 font-mono text-[10px] leading-relaxed">
-                            <p class="text-rose-500 dark:text-rose-400 font-bold uppercase">Strategy Underperformance</p>
-                            <p>This means the variant's virtual trading returns (PnL) were lower than the parent model over the test window.</p>
-                            <p class="text-slate-400 dark:text-slate-500">E.g., parent gained +5.2% but variant only gained +2.1% (or lost capital).</p>
+        <div id="rejection-guide-panel" class="rejection-guide-panel bg-slate-50 dark:bg-slate-950/20">
+            <div class="p-6 flex flex-col h-full justify-between min-w-[340px] md:min-w-[440px]">
+                <div>
+                    <h4 class="text-xs font-bold text-slate-800 dark:text-slate-300 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800 pb-2.5 mb-4 flex items-center gap-1.5 font-mono">
+                        <i class="fas fa-question-circle text-rose-400"></i> Rejection Guide
+                    </h4>
+                    
+                    <div class="space-y-4 text-slate-500 dark:text-slate-400 font-sans text-xs">
+                        <div>
+                            <span class="text-slate-700 dark:text-slate-200 font-bold block mb-2 font-mono text-[10px] uppercase tracking-wider">Concepts Explanation:</span>
+                            <div id="rejection-guide-dynamic-help" class="bg-slate-100 dark:bg-slate-900/40 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800/80 space-y-2.5 font-mono text-[10px] leading-relaxed">
+                                <p class="text-rose-500 dark:text-rose-400 font-bold uppercase">Strategy Underperformance</p>
+                                <p>This means the variant's virtual trading returns (PnL) were lower than the parent model over the test window.</p>
+                                <p class="text-slate-400 dark:text-slate-500">E.g., parent gained +5.2% but variant only gained +2.1% (or lost capital).</p>
+                            </div>
                         </div>
                     </div>
+                </div>
 
-                    <div class="border-t border-slate-200 dark:border-slate-800 pt-3">
-                        <span class="text-slate-700 dark:text-slate-200 font-bold block mb-1.5 font-mono text-[10px] uppercase tracking-wider">Directives Guide:</span>
-                        <ul class="space-y-2.5 font-mono text-[9px] leading-normal text-slate-500 dark:text-slate-400">
-                            <li><strong class="text-slate-700 dark:text-slate-300">Tighten stop-loss:</strong> Restricts downside risk by exiting trades quicker when price drops.</li>
-                            <li><strong class="text-slate-700 dark:text-slate-300">Improve timing:</strong> Adjusts indicator trigger bounds to avoid early/late entries.</li>
-                            <li><strong class="text-slate-700 dark:text-slate-300">Optimize win rate:</strong> AI focuses on high-conviction trades, ignoring noisy setups.</li>
-                            <li><strong class="text-slate-700 dark:text-slate-300">Reduce frequency:</strong> Trade less often; only enter during clear momentum runs.</li>
-                        </ul>
-                    </div>
+                <div class="border-t border-slate-200 dark:border-slate-800 pt-4 mt-4">
+                    <span class="text-slate-700 dark:text-slate-200 font-bold block mb-2 font-mono text-[10px] uppercase tracking-wider">Directives Guide:</span>
+                    <ul class="space-y-2.5 font-mono text-[9px] leading-normal text-slate-500 dark:text-slate-400">
+                        <li><strong class="text-slate-700 dark:text-slate-300">Tighten stop-loss:</strong> Restricts downside risk by exiting trades quicker when price drops.</li>
+                        <li><strong class="text-slate-700 dark:text-slate-300">Improve timing:</strong> Adjusts indicator trigger bounds to avoid early/late entries.</li>
+                        <li><strong class="text-slate-700 dark:text-slate-300">Optimize win rate:</strong> AI focuses on high-conviction trades, ignoring noisy setups.</li>
+                        <li><strong class="text-slate-700 dark:text-slate-300">Reduce frequency:</strong> Trade less often; only enter during clear momentum runs.</li>
+                    </ul>
                 </div>
             </div>
         </div>
+        
+    </div>
         
     </div>
 </div>
@@ -850,6 +1023,10 @@
                     traderStatusBadge.className = "px-2 py-0.5 rounded text-[10px] font-bold font-mono tracking-widest bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400";
                 }
             };
+
+            if (typeof initCustomDropdowns === 'function') {
+                initCustomDropdowns();
+            }
         });
     })();
 
@@ -938,6 +1115,129 @@
     let activeRejectionId = null;
     let activeRejectionReportType = 'minor';
 
+    function selectCustomDropdownValue(selectId, value) {
+        const hiddenInput = document.getElementById(selectId);
+        if (!hiddenInput) return;
+        hiddenInput.value = value;
+
+        const dropdown = hiddenInput.closest('.custom-dropdown');
+        if (!dropdown) return;
+        const trigger = dropdown.querySelector('.glass-select-trigger');
+        const valueSpan = trigger.querySelector('.selected-value');
+        const options = dropdown.querySelectorAll('.custom-dropdown-option');
+
+        let selectedText = '';
+        options.forEach(opt => {
+            const val = opt.getAttribute('data-value');
+            const check = opt.querySelector('.fa-check');
+            const isRose = check && check.classList.contains('text-rose-500');
+            const activeClasses = isRose 
+                ? ['bg-rose-500/8', 'dark:bg-rose-500/10', 'text-rose-400', 'font-bold']
+                : ['bg-purple-500/8', 'dark:bg-purple-500/10', 'text-purple-400', 'font-bold'];
+
+            if (val === value) {
+                selectedText = opt.querySelector('span').textContent;
+                activeClasses.forEach(cls => opt.classList.add(cls));
+                if (check) check.classList.remove('opacity-0');
+            } else {
+                const otherClasses = ['bg-rose-500/8', 'dark:bg-rose-500/10', 'text-rose-400', 'bg-purple-500/8', 'dark:bg-purple-500/10', 'text-purple-400', 'font-bold'];
+                otherClasses.forEach(cls => opt.classList.remove(cls));
+                if (check) check.classList.add('opacity-0');
+            }
+        });
+
+        if (selectedText) {
+            valueSpan.textContent = selectedText;
+        }
+    }
+
+    function initCustomDropdowns() {
+        document.querySelectorAll('.custom-dropdown').forEach(dropdown => {
+            const trigger = dropdown.querySelector('.glass-select-trigger');
+            const menu = dropdown.querySelector('.custom-dropdown-options');
+            const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+            const options = dropdown.querySelectorAll('.custom-dropdown-option');
+            const valueSpan = trigger.querySelector('.selected-value');
+            const chevron = trigger.querySelector('.fa-chevron-down');
+
+            if (!trigger || !menu || !hiddenInput) return;
+
+            // Open/close menu
+            trigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // Close other dropdowns
+                document.querySelectorAll('.custom-dropdown-options').forEach(otherMenu => {
+                    if (otherMenu !== menu) {
+                        otherMenu.classList.remove('show');
+                        otherMenu.previousElementSibling.classList.remove('active');
+                        const otherChevron = otherMenu.previousElementSibling.querySelector('.fa-chevron-down');
+                        if (otherChevron) otherChevron.style.transform = 'rotate(0deg)';
+                    }
+                });
+                
+                const isOpen = menu.classList.contains('show');
+                if (isOpen) {
+                    menu.classList.remove('show');
+                    trigger.classList.remove('active');
+                    chevron.style.transform = 'rotate(0deg)';
+                } else {
+                    menu.classList.add('show');
+                    trigger.classList.add('active');
+                    chevron.style.transform = 'rotate(180deg)';
+                }
+            });
+
+            // Option selection
+            options.forEach(opt => {
+                opt.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const val = opt.getAttribute('data-value');
+                    const text = opt.querySelector('span').textContent;
+                    
+                    hiddenInput.value = val;
+                    valueSpan.textContent = text;
+                    
+                    const check = opt.querySelector('.fa-check');
+                    const isRose = check && check.classList.contains('text-rose-500');
+                    const activeClasses = isRose 
+                        ? ['bg-rose-500/8', 'dark:bg-rose-500/10', 'text-rose-400', 'font-bold']
+                        : ['bg-purple-500/8', 'dark:bg-purple-500/10', 'text-purple-400', 'font-bold'];
+                    
+                    // Update checkmarks and active styling
+                    options.forEach(o => {
+                        const c = o.querySelector('.fa-check');
+                        if (o === opt) {
+                            activeClasses.forEach(cls => o.classList.add(cls));
+                            if (c) c.classList.remove('opacity-0');
+                        } else {
+                            const otherClasses = ['bg-rose-500/8', 'dark:bg-rose-500/10', 'text-rose-400', 'bg-purple-500/8', 'dark:bg-purple-500/10', 'text-purple-400', 'font-bold'];
+                            otherClasses.forEach(cls => o.classList.remove(cls));
+                            if (c) c.classList.add('opacity-0');
+                        }
+                    });
+
+                    // Trigger change/input events
+                    hiddenInput.dispatchEvent(new Event('change'));
+                    
+                    // Close menu
+                    menu.classList.remove('show');
+                    trigger.classList.remove('active');
+                    chevron.style.transform = 'rotate(0deg)';
+                });
+            });
+        });
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.custom-dropdown-options').forEach(menu => {
+                menu.classList.remove('show');
+                menu.previousElementSibling.classList.remove('active');
+                const chevron = menu.previousElementSibling.querySelector('.fa-chevron-down');
+                if (chevron) chevron.style.transform = 'rotate(0deg)';
+            });
+        });
+    }
+
     function setRejectionReportType(type) {
         activeRejectionReportType = type;
         const card = document.getElementById('rejection-modal-card');
@@ -950,31 +1250,23 @@
         if (type === 'minor') {
             btnMinor.classList.add('active');
             btnDetailed.classList.remove('active');
-            slider.style.transform = 'translateX(0%)';
-            slider.style.backgroundColor = '#e11d48'; // bg-rose-600
+            slider.style.transform = 'translateX(0)';
+            slider.style.backgroundColor = 'rgba(244, 63, 94, 0.12)'; /* translucent rose */
+            slider.style.borderColor = 'rgba(244, 63, 94, 0.35)';
             
-            // Animate card width and hide guide
-            card.classList.remove('max-w-3xl');
-            card.classList.add('max-w-md');
-            
-            guide.classList.add('w-0', 'opacity-0', 'pointer-events-none');
-            guide.classList.remove('w-[320px]', 'md:w-[380px]', 'opacity-100');
-            
-            detailedFields.classList.add('hidden');
+            card.classList.remove('detailed-mode');
+            guide.classList.remove('expanded');
+            detailedFields.classList.remove('expanded');
         } else {
             btnMinor.classList.remove('active');
             btnDetailed.classList.add('active');
-            slider.style.transform = 'translateX(100%)';
-            slider.style.backgroundColor = '#a855f7'; // bg-purple-500 for detailed mode
+            slider.style.transform = 'translateX(calc(100% + 12px))';
+            slider.style.backgroundColor = 'rgba(168, 85, 247, 0.12)'; /* translucent purple */
+            slider.style.borderColor = 'rgba(168, 85, 247, 0.35)';
             
-            // Animate card width and show guide
-            card.classList.remove('max-w-md');
-            card.classList.add('max-w-3xl');
-            
-            guide.classList.remove('w-0', 'opacity-0', 'pointer-events-none');
-            guide.classList.add('w-[320px]', 'md:w-[380px]', 'opacity-100');
-            
-            detailedFields.classList.remove('hidden');
+            card.classList.add('detailed-mode');
+            guide.classList.add('expanded');
+            detailedFields.classList.add('expanded');
         }
     }
     window.setRejectionReportType = setRejectionReportType;
@@ -1001,7 +1293,7 @@
             example: 'The strategy is highly over-optimized to the specific test period and is unlikely to generalize.'
         },
         errors: {
-            title: 'Runtime Errors &amp; Bugs',
+            title: 'Runtime Errors & Bugs',
             desc: 'The mutated code generated internal exceptions or attempted invalid actions (e.g. zero quantity, negative prices).',
             example: 'The mutator needs to address syntactic or logical code execution bounds.'
         },
@@ -1034,12 +1326,14 @@
         const card = document.getElementById('rejection-modal-card');
         const textarea = document.getElementById('rejection-reason-textarea');
         const errMsg = document.getElementById('rejection-error-msg');
-        const catSelect = document.getElementById('rejection-category-select');
         
         textarea.value = '';
         errMsg.classList.add('hidden');
         errMsg.textContent = '';
-        if (catSelect) catSelect.value = 'underperformance';
+        
+        // Reset dropdown custom values
+        selectCustomDropdownValue('rejection-category-select', 'underperformance');
+        selectCustomDropdownValue('rejection-directive-select', 'none');
         
         // Always reset to minor mode on opening
         setRejectionReportType('minor');
