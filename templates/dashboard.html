@@ -420,28 +420,136 @@
 </div>
 
 <!-- Rejection Reason Modal -->
+<style>
+    /* Sliding Pill Switch Styles */
+    .pill-switch-container {
+        position: relative;
+        display: flex;
+        background: #0f172a; /* dark slate */
+        border-radius: 9999px;
+        padding: 2px;
+        border: 1px solid #1e293b; /* border-slate-800 */
+    }
+    .pill-switch-slider {
+        position: absolute;
+        top: 2px;
+        bottom: 2px;
+        left: 2px;
+        width: calc(50% - 2px);
+        background: #e11d48; /* bg-rose-600 */
+        border-radius: 9999px;
+        transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.35s ease;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    .pill-switch-btn {
+        position: relative;
+        flex: 1;
+        text-align: center;
+        padding: 6px 12px;
+        font-size: 10px;
+        font-family: monospace;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        cursor: pointer;
+        color: #64748b; /* text-slate-500 */
+        transition: color 0.35s ease;
+        z-index: 10;
+        background: none;
+        border: none;
+        outline: none !important;
+    }
+    .pill-switch-btn.active {
+        color: #ffffff;
+    }
+    
+    /* Rejection Modal Card transitions */
+    #rejection-modal-card {
+        transition: max-width 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s ease, opacity 0.3s ease;
+    }
+    
+    /* Help Guide Panel transition */
+    .rejection-guide-panel {
+        transition: opacity 0.4s ease, transform 0.4s ease, width 0.4s ease;
+    }
+</style>
+
 <div id="rejection-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center transition-all duration-300 opacity-0 pointer-events-none">
     <div class="absolute inset-0 cursor-default" onclick="closeRejectionModal()"></div>
-    <div id="rejection-modal-card" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl w-full max-w-md flex flex-col overflow-hidden transform scale-95 transition-all duration-300 relative z-10 mx-4 p-6">
-        <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
-            <h3 class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                <i class="fas fa-ban text-rose-500"></i> Reject Evolved Variant
-            </h3>
-            <button onclick="closeRejectionModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors cursor-pointer text-xs w-6 h-6 flex items-center justify-center rounded bg-slate-100 dark:bg-slate-800">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <p class="text-xs text-slate-500 dark:text-slate-400 font-mono mb-4 leading-relaxed">
-            Rejecting this variant will permanently terminate its virtual trading engine and delete the record.
-            Please provide your feedback and reasoning below so the mutation coach does not repeat this strategy.
-        </p>
-        <div class="space-y-4">
-            <div id="rejection-error-msg" class="hidden p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-mono mb-4"></div>
-            <div>
-                <label class="block text-[9px] uppercase tracking-widest text-slate-400 font-mono mb-1.5">Rejection Reasoning / Feedback</label>
-                <textarea id="rejection-reason-textarea" placeholder="e.g. Overfitted to recent pump, sold too early on small hikes, or custom reason..." class="w-full h-24 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2 text-xs font-mono outline-none focus:border-rose-500 resize-none"></textarea>
+    <div id="rejection-modal-card" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl w-full max-w-md flex flex-row overflow-hidden transform scale-95 transition-all duration-300 relative z-10 mx-4">
+        
+        <!-- Left Panel: Feedback Form -->
+        <div class="flex-1 p-6 flex flex-col min-w-0">
+            <!-- Header -->
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
+                <h3 class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                    <i class="fas fa-ban text-rose-500"></i> Reject Evolved Variant
+                </h3>
+                <button onclick="closeRejectionModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors cursor-pointer text-xs w-6 h-6 flex items-center justify-center rounded bg-slate-100 dark:bg-slate-800 border-none outline-none">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
-            <div class="flex gap-3">
+            
+            <p class="text-xs text-slate-500 dark:text-slate-400 font-mono mb-4 leading-relaxed">
+                Rejecting this variant will permanently terminate its virtual trading engine and delete the record.
+            </p>
+
+            <!-- Pill Switch -->
+            <div class="mb-4">
+                <div class="pill-switch-container">
+                    <div id="rejection-pill-slider" class="pill-switch-slider"></div>
+                    <button type="button" id="btn-report-minor" onclick="setRejectionReportType('minor')" class="pill-switch-btn active">Minor Feedback</button>
+                    <button type="button" id="btn-report-detailed" onclick="setRejectionReportType('detailed')" class="pill-switch-btn">Detailed Report</button>
+                </div>
+            </div>
+
+            <!-- Form Body -->
+            <div class="space-y-3 flex-1 overflow-y-auto max-h-[350px] pr-1">
+                <div id="rejection-error-msg" class="hidden p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-mono mb-2"></div>
+                
+                <!-- Category Select -->
+                <div>
+                    <label class="block text-[9px] uppercase tracking-widest text-slate-400 font-mono mb-1.5">Rejection Category</label>
+                    <select id="rejection-category-select" onchange="updateSelectedCategoryHelp()" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2 text-xs font-mono outline-none focus:border-rose-500">
+                        <option value="underperformance">Strategy Underperformance</option>
+                        <option value="drawdown">Excessive Drawdown / High Risk</option>
+                        <option value="timing">Poor Trade Timing (Early/Late)</option>
+                        <option value="overfitting">Overfitting / Insufficient Trades</option>
+                        <option value="errors">Runtime Errors / Bad Actions</option>
+                        <option value="other">Other / Custom Reason</option>
+                    </select>
+                </div>
+
+                <!-- Detailed Fields Section (Collapsed by default, shown when Detailed Report is selected) -->
+                <div id="detailed-report-fields" class="space-y-3 hidden">
+                    <!-- Mutation Directive Select -->
+                    <div>
+                        <label class="block text-[9px] uppercase tracking-widest text-slate-400 font-mono mb-1.5">Suggested Directive for next mutation</label>
+                        <select id="rejection-directive-select" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2 text-xs font-mono outline-none focus:border-rose-500">
+                            <option value="none">No specific directive</option>
+                            <option value="tighten_sl">Tighten stop-loss / risk controls</option>
+                            <option value="improve_timing">Improve entry/exit timing parameters</option>
+                            <option value="optimize_winrate">Optimize for higher win rate</option>
+                            <option value="reduce_frequency">Reduce overall trading frequency</option>
+                        </select>
+                    </div>
+
+                    <!-- Checkbox for Trade Logs -->
+                    <div class="flex items-center gap-2 py-1">
+                        <input type="checkbox" id="rejection-attach-logs-checkbox" checked class="rounded bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-rose-500 focus:ring-rose-500 w-3.5 h-3.5">
+                        <label for="rejection-attach-logs-checkbox" class="text-[10px] text-slate-400 font-mono cursor-pointer select-none">Attach trade performance metrics</label>
+                    </div>
+                </div>
+
+                <!-- Custom Reasoning Textarea -->
+                <div>
+                    <label class="block text-[9px] uppercase tracking-widest text-slate-400 font-mono mb-1.5">Rejection Reasoning / Notes</label>
+                    <textarea id="rejection-reason-textarea" placeholder="e.g. Overfitted to recent pump, sold too early..." class="w-full h-20 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2 text-xs font-mono outline-none focus:border-rose-500 resize-none"></textarea>
+                </div>
+            </div>
+
+            <!-- Footer Action Buttons -->
+            <div class="flex gap-3 mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <button onclick="closeRejectionModal()" class="flex-1 py-2 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl text-xs font-bold font-mono uppercase tracking-wider transition-colors cursor-pointer outline-none">
                     Cancel
                 </button>
@@ -450,6 +558,37 @@
                 </button>
             </div>
         </div>
+
+        <!-- Right Panel: Help Guide -->
+        <div id="rejection-guide-panel" class="w-0 opacity-0 border-l border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-950/20 flex flex-col transition-all duration-300 overflow-hidden min-w-0 pointer-events-none">
+            <div class="p-6 flex flex-col h-full min-w-[280px] md:min-w-[320px]">
+                <h4 class="text-xs font-bold text-slate-800 dark:text-slate-300 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800 pb-2.5 mb-4 flex items-center gap-1.5 font-mono">
+                    <i class="fas fa-question-circle text-rose-400"></i> Rejection Guide
+                </h4>
+                
+                <div class="space-y-4 flex-1 overflow-y-auto pr-1 text-slate-500 dark:text-slate-400 font-sans text-xs">
+                    <div>
+                        <span class="text-slate-700 dark:text-slate-200 font-bold block mb-1 font-mono text-[10px] uppercase tracking-wider">Concepts Explanation:</span>
+                        <div id="rejection-guide-dynamic-help" class="bg-slate-100 dark:bg-slate-900/40 p-3 rounded-lg border border-slate-200 dark:border-slate-800/80 space-y-2 font-mono text-[10px] leading-relaxed">
+                            <p class="text-rose-500 dark:text-rose-400 font-bold uppercase">Strategy Underperformance</p>
+                            <p>This means the variant's virtual trading returns (PnL) were lower than the parent model over the test window.</p>
+                            <p class="text-slate-400 dark:text-slate-500">E.g., parent gained +5.2% but variant only gained +2.1% (or lost capital).</p>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-slate-200 dark:border-slate-800 pt-3">
+                        <span class="text-slate-700 dark:text-slate-200 font-bold block mb-1.5 font-mono text-[10px] uppercase tracking-wider">Directives Guide:</span>
+                        <ul class="space-y-2.5 font-mono text-[9px] leading-normal text-slate-500 dark:text-slate-400">
+                            <li><strong class="text-slate-700 dark:text-slate-300">Tighten stop-loss:</strong> Restricts downside risk by exiting trades quicker when price drops.</li>
+                            <li><strong class="text-slate-700 dark:text-slate-300">Improve timing:</strong> Adjusts indicator trigger bounds to avoid early/late entries.</li>
+                            <li><strong class="text-slate-700 dark:text-slate-300">Optimize win rate:</strong> AI focuses on high-conviction trades, ignoring noisy setups.</li>
+                            <li><strong class="text-slate-700 dark:text-slate-300">Reduce frequency:</strong> Trade less often; only enter during clear momentum runs.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
     </div>
 </div>
 {% endblock page_content %}
@@ -797,6 +936,97 @@
     window.promoteVariant = promoteVariant;
 
     let activeRejectionId = null;
+    let activeRejectionReportType = 'minor';
+
+    function setRejectionReportType(type) {
+        activeRejectionReportType = type;
+        const card = document.getElementById('rejection-modal-card');
+        const guide = document.getElementById('rejection-guide-panel');
+        const slider = document.getElementById('rejection-pill-slider');
+        const btnMinor = document.getElementById('btn-report-minor');
+        const btnDetailed = document.getElementById('btn-report-detailed');
+        const detailedFields = document.getElementById('detailed-report-fields');
+        
+        if (type === 'minor') {
+            btnMinor.classList.add('active');
+            btnDetailed.classList.remove('active');
+            slider.style.transform = 'translateX(0%)';
+            slider.style.backgroundColor = '#e11d48'; // bg-rose-600
+            
+            // Animate card width and hide guide
+            card.classList.remove('max-w-3xl');
+            card.classList.add('max-w-md');
+            
+            guide.classList.add('w-0', 'opacity-0', 'pointer-events-none');
+            guide.classList.remove('w-[320px]', 'md:w-[380px]', 'opacity-100');
+            
+            detailedFields.classList.add('hidden');
+        } else {
+            btnMinor.classList.remove('active');
+            btnDetailed.classList.add('active');
+            slider.style.transform = 'translateX(100%)';
+            slider.style.backgroundColor = '#a855f7'; // bg-purple-500 for detailed mode
+            
+            // Animate card width and show guide
+            card.classList.remove('max-w-md');
+            card.classList.add('max-w-3xl');
+            
+            guide.classList.remove('w-0', 'opacity-0', 'pointer-events-none');
+            guide.classList.add('w-[320px]', 'md:w-[380px]', 'opacity-100');
+            
+            detailedFields.classList.remove('hidden');
+        }
+    }
+    window.setRejectionReportType = setRejectionReportType;
+
+    const CATEGORY_GUIDE_MAP = {
+        underperformance: {
+            title: 'Strategy Underperformance',
+            desc: "The variant's virtual trading returns (PnL) were lower than the parent model over the test window.",
+            example: 'E.g., parent gained +5.2% but variant only gained +2.1% (or lost capital).'
+        },
+        drawdown: {
+            title: 'Excessive Drawdown',
+            desc: 'The variant experienced large peak-to-trough drops in equity during simulation, showing high risk of capital blowup.',
+            example: 'This indicates lack of proper stop-loss bounds or holding losing positions too long.'
+        },
+        timing: {
+            title: 'Poor Trade Timing',
+            desc: 'The variant bought at the very top of a rally (FOMO) or sold too early before a major upward move.',
+            example: 'This suggests the observation window or indicators trigger at incorrect momentum phases.'
+        },
+        overfitting: {
+            title: 'Overfitting / Low Trades',
+            desc: 'The variant made too few trades (e.g. less than 5) to prove standard statistical advantage, or only succeeded on a single lucky spike.',
+            example: 'The strategy is highly over-optimized to the specific test period and is unlikely to generalize.'
+        },
+        errors: {
+            title: 'Runtime Errors &amp; Bugs',
+            desc: 'The mutated code generated internal exceptions or attempted invalid actions (e.g. zero quantity, negative prices).',
+            example: 'The mutator needs to address syntactic or logical code execution bounds.'
+        },
+        other: {
+            title: 'Custom / Other Reason',
+            desc: 'Use this option to specify any other reason. Write custom feedback in the note block below.',
+            example: 'The AI coach will parse your feedback text directly as negative context.'
+        }
+    };
+
+    function updateSelectedCategoryHelp() {
+        const select = document.getElementById('rejection-category-select');
+        const dynamicHelp = document.getElementById('rejection-guide-dynamic-help');
+        if (!select || !dynamicHelp) return;
+        
+        const cat = select.value;
+        const help = CATEGORY_GUIDE_MAP[cat] || CATEGORY_GUIDE_MAP.other;
+        
+        dynamicHelp.innerHTML = `
+            <p class="text-rose-500 dark:text-rose-400 font-bold uppercase">${help.title}</p>
+            <p>${help.desc}</p>
+            <p class="text-slate-400 dark:text-slate-500">${help.example}</p>
+        `;
+    }
+    window.updateSelectedCategoryHelp = updateSelectedCategoryHelp;
 
     function openRejectionModal(id) {
         activeRejectionId = id;
@@ -804,10 +1034,16 @@
         const card = document.getElementById('rejection-modal-card');
         const textarea = document.getElementById('rejection-reason-textarea');
         const errMsg = document.getElementById('rejection-error-msg');
+        const catSelect = document.getElementById('rejection-category-select');
         
         textarea.value = '';
         errMsg.classList.add('hidden');
         errMsg.textContent = '';
+        if (catSelect) catSelect.value = 'underperformance';
+        
+        // Always reset to minor mode on opening
+        setRejectionReportType('minor');
+        updateSelectedCategoryHelp();
         
         modal.classList.remove('opacity-0', 'pointer-events-none');
         card.classList.remove('scale-95');
@@ -830,9 +1066,13 @@
         if (!activeRejectionId) return;
         
         const textarea = document.getElementById('rejection-reason-textarea');
-        const reason = textarea.value.trim() || 'Manually rejected from dashboard';
+        const reason = textarea.value.trim() || 'Manually rejected';
         const submitBtn = document.getElementById('rejection-submit-btn');
         const errMsg = document.getElementById('rejection-error-msg');
+        
+        const category = document.getElementById('rejection-category-select').value;
+        const directive = document.getElementById('rejection-directive-select').value;
+        const attachLogs = document.getElementById('rejection-attach-logs-checkbox').checked;
         
         submitBtn.disabled = true;
         submitBtn.textContent = 'Rejecting...';
@@ -844,7 +1084,13 @@
                 'Content-Type': 'application/json',
                 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
             },
-            body: JSON.stringify({ reason: reason })
+            body: JSON.stringify({
+                reason: reason,
+                report_type: activeRejectionReportType,
+                category: category,
+                include_trade_logs: activeRejectionReportType === 'detailed' ? attachLogs : false,
+                next_directive: activeRejectionReportType === 'detailed' ? directive : 'none'
+            })
         })
         .then(r => {
             if (!r.ok) {

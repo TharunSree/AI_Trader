@@ -3026,15 +3026,76 @@ def evolution_reject_api(request, variant_id):
     if not variant:
         return JsonResponse({'status': 'error', 'message': 'Variant not found'}, status=404)
     
-    reason = request.POST.get('reason') or request.GET.get('reason') or 'Manually rejected from dashboard'
+    reason = 'Manually rejected'
+    report_type = 'minor'
+    category = 'underperformance'
+    include_trade_logs = False
+    next_directive = 'none'
+    
     if request.content_type == 'application/json':
         try:
             import json
             data = json.loads(request.body)
             reason = data.get('reason') or reason
+            report_type = data.get('report_type') or report_type
+            category = data.get('category') or category
+            include_trade_logs = data.get('include_trade_logs', False)
+            next_directive = data.get('next_directive') or next_directive
         except Exception:
             pass
-            
+    else:
+        reason = request.POST.get('reason') or request.GET.get('reason') or reason
+
+    # Map category/directive to friendly names
+    cat_names = {
+        'underperformance': 'Strategy Underperformance',
+        'drawdown': 'Excessive Drawdown / High Risk',
+        'timing': 'Poor Trade Timing (Early/Late)',
+        'overfitting': 'Overfitting / Insufficient Trades',
+        'errors': 'Runtime Errors & Bugs',
+        'other': 'Other / Custom Reason'
+    }
+    dir_names = {
+        'none': 'No specific directive',
+        'tighten_sl': 'Tighten stop-loss / risk controls',
+        'improve_timing': 'Improve entry/exit timing parameters',
+        'optimize_winrate': 'Optimize for higher win rate',
+        'reduce_frequency': 'Reduce overall trading frequency'
+    }
+    
+    cat_lbl = cat_names.get(category, category)
+    dir_lbl = dir_names.get(next_directive, next_directive)
+    
+    # Compile reasoning markdown message
+    alert_msg = f"**Variant Name**: {variant.name}\n"
+    alert_msg += f"**Rejection Type**: {report_type.upper()}\n"
+    alert_msg += f"**Category**: {cat_lbl}\n"
+    if report_type == 'detailed':
+        alert_msg += f"**Suggested Directive**: {dir_lbl}\n"
+    alert_msg += f"**User Comments**: {reason}\n\n"
+    
+    # Compile trade metrics if checked
+    if report_type == 'detailed' and include_trade_logs:
+        from .models import VirtualTrade
+        trades = VirtualTrade.objects.filter(variant=variant).order_by('timestamp')
+        total_trades = trades.count()
+        buys = trades.filter(action='BUY').count()
+        sells = trades.filter(action='SELL').count()
+        
+        sell_trades = list(trades.filter(action='SELL'))
+        wins = sum(1 for t in sell_trades if t.pnl is not None and float(t.pnl) > 0)
+        losses = sum(1 for t in sell_trades if t.pnl is not None and float(t.pnl) <= 0)
+        win_rate = (wins / len(sell_trades) * 100) if sell_trades else 0.0
+        
+        alert_msg += "### 📊 Trade Performance Summary\n"
+        alert_msg += f"- **Total Trades**: {total_trades} ({buys} BUYs / {sells} SELLs)\n"
+        alert_msg += f"- **Completed Trades (Sells)**: {len(sell_trades)}\n"
+        alert_msg += f"- **Wins / Losses**: {wins} wins / {losses} losses\n"
+        alert_msg += f"- **Win Rate**: {win_rate:.1f}%\n"
+        alert_msg += f"- **Starting Balance**: ${float(variant.starting_cash):,.2f}\n"
+        alert_msg += f"- **Final Balance**: ${float(variant.virtual_balance):,.2f}\n"
+        alert_msg += f"- **Net P/L**: {variant.virtual_pnl_pct:+.2f}%\n"
+
     # Try to kill the virtual engine process
     if variant.celery_task_id:
         try:
@@ -3054,13 +3115,13 @@ def evolution_reject_api(request, variant_id):
     SystemAlert.objects.create(
         level='WARNING',
         title=f'🧬 Variant #{variant.id} Rejected & Deleted',
-        message=f"'{variant.name}' was manually rejected and deleted. Reason: {reason}",
+        message=alert_msg,
         related_model_reference=str(variant.id)
     )
     
     variant.delete()
     
-    return JsonResponse({'status': 'success', 'message': f'Variant #{variant_id} rejected and deleted. Reason: {reason}'})
+    return JsonResponse({'status': 'success', 'message': f'Variant #{variant_id} rejected and deleted.'})
 
 
 @login_required
