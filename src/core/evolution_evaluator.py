@@ -21,6 +21,31 @@ from control_panel.models import ModelVariant, PaperTrader, SystemAlert
 from django.utils import timezone
 
 
+def _delete_failed_variant(variant, reason_msg):
+    from pathlib import Path
+    import signal
+    from django.conf import settings as django_settings
+    
+    # Try to kill process
+    if variant.celery_task_id:
+        try:
+            os.kill(int(variant.celery_task_id), signal.SIGTERM)
+        except Exception:
+            pass
+            
+    # Try to delete log file
+    log_file = Path(django_settings.BASE_DIR) / "logs" / f"evolution_variant_{variant.id}.log"
+    if log_file.exists():
+        try:
+            log_file.unlink()
+        except Exception as e:
+            print(f"  [EVOLUTION EVAL] Failed to delete log file: {e}")
+            
+    # Delete variant record
+    print(f"  [EVOLUTION EVAL] Deleting variant #{variant.id} record. Reason: {reason_msg}")
+    variant.delete()
+
+
 def evaluate_expired_variants():
     """
     Check all TESTING variants whose test window has expired.
@@ -69,11 +94,10 @@ def evaluate_expired_variants():
         margin = abs(variant.virtual_pnl_pct - parent_pnl_pct)
         
         if variant.virtual_trades_count < 5:
-            # Too few trades to judge — mark as inconclusive/failed
+            # Too few trades to judge — delete
+            msg = f'Inconclusive: only {variant.virtual_trades_count} trades in {variant.test_duration_days} days'
             print(f"  VERDICT: FAILED (only {variant.virtual_trades_count} trades — insufficient data)")
-            variant.status = 'FAILED'
-            variant.error_message = f'Inconclusive: only {variant.virtual_trades_count} trades in {variant.test_duration_days} days'
-            variant.save(update_fields=['status', 'error_message'])
+            _delete_failed_variant(variant, msg)
             continue
         
         if margin < 0.5:
@@ -85,10 +109,9 @@ def evaluate_expired_variants():
                 print(f"  VERDICT: INCONCLUSIVE (margin {margin:.2f}%). Extended to {variant.test_duration_days} days.")
                 continue
             else:
+                msg = f'Inconclusive after {variant.test_duration_days} days (margin: {margin:.2f}%)'
                 print(f"  VERDICT: FAILED (inconclusive after max 28 days)")
-                variant.status = 'FAILED'
-                variant.error_message = f'Inconclusive after {variant.test_duration_days} days (margin: {margin:.2f}%)'
-                variant.save(update_fields=['status', 'error_message'])
+                _delete_failed_variant(variant, msg)
                 continue
         
         if variant_better and variant_safer:
@@ -136,10 +159,9 @@ def evaluate_expired_variants():
             if not variant_safer:
                 reason.append(f"excessive drawdown ({variant.max_drawdown_pct:.2f}%)")
             
+            msg = f'Lost evaluation: {", ".join(reason)}'
             print(f"  VERDICT: FAILED — {', '.join(reason)}")
-            variant.status = 'FAILED'
-            variant.error_message = f'Lost evaluation: {", ".join(reason)}'
-            variant.save(update_fields=['status', 'error_message'])
+            _delete_failed_variant(variant, msg)
     
     print(f"\n[EVOLUTION EVAL] Evaluation complete.")
 

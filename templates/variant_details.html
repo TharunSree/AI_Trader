@@ -224,6 +224,40 @@
 
 <!-- CSRF for AJAX -->
 <form id="csrf-form" style="display:none;">{% csrf_token %}</form>
+
+<!-- Rejection Reason Modal -->
+<div id="rejection-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center transition-all duration-300 opacity-0 pointer-events-none">
+    <div class="absolute inset-0 cursor-default" onclick="closeRejectionModal()"></div>
+    <div id="rejection-modal-card" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl w-full max-w-md flex flex-col overflow-hidden transform scale-95 transition-all duration-300 relative z-10 mx-4 p-6">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
+            <h3 class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                <i class="fas fa-ban text-rose-500"></i> Reject Evolved Variant
+            </h3>
+            <button onclick="closeRejectionModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors cursor-pointer text-xs w-6 h-6 flex items-center justify-center rounded bg-slate-100 dark:bg-slate-800">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <p class="text-xs text-slate-500 dark:text-slate-400 font-mono mb-4 leading-relaxed">
+            Rejecting this variant will permanently terminate its virtual trading engine and delete the record.
+            Please provide your feedback and reasoning below so the mutation coach does not repeat this strategy.
+        </p>
+        <div class="space-y-4">
+            <div id="rejection-error-msg" class="hidden p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-mono mb-4"></div>
+            <div>
+                <label class="block text-[9px] uppercase tracking-widest text-slate-400 font-mono mb-1.5">Rejection Reasoning / Feedback</label>
+                <textarea id="rejection-reason-textarea" placeholder="e.g. Overfitted to recent pump, sold too early on small hikes, or custom reason..." class="w-full h-24 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2 text-xs font-mono outline-none focus:border-rose-500 resize-none"></textarea>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="closeRejectionModal()" class="flex-1 py-2 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl text-xs font-bold font-mono uppercase tracking-wider transition-colors cursor-pointer outline-none">
+                    Cancel
+                </button>
+                <button id="rejection-submit-btn" onclick="submitRejection()" class="flex-1 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold font-mono uppercase tracking-wider transition-colors cursor-pointer outline-none shadow-[0_0_15px_rgba(244,63,94,0.2)]">
+                    Confirm Rejection
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_javascript %}
@@ -615,31 +649,86 @@ function copyVariantLogs(btn) {
     });
 }
 
-function rejectVariantWithPrompt(id, redirectAfter = false) {
-    const reason = prompt('Reject this variant? It will be marked as FAILED and its virtual engine stopped.\n\nPlease enter the details / reasoning for rejection so the mutation engine doesn\'t repeat this strategy:');
-    if (reason === null) return; // cancelled
+let activeRejectionId = null;
+let activeRedirectAfter = false;
+
+function openRejectionModal(id, redirectAfter = false) {
+    activeRejectionId = id;
+    activeRedirectAfter = redirectAfter;
+    const modal = document.getElementById('rejection-modal');
+    const card = document.getElementById('rejection-modal-card');
+    const textarea = document.getElementById('rejection-reason-textarea');
+    const errMsg = document.getElementById('rejection-error-msg');
     
-    // Get CSRF Token
-    const token = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+    textarea.value = '';
+    errMsg.classList.add('hidden');
+    errMsg.textContent = '';
     
-    fetch(`/api/evolution/reject/${id}/`, {
+    modal.classList.remove('opacity-0', 'pointer-events-none');
+    card.classList.remove('scale-95');
+    card.classList.add('scale-100');
+}
+window.openRejectionModal = openRejectionModal;
+
+function closeRejectionModal() {
+    const modal = document.getElementById('rejection-modal');
+    const card = document.getElementById('rejection-modal-card');
+    
+    card.classList.remove('scale-100');
+    card.classList.add('scale-95');
+    modal.classList.add('opacity-0', 'pointer-events-none');
+    activeRejectionId = null;
+    activeRedirectAfter = false;
+}
+window.closeRejectionModal = closeRejectionModal;
+
+function submitRejection() {
+    if (!activeRejectionId) return;
+    
+    const textarea = document.getElementById('rejection-reason-textarea');
+    const reason = textarea.value.trim() || 'Manually rejected from details page';
+    const submitBtn = document.getElementById('rejection-submit-btn');
+    const errMsg = document.getElementById('rejection-error-msg');
+    
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Rejecting...';
+    errMsg.classList.add('hidden');
+    
+    fetch(`/api/evolution/reject/${activeRejectionId}/`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': token
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || document.querySelector('#csrf-form [name=csrfmiddlewaretoken]')?.value || ''
         },
-        body: JSON.stringify({ reason: reason || 'Manually rejected from details page' })
+        body: JSON.stringify({ reason: reason })
     })
-    .then(r => r.json())
+    .then(r => {
+        if (!r.ok) {
+            return r.json().then(data => { throw new Error(data.message || 'Server error'); });
+        }
+        return r.json();
+    })
     .then(data => {
-        alert(data.message || 'Variant rejected');
-        if (redirectAfter) {
+        closeRejectionModal();
+        if (activeRedirectAfter) {
             window.location.href = "{% url 'evolution_hub' %}";
         } else {
             window.location.reload();
         }
     })
-    .catch(e => alert('Rejection failed: ' + e));
+    .catch(err => {
+        errMsg.textContent = err.message || err;
+        errMsg.classList.remove('hidden');
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Confirm Rejection';
+    });
+}
+window.submitRejection = submitRejection;
+
+function rejectVariantWithPrompt(id, redirectAfter = false) {
+    openRejectionModal(id, redirectAfter);
 }
 window.rejectVariantWithPrompt = rejectVariantWithPrompt;
 </script>

@@ -535,12 +535,21 @@ async def main():
     except Exception as e:
         logger.error(f"[EVOLUTION] Fatal error in virtual engine: {e}", exc_info=True)
         try:
-            ModelVariant.objects.filter(id=args.variant_id).update(
-                status='FAILED',
-                error_message=str(e)
-            )
-        except Exception:
-            pass
+            from pathlib import Path
+            from django.conf import settings as django_settings
+            
+            # Delete log file
+            log_file = Path(django_settings.BASE_DIR) / "logs" / f"evolution_variant_{args.variant_id}.log"
+            if log_file.exists():
+                try:
+                    log_file.unlink()
+                except Exception as ex:
+                    logger.error(f"[EVOLUTION] Failed to delete log file on fatal crash: {ex}")
+            
+            # Delete variant record
+            ModelVariant.objects.filter(id=args.variant_id).delete()
+        except Exception as ex:
+            logger.error(f"[EVOLUTION] Failed to delete variant/log on fatal crash: {ex}")
 
 
 if __name__ == "__main__":

@@ -2850,7 +2850,7 @@ def evolution_promote_api(request, variant_id):
         variant.status = 'PROMOTED'
         variant.save(update_fields=['status'])
         
-        # Fail and terminate all other testing variants' background processes
+        # Terminate, delete, and clean up logs of all other testing variants
         other_variants = list(ModelVariant.objects.filter(status='TESTING').exclude(id=variant_id))
         for ov in other_variants:
             if ov.celery_task_id:
@@ -2862,9 +2862,17 @@ def evolution_promote_api(request, variant_id):
                         os.kill(pid, signal.SIGTERM)
                 except Exception as e:
                     logger.error(f"[EVOLUTION] Failed to kill PID {ov.celery_task_id} for variant #{ov.id}: {e}")
-            ov.status = 'FAILED'
-            ov.error_message = 'Terminated: another variant was promoted'
-            ov.save(update_fields=['status', 'error_message'])
+            
+            # Delete log file
+            log_file = Path(django_settings.BASE_DIR) / "logs" / f"evolution_variant_{ov.id}.log"
+            if log_file.exists():
+                try:
+                    log_file.unlink()
+                except Exception as e:
+                    logger.error(f"[EVOLUTION] Failed to delete log file for variant #{ov.id}: {e}")
+            
+            # Delete variant
+            ov.delete()
         
         # Restart all running traders to pick up new code
         running_traders = list(PaperTrader.objects.filter(status__in=['RUNNING', 'SLEEPING']))
@@ -3008,8 +3016,11 @@ def evolution_promote_api(request, variant_id):
 @login_required
 @require_POST
 def evolution_reject_api(request, variant_id):
-    """POST: Reject a variant — mark as FAILED and stop its virtual engine."""
+    """POST: Reject a variant — kill virtual engine, delete log file, record audit, delete DB record."""
     from .models import ModelVariant, SystemAlert
+    from pathlib import Path
+    import os
+    import signal
     
     variant = ModelVariant.objects.filter(id=variant_id).first()
     if not variant:
@@ -3024,27 +3035,32 @@ def evolution_reject_api(request, variant_id):
         except Exception:
             pass
             
-    variant.status = 'FAILED'
-    variant.error_message = f"Rejected by user: {reason}"
-    variant.save(update_fields=['status', 'error_message'])
-    
     # Try to kill the virtual engine process
     if variant.celery_task_id:
         try:
-            import signal
             os.kill(int(variant.celery_task_id), signal.SIGTERM)
         except Exception:
             pass
             
+    # Try to delete the log file
+    log_file = Path(__file__).parent.parent / "logs" / f"evolution_variant_{variant_id}.log"
+    if log_file.exists():
+        try:
+            log_file.unlink()
+        except Exception:
+            pass
+
     # Create SystemAlert to track the audit log
     SystemAlert.objects.create(
         level='WARNING',
-        title=f'🧬 Variant #{variant.id} Rejected',
-        message=f"'{variant.name}' was manually rejected. Reason: {reason}",
+        title=f'🧬 Variant #{variant.id} Rejected & Deleted',
+        message=f"'{variant.name}' was manually rejected and deleted. Reason: {reason}",
         related_model_reference=str(variant.id)
     )
     
-    return JsonResponse({'status': 'success', 'message': f'Variant #{variant_id} rejected. Reason: {reason}'})
+    variant.delete()
+    
+    return JsonResponse({'status': 'success', 'message': f'Variant #{variant_id} rejected and deleted. Reason: {reason}'})
 
 
 @login_required
