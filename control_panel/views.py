@@ -3082,14 +3082,14 @@ def evolution_reject_api(request, variant_id):
         buys = trades.filter(action='BUY').count()
         sells = trades.filter(action='SELL').count()
         
-        sell_trades = list(trades.filter(action='SELL'))
-        wins = sum(1 for t in sell_trades if t.pnl is not None and float(t.pnl) > 0)
-        losses = sum(1 for t in sell_trades if t.pnl is not None and float(t.pnl) <= 0)
-        win_rate = (wins / len(sell_trades) * 100) if sell_trades else 0.0
+        win_rate = float(variant.win_rate)
+        completed_trades = sells
+        wins = int(round((win_rate / 100) * completed_trades)) if completed_trades else 0
+        losses = completed_trades - wins
         
         alert_msg += "### 📊 Trade Performance Summary\n"
         alert_msg += f"- **Total Trades**: {total_trades} ({buys} BUYs / {sells} SELLs)\n"
-        alert_msg += f"- **Completed Trades (Sells)**: {len(sell_trades)}\n"
+        alert_msg += f"- **Completed Trades (Sells)**: {completed_trades}\n"
         alert_msg += f"- **Wins / Losses**: {wins} wins / {losses} losses\n"
         alert_msg += f"- **Win Rate**: {win_rate:.1f}%\n"
         alert_msg += f"- **Starting Balance**: ${float(variant.starting_cash):,.2f}\n"
