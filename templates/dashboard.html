@@ -515,6 +515,12 @@
     .detailed-fields-inner {
         overflow: hidden;
     }
+    .detailed-fields-wrapper.expanded .detailed-fields-inner {
+        overflow: visible;
+    }
+    .custom-dropdown.active {
+        z-index: 50;
+    }
     
     /* Glassmorphic dropdown & input styles */
     .glass-textarea {
@@ -1180,11 +1186,14 @@
             trigger.addEventListener('click', (e) => {
                 e.stopPropagation();
                 // Close other dropdowns
-                document.querySelectorAll('.custom-dropdown-options').forEach(otherMenu => {
-                    if (otherMenu !== menu) {
-                        otherMenu.classList.remove('show');
-                        otherMenu.previousElementSibling.classList.remove('active');
-                        const otherChevron = otherMenu.previousElementSibling.querySelector('.fa-chevron-down');
+                document.querySelectorAll('.custom-dropdown').forEach(otherDropdown => {
+                    if (otherDropdown !== dropdown) {
+                        const otherMenu = otherDropdown.querySelector('.custom-dropdown-options');
+                        const otherTrigger = otherDropdown.querySelector('.glass-select-trigger');
+                        if (otherMenu) otherMenu.classList.remove('show');
+                        if (otherTrigger) otherTrigger.classList.remove('active');
+                        otherDropdown.classList.remove('active');
+                        const otherChevron = otherDropdown.querySelector('.fa-chevron-down');
                         if (otherChevron) otherChevron.style.transform = 'rotate(0deg)';
                     }
                 });
@@ -1193,10 +1202,12 @@
                 if (isOpen) {
                     menu.classList.remove('show');
                     trigger.classList.remove('active');
+                    dropdown.classList.remove('active');
                     chevron.style.transform = 'rotate(0deg)';
                 } else {
                     menu.classList.add('show');
                     trigger.classList.add('active');
+                    dropdown.classList.add('active');
                     chevron.style.transform = 'rotate(180deg)';
                 }
             });
@@ -1241,6 +1252,7 @@
                     // Close menu
                     menu.classList.remove('show');
                     trigger.classList.remove('active');
+                    dropdown.classList.remove('active');
                     chevron.style.transform = 'rotate(0deg)';
                 });
             });
@@ -1248,11 +1260,14 @@
 
         // Close dropdowns when clicking outside
         document.addEventListener('click', () => {
-            document.querySelectorAll('.custom-dropdown-options').forEach(menu => {
-                menu.classList.remove('show');
-                menu.previousElementSibling.classList.remove('active');
-                const chevron = menu.previousElementSibling.querySelector('.fa-chevron-down');
-                if (chevron) chevron.style.transform = 'rotate(0deg)';
+            document.querySelectorAll('.custom-dropdown').forEach(otherDropdown => {
+                const otherMenu = otherDropdown.querySelector('.custom-dropdown-options');
+                const otherTrigger = otherDropdown.querySelector('.glass-select-trigger');
+                if (otherMenu) otherMenu.classList.remove('show');
+                if (otherTrigger) otherTrigger.classList.remove('active');
+                otherDropdown.classList.remove('active');
+                const otherChevron = otherDropdown.querySelector('.fa-chevron-down');
+                if (otherChevron) otherChevron.style.transform = 'rotate(0deg)';
             });
         });
     }
