@@ -368,6 +368,20 @@
         transition: background-color 0.2s ease, color 0.2s ease;
     }
     
+    .btn-glass-confirm {
+        background-color: rgba(244, 63, 94, 0.12) !important;
+        border: 1px solid rgba(244, 63, 94, 0.35) !important;
+        color: #fb7185 !important;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 15px rgba(244, 63, 94, 0.1);
+    }
+    .btn-glass-confirm:hover {
+        background-color: rgba(244, 63, 94, 0.22) !important;
+        border-color: rgba(244, 63, 94, 0.5) !important;
+        color: #ffffff !important;
+        box-shadow: 0 0 20px rgba(244, 63, 94, 0.2);
+    }
+    
     @media (max-width: 768px) {
         #rejection-modal-card {
             width: 95% !important;
@@ -526,7 +540,7 @@
                 <button onclick="closeRejectionModal()" class="flex-1 py-2 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl text-xs font-bold font-mono uppercase tracking-wider transition-colors cursor-pointer outline-none">
                     Cancel
                 </button>
-                <button id="rejection-submit-btn" onclick="submitRejection()" class="flex-1 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold font-mono uppercase tracking-wider transition-colors cursor-pointer outline-none shadow-[0_0_15px_rgba(244,63,94,0.2)]">
+                <button id="rejection-submit-btn" onclick="submitRejection()" class="btn-glass-confirm flex-1 py-2 rounded-xl text-xs font-bold font-mono uppercase tracking-wider transition-colors cursor-pointer outline-none">
                     Confirm Rejection
                 </button>
             </div>
@@ -1070,6 +1084,11 @@ function initCustomDropdowns() {
 
                 // Trigger change/input events
                 hiddenInput.dispatchEvent(new Event('change'));
+                
+                // Direct callback for category select help update
+                if (hiddenInput.id === 'rejection-category-select' && typeof updateSelectedCategoryHelp === 'function') {
+                    updateSelectedCategoryHelp();
+                }
                 
                 // Close menu
                 menu.classList.remove('show');

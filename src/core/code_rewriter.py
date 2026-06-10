@@ -568,21 +568,28 @@ def orchestrate_rewrite(crash_log=None):
             pass
 
     # Collect recently failed or manually rejected variants to avoid repeating errors/bad logic
-    from control_panel.models import ModelVariant
+    from control_panel.models import ModelVariant, SystemAlert
     failed_variants = ModelVariant.objects.filter(status='FAILED').order_by('-id')[:3]
+    rejected_alerts = SystemAlert.objects.filter(level='WARNING', title__contains='Rejected').order_by('-id')[:3]
     failed_context = ""
-    if failed_variants:
-        failed_context = "\nCRITICAL NEGATIVE CONTEXT: The following recently generated model variant(s) failed or were manually rejected. You MUST review their code, reasoning rationale, and failure/rejection reasons, and ensure your new code does NOT repeat the same mistakes, patterns, or decisions:\n"
+    
+    if failed_variants or rejected_alerts:
+        failed_context = "\nCRITICAL NEGATIVE CONTEXT: The following recently generated model variant(s) failed or were manually rejected. You MUST review their code, reasoning rationale, and failure/rejection reasons (including performance metrics and user feedback comments), and ensure your new code does NOT repeat the same mistakes, patterns, or decisions:\n"
+        
+        # Add failed/crashed variants (from ModelVariant table)
         for fv in failed_variants:
-            failed_context += f"--- Variant #{fv.id} ({fv.name}) ---\n"
-            if 'rejected' in (fv.error_message or '').lower():
-                failed_context += f"User Rejection Reason: {fv.error_message}\n"
-            else:
-                failed_context += f"Sandbox Crash Error: {fv.error_message}\n"
+            failed_context += f"--- Sandbox Crashed Variant #{fv.id} ({fv.name}) ---\n"
+            failed_context += f"Sandbox Crash Error: {fv.error_message}\n"
             if fv.mutation_reasoning:
                 failed_context += f"Variant's Attempted Rationale: {fv.mutation_reasoning}\n"
             if fv.agent_code:
                 failed_context += f"Variant Agent Code:\n```python\n{fv.agent_code}\n```\n"
+            failed_context += "----------------------------------------\n"
+            
+        # Add manually rejected variants (from alerts)
+        for alert in rejected_alerts:
+            failed_context += f"--- Manually Rejected Variant Audit Log ---\n"
+            failed_context += f"Rejection Details:\n{alert.message}\n"
             failed_context += "----------------------------------------\n"
 
     try:

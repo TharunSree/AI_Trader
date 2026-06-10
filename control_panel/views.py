@@ -3111,6 +3111,12 @@ def evolution_reject_api(request, variant_id):
         except Exception:
             pass
 
+    # Append code and rationale to alert message so they can be retrieved by code_rewriter when training/evolution runs
+    if variant.mutation_reasoning:
+        alert_msg += f"### 💡 Attempted Rationale\n{variant.mutation_reasoning}\n\n"
+    if variant.agent_code:
+        alert_msg += f"### 💻 Agent Code\n```python\n{variant.agent_code}\n```\n"
+
     # Create SystemAlert to track the audit log
     SystemAlert.objects.create(
         level='WARNING',
