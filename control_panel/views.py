@@ -705,8 +705,19 @@ def _clean_subject_and_build_bullets(subject):
         if any(x in prefix.lower() for x in ('feat', 'fix', 'refactor', 'style', 'perf', 'docs', 'chore', 'test', 'mutation', 'clean', 'enhancement', 'doc', 'ui')):
             subject = rest
             
-    # 4. Do not split long subjects on natural conjunctions like 'and', '&', or 'with'
+    # 4. If subject is long, split it dynamically on list/preposition delimiters to extract bullet points
     bullets = []
+    if len(subject) > 50:
+        normalized = subject
+        for delim in (', and ', ', with ', ' with ', ', ', '; '):
+            normalized = normalized.replace(delim, '|||')
+        parts = [p.strip() for p in normalized.split('|||') if p.strip()]
+        if len(parts) > 1:
+            subject = parts[0]
+            for p in parts[1:]:
+                if p:
+                    # Capitalize first letter of sentence
+                    bullets.append(p[0].upper() + p[1:])
             
     # Add any extra bullets from separator splits
     for b in extra_bullets:
