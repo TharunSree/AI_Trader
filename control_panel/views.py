@@ -699,20 +699,9 @@ def _clean_subject_and_build_bullets(subject):
         if any(x in prefix.lower() for x in ('feat', 'fix', 'refactor', 'style', 'perf', 'docs', 'chore', 'test', 'mutation', 'clean', 'enhancement', 'doc', 'ui')):
             subject = rest
             
-    # 4. If subject is long, split it dynamically on delimiters into a heading and bullet points
+    # 4. Do not split long subjects on natural conjunctions like 'and', '&', or 'with'
     bullets = []
-    if len(subject) > 50:
-        normalized = subject
-        for delim in (', and ', ' and ', ', with ', ' with ', ' & ', ', '):
-            normalized = normalized.replace(delim, '|||')
-        parts = [p.strip() for p in normalized.split('|||') if p.strip()]
-        if len(parts) > 1:
-            subject = parts[0]
-            for p in parts[1:]:
-                if p:
-                    # Capitalize first letter of sentence
-                    bullets.append(p[0].upper() + p[1:])
-                
+            
     # Add any extra bullets from separator splits
     for b in extra_bullets:
         if b:
@@ -734,6 +723,18 @@ def _get_git_changelog():
     version_groups = []
     try:
         repo_dir = str(Path(settings.BASE_DIR))
+        
+        # Read current version from VERSION file
+        version_file = Path(settings.BASE_DIR) / 'VERSION'
+        current_version_str = '2.0.0'
+        if version_file.exists():
+            current_version_str = version_file.read_text(encoding='utf-8').strip()
+        # Parse into (major, minor, patch) tuple
+        v_parts = re.match(r'(\d+)\.(\d+)\.(\d+)', current_version_str)
+        if v_parts:
+            cur_major, cur_minor, cur_patch = int(v_parts.group(1)), int(v_parts.group(2)), int(v_parts.group(3))
+        else:
+            cur_major, cur_minor, cur_patch = 2, 0, 0
         
         # 1. Fetch recent commits with files impacted (capped at 300 commits for high performance)
         recent_files = {} # hash -> list of file dicts
@@ -771,7 +772,7 @@ def _get_git_changelog():
                             status_word = 'DELETE'
                             
                         basename = Path(file_path).name
-                        abs_uri = f"file:///d:/AI_Trader/{file_path.replace('\\', '/')}"
+                        abs_uri = f"file:///d:/AI_Trader/{file_path.replace(chr(92), '/')}"
                         
                         impacted_files.append({
                             'status': status_word,
@@ -806,13 +807,15 @@ def _get_git_changelog():
                         
                     subj_lower = c_subj.lower()
                     
-                    # Extract version
-                    version_match = re.search(r'\bv\d+\.\d+(?:\.\d+)?(?:-patch\d+)?\b', c_subj + ' ' + c_body)
-                    version = version_match.group(0) if version_match else None
-                    if version == 'v1.0.0':
-                        version = None
+                    # Extract explicit version from commit message (legacy support)
+                    explicit_version = None
+                    version_match = re.search(r'\bv(\d+)\.(\d+)\.(\d+)(?:-patch\d+)?\b', c_subj + ' ' + c_body)
+                    if version_match:
+                        ev = version_match.group(0)
+                        if ev != 'v1.0.0':
+                            explicit_version = ev
                     
-                    if 'fix' in subj_lower or 'bug' in subj_lower:
+                    if 'fix' in subj_lower or 'bug' in subj_lower or 'audit' in subj_lower or 'harden' in subj_lower:
                         c_type = 'fix'
                         badge_label = 'Fix'
                         badge_color = 'bg-amber-500/10 text-amber-500 border-amber-500/20'
@@ -875,20 +878,50 @@ def _get_git_changelog():
                         'badge_color': badge_color,
                         'dot_color': dot_color,
                         'hover_border': hover_border,
-                        'version': version,
+                        'explicit_version': explicit_version,
                         'impacted_files': impacted_files
                     })
+            
+            # Auto-assign version to every commit using VERSION file
+            # Latest commit = current VERSION, each older commit decrements patch
+            running_major = cur_major
+            running_minor = cur_minor
+            running_patch = cur_patch
+            
+            for c in commits_raw:
+                if c['explicit_version']:
+                    # Override with explicit version from commit message
+                    c['version'] = c['explicit_version']
+                    # Update running counters to track from this point backward
+                    ev_match = re.match(r'v(\d+)\.(\d+)\.(\d+)', c['explicit_version'])
+                    if ev_match:
+                        running_major = int(ev_match.group(1))
+                        running_minor = int(ev_match.group(2))
+                        running_patch = int(ev_match.group(3))
+                else:
+                    c['version'] = f'v{running_major}.{running_minor}.{running_patch}'
+                
+                # Decrement patch for the next (older) commit
+                running_patch -= 1
+                if running_patch < 0:
+                    running_patch = 0
+                    # Don't auto-decrement minor/major — older unversioned commits
+                    # just get v.X.Y.0 until we hit another explicit version
                     
-            # Group commits reverse-chronologically by release boundary
+            # Group commits by minor version (vX.Y)
             version_groups = []
             current_group = None
             
             for c in commits_raw:
-                if c['version']:
+                v_match = re.match(r'v(\d+)\.(\d+)', c['version'])
+                minor_key = f"v{v_match.group(1)}.{v_match.group(2)}" if v_match else 'v0.0'
+                
+                if current_group is None or current_group['minor_key'] != minor_key:
                     if current_group:
                         version_groups.append(current_group)
                     current_group = {
                         'version': c['version'],
+                        'minor_key': minor_key,
                         'date': c['date'],
                         'subject': c['subject'],
                         'commits': [c],
@@ -898,31 +931,10 @@ def _get_git_changelog():
                         'hover_border': c['hover_border'],
                     }
                 else:
-                    if current_group is None:
-                        current_group = {
-                            'version': 'dev',
-                            'date': c['date'],
-                            'subject': c['subject'],
-                            'commits': [c],
-                            'type': c['type'],
-                            'badge_color': c['badge_color'],
-                            'dot_color': c['dot_color'],
-                            'hover_border': c['hover_border'],
-                        }
-                    else:
-                        current_group['commits'].append(c)
+                    current_group['commits'].append(c)
             
             if current_group:
                 version_groups.append(current_group)
-                
-            # If the first group represents unversioned dev commits, resolve its version name
-            if version_groups and version_groups[0]['version'] == 'dev':
-                next_version = 'vNext-dev'
-                for g in version_groups:
-                    if g['version'] and g['version'] != 'dev':
-                        next_version = f"{g['version']}-dev"
-                        break
-                version_groups[0]['version'] = next_version
                 
             # Merge details across each group
             for g in version_groups:
@@ -969,8 +981,18 @@ def _get_git_changelog():
 
 @login_required
 def changelog_view(request):
+    from pathlib import Path
+    from django.conf import settings
+    
     context = _build_dashboard_context()
     release_groups = _get_git_changelog()
+    
+    # Read current version from VERSION file
+    version_file = Path(settings.BASE_DIR) / 'VERSION'
+    if version_file.exists():
+        context['current_version'] = 'v' + version_file.read_text(encoding='utf-8').strip()
+    else:
+        context['current_version'] = 'v2.0.0'
     
     # Identify the highest major version present
     max_major = 1
