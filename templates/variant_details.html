@@ -1276,7 +1276,7 @@ function submitRejection() {
     })
     .then(r => {
         if (!r.ok) {
-            return r.json().then(data => { throw new Error(data.message || 'Server error'); });
+            return r.json().catch(() => ({ message: `Server error (${r.status} ${r.statusText})` })).then(data => { throw new Error(data.message || 'Server error'); });
         }
         return r.json();
     })

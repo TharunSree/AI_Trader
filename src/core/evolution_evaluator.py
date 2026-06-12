@@ -17,6 +17,7 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'trader_project.settings')
 django.setup()
 
+import datetime
 from control_panel.models import ModelVariant, PaperTrader, SystemAlert
 from django.utils import timezone
 
@@ -107,7 +108,7 @@ def evaluate_expired_variants():
         if parent:
             trades = parent.trades.filter(
                 timestamp__gte=variant.test_start,
-                timestamp__lte=variant.test_start + __import__('datetime').timedelta(days=variant.test_duration_days)
+                timestamp__lte=variant.test_start + datetime.timedelta(days=variant.test_duration_days)
             )
             bought = sum(float(t.notional_value) for t in trades if t.action == 'BUY')
             sold = sum(float(t.notional_value) for t in trades if t.action == 'SELL')

@@ -627,8 +627,13 @@ def orchestrate_rewrite(crash_log=None):
     # Collect recently failed or manually rejected variants to avoid repeating errors/bad logic
     from control_panel.models import SystemAlert
     from django.db.models import Q
+    import datetime
+    negative_cutoff = timezone.now() - datetime.timedelta(days=14)
     negative_alerts = SystemAlert.objects.filter(
-        Q(level='WARNING') & (Q(title__contains='Rejected') | Q(title__contains='Failed'))
+        Q(level='WARNING') & Q(title__contains='Variant') &
+        (Q(title__contains='Rejected') | Q(title__contains='Failed')),
+        created_at__gte=negative_cutoff,
+        related_model_reference__isnull=False
     ).order_by('-id')[:5]
     failed_context = ""
     

@@ -3208,6 +3208,8 @@ def evolution_restart_api(request, variant_id):
     variant.virtual_pnl = 0
     variant.virtual_pnl_pct = 0.0
     variant.win_rate = 0.0
+    variant.sharpe_ratio = 0.0
+    variant.max_drawdown_pct = 0.0
     variant.save()
     
     # Delete virtual trades to start clean

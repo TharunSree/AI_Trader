@@ -541,37 +541,43 @@ async def main():
             from control_panel.models import ModelVariant, SystemAlert
             variant = ModelVariant.objects.filter(id=args.variant_id).first()
             
-            if variant:
-                # Compile detailed failure alert
-                alert_msg = f"**Variant Name**: {variant.name}\n"
-                alert_msg += f"**Failure Type**: RUNTIME CRASH\n"
-                alert_msg += f"**Error Exception**: {str(e)}\n\n"
-                alert_msg += f"### 🔴 Traceback\n```\n{tb_str}\n```\n\n"
-                if variant.mutation_reasoning:
-                    alert_msg += f"### 💡 Attempted Rationale\n{variant.mutation_reasoning}\n\n"
-                if variant.agent_code:
-                    alert_msg += f"### 💻 Agent Code\n```python\n{variant.agent_code}\n```\n"
-                
-                SystemAlert.objects.create(
-                    level='WARNING',
-                    title=f'🧬 Variant #{variant.id} Failed: {str(e)[:60]}',
-                    message=alert_msg,
-                    related_model_reference=str(variant.id)
-                )
+            # Snapshot variant data BEFORE deletion so alert context is preserved
+            # even if spawn guard concurrently deletes the record
+            v_id = args.variant_id
+            v_name = variant.name if variant else f"Variant #{v_id}"
+            v_reasoning = variant.mutation_reasoning if variant else None
+            v_code = variant.agent_code if variant else None
+            
+            # Compile detailed failure alert (using snapshot, not live DB reference)
+            alert_msg = f"**Variant Name**: {v_name}\n"
+            alert_msg += f"**Failure Type**: RUNTIME CRASH\n"
+            alert_msg += f"**Error Exception**: {str(e)}\n\n"
+            alert_msg += f"### 🔴 Traceback\n```\n{tb_str}\n```\n\n"
+            if v_reasoning:
+                alert_msg += f"### 💡 Attempted Rationale\n{v_reasoning}\n\n"
+            if v_code:
+                alert_msg += f"### 💻 Agent Code\n```python\n{v_code}\n```\n"
+            
+            SystemAlert.objects.create(
+                level='WARNING',
+                title=f'🧬 Variant #{v_id} Failed: {str(e)[:60]}',
+                message=alert_msg,
+                related_model_reference=str(v_id)
+            )
             
             from pathlib import Path
             from django.conf import settings as django_settings
             
             # Delete log file
-            log_file = Path(django_settings.BASE_DIR) / "logs" / f"evolution_variant_{args.variant_id}.log"
+            log_file = Path(django_settings.BASE_DIR) / "logs" / f"evolution_variant_{v_id}.log"
             if log_file.exists():
                 try:
                     log_file.unlink()
                 except Exception as ex:
                     logger.error(f"[EVOLUTION] Failed to delete log file on fatal crash: {ex}")
             
-            # Delete variant record
-            ModelVariant.objects.filter(id=args.variant_id).delete()
+            # Delete variant record (safe if already deleted by spawn guard)
+            ModelVariant.objects.filter(id=v_id).delete()
         except Exception as ex:
             logger.error(f"[EVOLUTION] Failed to handle variant crash alert/deletion: {ex}")
 
