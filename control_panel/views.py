@@ -3024,7 +3024,7 @@ def evolution_reject_api(request, variant_id):
     
     variant = ModelVariant.objects.filter(id=variant_id).first()
     if not variant:
-        return JsonResponse({'status': 'error', 'message': 'Variant not found'}, status=404)
+        return JsonResponse({'status': 'success', 'message': f'Variant #{variant_id} was already rejected and deleted.'})
     
     reason = 'Manually rejected'
     report_type = 'minor'
