@@ -3134,12 +3134,16 @@ def evolution_reject_api(request, variant_id):
 @require_POST
 def evolution_delete_api(request, variant_id):
     """POST: Delete a variant, stop its virtual engine process, clean up logs, and delete DB record."""
-    from django.shortcuts import get_object_or_404, redirect
+    from django.shortcuts import redirect
     from .models import ModelVariant
     import os
     import signal
     
-    variant = get_object_or_404(ModelVariant, id=variant_id)
+    variant = ModelVariant.objects.filter(id=variant_id).first()
+    if not variant:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json':
+            return JsonResponse({'status': 'success', 'message': f'Variant #{variant_id} was already deleted.'})
+        return redirect('evolution_hub')
     
     # Try to kill the virtual engine process
     if variant.celery_task_id:
@@ -3169,14 +3173,18 @@ def evolution_delete_api(request, variant_id):
 @require_POST
 def evolution_restart_api(request, variant_id):
     """POST: Restarts a failed or stopped variant's virtual trading engine."""
-    from django.shortcuts import get_object_or_404, redirect
+    from django.shortcuts import redirect
     from .models import ModelVariant
     import sys
     import os
     import signal
     from pathlib import Path
     
-    variant = get_object_or_404(ModelVariant, id=variant_id)
+    variant = ModelVariant.objects.filter(id=variant_id).first()
+    if not variant:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json':
+            return JsonResponse({'status': 'error', 'message': f'Variant #{variant_id} was already deleted and cannot be restarted.'}, status=404)
+        return redirect('evolution_hub')
     
     # Enforce spawn guard to make sure we don't exceed max 3 active variants
     from src.core.code_rewriter import _enforce_spawn_guard
