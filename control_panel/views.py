@@ -674,6 +674,12 @@ def onboarding_view(request):
     return render(request, 'guide.html', _build_dashboard_context())
 
 def _clean_subject_and_build_bullets(subject):
+    import re
+    # 0. Clean up version prefix (e.g. v1.0.15: message -> message, v1.12 - message -> message)
+    version_prefix_match = re.match(r'^v?\d+\.\d+(?:\.\d+)?(?:-patch\d+)?\s*[:\-]\s*(.*)$', subject, re.IGNORECASE)
+    if version_prefix_match:
+        subject = version_prefix_match.group(1).strip()
+
     # 1. Split on " - " if it separates a version/prefix from the actual message
     if ' - ' in subject:
         parts = [p.strip() for p in subject.split(' - ', 1) if p.strip()]
@@ -807,9 +813,9 @@ def _get_git_changelog():
                         
                     subj_lower = c_subj.lower()
                     
-                    # Extract explicit version from commit message (legacy support)
+                    # Extract explicit version from commit message (both 2-part like v1.12 and 3-part like v1.0.15)
                     explicit_version = None
-                    version_match = re.search(r'\bv(\d+)\.(\d+)\.(\d+)(?:-patch\d+)?\b', c_subj + ' ' + c_body)
+                    version_match = re.search(r'\bv\d+\.\d+(?:\.\d+)?(?:-patch\d+)?\b', c_subj + ' ' + c_body)
                     if version_match:
                         ev = version_match.group(0)
                         if ev != 'v1.0.0':
@@ -882,56 +888,51 @@ def _get_git_changelog():
                         'impacted_files': impacted_files
                     })
             
-            # Auto-assign version to every commit using VERSION file
-            # Latest commit = current VERSION, each older commit decrements patch
-            running_major = cur_major
-            running_minor = cur_minor
-            running_patch = cur_patch
-            
-            for c in commits_raw:
-                if c['explicit_version']:
-                    # Override with explicit version from commit message
-                    c['version'] = c['explicit_version']
-                    # Update running counters to track from this point backward
-                    ev_match = re.match(r'v(\d+)\.(\d+)\.(\d+)', c['explicit_version'])
-                    if ev_match:
-                        running_major = int(ev_match.group(1))
-                        running_minor = int(ev_match.group(2))
-                        running_patch = int(ev_match.group(3))
-                else:
-                    c['version'] = f'v{running_major}.{running_minor}.{running_patch}'
-                
-                # Decrement patch for the next (older) commit
-                running_patch -= 1
-                if running_patch < 0:
-                    running_patch = 0
-                    # Don't auto-decrement minor/major — older unversioned commits
-                    # just get v.X.Y.0 until we hit another explicit version
-                    
-            # Group commits by minor version (vX.Y)
+            # Group commits reverse-chronologically by release boundary
             version_groups = []
             current_group = None
             
             for c in commits_raw:
-                v_match = re.match(r'v(\d+)\.(\d+)', c['version'])
-                minor_key = f"v{v_match.group(1)}.{v_match.group(2)}" if v_match else 'v0.0'
-                
-                if current_group is None or current_group['minor_key'] != minor_key:
-                    if current_group:
+                if c['explicit_version']:
+                    if current_group is None:
+                        current_group = {
+                            'version': c['explicit_version'],
+                            'date': c['date'],
+                            'subject': c['subject'],
+                            'commits': [c],
+                            'type': c['type'],
+                            'badge_color': c['badge_color'],
+                            'dot_color': c['dot_color'],
+                            'hover_border': c['hover_border'],
+                        }
+                    elif current_group['version'] == c['explicit_version']:
+                        current_group['commits'].append(c)
+                    else:
                         version_groups.append(current_group)
-                    current_group = {
-                        'version': c['version'],
-                        'minor_key': minor_key,
-                        'date': c['date'],
-                        'subject': c['subject'],
-                        'commits': [c],
-                        'type': c['type'],
-                        'badge_color': c['badge_color'],
-                        'dot_color': c['dot_color'],
-                        'hover_border': c['hover_border'],
-                    }
+                        current_group = {
+                            'version': c['explicit_version'],
+                            'date': c['date'],
+                            'subject': c['subject'],
+                            'commits': [c],
+                            'type': c['type'],
+                            'badge_color': c['badge_color'],
+                            'dot_color': c['dot_color'],
+                            'hover_border': c['hover_border'],
+                        }
                 else:
-                    current_group['commits'].append(c)
+                    if current_group is None:
+                        current_group = {
+                            'version': 'v' + current_version_str,
+                            'date': c['date'],
+                            'subject': c['subject'],
+                            'commits': [c],
+                            'type': c['type'],
+                            'badge_color': c['badge_color'],
+                            'dot_color': c['dot_color'],
+                            'hover_border': c['hover_border'],
+                        }
+                    else:
+                        current_group['commits'].append(c)
             
             if current_group:
                 version_groups.append(current_group)
