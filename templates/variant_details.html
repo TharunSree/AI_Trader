@@ -1282,8 +1282,12 @@ function submitRejection() {
     })
     .then(data => {
         closeRejectionModal();
-        // Always redirect — the variant we're viewing was just deleted
-        window.location.href = "{% url 'evolution_hub' %}";
+        // Redirect to rejection report page showing the audit summary
+        if (data.alert_id) {
+            window.location.href = `/evolution-chamber/rejection-report/${data.alert_id}/`;
+        } else {
+            window.location.href = "{% url 'evolution_hub' %}";
+        }
     })
     .catch(err => {
         errMsg.textContent = err.message || err;

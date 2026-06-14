@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Rejection Report | Variant #{{ variant_id }}{% endblock title %}
+{% block page_title %}Rejection Report{% endblock page_title %}
+
+{% block page_content %}
+<div class="max-w-4xl mx-auto space-y-6 pb-12">
+    <!-- Back Navigation -->
+    <a href="{% url 'evolution_hub' %}" class="text-xs text-brand-500 hover:text-brand-400 font-mono inline-flex items-center gap-1.5 group">
+        <i class="fas fa-arrow-left group-hover:-translate-x-0.5 transition-transform"></i> Back to Evolution Chamber
+    </a>
+
+    <!-- Header Card -->
+    <div class="bg-white dark:bg-slate-900 border border-rose-500/20 shadow-sm shadow-rose-500/5 rounded-2xl p-6 relative overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-r from-rose-500/5 to-transparent pointer-events-none"></div>
+        <div class="relative z-10 flex items-start justify-between flex-wrap gap-4">
+            <div>
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                        <i class="fas fa-times-circle mr-1"></i>Rejected
+                    </span>
+                    <span class="px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider bg-slate-500/10 text-slate-400 border border-slate-500/20">
+                        {{ rejection_type|upper }}
+                    </span>
+                </div>
+                <h2 class="text-xl font-bold text-slate-800 dark:text-white">
+                    🧬 {{ variant_name }}
+                </h2>
+                <p class="text-xs text-slate-500 font-mono mt-1">
+                    Variant #{{ variant_id }} · Rejected {{ alert.timestamp|date:"M d, Y H:i" }}
+                </p>
+            </div>
+            <div class="flex items-center gap-2">
+                <a href="{% url 'evolution_hub' %}" class="px-4 py-2 rounded-xl text-xs font-bold font-mono uppercase tracking-wider bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/20 hover:border-brand-500/40 text-brand-500 transition-all cursor-pointer">
+                    <i class="fas fa-dna mr-1"></i> Evolution Hub
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Rejection Details Card -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden">
+            <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+                <h3 class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider font-mono">
+                    <i class="fas fa-clipboard-list text-rose-400 mr-1.5"></i>Rejection Details
+                </h3>
+            </div>
+            <div class="p-5 space-y-4">
+                {% if rejection_category %}
+                <div>
+                    <div class="text-[9px] uppercase tracking-widest text-slate-400 font-mono mb-1">Category</div>
+                    <div class="text-sm text-slate-700 dark:text-slate-200 font-medium">{{ rejection_category }}</div>
+                </div>
+                {% endif %}
+
+                {% if rejection_type %}
+                <div>
+                    <div class="text-[9px] uppercase tracking-widest text-slate-400 font-mono mb-1">Report Type</div>
+                    <div class="text-sm text-slate-700 dark:text-slate-200 font-medium">{{ rejection_type }}</div>
+                </div>
+                {% endif %}
+
+                {% if suggested_directive %}
+                <div>
+                    <div class="text-[9px] uppercase tracking-widest text-slate-400 font-mono mb-1">Suggested Directive</div>
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-compass text-purple-400 text-xs"></i>
+                        <span class="text-sm text-purple-300 font-medium">{{ suggested_directive }}</span>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if user_comments %}
+                <div>
+                    <div class="text-[9px] uppercase tracking-widest text-slate-400 font-mono mb-1">User Comments</div>
+                    <div class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-mono bg-slate-50 dark:bg-slate-950/40 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                        {{ user_comments }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Trade Performance Card -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden">
+            <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+                <h3 class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider font-mono">
+                    <i class="fas fa-chart-line text-amber-400 mr-1.5"></i>Trade Performance
+                </h3>
+            </div>
+            <div class="p-5">
+                {% if trade_metrics %}
+                <div class="space-y-3">
+                    {% for metric in trade_metrics %}
+                    <div class="flex items-center justify-between py-2 {% if not forloop.last %}border-b border-slate-100 dark:border-slate-800/60{% endif %}">
+                        <span class="text-[11px] text-slate-500 font-mono">{{ metric.label }}</span>
+                        <span class="text-sm font-bold text-slate-700 dark:text-slate-200 font-mono">{{ metric.value }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <i class="fas fa-chart-bar text-slate-700 text-2xl mb-2"></i>
+                    <p class="text-xs text-slate-500 font-mono">Trade metrics were not attached to this rejection report.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Mutation Rationale Card -->
+    {% if rationale %}
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+            <h3 class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider font-mono">
+                <i class="fas fa-lightbulb text-amber-400 mr-1.5"></i>Mutation Rationale
+            </h3>
+        </div>
+        <div class="p-5">
+            <div class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-mono whitespace-pre-wrap">{{ rationale }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Agent Code Card -->
+    {% if agent_code %}
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between">
+            <h3 class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider font-mono">
+                <i class="fas fa-code text-cyan-400 mr-1.5"></i>Agent Code (Archived)
+            </h3>
+            <button onclick="copyAgentCode()" class="text-[10px] text-brand-500 hover:text-brand-400 font-mono font-bold cursor-pointer uppercase tracking-wider">
+                <i class="fas fa-copy mr-1"></i>Copy
+            </button>
+        </div>
+        <div class="p-5">
+            <pre class="text-[11px] text-slate-400 leading-relaxed font-mono bg-[#0a0a0c] p-4 rounded-xl border border-slate-800 overflow-x-auto max-h-96" id="agent-code-block"><code>{{ agent_code }}</code></pre>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Audit Trail Footer -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-5">
+        <div class="flex items-center justify-between flex-wrap gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
+                    <i class="fas fa-shield-alt text-rose-400 text-xs"></i>
+                </div>
+                <div>
+                    <div class="text-xs font-bold text-slate-700 dark:text-slate-200 font-mono">Audit Record #{{ alert.id }}</div>
+                    <div class="text-[10px] text-slate-500 font-mono">This rejection has been logged to the system audit trail and will be used as training feedback for the neural evolution engine.</div>
+                </div>
+            </div>
+            <span class="text-[10px] text-slate-500 font-mono">
+                <i class="far fa-clock mr-1"></i>{{ alert.timestamp|date:"M d, Y H:i:s" }}
+            </span>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyAgentCode() {
+    const code = document.getElementById('agent-code-block')?.textContent;
+    if (code) {
+        navigator.clipboard.writeText(code).then(() => {
+            const btn = event.target.closest('button');
+            const original = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check mr-1"></i>Copied';
+            setTimeout(() => btn.innerHTML = original, 2000);
+        });
+    }
+}
+</script>
+{% endblock %}

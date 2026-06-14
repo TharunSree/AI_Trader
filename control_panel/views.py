@@ -3152,7 +3152,7 @@ def evolution_reject_api(request, variant_id):
         alert_msg += f"### 💻 Agent Code\n```python\n{variant.agent_code}\n```\n"
 
     # Create SystemAlert to track the audit log
-    SystemAlert.objects.create(
+    alert = SystemAlert.objects.create(
         level='WARNING',
         title=f'🧬 Variant #{variant.id} Rejected & Deleted',
         message=alert_msg,
@@ -3161,7 +3161,68 @@ def evolution_reject_api(request, variant_id):
     
     variant.delete()
     
-    return JsonResponse({'status': 'success', 'message': f'Variant #{variant_id} rejected and deleted.'})
+    return JsonResponse({'status': 'success', 'message': f'Variant #{variant_id} rejected and deleted.', 'alert_id': alert.id})
+
+@login_required
+def rejection_report_view(request, alert_id):
+    """Display a formatted rejection report for the given SystemAlert."""
+    from .models import SystemAlert
+    import re
+    
+    alert = SystemAlert.objects.filter(id=alert_id).first()
+    if not alert:
+        from django.shortcuts import redirect
+        return redirect('evolution_hub')
+    
+    # Parse the markdown message into structured sections
+    message = alert.message
+    
+    # Extract key-value fields from the top section
+    fields = {}
+    for key in ('Variant Name', 'Rejection Type', 'Category', 'Suggested Directive', 'User Comments'):
+        match = re.search(rf'\*\*{re.escape(key)}\*\*:\s*(.+?)(?:\n|$)', message)
+        if match:
+            fields[key] = match.group(1).strip()
+    
+    # Extract trade performance section
+    trade_metrics = []
+    trade_section_match = re.search(r'### 📊 Trade Performance Summary\n(.*?)(?=###|\Z)', message, re.DOTALL)
+    if trade_section_match:
+        for line in trade_section_match.group(1).strip().split('\n'):
+            line = line.strip().lstrip('-').strip()
+            if line:
+                # Split on **: to get label and value
+                m = re.match(r'\*\*(.+?)\*\*:\s*(.+)', line)
+                if m:
+                    trade_metrics.append({'label': m.group(1), 'value': m.group(2)})
+    
+    # Extract rationale section
+    rationale = None
+    rationale_match = re.search(r'### 💡 Attempted Rationale\n(.*?)(?=###|\Z)', message, re.DOTALL)
+    if rationale_match:
+        rationale = rationale_match.group(1).strip()
+    
+    # Extract agent code section
+    agent_code = None
+    code_match = re.search(r'### 💻 Agent Code\n```python\n(.*?)```', message, re.DOTALL)
+    if code_match:
+        agent_code = code_match.group(1).strip()
+    
+    context = _build_dashboard_context()
+    context.update({
+        'alert': alert,
+        'variant_name': fields.get('Variant Name', 'Unknown Variant'),
+        'rejection_type': fields.get('Rejection Type', 'MINOR'),
+        'rejection_category': fields.get('Category', ''),
+        'suggested_directive': fields.get('Suggested Directive', ''),
+        'user_comments': fields.get('User Comments', ''),
+        'trade_metrics': trade_metrics,
+        'rationale': rationale,
+        'agent_code': agent_code,
+        'variant_id': alert.related_model_reference,
+    })
+    
+    return render(request, 'rejection_report.html', context)
 
 
 @login_required

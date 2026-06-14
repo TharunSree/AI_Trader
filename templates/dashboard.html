@@ -1428,7 +1428,12 @@
         })
         .then(data => {
             closeRejectionModal();
-            fetchEvolutionVariants();
+            // Redirect to rejection report page showing the audit summary
+            if (data.alert_id) {
+                window.location.href = `/evolution-chamber/rejection-report/${data.alert_id}/`;
+            } else {
+                fetchEvolutionVariants();
+            }
         })
         .catch(err => {
             errMsg.textContent = err.message || err;
