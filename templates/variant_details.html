@@ -1282,11 +1282,8 @@ function submitRejection() {
     })
     .then(data => {
         closeRejectionModal();
-        if (activeRedirectAfter) {
-            window.location.href = "{% url 'evolution_hub' %}";
-        } else {
-            window.location.reload();
-        }
+        // Always redirect — the variant we're viewing was just deleted
+        window.location.href = "{% url 'evolution_hub' %}";
     })
     .catch(err => {
         errMsg.textContent = err.message || err;
