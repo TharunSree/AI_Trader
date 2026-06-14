@@ -4,6 +4,7 @@ import traceback
 import argparse
 import sys
 import difflib
+import datetime
 from pathlib import Path
 
 # Django setup MUST happen before any Django imports
@@ -536,8 +537,6 @@ def orchestrate_rewrite(crash_log=None, force=False):
         if not daily:
             print("[NEURAL EVOLUTION] No daily report found. Skipping mutation run.")
             return
-        from django.utils import timezone
-        import datetime
         age = timezone.now() - daily.timestamp
         if age > datetime.timedelta(hours=3):
             print(f"[NEURAL EVOLUTION] Latest daily report is too old ({age.total_seconds()/3600:.2f} hours ago). Skipping mutation run.")
@@ -627,12 +626,11 @@ def orchestrate_rewrite(crash_log=None, force=False):
     # Collect recently failed or manually rejected variants to avoid repeating errors/bad logic
     from control_panel.models import SystemAlert
     from django.db.models import Q
-    import datetime
     negative_cutoff = timezone.now() - datetime.timedelta(days=14)
     negative_alerts = SystemAlert.objects.filter(
         Q(level='WARNING') & Q(title__contains='Variant') &
         (Q(title__contains='Rejected') | Q(title__contains='Failed')),
-        created_at__gte=negative_cutoff,
+        timestamp__gte=negative_cutoff,
         related_model_reference__isnull=False
     ).order_by('-id')[:5]
     failed_context = ""
