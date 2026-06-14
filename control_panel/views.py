@@ -2662,7 +2662,7 @@ def trigger_mutation_api(request):
             log_file.write_text("", encoding='utf-8')
             
         _spawn_background_process(
-            [sys.executable, str(Path("src") / "core" / "code_rewriter.py")],
+            [sys.executable, str(Path("src") / "core" / "code_rewriter.py"), "--force"],
             log_file
         )
         

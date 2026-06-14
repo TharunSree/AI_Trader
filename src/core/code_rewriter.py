@@ -526,13 +526,13 @@ def _enforce_spawn_guard(max_active=3):
     return True
 
 
-def orchestrate_rewrite(crash_log=None):
+def orchestrate_rewrite(crash_log=None, force=False):
     print("[NEURAL EVOLUTION] Booting Mutation Orchestrator...")
     daily = TradingReport.objects.filter(report_type='DAILY').order_by('-timestamp').first()
     weekly = TradingReport.objects.filter(report_type='WEEKLY').order_by('-timestamp').first()
     
     # Mutator Timing Constraint: Only mutate if a report was generated recently (last 3 hours)
-    if not crash_log:
+    if not crash_log and not force:
         if not daily:
             print("[NEURAL EVOLUTION] No daily report found. Skipping mutation run.")
             return
@@ -847,5 +847,7 @@ def orchestrate_rewrite(crash_log=None):
             print(f"[NEURAL EVOLUTION] Failed to log failure alert: {alert_err}")
 
 if __name__ == "__main__":
-    orchestrate_rewrite()
+    import sys
+    force_flag = "--force" in sys.argv
+    orchestrate_rewrite(force=force_flag)
 
