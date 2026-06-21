@@ -87,7 +87,7 @@ class TrainingSession:
         # Set up Agent
         state_dim = len(self.config['features']) * self.config['window']
         action_dim = env.action_space.shape[0]
-        agent = PPOAgent(obs_dim=env.observation_space.shape[0], act_dim=action_dim, action_type="continuous", lr=self.config['params']['lr'])
+        agent = PPOAgent(state_dim=env.observation_space.shape[0], action_dim=action_dim, lr=self.config['params']['lr'])
 
         # Set up and run Trainer
         trainer_config = {

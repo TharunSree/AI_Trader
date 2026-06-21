@@ -33,6 +33,7 @@ django.setup()
 
 from control_panel.models import ModelVariant, VirtualTrade, PaperTrader
 from src.execution.broker import Broker
+from src.core.online_learner import OnlineLearner
 from src.utils.logger import setup_logging
 
 logger = setup_logging("neural_evolution")
@@ -155,6 +156,9 @@ class VirtualPaperEngine:
         
         # Crypto ticker universe (same as production engine)
         self._tickers = None
+        
+        # Online Learning — variants also learn from their virtual trades
+        self.learner = OnlineLearner(self.agent, buffer_size=256, update_every=16)
         
         logger.info(
             f"[EVOLUTION] Virtual Engine booted for Variant #{variant_id} "
@@ -279,7 +283,14 @@ class VirtualPaperEngine:
         
         window_data = (window_data - col_means) / col_stds
         
-        obs = window_data.flatten()
+        # Option B: Aggregate the window using the mean of each feature column across the window.
+        # This produces a smoother state vector representing the entire window instead of just the oldest row.
+        flattened_obs = window_data.flatten()
+        if self.agent.state_dim < len(flattened_obs):
+            obs = np.nanmean(window_data, axis=0)
+        else:
+            obs = flattened_obs
+            
         obs = np.nan_to_num(obs, nan=0.0, posinf=0.0, neginf=0.0)
         result = np.zeros((self.agent.state_dim,), dtype=np.float32)
         valid_len = min(len(obs), self.agent.state_dim)
@@ -419,6 +430,8 @@ class VirtualPaperEngine:
             if qty > 0:
                 notional = qty * current_price
                 await self._log_virtual_trade(symbol, 'BUY', qty, current_price, notional)
+                # Online Learning: record BUY entry
+                self.learner.record_entry(symbol, current_price)
                 logger.info(
                     f"[EVOLUTION] VIRTUAL BUY {qty:.6f} {symbol} @ ${current_price:,.2f} "
                     f"(${notional:.2f}) | Cash: ${self.portfolio.cash:.2f}"
@@ -434,6 +447,9 @@ class VirtualPaperEngine:
                 notional = qty_sold * current_price
                 await self._log_virtual_trade(symbol, 'SELL', qty_sold, current_price, notional)
                 self._sell_cooldowns[symbol] = datetime.now(timezone.utc) + timedelta(minutes=5)
+                # Online Learning: record SELL exit → compute reward → maybe trigger micro-update
+                self.learner.record_exit(symbol, current_price, fee_rate=0.0015)
+                self.learner.maybe_update()
                 logger.info(
                     f"[EVOLUTION] VIRTUAL SELL {qty_sold:.6f} {symbol} @ ${current_price:,.2f} "
                     f"(${notional:.2f}) | PnL: {'+' if pnl >= 0 else ''}${pnl:.2f} | Cash: ${self.portfolio.cash:.2f}"
@@ -498,6 +514,9 @@ class VirtualPaperEngine:
                             f"[EVOLUTION] V#{self.variant_id} | {sym} ${price:,.2f} "
                             f"| Signal: {action_val:+.4f}"
                         )
+                    
+                    # Record observation for online learning
+                    self.learner.record_observation(sym, state, action_val)
                     
                     await self._execute_virtual_trade(action_val, sym, price)
                 except Exception as e:

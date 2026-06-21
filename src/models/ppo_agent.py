@@ -188,6 +188,77 @@ class PPOAgent:
 
         self.policy_old.load_state_dict(self.policy.state_dict())
 
+    def online_update(self, memory, lr_override=5e-5):
+        """Gentler PPO update for live online learning.
+        Uses smaller learning rate and fewer epochs to nudge the model
+        without catastrophic forgetting."""
+        # Save original LR
+        original_lrs = [pg['lr'] for pg in self.optimizer.param_groups]
+
+        # Set online learning rate
+        for pg in self.optimizer.param_groups:
+            pg['lr'] = lr_override
+
+        try:
+            old_states = torch.stack(memory['states'], dim=0).detach().to(device)
+            old_actions = torch.stack(memory['actions'], dim=0).detach().to(device)
+            old_logprobs = torch.stack(memory['logprobs'], dim=0).squeeze().detach().to(device)
+            rewards = memory['rewards']
+
+            # Handle single-element batch: unsqueeze logprobs if scalar
+            if old_logprobs.dim() == 0:
+                old_logprobs = old_logprobs.unsqueeze(0)
+
+            # Calculate discounted rewards
+            discounted_rewards = []
+            discounted_reward = 0
+            for reward, is_terminal in zip(reversed(rewards), reversed(memory['is_terminals'])):
+                if is_terminal:
+                    discounted_reward = 0
+                discounted_reward = reward + (self.gamma * discounted_reward)
+                discounted_rewards.insert(0, discounted_reward)
+
+            discounted_rewards_tensor = torch.tensor(discounted_rewards, dtype=torch.float32).to(device)
+            if discounted_rewards_tensor.std() > 1e-7:
+                discounted_rewards_tensor = (discounted_rewards_tensor - discounted_rewards_tensor.mean()) / (discounted_rewards_tensor.std() + 1e-7)
+
+            # PPO optimization — only 2 epochs (gentler than training's 4)
+            for _ in range(2):
+                action_mean = self.policy.actor(old_states)
+                action_var = self.policy.action_var.expand_as(action_mean)
+                cov_mat = torch.diag_embed(action_var).to(device)
+                dist = torch.distributions.MultivariateNormal(action_mean, cov_mat)
+
+                logprobs = dist.log_prob(old_actions)
+                state_values = self.policy.critic(old_states).squeeze()
+
+                # Handle single-element batch
+                if state_values.dim() == 0:
+                    state_values = state_values.unsqueeze(0)
+
+                advantages = discounted_rewards_tensor - state_values.detach()
+
+                ratios = torch.exp(logprobs - old_logprobs)
+                surr1 = ratios * advantages
+                surr2 = torch.clamp(ratios, 1 - self.eps_clip, 1 + self.eps_clip) * advantages
+
+                loss = -torch.min(surr1, surr2) + 0.5 * self.MseLoss(state_values, discounted_rewards_tensor) - 0.01 * dist.entropy()
+
+                self.optimizer.zero_grad()
+                loss.mean().backward()
+
+                # Gradient clipping for safety — prevent any single bad batch from corrupting the model
+                torch.nn.utils.clip_grad_norm_(self.policy.parameters(), max_norm=0.5)
+
+                self.optimizer.step()
+
+            self.policy_old.load_state_dict(self.policy.state_dict())
+
+        finally:
+            # Restore original learning rates
+            for pg, lr in zip(self.optimizer.param_groups, original_lrs):
+                pg['lr'] = lr
+
     def save_weights(self, filepath: str = "best_model.pth"):
         """Locks the combat data in the vault."""
         path = Path(filepath)

@@ -136,24 +136,24 @@ def get_executable_path(name):
     return sys.executable if name == "python" else str(Path(sys.executable).parent / name)
 
 def restart_server():
-    """Restarts Django server by terminating the running manage.py runserver process or calling systemctl."""
+    """Restarts Django server by terminating the running manage.py/daphne process or calling systemctl."""
     try:
         import psutil
         killed = False
         for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
             cmd = proc.info['cmdline']
-            if cmd and 'manage.py' in cmd and 'runserver' in cmd:
+            if cmd and ('manage.py' in cmd and 'runserver' in cmd) or ('daphne' in str(cmd)):
                 logger.info(f"Terminating server PID {proc.info['pid']}...")
                 proc.kill()
                 killed = True
         if killed:
-            logger.info("Server process terminated. Wrapper daemon will restart it.")
+            logger.info("Server process terminated. systemd will auto-restart it.")
             return
     except Exception as e:
         logger.warning(f"Could not kill process via psutil: {e}")
         
-    # Systemd fallback restart command
-    success, out, err = run_cmd(['sudo', 'systemctl', 'restart', 'jarvis_brain'])
+    # Systemd restart
+    success, out, err = run_cmd(['sudo', 'systemctl', 'restart', 'ai_trader'])
     if success:
         logger.info("Server restarted via systemctl.")
     else:

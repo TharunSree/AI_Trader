@@ -318,6 +318,159 @@ def _neural_evolution_daemon():
         time.sleep(12 * 3600)
 
 
+def _auto_restart_daemon():
+    """
+    Background daemon that restores all previously-running bots and testing variants
+    on server boot. Checks if the stored PID is still alive — if not, respawns the process.
+    
+    This ensures full recovery after system restart, crash, or login with ZERO intervention.
+    Runs once on startup, then watches every 5 minutes for orphaned processes.
+    """
+    import django
+    if not django.apps.apps.ready:
+        time.sleep(10)
+
+    # Wait 30 seconds after startup to let Django fully initialize
+    time.sleep(30)
+
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    def _is_pid_alive(pid_str):
+        """Check if a process with the given PID is still running."""
+        if not pid_str:
+            return False
+        try:
+            pid = int(pid_str)
+            if pid <= 0:
+                return False
+            # Try psutil first (most reliable)
+            try:
+                import psutil
+                return psutil.pid_exists(pid) and any(
+                    'python' in (p.name() or '').lower()
+                    for p in [psutil.Process(pid)]
+                    if p.is_running()
+                )
+            except (ImportError, Exception):
+                pass
+            # Fallback: os.kill with signal 0 (doesn't kill, just checks)
+            if os.name == 'nt':
+                import ctypes
+                kernel32 = ctypes.windll.kernel32
+                PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+                handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+                if handle:
+                    kernel32.CloseHandle(handle)
+                    return True
+                return False
+            else:
+                os.kill(pid, 0)
+                return True
+        except (ValueError, OSError, ProcessLookupError):
+            return False
+
+    first_run = True
+    while True:
+        try:
+            from control_panel.models import PaperTrader, ModelVariant
+            from control_panel.views import _spawn_background_process, _launch_trader_instance
+
+            # ── PHASE 1: Restore PaperTraders ──
+            # Find traders that were RUNNING (or SLEEPING for market-closed crypto bots)
+            stale_traders = PaperTrader.objects.filter(
+                status__in=['RUNNING', 'SLEEPING']
+            )
+            
+            for trader in stale_traders:
+                if not trader.model_file:
+                    logger.warning(f"[AUTO-RESTART] Trader #{trader.id} has no model_file. Skipping.")
+                    continue
+
+                pid_alive = _is_pid_alive(trader.celery_task_id)
+                
+                if pid_alive:
+                    if first_run:
+                        logger.info(f"[AUTO-RESTART] Trader #{trader.id} (PID {trader.celery_task_id}) is already alive. Skipping.")
+                    continue
+
+                logger.info(
+                    f"[AUTO-RESTART] Trader #{trader.id} was '{trader.status}' but PID "
+                    f"{trader.celery_task_id or 'None'} is dead. Respawning..."
+                )
+                try:
+                    _launch_trader_instance(trader)
+                    logger.info(f"[AUTO-RESTART] Trader #{trader.id} respawned successfully (PID: {trader.celery_task_id})")
+                except Exception as e:
+                    logger.error(f"[AUTO-RESTART] Failed to respawn Trader #{trader.id}: {e}")
+                    trader.status = 'FAILED'
+                    trader.error_message = f"Auto-restart failed: {e}"
+                    trader.save(update_fields=['status', 'error_message'])
+
+            # ── PHASE 2: Restore ModelVariants (Evolution Virtual Engines) ──
+            testing_variants = ModelVariant.objects.filter(
+                status='TESTING'
+            )
+
+            for variant in testing_variants:
+                # Skip expired variants
+                if variant.is_test_expired:
+                    logger.info(f"[AUTO-RESTART] Variant #{variant.id} test window expired. Skipping.")
+                    continue
+
+                pid_alive = _is_pid_alive(variant.celery_task_id)
+
+                if pid_alive:
+                    if first_run:
+                        logger.info(f"[AUTO-RESTART] Variant #{variant.id} (PID {variant.celery_task_id}) is already alive. Skipping.")
+                    continue
+
+                # Enforce max 3 active variants
+                active_count = ModelVariant.objects.filter(status='TESTING').exclude(id=variant.id).count()
+                alive_count = sum(
+                    1 for v in ModelVariant.objects.filter(status='TESTING').exclude(id=variant.id)
+                    if _is_pid_alive(v.celery_task_id)
+                )
+                if alive_count >= 3:
+                    logger.info(f"[AUTO-RESTART] Already {alive_count} variants running. Skipping Variant #{variant.id}.")
+                    continue
+
+                logger.info(
+                    f"[AUTO-RESTART] Variant #{variant.id} ('{variant.name}') was TESTING but PID "
+                    f"{variant.celery_task_id or 'None'} is dead. Respawning..."
+                )
+                try:
+                    log_dir = Path(__file__).parent.parent / "logs"
+                    log_dir.mkdir(exist_ok=True)
+                    log_file = log_dir / f"variant_{variant.id}_virtual.log"
+
+                    process = _spawn_background_process(
+                        [sys.executable, "-m", "src.core.virtual_paper_engine", "--variant_id", str(variant.id)],
+                        str(log_file),
+                    )
+                    variant.celery_task_id = str(process.pid)
+                    variant.save(update_fields=['celery_task_id'])
+                    logger.info(f"[AUTO-RESTART] Variant #{variant.id} respawned (PID: {process.pid})")
+                except Exception as e:
+                    logger.error(f"[AUTO-RESTART] Failed to respawn Variant #{variant.id}: {e}")
+
+            if first_run:
+                alive_traders = PaperTrader.objects.filter(status='RUNNING').count()
+                alive_variants = ModelVariant.objects.filter(status='TESTING').count()
+                logger.info(
+                    f"[AUTO-RESTART] Boot scan complete. "
+                    f"Active traders: {alive_traders} | Active variants: {alive_variants}"
+                )
+                first_run = False
+
+        except Exception as e:
+            logger.error(f"[AUTO-RESTART] Daemon error: {e}", exc_info=True)
+
+        # Check every 5 minutes for orphaned processes
+        time.sleep(300)
+
+
 class ControlPanelConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "control_panel"
@@ -352,4 +505,10 @@ class ControlPanelConfig(AppConfig):
             evolution_thread = threading.Thread(target=_neural_evolution_daemon, daemon=True)
             evolution_thread.start()
             logger.info("[JARVIS SYSTEM] Neural Evolution Daemon initialized (12h cycle).")
+
+            # Auto-Restart: Respawn all previously-running bots and variants on boot
+            restart_thread = threading.Thread(target=_auto_restart_daemon, daemon=True)
+            restart_thread.start()
+            logger.info("[JARVIS SYSTEM] Auto-Restart Failsafe Daemon initialized (boot recovery + 5m watchdog).")
+
 

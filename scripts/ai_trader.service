@@ -1,0 +1,67 @@
+# ============================================================
+# AI_Trader — systemd Service Unit File
+# 
+# Auto-starts the ENTIRE trading system on OS boot:
+#   - Redis (event bus)
+#   - Alpaca Stream (live market data)
+#   - Update Watcher (auto git-pull deploy)
+#   - Daphne (Django ASGI server)
+#   - Auto-restart daemon (respawns bots + variants)
+#
+# INSTALLATION (run once):
+#   cd /home/tharun/Ai_Trader
+#   chmod +x scripts/setup_autoboot.sh
+#   ./scripts/setup_autoboot.sh
+#
+# COMMANDS:
+#   sudo systemctl status ai_trader    # Check status
+#   sudo journalctl -u ai_trader -f    # View logs
+#   sudo systemctl restart ai_trader   # Manual restart
+#   sudo systemctl stop ai_trader      # Stop everything
+# ============================================================
+
+[Unit]
+Description=AI Trader - Neural Trading Engine (Full Stack)
+Documentation=https://github.com/TharunSree/AI_Trader
+After=network-online.target redis.service
+Wants=network-online.target redis.service
+
+[Service]
+Type=simple
+User=tharun
+Group=tharun
+WorkingDirectory=/home/tharun/Ai_Trader
+
+# Boot script starts: Redis, Alpaca Stream, Update Watcher, then Daphne
+ExecStart=/home/tharun/Ai_Trader/scripts/start_server.sh
+
+# Clean shutdown: kill child processes (stream, watcher) stored in PID files
+ExecStop=/bin/bash -c '\
+    for pidfile in /home/tharun/Ai_Trader/logs/pids/*.pid; do \
+        [ -f "$pidfile" ] && kill $(cat "$pidfile") 2>/dev/null; \
+        rm -f "$pidfile"; \
+    done; \
+    kill $MAINPID 2>/dev/null'
+
+# Auto-restart on crash (with 10s backoff)
+Restart=always
+RestartSec=10
+
+# Environment
+Environment=DJANGO_SETTINGS_MODULE=trader_project.settings
+Environment=PYTHONUNBUFFERED=1
+
+# Logging
+StandardOutput=append:/home/tharun/Ai_Trader/logs/daphne_server.log
+StandardError=append:/home/tharun/Ai_Trader/logs/daphne_server.log
+
+# Resource limits
+LimitNOFILE=65535
+TimeoutStartSec=120
+TimeoutStopSec=30
+
+# Kill all child processes when stopping
+KillMode=control-group
+
+[Install]
+WantedBy=multi-user.target

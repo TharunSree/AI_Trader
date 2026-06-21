@@ -23,6 +23,7 @@ from control_panel.model_registry import is_database_model_reference, read_model
 from src.execution.broker import Broker
 from src.core.event_bus import bus
 from src.models.ppo_agent import PPOAgent
+from src.core.online_learner import OnlineLearner
 from src.utils.logger import setup_logging
 
 logger = setup_logging("rl_trading_backend")
@@ -65,6 +66,9 @@ class AITradingEngine:
         logger.info(f"Loading Neural Object Tensor from {self.model_path}")
         self.agent = PPOAgent(state_dim=state_dim, action_dim=action_dim)
         self.agent.load_weights_from_bytes(read_model_bytes(self.model_path), self.model_path)
+        
+        # Online Learning — the AI learns from its own live trades in real-time
+        self.learner = OnlineLearner(self.agent, buffer_size=256, update_every=16)
         
         self.current_sentiment = 0.0
         self._affordable_tickers = None
@@ -212,7 +216,14 @@ class AITradingEngine:
         
         window_data = (window_data - col_means) / col_stds
                 
-        obs = window_data.flatten()
+        # Option B: Aggregate the window using the mean of each feature column across the window.
+        # This produces a smoother state vector representing the entire window instead of just the oldest row.
+        flattened_obs = window_data.flatten()
+        if self.agent.state_dim < len(flattened_obs):
+            obs = np.nanmean(window_data, axis=0)
+        else:
+            obs = flattened_obs
+            
         obs = np.nan_to_num(obs, nan=0.0, posinf=0.0, neginf=0.0)
         
         # Pad or truncate to strictly match state_dim if there's an architectural mismatch
@@ -512,6 +523,9 @@ class AITradingEngine:
                 notional_value=trade_size_usd,
                 qty=None
             )
+            # Online Learning: record BUY entry for reward computation later
+            if success:
+                self.learner.record_entry(self.symbol, current_price)
 
         else:
             qty = trade_size_usd / current_price
@@ -557,6 +571,12 @@ class AITradingEngine:
             from datetime import timedelta
             self._sell_cooldowns[self.symbol] = datetime.now(timezone.utc) + timedelta(minutes=5)
             logger.info(f"[COOLDOWN] {self.symbol} buy cooldown set for 5 minutes.")
+            
+            # Online Learning: record SELL exit → compute reward → maybe trigger micro-update
+            self.learner.record_exit(self.symbol, current_price, fee_rate=0.0015)
+            did_update = await asyncio.to_thread(self.learner.maybe_update)
+            if did_update and self.learner.total_updates % 5 == 0:
+                await asyncio.to_thread(self.learner.save_checkpoint_to_db, self.model_path)
 
         # Ensure accurate Notional Value for budget recycling
         executed_notional = final_qty * current_price
@@ -784,6 +804,10 @@ class AITradingEngine:
                         action_val = self.agent.predict(state_arr)
                             
                         logger.info(f"Analyzing {sym} Frame | Price: ${current_price:,.2f} | Neural Signal: {action_val:+.4f}")
+                        
+                        # Record observation for online learning (before we know if a trade happens)
+                        self.learner.record_observation(sym, state_arr, action_val)
+                        
                         await self.execute_trade(action_val, current_price)
                             
                     except Exception as e:
