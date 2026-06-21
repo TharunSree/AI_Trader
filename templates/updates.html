@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}System Updates{% endblock title %}
+{% block page_title %}System Updates{% endblock page_title %}
+
+{% block page_content %}
+<div class="max-w-6xl mx-auto space-y-6 pb-12">
+    <!-- Header Summary Card -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-5 relative overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-r from-orange-500/5 to-transparent pointer-events-none"></div>
+        <div class="flex items-center justify-between flex-wrap gap-4 relative z-10">
+            <div>
+                <h2 class="text-base font-bold text-slate-800 dark:text-white uppercase tracking-wider">Update Center</h2>
+                <p class="text-xs text-slate-500 font-mono mt-1">Deploy interface patches, core bot models, and schema migrations directly from central master origin.</p>
+            </div>
+            <div class="flex items-center gap-2 font-mono text-[10px] font-bold">
+                <span class="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">Current: {{ current_version }}</span>
+                {% if commits_behind > 0 %}
+                <span class="px-2.5 py-1 rounded bg-orange-500/10 text-orange-500 border border-orange-500/20">Target: {{ remote_version }}</span>
+                {% else %}
+                <span class="px-2.5 py-1 rounded bg-green-500/10 text-green-500 border border-green-500/20">Fully Synced</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 2-column Grid Layout: Left Available Commits, Right Action Control Center -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+        
+        <!-- Left 2 Cols: Pending Commits / Changed Files -->
+        <div class="md:col-span-2 space-y-6">
+            
+            {% if commits_behind > 0 %}
+            <!-- Pending Updates Timeline -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-5">
+                <h3 class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-5 flex items-center gap-2">
+                    <i class="fas fa-list-ul text-orange-500"></i> Pending commits ({{ commits_behind }} release{{ commits_behind|pluralize }})
+                </h3>
+                
+                <div class="relative ml-4">
+                    {% for commit in updates_list %}
+                    <div class="relative pl-6 pb-6 last:pb-1 group">
+                        <!-- Vertical line segment -->
+                        {% if not forloop.last %}
+                        <div class="absolute left-0 top-2 bottom-0 w-[2px] bg-slate-200 dark:bg-slate-800 pointer-events-none"></div>
+                        {% endif %}
+                        
+                        <!-- Pulsing Timeline Dot -->
+                        <div class="absolute -left-[5px] top-2 w-3 h-3 rounded-full {{ commit.dot_color }} border-2 border-white dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
+                        
+                        <div class="bg-slate-50/50 dark:bg-slate-850/20 border border-slate-200/60 dark:border-slate-800/85 rounded-xl p-4 transition-all duration-300 hover:border-slate-300 dark:hover:border-slate-700/60">
+                            <div class="flex items-center justify-between flex-wrap gap-2 mb-2">
+                                <span class="px-2 py-0.5 rounded text-[8px] font-mono font-bold uppercase tracking-wider {{ commit.badge_color }}">
+                                    {{ commit.importance }}
+                                </span>
+                                <span class="text-[9px] font-mono text-slate-400">{{ commit.date }}</span>
+                            </div>
+                            
+                            <h4 class="text-xs font-bold text-slate-800 dark:text-slate-100 font-mono">{{ commit.subject }}</h4>
+                            
+                            {% if commit.bullet_lines %}
+                            <ul class="mt-2.5 space-y-1 pl-4 list-disc text-[10px] font-mono text-slate-500 dark:text-slate-400 leading-relaxed">
+                                {% for line in commit.bullet_lines %}
+                                <li>{{ line }}</li>
+                                {% endfor %}
+                            </ul>
+                            {% endif %}
+                            
+                            <div class="mt-2 text-[8px] font-mono text-slate-400/70 uppercase tracking-widest flex items-center gap-1.5">
+                                <i class="fas fa-hashtag text-[8px]"></i> SHA: {{ commit.short_hash }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Impacted Files list -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-5">
+                <h3 class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
+                    <i class="fas fa-file-code text-slate-500"></i> Impacted Files ({{ impacted_files_count }} file{{ impacted_files_count|pluralize }})
+                </h3>
+                <div class="max-h-60 overflow-y-auto pr-1 space-y-1.5">
+                    {% for f in impacted_files %}
+                    <div class="flex items-center justify-between px-3 py-1.5 bg-slate-50 dark:bg-slate-800/30 rounded-lg text-[10px] font-mono">
+                        <span class="text-slate-600 dark:text-slate-300 truncate max-w-[280px]" title="{{ f.path }}">{{ f.path }}</span>
+                        <span class="px-1.5 py-0.5 rounded text-[8px] font-bold {% if f.status == 'NEW' %}bg-green-500/10 text-green-400{% elif f.status == 'DELETE' %}bg-rose-500/10 text-rose-400{% else %}bg-amber-500/10 text-amber-500{% endif %}">
+                            {{ f.status }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <!-- All Up To Date Screen -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-10 text-center">
+                <div class="w-16 h-16 rounded-full bg-green-500/10 dark:bg-green-500/20 border border-green-500/20 flex items-center justify-center text-green-500 mx-auto mb-4 animate-bounce">
+                    <i class="fas fa-check-circle text-2xl"></i>
+                </div>
+                <h3 class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider">System is fully synchronized</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-2 font-mono max-w-md mx-auto leading-relaxed">Your platform environment is running the latest commits. No pending updates are detected from central tower master branch.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right 1 Col: Controls, Hour restriction, Active User Alert, Terminal Progress -->
+        <div class="space-y-6">
+            
+            <!-- System Controls -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl p-5 relative overflow-hidden">
+                <h3 class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Sync Controls</h3>
+                
+                <!-- Time Restriction Box -->
+                <div class="mb-4 p-3.5 rounded-xl border {% if is_working_hours %}border-amber-500/20 bg-amber-500/5 text-amber-450{% else %}border-emerald-500/20 bg-emerald-500/5 text-emerald-450{% endif %} flex items-start gap-3">
+                    <div class="mt-0.5"><i class="fas {% if is_working_hours %}fa-user-clock{% else %}fa-moon{% endif %} text-xs"></i></div>
+                    <div class="min-w-0 flex-1">
+                        <div class="text-[10px] font-bold uppercase tracking-wider">
+                            {% if is_working_hours %}WORKING HOURS ACTIVE{% else %}AUTO-UPDATE WINDOW OPEN{% endif %}
+                        </div>
+                        <p class="text-[9px] font-mono mt-0.5 leading-relaxed text-slate-550 dark:text-slate-400">
+                            {% if is_working_hours %}
+                            Between 10:00 AM and 7:00 PM, auto-updates are locked. Manual deployment required.
+                            {% else %}
+                            System is inside auto-update hours. Watching daemon will auto-sync if idle.
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Page Activity Box -->
+                <div class="mb-5 p-3.5 rounded-xl border {% if has_recent_activity %}border-rose-500/20 bg-rose-500/5 text-rose-450{% else %}border-slate-700/30 bg-slate-50 dark:bg-slate-800/10 text-slate-500{% endif %} flex items-start gap-3">
+                    <div class="mt-0.5"><i class="fas fa-history text-xs"></i></div>
+                    <div class="min-w-0 flex-1">
+                        <div class="text-[10px] font-bold uppercase tracking-wider">
+                            {% if has_recent_activity %}ACTIVE WEB SESSION{% else %}WEB SESSION IDLE{% endif %}
+                        </div>
+                        <p class="text-[9px] font-mono mt-0.5 leading-relaxed text-slate-555 dark:text-slate-400">
+                            {% if has_recent_activity %}
+                            User active on dashboard in the last 15 minutes. Auto-update suspended to prevent server interruption.
+                            {% else %}
+                            No web session activity. Auto-update allowed to deploy.
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                {% if commits_behind > 0 %}
+                <!-- Manual Update trigger button -->
+                <button id="btn-manual-update" type="button" class="w-full relative z-10 bg-orange-500 hover:bg-orange-600 text-white font-mono tracking-[0.15em] text-[10px] uppercase py-3 px-4 rounded-xl border border-orange-500 hover:border-orange-600 transition-all flex items-center justify-center gap-2.5 group cursor-pointer shadow-[0_0_15px_rgba(249,115,22,0.2)]">
+                    <i class="fas fa-satellite-dish group-hover:animate-pulse"></i> Deploy update now
+                </button>
+                {% else %}
+                <button type="button" disabled class="w-full relative z-10 bg-slate-100 dark:bg-slate-850 text-slate-500 font-mono tracking-[0.15em] text-[10px] uppercase py-3 px-4 rounded-xl border border-slate-200 dark:border-slate-700 cursor-not-allowed flex items-center justify-center gap-2">
+                    <i class="fas fa-check-circle"></i> Environment Current
+                </button>
+                {% endif %}
+            </div>
+
+            <!-- Dedicated Terminal Output Screen (Initially Hidden, Appears when update begins) -->
+            <div id="updates-terminal-card" class="bg-[#080b11] border border-slate-800 rounded-2xl overflow-hidden shadow-2xl font-mono hidden flex-col">
+                <!-- Terminal Header -->
+                <div class="px-4 py-2 bg-slate-950 border-b border-slate-900 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span id="terminal-dot" class="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse"></span>
+                        <span class="text-[9px] text-slate-500 uppercase tracking-widest">Update Terminal</span>
+                    </div>
+                    <span id="terminal-pct" class="text-[9px] text-slate-600">0%</span>
+                </div>
+                
+                <!-- Progress Line indicator -->
+                <div class="w-full h-0.5 bg-slate-900 relative">
+                    <div id="terminal-progress-bar" class="h-full bg-gradient-to-r from-green-500 to-sky-500 transition-all duration-500 ease-out" style="width: 0%;"></div>
+                </div>
+
+                <!-- Console Console -->
+                <div id="terminal-console" class="p-4 h-60 overflow-y-auto text-[10px] text-slate-400 space-y-1.5 leading-relaxed">
+                    <div class="text-slate-600">> Awaiting manual initialization...</div>
+                </div>
+                
+                <!-- Console Footer Controls -->
+                <div class="p-3 bg-slate-950 border-t border-slate-900 flex justify-end">
+                    <button id="btn-terminal-reload" disabled onclick="window.location.reload()" class="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-slate-550 hover:text-white text-[9px] font-mono rounded uppercase tracking-wider transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                        <i class="fas fa-sync-alt mr-1"></i> Reload platform
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const btnUpdate = document.getElementById('btn-manual-update');
+        const terminalCard = document.getElementById('updates-terminal-card');
+        const terminalDot = document.getElementById('terminal-dot');
+        const terminalPct = document.getElementById('terminal-pct');
+        const progressBar = document.getElementById('terminal-progress-bar');
+        const consoleEl = document.getElementById('terminal-console');
+        const btnReload = document.getElementById('btn-terminal-reload');
+
+        if (!btnUpdate) return;
+
+        btnUpdate.addEventListener('click', () => {
+            if (confirm("Initiate central update? Active trading models will be temporarily paused and restarted to fetch new code.")) {
+                runManualPlatformUpdate();
+            }
+        });
+
+        function logToConsole(message, type = 'info') {
+            const line = document.createElement('div');
+            line.className = 'font-mono';
+            
+            let colorClass = 'text-slate-400';
+            if (type === 'system') colorClass = 'text-sky-400 font-bold';
+            if (type === 'error') colorClass = 'text-red-400 font-bold';
+            if (type === 'warning') colorClass = 'text-amber-400';
+            if (type === 'success') colorClass = 'text-green-400 font-bold';
+            
+            line.innerHTML = `<span class="text-slate-600 select-none mr-2">></span><span class="${colorClass}">${message}</span>`;
+            consoleEl.appendChild(line);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+
+        function runManualPlatformUpdate() {
+            // Disable button
+            btnUpdate.disabled = true;
+            btnUpdate.innerHTML = `<i class="fas fa-sync-alt animate-spin"></i> Deploying...`;
+            
+            // Show terminal card
+            terminalCard.classList.remove('hidden');
+            terminalCard.classList.add('flex');
+            consoleEl.innerHTML = '';
+            logToConsole('Connection requested...', 'system');
+            
+            let currentPct = 0;
+            
+            // Instantiate SSE Stream
+            const source = new EventSource("{% url 'system_update_stream' %}");
+            
+            source.onmessage = function(event) {
+                const msg = event.data.trim();
+                if (!msg) return;
+                
+                let cleanMsg = msg.replace(/^\[SYSTEM\]\s*/i, '')
+                                  .replace(/^\[ERROR\]\s*/i, '')
+                                  .replace(/^\[WARNING\]\s*/i, '')
+                                  .replace(/^\[CRITICAL ERROR\]\s*/i, '');
+                                  
+                let type = 'info';
+                if (msg.startsWith('[SYSTEM]')) type = 'system';
+                if (msg.startsWith('[ERROR]') || msg.startsWith('[CRITICAL]')) type = 'error';
+                if (msg.startsWith('[WARNING]')) type = 'warning';
+                
+                logToConsole(cleanMsg, type);
+                
+                // Progress matching
+                const lower = msg.toLowerCase();
+                if (lower.includes('git pull') || lower.includes('override protocol')) {
+                    currentPct = 15;
+                } else if (lower.includes('already up to date') || lower.includes('up-to-date')) {
+                    currentPct = 40;
+                } else if (lower.includes('synchronizing database') || lower.includes('migrate')) {
+                    currentPct = 55;
+                } else if (lower.includes('applying') || lower.includes('no migrations')) {
+                    currentPct = Math.min(currentPct + 5, 80);
+                } else if (lower.includes('restarting')) {
+                    currentPct = 90;
+                    terminalDot.className = 'w-1.5 h-1.5 bg-amber-500 rounded-full animate-spin';
+                } else if (lower.includes('update successful') || lower.includes('reloading')) {
+                    currentPct = 100;
+                    terminalDot.className = 'w-1.5 h-1.5 bg-green-500 rounded-full';
+                    logToConsole('SYSTEM RELOAD INITIATED. REFRESH REQUIRED.', 'success');
+                } else {
+                    currentPct = Math.min(currentPct + 2, 95);
+                }
+                
+                progressBar.style.width = currentPct + '%';
+                terminalPct.textContent = currentPct + '%';
+            };
+            
+            source.addEventListener('complete', function() {
+                source.close();
+                progressBar.style.width = '100%';
+                terminalPct.textContent = '100%';
+                btnReload.disabled = false;
+                btnReload.classList.remove('bg-slate-900', 'text-slate-500');
+                btnReload.classList.add('bg-green-600', 'text-white', 'hover:bg-green-700', 'animate-pulse');
+                logToConsole('DEPLOYMENT COMPLETE. PRESS BUTTON BELOW TO RELOAD PLATFORM.', 'success');
+                
+                // Auto reload after 5s
+                setTimeout(() => window.location.reload(), 5000);
+            });
+            
+            source.addEventListener('error', function() {
+                source.close();
+                btnReload.disabled = false;
+                btnReload.classList.remove('bg-slate-900', 'text-slate-500');
+                btnReload.classList.add('bg-red-600', 'text-white', 'hover:bg-red-700');
+                btnReload.innerHTML = `<i class="fas fa-sync"></i> Retry check`;
+                terminalDot.className = 'w-1.5 h-1.5 bg-red-500 rounded-full';
+                logToConsole('CONNECTION LOST. PROCESS FAILED OR COMPLETED IN BACKGROUND.', 'error');
+            });
+        }
+    });
+</script>
+{% endblock %}

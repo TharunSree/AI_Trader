@@ -212,25 +212,7 @@
         </div>
       </div>
 
-      <!-- Core Protocol Sync -->
-      <div class="bg-slate-900/80 backdrop-blur-md border border-slate-700/80 rounded-2xl p-6 relative overflow-hidden group shadow-xl">
-          <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-500 to-transparent"></div>
-          <div class="absolute right-[-20px] top-[-20px] opacity-[0.03] pointer-events-none">
-              <i class="fas fa-server text-9xl"></i>
-          </div>
 
-          <div class="flex justify-between items-center mb-5 border-b border-slate-800 pb-3.5 relative z-10">
-              <h4 class="text-xs uppercase tracking-[0.15em] text-brand-400 font-mono flex items-center gap-2">
-                  <i class="fas fa-network-wired text-brand-400/80"></i> Core Protocol Sync
-              </h4>
-              <span class="px-2 py-0.5 bg-slate-800 text-slate-400 text-[8px] font-mono rounded border border-slate-700">NODE: ONLINE</span>
-          </div>
-          <p class="text-xs text-slate-400 mb-6 font-mono leading-relaxed relative z-10">Initialize a remote connection to the central architecture repository. This action will pull the latest intelligence models, interface patches, and backend optimizations directly into the production environment. Database schemas will be synchronized automatically.</p>
-          
-          <button id="btn-update-platform-settings" class="relative z-10 bg-slate-950 hover:bg-brand-950 text-brand-400 hover:text-brand-300 font-mono tracking-[0.2em] text-[10px] uppercase py-3.5 px-4 border border-brand-500/50 hover:border-brand-400 rounded-xl w-full transition-all flex items-center justify-center gap-3 group/btn">
-              <i class="fas fa-satellite-dish group-hover/btn:animate-pulse"></i> INITIATE OVERRIDE PROTOCOL
-          </button>
-      </div>
 
       <!-- Security & Access Control -->
       <div class="bg-white dark:bg-slate-900/60 dark:backdrop-blur-md border border-slate-200 dark:border-slate-800/80 shadow-lg rounded-2xl p-6 transition-all duration-300 hover:border-emerald-500/20">
@@ -378,19 +360,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Link settings update button to the topbar terminal overlay
-    const btnUpdatePlatformSettings = document.getElementById('btn-update-platform-settings');
-    if (btnUpdatePlatformSettings) {
-        btnUpdatePlatformSettings.addEventListener('click', function() {
-            // Trigger the topbar button click!
-            const topbarTrigger = document.getElementById('system-update-trigger');
-            if(topbarTrigger) {
-                topbarTrigger.click();
-            } else {
-                alert("Terminal overlay component not found.");
-            }
-        });
-    }
+
 });
 </script>
 {% endblock %}

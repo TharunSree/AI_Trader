@@ -5,6 +5,52 @@
 {% block page_title %}System Overview{% endblock %}
 
 {% block page_content %}
+{% if commits_behind > 0 %}
+<!-- PULSING UPDATE BANNER -->
+<div class="mb-6 relative overflow-hidden rounded-xl border border-orange-500/30 bg-orange-500/5 dark:bg-orange-950/10 p-4 sm:p-5 shadow-[0_0_15px_rgba(249,115,22,0.05)] transition-all duration-300">
+    <div class="absolute -right-16 -top-16 w-32 h-32 bg-orange-500/10 rounded-full blur-2xl animate-pulse"></div>
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 z-10 relative">
+        <div class="flex items-start gap-3.5">
+            <div class="flex-shrink-0 w-9 h-9 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-500 animate-pulse">
+                <i class="fas fa-exclamation-triangle text-base"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h3 class="text-xs sm:text-sm font-bold uppercase tracking-wider text-orange-500 dark:text-orange-400">Attention Required: System Updates Available</h3>
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-mono font-bold uppercase tracking-wider bg-orange-500 text-white animate-pulse">
+                        {{ max_importance }} Importance
+                    </span>
+                </div>
+                <p class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1 font-mono">
+                    Your environment is currently <strong class="text-slate-800 dark:text-slate-200">{{ commits_behind }} commit{{ commits_behind|pluralize }}</strong> behind the central repository. 
+                    {% if is_working_hours %}
+                        Auto-updates are suspended during active working hours (10 AM - 7 PM).
+                    {% elif has_recent_activity %}
+                        Auto-updates are suspended due to recent page activity.
+                    {% endif %}
+                </p>
+                <div class="mt-2 space-y-1 hidden sm:block">
+                    {% for update in updates_list|slice:":2" %}
+                        <div class="text-[10px] text-slate-400/90 font-mono flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full {{ update.dot_color|default:'bg-orange-400' }}"></span>
+                            <span class="text-slate-500">[{{ update.short_hash }}]</span> {{ update.subject }}
+                        </div>
+                    {% endfor %}
+                    {% if commits_behind > 2 %}
+                        <div class="text-[9px] text-slate-500 font-mono pl-3 italic">And {{ commits_behind|add:"-2" }} more update(s)...</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'system_updates' %}" class="flex-shrink-0 px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider bg-orange-500 hover:bg-orange-600 text-white rounded-lg border border-orange-500 hover:border-orange-600 shadow-[0_0_10px_rgba(249,115,22,0.2)] hover:shadow-[0_0_15px_rgba(249,115,22,0.4)] transition-all duration-300 flex items-center gap-1.5 cursor-pointer">
+                <i class="fas fa-satellite-dish"></i> Open Update Terminal
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- KPI STAT CARDS ROW -->
 <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
     <!-- Fleet P&L -->
@@ -363,7 +409,7 @@
             <div class="p-2.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between py-1.5">
                 <div class="flex gap-2">
                     <button id="log-tab-alerts" onclick="window.switchLogTab('alerts')" class="text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 transition-colors">
-                        Alerts{% if system_alerts %}<span class="ml-1 text-[8px] px-1 bg-red-500/20 text-red-400 rounded">{{ system_alerts|length }}</span>{% endif %}
+                        Alerts<span id="alerts-count-badge" class="ml-1 text-[8px] px-1 bg-red-500/20 text-red-400 rounded {% if not system_alerts %}hidden{% endif %}">{% if system_alerts %}{{ system_alerts|length }}{% else %}0{% endif %}</span>
                     </button>
                     <button id="log-tab-live" onclick="window.switchLogTab('live')" class="text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-1 rounded text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors">
                         Live Feed
@@ -1464,6 +1510,16 @@
         .then(r => r.json())
         .then(data => {
             if (data.status === 'success') {
+                // Update badge count
+                const badge = document.getElementById('alerts-count-badge');
+                if (badge) {
+                    const currentCount = parseInt(badge.textContent.trim()) || 0;
+                    const newCount = Math.max(0, currentCount - 1);
+                    badge.textContent = newCount;
+                    if (newCount === 0) {
+                        badge.classList.add('hidden');
+                    }
+                }
                 // Fade out card and remove it
                 card.style.opacity = '0';
                 card.style.transform = 'scale(0.95)';

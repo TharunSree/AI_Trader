@@ -36,6 +36,7 @@ urlpatterns = [
     
     path('guide/', views.onboarding_view, name='guide'),
     path('changelog/', views.changelog_view, name='changelog'),
+    path('updates/', views.system_updates_view, name='system_updates'),
     
     # API Endpoints
     path('api/job-status/', views.job_status_api, name='job_status_api'),

@@ -295,14 +295,13 @@
                 <!-- Right Header Tools -->
                 <div class="flex items-center gap-2 md:gap-4 lg:gap-6 flex-shrink-0">
                     
-                    <!-- System Update Terminal Trigger -->
-                    <button id="system-update-trigger" type="button" class="relative text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none rounded-lg text-sm p-2 transition-colors">
+                    <!-- System Updates Page Link -->
+                    <a href="{% url 'system_updates' %}" id="system-update-trigger" class="relative text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none rounded-lg text-sm p-2 transition-colors" title="System Updates">
                         <i class="fas fa-satellite-dish w-5 h-5 text-center"></i>
-                        <span id="update-badge" class="absolute top-1 right-1 flex h-2 w-2 hidden">
-                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                          <span class="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                        <span id="update-badge" class="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[14px] h-[14px] px-1 text-[8px] font-bold font-mono text-white bg-orange-500 rounded-full hidden">
+                            0
                         </span>
-                    </button>
+                    </a>
 
                     <!-- Manual Lockscreen Trigger -->
                     <button id="manual-lock-trigger" type="button" class="hidden sm:flex text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none rounded-lg text-sm p-2 transition-colors">
@@ -754,34 +753,6 @@
         </div>
     </div>
     
-    <!-- Auto-Update Toast Notification (Bottom-Right) -->
-    <div id="auto-update-toast" class="fixed bottom-6 right-6 z-[10001] hidden" style="width: 360px;">
-        <div class="bg-[#0d1117]/95 backdrop-blur-xl border border-slate-700/60 rounded-xl shadow-2xl overflow-hidden font-mono" style="box-shadow: 0 0 40px rgba(14,165,233,0.1);">
-            <!-- Header -->
-            <div class="flex items-center justify-between px-4 py-2.5 border-b border-slate-800/60">
-                <div class="flex items-center gap-2">
-                    <span id="toast-pulse" class="w-1.5 h-1.5 bg-sky-500 rounded-full animate-pulse"></span>
-                    <span id="toast-header" class="text-[10px] text-slate-300 uppercase tracking-[0.15em]">System Update</span>
-                </div>
-                <div class="flex items-center gap-3">
-                    <span id="toast-pct" class="text-[10px] text-slate-500 tracking-widest">0%</span>
-                    <button id="toast-close" class="text-slate-600 hover:text-slate-300 transition-colors hidden" title="Dismiss">
-                        <i class="fas fa-times text-[10px]"></i>
-                    </button>
-                </div>
-            </div>
-            <!-- Progress bar -->
-            <div class="w-full h-0.5 bg-slate-800 relative">
-                <div id="toast-progress" class="h-full transition-all duration-700 ease-out" style="width: 0%; background: linear-gradient(90deg, #10b981, #0ea5e9);"></div>
-            </div>
-            <!-- Status -->
-            <div class="px-4 py-2.5 flex items-center gap-2 min-h-[32px]">
-                <i id="toast-icon" class="fas fa-code-branch text-sky-400 text-xs"></i>
-                <p id="toast-status" class="text-[10px] text-slate-400 tracking-wider uppercase truncate">Checking for updates...</p>
-            </div>
-        </div>
-    </div>
-
     <!-- Global Evolution Promotion Toast (Bottom-Right) -->
     <div id="evolution-promotion-toast" class="fixed bottom-24 right-6 z-[10001] hidden transform translate-y-6 opacity-0 transition-all duration-300 font-mono" style="width: 360px;">
         <div class="bg-white dark:bg-slate-900 border border-purple-500/20 dark:border-purple-500/30 rounded-xl shadow-2xl p-4 flex items-center gap-4">
@@ -798,70 +769,6 @@
             <button onclick="dismissEvoToast()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 self-start">
                 <i class="fas fa-times text-xs"></i>
             </button>
-        </div>
-    </div>
-
-    <!-- System Update Progress Overlay (Lockscreen-themed) -->
-    <div id="update-terminal-overlay" class="fixed inset-0 bg-[#0a0f18]/95 backdrop-blur-md z-[10000] hidden flex-col items-center justify-center transition-all duration-300 opacity-0 overflow-hidden font-mono">
-        
-        <!-- Technical Grid (matches lockscreen) -->
-        <div class="absolute inset-0 z-0 opacity-10 pointer-events-none" style="background-image: linear-gradient(rgba(100,116,139,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(100,116,139,0.4) 1px, transparent 1px); background-size: 20px 20px;"></div>
-        
-        <!-- Scanline (matches lockscreen) -->
-        <div class="absolute inset-0 w-full h-[20vh] bg-gradient-to-b from-transparent via-brand-500/5 to-transparent z-0 opacity-50 animate-scanline pointer-events-none mix-blend-screen"></div>
-
-        <div class="z-10 flex flex-col items-center justify-center w-full max-w-lg px-6">
-            
-            <!-- Phase Icon -->
-            <div class="mb-10 text-center">
-                <div id="update-icon-container" class="relative inline-block">
-                    <i id="update-phase-icon" class="fas fa-satellite-dish text-brand-400 text-4xl animate-pulse"></i>
-                </div>
-                <h2 class="text-slate-100 uppercase tracking-[0.3em] text-sm mt-6 font-semibold" id="update-phase-title">Deployment Protocol</h2>
-                <p class="text-[10px] text-slate-500 uppercase tracking-[0.4em] mt-1" id="update-phase-subtitle">Initializing secure connection...</p>
-            </div>
-
-            <!-- Progress Panel -->
-            <div class="w-full relative">
-                <div class="relative bg-transparent border border-slate-700 p-8 shadow-2xl">
-                    <!-- Corner Accents (matches lockscreen) -->
-                    <div class="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-slate-400"></div>
-                    <div class="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-slate-400"></div>
-                    <div class="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-slate-400"></div>
-                    <div class="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-slate-400"></div>
-
-                    <!-- Header -->
-                    <div class="w-full flex justify-between items-center mb-6 border-b border-slate-800 pb-2">
-                        <h3 class="text-slate-300 tracking-[0.2em] uppercase text-[10px] flex items-center gap-2">
-                            <span class="w-1.5 h-1.5 bg-brand-500 rounded-sm animate-pulse" id="update-pulse-dot"></span>
-                            <span id="update-header-label">System Update Active</span>
-                        </h3>
-                        <span class="text-slate-600 text-[9px] tracking-widest uppercase" id="update-pct-text">0%</span>
-                    </div>
-
-                    <!-- Progress Bar -->
-                    <div class="w-full h-1 bg-slate-800 rounded-full overflow-hidden mb-6 relative">
-                        <div id="update-progress-bar" class="h-full rounded-full transition-all duration-700 ease-out" style="width: 0%; background: linear-gradient(90deg, #10b981, #0ea5e9);"></div>
-                        <!-- Glow effect underneath bar -->
-                        <div id="update-progress-glow" class="absolute top-0 left-0 h-full rounded-full blur-sm opacity-50 transition-all duration-700 ease-out" style="width: 0%; background: linear-gradient(90deg, #10b981, #0ea5e9);"></div>
-                    </div>
-
-                    <!-- Status Line -->
-                    <div class="flex items-center gap-2 min-h-[20px]">
-                        <span class="text-slate-600 text-xs">></span>
-                        <p id="update-status-text" class="text-slate-400 text-xs tracking-widest uppercase truncate transition-all duration-300">Awaiting instruction...</p>
-                        <span class="w-1.5 h-4 bg-brand-500 animate-blink flex-shrink-0"></span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Close / Acknowledge Button -->
-            <div class="mt-10 text-center">
-                <button id="close-terminal-btn" class="text-[9px] text-slate-600 hover:text-brand-400 transition-colors uppercase tracking-[0.3em] font-mono hidden">
-                    [ Acknowledge &amp; Close ]
-                </button>
-            </div>
-
         </div>
     </div>
 
@@ -972,274 +879,27 @@
             });
         }
 
-        // --- 3. System Update Badging & Progress Bar Streaming ---
+        // --- 3. System Update Badging ---
         const updateBadge = document.getElementById('update-badge');
-        const triggerBtn = document.getElementById('system-update-trigger');
-        const overlay = document.getElementById('update-terminal-overlay');
-        const closeBtn = document.getElementById('close-terminal-btn');
-        const progressBar = document.getElementById('update-progress-bar');
-        const progressGlow = document.getElementById('update-progress-glow');
-        const pctText = document.getElementById('update-pct-text');
-        const statusText = document.getElementById('update-status-text');
-        const phaseTitle = document.getElementById('update-phase-title');
-        const phaseSubtitle = document.getElementById('update-phase-subtitle');
-        const phaseIcon = document.getElementById('update-phase-icon');
-        const headerLabel = document.getElementById('update-header-label');
-        const pulseDot = document.getElementById('update-pulse-dot');
-
-        // Poll for updates every 5 minutes
-        // --- Auto-Update Toast System ---
-        const toast = document.getElementById('auto-update-toast');
-        const toastProgress = document.getElementById('toast-progress');
-        const toastStatus = document.getElementById('toast-status');
-        const toastPct = document.getElementById('toast-pct');
-        const toastHeader = document.getElementById('toast-header');
-        const toastPulse = document.getElementById('toast-pulse');
-        const toastIcon = document.getElementById('toast-icon');
-        const toastClose = document.getElementById('toast-close');
-        let autoUpdateInProgress = false;
-
-        function setToastProgress(pct) {
-            const clamped = Math.min(100, Math.max(0, pct));
-            toastProgress.style.width = clamped + '%';
-            toastPct.textContent = Math.round(clamped) + '%';
-        }
-
-        function runAutoUpdateToast() {
-            if (autoUpdateInProgress) return;
-            autoUpdateInProgress = true;
-            toast.classList.remove('hidden');
-            setToastProgress(0);
-            toastStatus.textContent = 'Pulling latest changes...';
-            toastHeader.textContent = 'Auto-Updating';
-            toastPulse.className = 'w-1.5 h-1.5 bg-sky-500 rounded-full animate-pulse';
-            toastIcon.className = 'fas fa-code-branch text-sky-400 text-xs';
-            toastClose.classList.add('hidden');
-            toastStatus.classList.remove('text-red-400', 'text-green-400');
-            toastStatus.classList.add('text-slate-400');
-
-            let currentPct = 5;
-            const source = new EventSource("{% url 'system_update_stream' %}");
-
-            source.onmessage = function(event) {
-                const msg = event.data.trim();
-                if (!msg) return;
-                let displayMsg = msg.replace(/^\[SYSTEM\]\s*/i, '').replace(/^\[ERROR\]\s*/i, '').replace(/^\[WARNING\]\s*/i, '').replace(/^\[CRITICAL ERROR\]\s*/i, '');
-                toastStatus.textContent = displayMsg;
-                const lower = msg.toLowerCase();
-
-                if (lower.includes('git pull') || lower.includes('override protocol')) {
-                    currentPct = 15; toastIcon.className = 'fas fa-code-branch text-sky-400 text-xs animate-pulse';
-                } else if (lower.includes('already up to date') || lower.includes('up-to-date')) {
-                    currentPct = 50;
-                } else if (lower.includes('fast-forward') || lower.includes('files changed')) {
-                    currentPct = 40;
-                } else if (lower.includes('synchronizing database') || lower.includes('migrate')) {
-                    currentPct = 55; toastIcon.className = 'fas fa-database text-sky-400 text-xs animate-pulse';
-                } else if (lower.includes('applying') || lower.includes('no migrations')) {
-                    currentPct = Math.min(currentPct + 5, 85);
-                } else if (lower.includes('restarting')) {
-                    currentPct = 90; toastIcon.className = 'fas fa-sync text-sky-400 text-xs animate-spin';
-                } else if (lower.includes('update successful') || lower.includes('reloading')) {
-                    currentPct = 100;
-                    toastHeader.textContent = 'Update Complete';
-                    toastStatus.textContent = 'Reloading platform...';
-                    toastStatus.classList.remove('text-slate-400');
-                    toastStatus.classList.add('text-green-400');
-                    toastIcon.className = 'fas fa-check-circle text-green-400 text-xs';
-                    toastPulse.className = 'w-1.5 h-1.5 bg-green-500 rounded-full';
-                } else if (lower.includes('[retry]') || lower.includes('retry')) {
-                    toastHeader.textContent = 'Retrying Update';
-                    toastIcon.className = 'fas fa-redo text-amber-400 text-xs animate-spin';
-                    toastPulse.className = 'w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse';
-                    toastStatus.classList.remove('text-slate-400', 'text-red-400');
-                    toastStatus.classList.add('text-amber-400');
-                    currentPct = 10;
-                } else if (lower.includes('error') || lower.includes('critical')) {
-                    toastHeader.textContent = 'Update Failed';
-                    toastIcon.className = 'fas fa-exclamation-triangle text-red-400 text-xs';
-                    toastPulse.className = 'w-1.5 h-1.5 bg-red-500 rounded-full';
-                    toastStatus.classList.remove('text-slate-400');
-                    toastStatus.classList.add('text-red-400');
-                } else {
-                    currentPct = Math.min(currentPct + 2, 92);
-                }
-                setToastProgress(currentPct);
-            };
-
-            source.addEventListener('complete', function() {
-                source.close();
-                setToastProgress(100);
-                autoUpdateInProgress = false;
-                setTimeout(() => window.location.reload(), 2500);
-            });
-
-            source.addEventListener('error', function() {
-                source.close();
-                autoUpdateInProgress = false;
-                toastClose.classList.remove('hidden');
-                if (currentPct < 100) {
-                    toastHeader.textContent = 'Update Failed';
-                    toastStatus.textContent = 'Auto-update failed — try manually from Settings';
-                    toastIcon.className = 'fas fa-exclamation-triangle text-red-400 text-xs';
-                    toastPulse.className = 'w-1.5 h-1.5 bg-red-500 rounded-full';
-                    toastStatus.classList.remove('text-slate-400');
-                    toastStatus.classList.add('text-red-400');
-                }
-            });
-        }
-
-        toastClose.addEventListener('click', () => {
-            toast.classList.add('hidden');
-            autoUpdateInProgress = false;
-        });
 
         function checkUpdates() {
             fetch("{% url 'check_updates_api' %}")
             .then(r => r.json())
             .then(data => {
                 if (data.commits_behind > 0) {
-                    updateBadge.classList.remove('hidden');
-                    // Auto-trigger via toast notification (non-blocking)
-                    if (!autoUpdateInProgress && !triggerBtn.dataset.autoTriggered) {
-                        triggerBtn.dataset.autoTriggered = 'true';
-                        console.log(`[AUTO-UPDATE] ${data.commits_behind} commit(s) behind. Running via toast...`);
-                        runAutoUpdateToast();
+                    if (updateBadge) {
+                        updateBadge.textContent = data.commits_behind;
+                        updateBadge.classList.remove('hidden');
                     }
                 } else {
-                    updateBadge.classList.add('hidden');
+                    if (updateBadge) {
+                        updateBadge.classList.add('hidden');
+                    }
                 }
             }).catch(e => console.error("Update check failed", e));
         }
         setInterval(checkUpdates, 300000);
         checkUpdates();
-
-        function setProgress(pct) {
-            const clamped = Math.min(100, Math.max(0, pct));
-            progressBar.style.width = clamped + '%';
-            progressGlow.style.width = clamped + '%';
-            pctText.textContent = Math.round(clamped) + '%';
-        }
-
-        // Launch Progress Overlay & Stream (Manual trigger only)
-        triggerBtn.addEventListener('click', () => {
-            // If auto-update is already running via toast, don't double-trigger
-            if (autoUpdateInProgress) return;
-
-            // Reset state
-            setProgress(0);
-            statusText.textContent = 'Establishing connection...';
-            phaseTitle.textContent = 'Deployment Protocol';
-            phaseSubtitle.textContent = 'Initializing secure connection...';
-            phaseIcon.className = 'fas fa-satellite-dish text-brand-400 text-4xl animate-pulse';
-            headerLabel.textContent = 'System Update Active';
-            pulseDot.classList.remove('bg-green-500', 'bg-red-500');
-            pulseDot.classList.add('bg-brand-500', 'animate-pulse');
-            closeBtn.classList.add('hidden');
-
-            // Show overlay
-            overlay.classList.remove('hidden');
-            overlay.classList.add('flex');
-            setTimeout(() => overlay.classList.remove('opacity-0'), 10);
-
-            let currentPct = 0;
-
-            const source = new EventSource("{% url 'system_update_stream' %}");
-            
-            source.onmessage = function(event) {
-                const msg = event.data.trim();
-                if (!msg) return;
-
-                // Update the single status line
-                // Clean up the message for display
-                let displayMsg = msg.replace(/^\[SYSTEM\]\s*/i, '').replace(/^\[ERROR\]\s*/i, '').replace(/^\[CRITICAL ERROR\]\s*/i, '');
-                statusText.textContent = displayMsg;
-
-                // Keyword-based progress anchoring
-                const lower = msg.toLowerCase();
-
-                if (lower.includes('git pull') || lower.includes('override protocol')) {
-                    currentPct = 10;
-                    phaseSubtitle.textContent = 'Fetching latest from repository...';
-                    phaseIcon.className = 'fas fa-code-branch text-brand-400 text-4xl animate-pulse';
-                } else if (lower.includes('already up to date') || lower.includes('up-to-date')) {
-                    currentPct = 45;
-                    phaseSubtitle.textContent = 'Repository is current';
-                } else if (lower.includes('fast-forward') || lower.includes('files changed') || lower.includes('updating')) {
-                    currentPct = 40;
-                    phaseSubtitle.textContent = 'Applying changes...';
-                } else if (lower.includes('synchronizing database') || lower.includes('migrate')) {
-                    currentPct = 50;
-                    phaseSubtitle.textContent = 'Running database migrations...';
-                    phaseIcon.className = 'fas fa-database text-brand-400 text-4xl animate-pulse';
-                } else if (lower.includes('applying') || lower.includes('no migrations')) {
-                    currentPct = Math.min(currentPct + 5, 85);
-                    phaseSubtitle.textContent = 'Synchronizing schema...';
-                } else if (lower.includes('update successful') || lower.includes('reloading')) {
-                    currentPct = 100;
-                    phaseTitle.textContent = 'Update Complete';
-                    phaseSubtitle.textContent = 'Platform will reload momentarily...';
-                    phaseIcon.className = 'fas fa-check-circle text-green-400 text-4xl';
-                    headerLabel.textContent = 'Deployment Successful';
-                    pulseDot.classList.remove('bg-brand-500', 'animate-pulse');
-                    pulseDot.classList.add('bg-green-500');
-                } else if (lower.includes('[retry]') || lower.includes('retry')) {
-                    phaseTitle.textContent = 'Retrying Update';
-                    phaseSubtitle.textContent = 'Previous attempt failed — retrying automatically...';
-                    phaseIcon.className = 'fas fa-redo text-amber-400 text-4xl animate-spin';
-                    headerLabel.textContent = 'Auto-Retry Active';
-                    pulseDot.classList.remove('bg-brand-500', 'bg-red-500');
-                    pulseDot.classList.add('bg-amber-500', 'animate-pulse');
-                    statusText.classList.remove('text-red-400');
-                    statusText.classList.add('text-slate-400');
-                    currentPct = 10;
-                } else if (lower.includes('error') || lower.includes('critical')) {
-                    phaseTitle.textContent = 'Update Failed';
-                    phaseSubtitle.textContent = 'An error occurred during deployment';
-                    phaseIcon.className = 'fas fa-exclamation-triangle text-red-400 text-4xl';
-                    headerLabel.textContent = 'Deployment Error';
-                    pulseDot.classList.remove('bg-brand-500', 'animate-pulse');
-                    pulseDot.classList.add('bg-red-500');
-                    statusText.classList.add('text-red-400');
-                    statusText.classList.remove('text-slate-400');
-                } else {
-                    // Gentle drift for unrecognized lines
-                    currentPct = Math.min(currentPct + 2, 90);
-                }
-
-                setProgress(currentPct);
-            };
-
-            source.addEventListener('complete', function(e) {
-                source.close();
-                setProgress(100);
-                setTimeout(() => window.location.reload(), 2000);
-            });
-
-            source.addEventListener('error', function(e) {
-                source.close();
-                closeBtn.classList.remove('hidden');
-                if (currentPct < 100) {
-                    statusText.textContent = 'Stream connection lost';
-                    phaseTitle.textContent = 'Connection Error';
-                    phaseSubtitle.textContent = 'Update stream terminated unexpectedly';
-                    phaseIcon.className = 'fas fa-unlink text-red-400 text-4xl';
-                    headerLabel.textContent = 'Stream Interrupted';
-                    pulseDot.classList.remove('bg-brand-500', 'animate-pulse');
-                    pulseDot.classList.add('bg-red-500');
-                    statusText.classList.add('text-red-400');
-                    statusText.classList.remove('text-slate-400');
-                }
-            });
-        });
-
-        closeBtn.addEventListener('click', () => {
-            overlay.classList.add('opacity-0');
-            setTimeout(() => {
-                overlay.classList.add('hidden');
-                overlay.classList.remove('flex');
-            }, 300);
-        });
 
         // --- Evolution Promotion Notification Checker ---
         let lastNotifiedVariantId = localStorage.getItem('last_notified_variant_id') || '';

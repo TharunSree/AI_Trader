@@ -584,7 +584,68 @@ def _build_dashboard_context():
     # === Trader reference for websocket ===
     trader = PaperTrader.objects.filter(status='RUNNING').first() or PaperTrader.objects.first()
     
+    # === Git Updates Behind ===
+    commits_behind = 0
+    updates_list = []
+    max_importance = "LOW"
+    
+    try:
+        from django.core.cache import cache
+        import threading
+        
+        last_fetch = cache.get('git_last_fetch_time', 0)
+        import time
+        now = time.time()
+        
+        if now - last_fetch > 300: # 5 mins
+            cache.set('git_last_fetch_time', now, 3600)
+            def fetch_task():
+                try:
+                    subprocess.run(['git', 'fetch', 'origin'], cwd=str(Path(settings.BASE_DIR)), capture_output=True, check=False)
+                    logger.info("[GIT UPDATE CHECK] Background fetch completed.")
+                except Exception as e:
+                    logger.error(f"[GIT UPDATE CHECK] Background fetch failed: {e}")
+                    cache.set('git_last_fetch_time', 0, 10)
+            threading.Thread(target=fetch_task, daemon=True).start()
+
+        # Get available updates list
+        updates_list = _get_available_updates()
+        commits_behind = len(updates_list)
+        
+        # Calculate max importance
+        for u in updates_list:
+            if u['importance'] == 'CRITICAL':
+                max_importance = 'CRITICAL'
+                break
+            elif u['importance'] == 'HIGH':
+                max_importance = 'HIGH'
+            elif u['importance'] == 'MEDIUM' and max_importance == 'LOW':
+                max_importance = 'MEDIUM'
+                
+        # Trigger creation of SystemAlert if not exists
+        if commits_behind > 0:
+            alert_exists = SystemAlert.objects.filter(related_model_reference="SYSTEM_UPDATE", is_read=False).exists()
+            if not alert_exists:
+                level_to_alert = 'WARNING'
+                if max_importance == 'CRITICAL':
+                    level_to_alert = 'CRITICAL'
+                SystemAlert.objects.create(
+                    level=level_to_alert,
+                    title=f"System Update Available ({commits_behind} commits behind)",
+                    message=f"Platform is currently {commits_behind} version(s) behind the master branch. Max urgency: {max_importance}. Go to the Updates Page to review changes and sync.",
+                    related_model_reference="SYSTEM_UPDATE"
+                )
+    except Exception as e:
+        logger.error(f"Error checking git updates in dashboard context: {e}")
+    
     return {
+        # Git Updates
+        'commits_behind': commits_behind,
+        'updates_list': updates_list,
+        'max_importance': max_importance,
+        'is_working_hours': is_working_hours(),
+        'has_recent_activity': has_recent_page_activity(),
+
         # Engine & Fleet
         'running_count': running_count,
         'sleeping_count': sleeping_count,
@@ -665,8 +726,195 @@ class JarvisLoginView(LoginView):
         self.request.session['fresh_login'] = True
         return response
 
+def is_working_hours():
+    import datetime
+    now = datetime.datetime.now()
+    return 10 <= now.hour < 19
+
+def has_recent_page_activity():
+    import time
+    from pathlib import Path
+    from django.conf import settings
+    activity_file = Path(settings.BASE_DIR) / 'logs' / 'last_activity.txt'
+    if not activity_file.exists():
+        return False
+    try:
+        ts = int(activity_file.read_text(encoding='utf-8').strip())
+        return (time.time() - ts) < 900 # 15 minutes
+    except Exception:
+        return False
+
+def _record_page_activity():
+    import time
+    from pathlib import Path
+    from django.conf import settings
+    activity_file = Path(settings.BASE_DIR) / 'logs' / 'last_activity.txt'
+    try:
+        activity_file.parent.mkdir(parents=True, exist_ok=True)
+        activity_file.write_text(str(int(time.time())), encoding='utf-8')
+    except Exception as e:
+        logger.warning(f"Could not record page activity: {e}")
+
+def _get_available_updates():
+    import subprocess
+    import re
+    from pathlib import Path
+    from django.conf import settings
+    
+    repo_dir = str(Path(settings.BASE_DIR))
+    updates = []
+    
+    try:
+        # Fetch latest commits list (HEAD..origin/master)
+        res = subprocess.run(
+            ["git", "log", "HEAD..origin/master", "--pretty=format:%H|%ad|%s|%b|||", "--date=format:%B %d, %Y at %I:%M %p"],
+            cwd=repo_dir, capture_output=True, text=True, encoding='utf-8', errors='ignore'
+        )
+        if res.returncode == 0 and res.stdout.strip():
+            raw_text = res.stdout
+            raw_commits = raw_text.split('|||\n')
+            for rc in raw_commits:
+                if not rc.strip():
+                    continue
+                parts = rc.split('|', 3)
+                if len(parts) >= 3:
+                    c_hash = parts[0].strip()
+                    c_date = parts[1].strip()
+                    c_subj = parts[2].strip()
+                    c_body = parts[3].strip() if len(parts) > 3 else ''
+                    
+                    if c_body.endswith('|||'):
+                        c_body = c_body[:-3].strip()
+                        
+                    subj_lower = c_subj.lower()
+                    body_lower = c_body.lower()
+                    
+                    # Deduce importance
+                    importance = "LOW"
+                    badge_color = "bg-slate-500/10 text-slate-400 border-slate-500/20"
+                    dot_color = "bg-slate-500"
+                    
+                    if any(w in subj_lower or w in body_lower for w in ('critical', 'security', 'vulnerability', 'hotfix', 'urgent', 'failsafe')):
+                        importance = "CRITICAL"
+                        badge_color = "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                        dot_color = "bg-rose-500 animate-pulse"
+                    elif any(w in subj_lower or w in body_lower for w in ('fix', 'bug', 'error', 'crash', 'fail')):
+                        importance = "HIGH"
+                        badge_color = "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                        dot_color = "bg-amber-500"
+                    elif any(w in subj_lower or w in body_lower for w in ('feat', 'feature', 'opt', 'perf')):
+                        importance = "MEDIUM"
+                        badge_color = "bg-brand-500/10 text-brand-500 border-brand-500/20"
+                        dot_color = "bg-brand-500"
+                    
+                    clean_subj, extra_bullets = _clean_subject_and_build_bullets(c_subj)
+                    
+                    bullet_lines = []
+                    for line in c_body.split('\n'):
+                        stripped = line.strip()
+                        if not stripped:
+                            continue
+                        if stripped.startswith('-') or stripped.startswith('*'):
+                            bullet_lines.append(stripped.lstrip('-').lstrip('*').strip())
+                        else:
+                            bullet_lines.append(stripped)
+                            
+                    all_bullets = [b for b in extra_bullets if b] + bullet_lines
+                    
+                    updates.append({
+                        'hash': c_hash,
+                        'short_hash': c_hash[:7],
+                        'date': c_date,
+                        'subject': clean_subj,
+                        'raw_subject': c_subj,
+                        'bullet_lines': all_bullets,
+                        'importance': importance,
+                        'badge_color': badge_color,
+                        'dot_color': dot_color,
+                    })
+    except Exception as e:
+        logger.error(f"Failed to fetch available updates: {e}", exc_info=True)
+        
+    return updates
+
+def _get_impacted_files_count_and_list():
+    import subprocess
+    from pathlib import Path
+    from django.conf import settings
+    repo_dir = str(Path(settings.BASE_DIR))
+    impacted = []
+    try:
+        res = subprocess.run(
+            ["git", "diff", "--name-status", "HEAD..origin/master"],
+            cwd=repo_dir, capture_output=True, text=True, encoding='utf-8', errors='ignore'
+        )
+        if res.returncode == 0:
+            for line in res.stdout.split('\n'):
+                line = line.strip()
+                if not line:
+                    continue
+                parts = line.split(None, 1)
+                if len(parts) == 2:
+                    status_char = parts[0].strip()
+                    file_path = parts[1].strip()
+                    status_word = 'MODIFY'
+                    if status_char == 'A':
+                        status_word = 'NEW'
+                    elif status_char == 'D':
+                        status_word = 'DELETE'
+                    
+                    impacted.append({
+                        'status': status_word,
+                        'path': file_path,
+                        'basename': Path(file_path).name
+                    })
+    except Exception as e:
+        logger.error(f"Failed to fetch git diff stats: {e}")
+    return impacted
+
+@login_required
+def system_updates_view(request):
+    _record_page_activity()
+    context = _build_dashboard_context()
+    
+    # Read current version from VERSION file
+    from pathlib import Path
+    from django.conf import settings
+    import re
+    version_file = Path(settings.BASE_DIR) / 'VERSION'
+    current_version = '1.0.0'
+    if version_file.exists():
+        current_version = version_file.read_text(encoding='utf-8').strip()
+        
+    # Get remote version details
+    remote_version = current_version
+    if context['updates_list']:
+        latest_update = context['updates_list'][0]
+        match = re.search(r'\bv\d+\.\d+(?:\.\d+)?(?:-patch\d+)?\b', latest_update['raw_subject'] + ' ' + latest_update['body'])
+        if match:
+            remote_version = match.group(0).replace('v', '')
+        else:
+            try:
+                parts = current_version.split('.')
+                if len(parts) == 3:
+                    remote_version = f"{parts[0]}.{parts[1]}.{int(parts[2]) + context['commits_behind']}"
+            except Exception:
+                pass
+                
+    impacted_files = _get_impacted_files_count_and_list()
+    
+    context.update({
+        'current_version': current_version,
+        'remote_version': remote_version,
+        'impacted_files': impacted_files,
+        'impacted_files_count': len(impacted_files)
+    })
+    
+    return render(request, 'updates.html', context)
+
 @login_required
 def dashboard_view(request):
+    _record_page_activity()
     return render(request, 'dashboard.html', _build_dashboard_context())
 
 @login_required

@@ -159,6 +159,24 @@ def restart_server():
     else:
         logger.error(f"Systemctl restart failed: {err}")
 
+def is_working_hours():
+    """10:00 AM to 7:00 PM local time."""
+    import datetime
+    now = datetime.datetime.now()
+    return 10 <= now.hour < 19
+
+def has_recent_page_activity():
+    """Recent page activity in last 15 mins (900s)."""
+    activity_file = Path("logs/last_activity.txt")
+    if not activity_file.exists():
+        return False
+    try:
+        with open(activity_file, "r", encoding="utf-8") as f:
+            ts = int(f.read().strip())
+        return (time.time() - ts) < 900
+    except Exception:
+        return False
+
 def main():
     logger.info("Jarvis Core Update Watcher initialized.")
     logger.info("Polling remote repository every 30 seconds...")
@@ -166,7 +184,12 @@ def main():
         try:
             has_update, local_sha, remote_sha = check_for_updates()
             if has_update:
-                execute_update(local_sha)
+                if is_working_hours():
+                    logger.info("Auto-update suspended during working hours (10 AM - 7 PM). Manual update required.")
+                elif has_recent_page_activity():
+                    logger.info("Auto-update suspended due to active page user session. Manual update required.")
+                else:
+                    execute_update(local_sha)
         except Exception as e:
             logger.error(f"Watcher exception in poll loop: {e}")
         time.sleep(30)
