@@ -185,10 +185,13 @@ def main():
             has_update, local_sha, remote_sha = check_for_updates()
             if has_update:
                 if is_working_hours():
-                    logger.info("Auto-update suspended during working hours (10 AM - 7 PM). Manual update required.")
-                elif has_recent_page_activity():
-                    logger.info("Auto-update suspended due to active page user session. Manual update required.")
+                    if has_recent_page_activity():
+                        logger.info("Auto-update suspended: Active user activity during working hours (10 AM - 7 PM).")
+                    else:
+                        logger.info("Inside working hours, but no active user session. Running auto-update...")
+                        execute_update(local_sha)
                 else:
+                    logger.info("Outside working hours. Running scheduled auto-update...")
                     execute_update(local_sha)
         except Exception as e:
             logger.error(f"Watcher exception in poll loop: {e}")

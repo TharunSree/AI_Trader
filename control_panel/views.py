@@ -872,6 +872,96 @@ def _get_impacted_files_count_and_list():
         logger.error(f"Failed to fetch git diff stats: {e}")
     return impacted
 
+def _get_background_services_status():
+    import psutil
+    import socket
+    from pathlib import Path
+    from django.conf import settings
+    
+    services = {
+        'redis': {'name': 'Redis Event Bus', 'status': 'OFFLINE', 'pid': '-', 'port': 6379, 'cpu': 0, 'mem': 0},
+        'daphne': {'name': 'Daphne ASGI Web', 'status': 'OFFLINE', 'pid': '-', 'port': 8000, 'cpu': 0, 'mem': 0},
+        'alpaca': {'name': 'Alpaca Live Stream', 'status': 'OFFLINE', 'pid': '-', 'cpu': 0, 'mem': 0},
+        'watcher': {'name': 'Core Update Watcher', 'status': 'OFFLINE', 'pid': '-', 'cpu': 0, 'mem': 0},
+    }
+    
+    # 1. Check Redis Port
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(0.1)
+        if s.connect_ex(('127.0.0.1', 6379)) == 0:
+            services['redis']['status'] = 'ONLINE'
+        s.close()
+    except Exception:
+        pass
+
+    # 2. Check PIDs from file fallback
+    for svc_key, pid_filename in [('watcher', 'update_watcher.pid'), ('alpaca', 'alpaca_stream.pid')]:
+        pid_file = Path(settings.BASE_DIR) / 'logs' / 'pids' / pid_filename
+        if not pid_file.exists():
+            pid_file = Path(settings.BASE_DIR) / 'logs' / pid_filename
+        if pid_file.exists():
+            try:
+                pid = int(pid_file.read_text(encoding='utf-8').strip())
+                if psutil.pid_exists(pid):
+                    p = psutil.Process(pid)
+                    services[svc_key]['status'] = 'ONLINE'
+                    services[svc_key]['pid'] = pid
+                    services[svc_key]['mem'] = round(p.memory_info().rss / 1024 / 1024, 1)
+            except Exception:
+                pass
+
+    # 3. Scan process list
+    try:
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline', 'memory_info']):
+            try:
+                name = proc.info['name'] or ''
+                cmdline = proc.info['cmdline'] or []
+                cmd_str = ' '.join(cmdline).lower()
+                
+                # Check Redis
+                if services['redis']['pid'] == '-' and ('redis-server' in name.lower() or 'redis-server' in cmd_str):
+                    services['redis']['status'] = 'ONLINE'
+                    services['redis']['pid'] = proc.info['pid']
+                    services['redis']['mem'] = round(proc.info['memory_info'].rss / 1024 / 1024, 1)
+                
+                # Check Daphne
+                if services['daphne']['pid'] == '-' and ('daphne' in name.lower() or 'daphne' in cmd_str or ('manage.py' in cmd_str and 'runserver' in cmd_str)):
+                    services['daphne']['status'] = 'ONLINE'
+                    services['daphne']['pid'] = proc.info['pid']
+                    services['daphne']['mem'] = round(proc.info['memory_info'].rss / 1024 / 1024, 1)
+                    
+                # Check Alpaca
+                if services['alpaca']['pid'] == '-' and ('alpaca_stream.py' in cmd_str):
+                    services['alpaca']['status'] = 'ONLINE'
+                    services['alpaca']['pid'] = proc.info['pid']
+                    services['alpaca']['mem'] = round(proc.info['memory_info'].rss / 1024 / 1024, 1)
+                    
+                # Check Watcher
+                if services['watcher']['pid'] == '-' and ('update_watcher.py' in cmd_str):
+                    services['watcher']['status'] = 'ONLINE'
+                    services['watcher']['pid'] = proc.info['pid']
+                    services['watcher']['mem'] = round(proc.info['memory_info'].rss / 1024 / 1024, 1)
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                continue
+    except Exception as e:
+        logger.warning(f"Error checking processes: {e}")
+        
+    return list(services.values())
+
+def _get_update_watcher_logs():
+    from pathlib import Path
+    from django.conf import settings
+    log_file = Path(settings.BASE_DIR) / 'logs' / 'update_watcher.log'
+    if not log_file.exists():
+        return "No watcher logs recorded yet. Waiting..."
+    try:
+        with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
+            lines = f.readlines()
+        return ''.join(lines[-35:])
+    except Exception as e:
+        return f"Error reading logs: {e}"
+
 @login_required
 def system_updates_view(request):
     _record_page_activity()
@@ -902,12 +992,20 @@ def system_updates_view(request):
                 pass
                 
     impacted_files = _get_impacted_files_count_and_list()
+    background_services = _get_background_services_status()
+    watcher_logs = _get_update_watcher_logs()
+    
+    # Get recent historical commits to show on the page
+    historical_commits = _get_git_changelog()[:5]
     
     context.update({
         'current_version': current_version,
         'remote_version': remote_version,
         'impacted_files': impacted_files,
-        'impacted_files_count': len(impacted_files)
+        'impacted_files_count': len(impacted_files),
+        'background_services': background_services,
+        'watcher_logs': watcher_logs,
+        'historical_commits': historical_commits,
     })
     
     return render(request, 'updates.html', context)
