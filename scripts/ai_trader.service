@@ -9,7 +9,7 @@
 #   - Auto-restart daemon (respawns bots + variants)
 #
 # INSTALLATION (run once):
-#   cd /home/tharun/Ai_Trader
+#   cd /home/tharun/AI_Trader
 #   chmod +x scripts/setup_autoboot.sh
 #   ./scripts/setup_autoboot.sh
 #
@@ -30,14 +30,14 @@ Wants=network-online.target redis.service
 Type=simple
 User=tharun
 Group=tharun
-WorkingDirectory=/home/tharun/Ai_Trader
+WorkingDirectory=/home/tharun/AI_Trader
 
 # Boot script starts: Redis, Alpaca Stream, Update Watcher, then Daphne
-ExecStart=/home/tharun/Ai_Trader/scripts/start_server.sh
+ExecStart=/home/tharun/AI_Trader/scripts/start_server.sh
 
 # Clean shutdown: kill child processes (stream, watcher) stored in PID files
 ExecStop=/bin/bash -c '\
-    for pidfile in /home/tharun/Ai_Trader/logs/pids/*.pid; do \
+    for pidfile in /home/tharun/AI_Trader/logs/pids/*.pid; do \
         [ -f "$pidfile" ] && kill $(cat "$pidfile") 2>/dev/null; \
         rm -f "$pidfile"; \
     done; \
@@ -52,8 +52,8 @@ Environment=DJANGO_SETTINGS_MODULE=trader_project.settings
 Environment=PYTHONUNBUFFERED=1
 
 # Logging
-StandardOutput=append:/home/tharun/Ai_Trader/logs/daphne_server.log
-StandardError=append:/home/tharun/Ai_Trader/logs/daphne_server.log
+StandardOutput=append:/home/tharun/AI_Trader/logs/daphne_server.log
+StandardError=append:/home/tharun/AI_Trader/logs/daphne_server.log
 
 # Resource limits
 LimitNOFILE=65535

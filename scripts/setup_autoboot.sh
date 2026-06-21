@@ -10,7 +10,7 @@
 
 set -e
 
-PROJECT_DIR="/home/tharun/Ai_Trader"
+PROJECT_DIR="/home/tharun/AI_Trader"
 
 echo "╔══════════════════════════════════════════════════════════╗"
 echo "║   AI_Trader — Full Auto-Boot Setup                      ║"

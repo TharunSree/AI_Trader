@@ -13,7 +13,7 @@
 #   - Respawning all TESTING evolution variants
 # ============================================================
 
-PROJECT_DIR="/home/tharun/Ai_Trader"
+PROJECT_DIR="/home/tharun/AI_Trader"
 VENV_DIR="$PROJECT_DIR/.venv"
 LOG_DIR="$PROJECT_DIR/logs"
 PID_DIR="$PROJECT_DIR/logs/pids"
