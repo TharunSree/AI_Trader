@@ -73,6 +73,16 @@
         r: 27px !important;
     }
 
+    /* Remove browser default number input spinner arrows */
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    input[type=number] {
+        -moz-appearance: textfield;
+    }
+
     /* Custom dropdown slide down animation */
     .dropdown-container {
         position: relative;
@@ -242,16 +252,26 @@
                             <div>Mean Abs: <span class="text-slate-200" id="stat-mean">-</span></div>
                         </div>
 
+                        <!-- View Selector Tabs -->
+                        <div class="flex border-b border-slate-900 text-[10px] font-mono">
+                            <button type="button" id="tab-btn-analytics" onclick="setWeightViewMode('analytics')" class="px-4 py-2 border-b-2 border-cyan-500 text-cyan-400 font-bold transition-all focus:outline-none cursor-pointer">
+                                <i class="fas fa-chart-line mr-1"></i> Analytics & Distribution
+                            </button>
+                            <button type="button" id="tab-btn-heatmap" onclick="setWeightViewMode('heatmap')" class="px-4 py-2 text-slate-400 hover:text-slate-200 transition-all focus:outline-none cursor-pointer">
+                                <i class="fas fa-th mr-1"></i> Matrix Heatmap Grid
+                            </button>
+                        </div>
+
                         <!-- Heatmap / Distribution Panel Container -->
                         <div class="relative bg-slate-950/50 rounded-xl p-4 border border-slate-900 min-h-[220px] flex flex-col justify-center">
                             
-                            <!-- 1. Grid Heatmap view (shown for small layers) -->
-                            <div id="heatmap-grid-container" class="w-full">
+                            <!-- 1. Grid Heatmap view (shown when heatmap mode is active) -->
+                            <div id="heatmap-grid-container" class="hidden w-full">
                                 <div id="heatmap-grid" class="grid gap-1 w-full max-w-full overflow-x-auto py-1"></div>
                             </div>
 
-                            <!-- 2. Large Matrix Distribution view (shown for 64x64 layers) -->
-                            <div id="distribution-container" class="hidden w-full space-y-4">
+                            <!-- 2. Distribution view (default analytics view mode) -->
+                            <div id="distribution-container" class="w-full space-y-4">
                                 <div class="text-[10px] font-mono text-slate-400 mb-1 uppercase tracking-wider text-center">Synaptic Weight Distribution Curve</div>
                                 <div class="relative h-[120px] w-full">
                                     <canvas id="dist-canvas" width="400" height="120" class="w-full h-full"></canvas>
@@ -263,11 +283,13 @@
                                 <!-- Leaderboard list -->
                                 <div class="grid grid-cols-2 gap-4 pt-2 border-t border-slate-900 text-[10px] font-mono">
                                     <div>
-                                        <div class="text-rose-400 font-bold mb-1.5 uppercase tracking-wide">Top 3 Strongest Bullish (+)</div>
+                                        <div class="text-rose-400 font-bold mb-1 uppercase tracking-wide">Top 3 Strongest Bullish (+)</div>
+                                        <div class="text-[8px] text-slate-500 mb-1.5 leading-normal">pathways triggering BUY/LONG decisions most heavily</div>
                                         <div id="top-pos-synapses" class="space-y-1.5"></div>
                                     </div>
                                     <div>
-                                        <div class="text-blue-400 font-bold mb-1.5 uppercase tracking-wide">Top 3 Strongest Bearish (-)</div>
+                                        <div class="text-blue-400 font-bold mb-1 uppercase tracking-wide">Top 3 Strongest Bearish (-)</div>
+                                        <div class="text-[8px] text-slate-500 mb-1.5 leading-normal">pathways triggering SELL/SHORT decisions most heavily</div>
                                         <div id="top-neg-synapses" class="space-y-1.5"></div>
                                     </div>
                                 </div>
@@ -275,33 +297,80 @@
                         </div>
                         
                         <!-- Grid / Curve Guides -->
-                        <div id="grid-guide" class="flex items-center justify-between text-[9px] font-mono text-slate-500">
+                        <div id="grid-guide" class="hidden flex items-center justify-between text-[9px] font-mono text-slate-500">
                             <span>Negative Weight (-0.5)</span>
                             <div class="w-32 h-2 bg-gradient-to-r from-blue-600 via-slate-800 to-rose-600 rounded"></div>
                             <span>Positive Weight (+0.5)</span>
                         </div>
 
-                        <!-- Manual Synapse Selector (visible for large 64x64 layers) -->
-                        <div id="large-layer-search" class="hidden grid grid-cols-3 gap-2 bg-slate-900/40 p-3 rounded-lg border border-slate-800/60 font-mono text-[10px]">
-                            <div class="col-span-2 text-slate-400 flex items-center">Target specific synapse index:</div>
-                            <div class="flex gap-1.5 justify-end">
-                                <input type="number" id="search-row" min="0" max="63" placeholder="Row" class="w-12 bg-slate-950 border border-slate-800 text-slate-200 px-1 rounded outline-none text-center" />
-                                <input type="number" id="search-col" min="0" max="63" placeholder="Col" class="w-12 bg-slate-950 border border-slate-800 text-slate-200 px-1 rounded outline-none text-center" />
-                                <button onclick="selectSearchedSynapse()" class="bg-cyan-500 hover:bg-cyan-600 text-slate-950 px-2 py-0.5 rounded font-bold transition-all cursor-pointer">Find</button>
+                        <!-- Target Synapse Selector Card -->
+                        <div id="large-layer-search" class="bg-slate-900/40 p-4 rounded-xl border border-slate-800/80 font-mono text-[10px] space-y-3">
+                            <div class="text-[11px] font-bold text-slate-300 uppercase flex items-center gap-1.5">
+                                <i class="fas fa-crosshairs text-cyan-400"></i> Target Coordinate Finder
+                            </div>
+                            <p class="text-slate-400 leading-normal">
+                                Quickly select any parameter by entering its exact grid coordinate indices.
+                                <br/>• <strong>Row</strong>: Destination Neuron index (e.g. 0 to 63).
+                                <br/>• <strong>Column</strong>: Source Input/Neuron index (e.g. 0 to 3 for inputs, 0 to 63 for hidden layers).
+                            </p>
+                            <div class="flex flex-wrap items-center gap-4">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-slate-550 font-bold">ROW:</span>
+                                    <input type="number" id="search-row" min="0" max="63" placeholder="0" class="w-16 bg-slate-950 border border-slate-800 text-slate-200 text-xs px-2 py-1.5 rounded-lg outline-none text-center focus:border-cyan-500 transition-colors" />
+                                </div>
+                                <div id="search-col-container" class="flex items-center gap-2">
+                                    <span class="text-slate-550 font-bold">COL:</span>
+                                    <input type="number" id="search-col" min="0" max="63" placeholder="0" class="w-16 bg-slate-950 border border-slate-800 text-slate-200 text-xs px-2 py-1.5 rounded-lg outline-none text-center focus:border-cyan-500 transition-colors" />
+                                </div>
+                                <button type="button" onclick="selectSearchedSynapse()" class="bg-cyan-500 hover:bg-cyan-600 text-slate-950 text-xs font-bold px-4 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5">
+                                    <i class="fas fa-search-location"></i> Find & Load Weight
+                                </button>
                             </div>
                         </div>
 
-                        <!-- Matrix Heatmap "Brick" Guide -->
-                        <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-800/80 font-mono text-[10px] text-slate-400 space-y-2">
-                            <div class="text-[11px] font-bold text-slate-300 uppercase">How to read the Synaptic Heatmap</div>
-                            <p>
-                                Each cell in the grid represents a single **synaptic weight connection** between a source neuron (column) and a target neuron (row). 
-                            </p>
-                            <ul class="list-disc pl-4 space-y-1">
-                                <li><span class="text-rose-400 font-bold">Rose / Red cells</span> indicate **Positive weight**: The connection amplifies the signal, pushing the output positive (more bullish).</li>
-                                <li><span class="text-blue-400 font-bold">Blue cells</span> indicate **Negative weight**: The connection inhibits the signal, pushing the output negative (more bearish).</li>
-                                <li><span class="text-slate-605 font-bold">Dark / Gray cells</span> represent **Neutral weight (near 0)**: The connection is weak and has little impact on decisions.</li>
-                            </ul>
+                        <!-- 🎓 Interactive Help & Neural Terminology Guide -->
+                        <div class="bg-slate-900/45 p-5 rounded-xl border border-slate-800/80 font-mono text-[10px] text-slate-400 space-y-3.5">
+                            <div class="text-[11px] font-bold text-slate-200 uppercase flex items-center gap-1.5">
+                                <i class="fas fa-info-circle text-cyan-400 text-xs"></i> Interactive Weight Explorer Guide
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <div class="text-slate-300 font-bold uppercase">1. Synaptic Weight Connection (The Matrix Grid)</div>
+                                <p class="leading-normal">
+                                    A weight value controls how strongly signal flows from a preceding input/neuron (column) to a receiving neuron (row).
+                                    <br/>• <span class="text-rose-400 font-bold">Rose / Red (+)</span>: **Positive / Bullish weight** - amplifies the signal, pushing decisions towards buying or longing assets.
+                                    <br/>• <span class="text-blue-400 font-bold">Blue (-)</span>: **Negative / Bearish weight** - inhibits the signal, pushing decisions towards selling or shorting assets.
+                                    <br/>• <span class="text-slate-500 font-bold">Dark / Gray (0.0)</span>: **Neutral weight** - connection is inactive or weak, meaning it doesn't affect decisions.
+                                </p>
+                            </div>
+
+                            <div class="space-y-2">
+                                <div class="text-slate-300 font-bold uppercase">2. Strongest Bullish (+) & Bearish (-) Leaderboard</div>
+                                <p class="leading-normal">
+                                    Identifies the pathways that exert the strongest influence on trading actions:
+                                    <br/>• **Strongest Bullish (+)**: The strongest pathways contributing to **buy triggers**.
+                                    <br/>• **Strongest Bearish (-)**: The strongest pathways contributing to **sell triggers**.
+                                    <br/>By looking at the leaderboard, you can immediately identify which specific coordinates determine the model's primary market stances.
+                                </p>
+                            </div>
+
+                            <div class="space-y-2">
+                                <div class="text-slate-300 font-bold uppercase">3. Dimensions & Shape Coordinates</div>
+                                <p class="leading-normal">
+                                    The shape represents parameters array dimension `[Rows, Cols]`.
+                                    <br/>• **Row index (Target)**: Represents the receiving neuron in the next layer.
+                                    <br/>• **Column index (Source)**: Represents the sending input feature or preceding neuron.
+                                    <br/>For example, for Input layer weights shape `[64, 4]`, column `1` represents the Sentiment input, and row `12` represents the 12th pattern detector neuron receiving it.
+                                </p>
+                            </div>
+
+                            <div class="space-y-2">
+                                <div class="text-slate-300 font-bold uppercase">4. Deltas & Parameter Tuning</div>
+                                <p class="leading-normal">
+                                    **Delta** shows how much the weight value has moved from the previous checkpoint during online learning.
+                                    <br/>To tune a weight manually: Enter coordinate indices in the **Target Coordinate Finder**, click **Find & Load Weight**, click **Manually Adjust Parameter**, input a value and a mandatory change reason, and confirm.
+                                </p>
+                            </div>
                         </div>
                     </div>
 
@@ -522,6 +591,7 @@
     let selectedLayer = "actor.0.weight";
     let selectedRowIdx = null;
     let selectedColIdx = null;
+    let activeViewMode = "analytics";
 
     // Dynamic layer explanations glossary
     const layerGlossary = {
@@ -559,6 +629,22 @@
             showNoTraderNotice();
         }
     });
+
+    function setWeightViewMode(mode) {
+        activeViewMode = mode;
+        const btnAnalytics = document.getElementById("tab-btn-analytics");
+        const btnHeatmap = document.getElementById("tab-btn-heatmap");
+        
+        if (mode === 'analytics') {
+            btnAnalytics.className = "px-4 py-2 border-b-2 border-cyan-500 text-cyan-400 font-bold transition-all focus:outline-none cursor-pointer";
+            btnHeatmap.className = "px-4 py-2 text-slate-400 hover:text-slate-200 transition-all focus:outline-none cursor-pointer";
+        } else {
+            btnAnalytics.className = "px-4 py-2 text-slate-400 hover:text-slate-200 transition-all focus:outline-none cursor-pointer";
+            btnHeatmap.className = "px-4 py-2 border-b-2 border-cyan-500 text-cyan-400 font-bold transition-all focus:outline-none cursor-pointer";
+        }
+        
+        renderLayerWeights(selectedLayer, true);
+    }
 
     // Custom dropdown handlers
     function toggleDropdown(id) {
@@ -869,11 +955,18 @@
         const prevValues = layer.prev_values;
         const shape = layer.shape;
 
-        // Smart Optimization layout selector
-        const isLargeMatrix = shape.length === 2 && shape[0] === 64 && shape[1] === 64;
+        // Dynamic coordinate finder limits configuration
+        if (shape.length === 2) {
+            document.getElementById("search-col-container").classList.remove("hidden");
+            document.getElementById("search-row").max = shape[0] - 1;
+            document.getElementById("search-col").max = shape[1] - 1;
+        } else {
+            document.getElementById("search-col-container").classList.add("hidden");
+            document.getElementById("search-row").max = shape[0] - 1;
+        }
 
-        if (isLargeMatrix) {
-            // Hide confusing brick wall, display 2D distribution curve + top lists
+        if (activeViewMode === 'analytics') {
+            // Show 2D/1D distribution curve + top lists
             gridContainer.classList.add("hidden");
             gridGuide.classList.add("hidden");
             distContainer.classList.remove("hidden");
@@ -882,15 +975,15 @@
             // Draw bell curve distribution
             drawDistributionCurve("dist-canvas", values);
             
-            // Compute Top Synapses
-            renderSynapticLeaderboard(values, prevValues);
+            // Compute Top Synapses Leaderboard dynamically
+            renderSynapticLeaderboard(values, prevValues, shape);
             
         } else {
-            // Show matrix grid for small readable layers
+            // Show raw matrix/vector grid
             gridContainer.classList.remove("hidden");
             gridGuide.classList.remove("hidden");
             distContainer.classList.add("hidden");
-            searchBar.classList.add("hidden");
+            searchBar.classList.remove("hidden");
 
             if (shape.length === 2) {
                 const rows = shape[0];
@@ -943,11 +1036,15 @@
         if (selectedRowIdx !== null) {
             let newVal, newPrevVal;
             if (shape.length === 2 && selectedColIdx !== null) {
-                newVal = values[selectedRowIdx][selectedColIdx];
-                newPrevVal = prevValues[selectedRowIdx][selectedColIdx];
+                if (selectedRowIdx < shape[0] && selectedColIdx < shape[1]) {
+                    newVal = values[selectedRowIdx][selectedColIdx];
+                    newPrevVal = prevValues[selectedRowIdx][selectedColIdx];
+                }
             } else if (shape.length === 1) {
-                newVal = values[selectedRowIdx];
-                newPrevVal = prevValues[selectedRowIdx];
+                if (selectedRowIdx < shape[0]) {
+                    newVal = values[selectedRowIdx];
+                    newPrevVal = prevValues[selectedRowIdx];
+                }
             }
             if (newVal !== undefined) {
                 selectWeightCell(selectedRowIdx, selectedColIdx, newVal, newPrevVal);
@@ -1015,12 +1112,21 @@
         ctx.setLineDash([]);
     }
 
-    // Renders the strongest connections leaderboard list
-    function renderSynapticLeaderboard(values, prevValues) {
+    // Renders the strongest connections leaderboard list dynamically by layer shape
+    function renderSynapticLeaderboard(values, prevValues, shape) {
         let flat = [];
-        for (let r = 0; r < 64; r++) {
-            for (let c = 0; c < 64; c++) {
-                flat.push({ row: r, col: c, val: values[r][c], prevVal: prevValues[r][c] });
+        if (shape.length === 2) {
+            const rows = shape[0];
+            const cols = shape[1];
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    flat.push({ row: r, col: c, val: values[r][c], prevVal: prevValues[r][c] });
+                }
+            }
+        } else if (shape.length === 1) {
+            const units = shape[0];
+            for (let i = 0; i < units; i++) {
+                flat.push({ row: i, col: null, val: values[i], prevVal: prevValues[i] });
             }
         }
         
@@ -1040,7 +1146,8 @@
         topPos.forEach(s => {
             const btn = document.createElement("button");
             btn.className = "w-full text-left bg-slate-900/60 hover:bg-slate-800 border border-slate-800/80 p-1.5 rounded flex justify-between items-center transition-colors cursor-pointer";
-            btn.innerHTML = `<span>Synapse [${s.row}, ${s.col}]</span><span class="text-rose-400 font-bold">${s.val.toFixed(4)}</span>`;
+            const indexStr = s.col !== null ? `${s.row}, ${s.col}` : `${s.row}`;
+            btn.innerHTML = `<span>Coord [${indexStr}]</span><span class="text-rose-400 font-bold">${s.val.toFixed(4)}</span>`;
             btn.onclick = () => selectWeightCell(s.row, s.col, s.val, s.prevVal);
             posList.appendChild(btn);
         });
@@ -1048,7 +1155,8 @@
         topNeg.forEach(s => {
             const btn = document.createElement("button");
             btn.className = "w-full text-left bg-slate-900/60 hover:bg-slate-800 border border-slate-800/80 p-1.5 rounded flex justify-between items-center transition-colors cursor-pointer";
-            btn.innerHTML = `<span>Synapse [${s.row}, ${s.col}]</span><span class="text-blue-400 font-bold">${s.val.toFixed(4)}</span>`;
+            const indexStr = s.col !== null ? `${s.row}, ${s.col}` : `${s.row}`;
+            btn.innerHTML = `<span>Coord [${indexStr}]</span><span class="text-blue-400 font-bold">${s.val.toFixed(4)}</span>`;
             btn.onclick = () => selectWeightCell(s.row, s.col, s.val, s.prevVal);
             negList.appendChild(btn);
         });
