@@ -827,6 +827,7 @@ def _get_available_updates():
                         'date': c_date,
                         'subject': clean_subj,
                         'raw_subject': c_subj,
+                        'body': c_body,
                         'bullet_lines': all_bullets,
                         'importance': importance,
                         'badge_color': badge_color,
