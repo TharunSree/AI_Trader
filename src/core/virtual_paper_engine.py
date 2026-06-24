@@ -158,7 +158,7 @@ class VirtualPaperEngine:
         self._tickers = None
         
         # Online Learning — variants also learn from their virtual trades
-        self.learner = OnlineLearner(self.agent, buffer_size=256, update_every=16)
+        self.learner = OnlineLearner(self.agent, buffer_size=256, update_every=8)
         
         logger.info(
             f"[EVOLUTION] Virtual Engine booted for Variant #{variant_id} "

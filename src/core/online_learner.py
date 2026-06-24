@@ -21,7 +21,7 @@ class OnlineLearner:
     and periodically adjusts the strategy based on what worked.
     """
 
-    def __init__(self, agent, buffer_size=256, update_every=16, online_lr=5e-5, trader_id=None):
+    def __init__(self, agent, buffer_size=256, update_every=8, online_lr=5e-5, trader_id=None):
         self.agent = agent
         self.buffer_size = buffer_size
         self.update_every = update_every
