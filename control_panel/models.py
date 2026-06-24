@@ -343,3 +343,27 @@ class VirtualTrade(models.Model):
     def __str__(self):
         return f"{self.timestamp:%H:%M} {self.action} {self.quantity} {self.symbol} @ ${self.price}"
 
+
+class OnlineLearningLog(models.Model):
+    EVENT_TYPES = [
+        ('ENTRY', 'Entry Recorded'),
+        ('EXIT', 'Exit Recorded'),
+        ('UPDATE', 'Micro-Update'),
+        ('CHECKPOINT', 'Checkpoint Saved'),
+        ('INIT', 'Learner Initialized'),
+        ('MANUAL', 'Manual Edit'),
+    ]
+    trader = models.ForeignKey(PaperTrader, on_delete=models.CASCADE, null=True, blank=True)
+    event_type = models.CharField(max_length=15, choices=EVENT_TYPES)
+    symbol = models.CharField(max_length=20, blank=True)
+    details = models.JSONField(default=dict)  # pnl, reward, win/loss, etc.
+    reason = models.TextField(blank=True, default='')  # Reason for weight change or event description
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"[{self.event_type}] {self.timestamp:%Y-%m-%d %H:%M} - {self.reason or self.event_type}"
+
+

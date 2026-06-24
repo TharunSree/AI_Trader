@@ -3958,3 +3958,290 @@ def lockscreen_api(request):
             return JsonResponse({'status': 'success'})
         return JsonResponse({'status': 'error', 'message': 'Incorrect Passcode'})
     return JsonResponse({'error': 'Invalid method'}, status=405)
+
+
+# =====================================================================
+# Neural Cortex Dashboard & Weight Editor Views
+# =====================================================================
+
+def _get_agent_and_path_for_trader(trader):
+    if not trader or not trader.model_file:
+        return None, None
+    model_path = trader.model_file
+    try:
+        from src.models.ppo_agent import PPOAgent
+        from control_panel.model_registry import read_model_bytes
+        import io
+        import torch
+        
+        # Default state_dim=4, action_dim=1 for ActorCritic PPO model
+        state_dim = 4
+        action_dim = 1
+        try:
+            model_bytes = read_model_bytes(model_path)
+            state_dict = torch.load(io.BytesIO(model_bytes), map_location='cpu')
+            if 'actor.0.weight' in state_dict:
+                state_dim = state_dict['actor.0.weight'].shape[1]
+                action_dim = state_dict['actor.4.weight'].shape[0]
+        except Exception as shape_err:
+            logger.debug(f"Failed to infer shapes from state_dict, using default (4, 1): {shape_err}")
+            
+        agent = PPOAgent(state_dim=state_dim, action_dim=action_dim)
+        agent.load_weights_from_bytes(read_model_bytes(model_path), model_path)
+        return agent, model_path
+    except Exception as e:
+        logger.error(f"Error loading agent for trader: {e}")
+        return None, None
+
+
+@login_required
+def neural_cortex_view(request):
+    trader_id = request.GET.get('trader_id')
+    if trader_id:
+        trader = get_object_or_404(PaperTrader, id=trader_id)
+    else:
+        trader = PaperTrader.objects.filter(status='RUNNING').first() or PaperTrader.objects.first()
+    
+    all_traders = PaperTrader.objects.all()
+    from .models import OnlineLearningLog
+    
+    context = {
+        'trader': trader,
+        'all_traders': all_traders,
+        'has_trader': trader is not None,
+    }
+    return render(request, 'neural_cortex.html', context)
+
+
+@login_required
+def neural_weights_api(request):
+    trader_id = request.GET.get('trader_id')
+    if trader_id:
+        trader = PaperTrader.objects.filter(id=trader_id).first()
+    else:
+        trader = PaperTrader.objects.filter(status='RUNNING').first() or PaperTrader.objects.first()
+        
+    if not trader or not trader.model_file:
+        return JsonResponse({'error': 'No active trader or model found'}, status=404)
+        
+    agent, model_path = _get_agent_and_path_for_trader(trader)
+    if not agent:
+        return JsonResponse({'error': 'Failed to load model weights'}, status=500)
+        
+    from src.core.online_learner import OnlineLearner
+    from .models import OnlineLearningLog
+    
+    # Instantiate learner to compute stats
+    learner = OnlineLearner(agent, trader_id=trader.id)
+    weights_data = learner.get_weight_summary()
+    
+    # Fetch last weight change reason from DB
+    latest_update = OnlineLearningLog.objects.filter(
+        trader=trader, 
+        event_type__in=['UPDATE', 'MANUAL']
+    ).first()
+    
+    reason = "No learning updates recorded yet."
+    last_update_time = None
+    if latest_update:
+        reason = latest_update.reason
+        last_update_time = latest_update.timestamp.isoformat()
+        
+    return JsonResponse({
+        'trader_id': trader.id,
+        'model_file': trader.model_file,
+        'weights': weights_data,
+        'latest_reason': reason,
+        'last_update_time': last_update_time,
+    })
+
+
+@login_required
+def neural_learning_log_api(request):
+    trader_id = request.GET.get('trader_id')
+    if trader_id:
+        trader = PaperTrader.objects.filter(id=trader_id).first()
+    else:
+        trader = PaperTrader.objects.filter(status='RUNNING').first() or PaperTrader.objects.first()
+        
+    if not trader:
+        return JsonResponse({'logs': [], 'stats': {}})
+        
+    from .models import OnlineLearningLog
+    logs = OnlineLearningLog.objects.filter(trader=trader).order_by('-timestamp')[:100]
+    
+    logs_data = []
+    for log in logs:
+        logs_data.append({
+            'id': log.id,
+            'event_type': log.event_type,
+            'symbol': log.symbol,
+            'details': log.details,
+            'reason': log.reason,
+            'timestamp': log.timestamp.isoformat(),
+        })
+        
+    # Calculate live stats from logs
+    exits = OnlineLearningLog.objects.filter(trader=trader, event_type='EXIT')
+    win_count = exits.filter(details__reward__gt=0).count()
+    loss_count = exits.filter(details__reward__lte=0).count()
+    completed_trades = exits.count()
+    win_rate = (win_count / max(1, completed_trades)) * 100 if completed_trades > 0 else 0.0
+    
+    avg_reward = exits.aggregate(avg=Avg('details__reward'))['avg'] or 0.0
+    
+    total_updates = OnlineLearningLog.objects.filter(trader=trader, event_type='UPDATE').count()
+    
+    # Calculate reward trend (last 20 exits)
+    recent_exits = list(exits.order_by('timestamp')[:20])
+    reward_trend = [float(e.details.get('reward', 0)) for e in recent_exits]
+    
+    stats = {
+        'completed_trades': completed_trades,
+        'win_rate': round(win_rate, 2),
+        'win_count': win_count,
+        'loss_count': loss_count,
+        'total_updates': total_updates,
+        'avg_reward': round(avg_reward, 4),
+        'reward_trend': reward_trend,
+    }
+        
+    return JsonResponse({
+        'logs': logs_data,
+        'stats': stats,
+    })
+
+
+@login_required
+@require_POST
+def neural_weight_edit_api(request):
+    try:
+        data = json.loads(request.body)
+        trader_id = data.get('trader_id')
+        layer_name = data.get('layer_name')
+        row = data.get('row')  # None for 1D arrays
+        col = data.get('col')  # None
+        new_val = float(data.get('value'))
+        reason = data.get('reason', '').strip()
+        
+        if not reason:
+            return JsonResponse({'status': 'error', 'message': 'A reason for editing weights is required.'}, status=400)
+            
+        trader = get_object_or_404(PaperTrader, id=trader_id)
+        if not trader.model_file:
+            return JsonResponse({'status': 'error', 'message': 'Trader has no model file.'}, status=400)
+            
+        agent, model_path = _get_agent_and_path_for_trader(trader)
+        if not agent:
+            return JsonResponse({'status': 'error', 'message': 'Failed to load model weights.'}, status=500)
+            
+        # Backup weights to previous weights file before making changes
+        import torch
+        prev_weights_filename = f"previous_weights_T{trader.id}.pth"
+        try:
+            prev_state_dict = {k: v.cpu().clone() for k, v in agent.policy.state_dict().items()}
+            torch.save(prev_state_dict, prev_weights_filename)
+        except Exception as e:
+            logger.warning(f"Could not save weight pre-checkpoint: {e}")
+            
+        state_dict = agent.policy.state_dict()
+        if layer_name not in state_dict:
+            return JsonResponse({'status': 'error', 'message': f'Layer {layer_name} not found.'}, status=400)
+            
+        param = state_dict[layer_name]
+        old_val = 0.0
+        
+        # Modify the tensor in-place
+        with torch.no_grad():
+            if param.dim() == 2:
+                if row is None or col is None:
+                    return JsonResponse({'status': 'error', 'message': 'Row and Col are required for 2D tensors.'}, status=400)
+                old_val = float(param[row, col].item())
+                param[row, col] = new_val
+            elif param.dim() == 1:
+                idx = row if row is not None else col
+                if idx is None:
+                    return JsonResponse({'status': 'error', 'message': 'Index is required for 1D tensors.'}, status=400)
+                old_val = float(param[idx].item())
+                param[idx] = new_val
+            else:
+                return JsonResponse({'status': 'error', 'message': f'Unsupported parameter dimension: {param.dim()}'}, status=400)
+                
+        # Write modified weights to model registry / storage
+        import io
+        buffer = io.BytesIO()
+        agent.save_weights_to_buffer(buffer)
+        weight_bytes = buffer.getvalue()
+        
+        if model_path.startswith('db:'):
+            job_id = int(model_path.split(':')[1])
+            TrainingJob.objects.filter(id=job_id).update(model_weights=weight_bytes)
+        else:
+            from pathlib import Path
+            Path(model_path).write_bytes(weight_bytes)
+            
+        log_reason = f"Manual edit of {layer_name}[{row}, {col}] from {old_val:+.4f} to {new_val:+.4f} | Reason: {reason}"
+        
+        from src.core.online_learner import OnlineLearner
+        learner = OnlineLearner(agent, trader_id=trader.id)
+        learner._log_event(
+            'MANUAL',
+            details={
+                'layer': layer_name,
+                'row': row,
+                'col': col,
+                'old_val': old_val,
+                'new_val': new_val,
+                'reason': reason
+            },
+            reason=log_reason
+        )
+        
+        # Automatically schedule a 3-day backtest to verify the modified weights
+        from datetime import timedelta
+        from django.utils import timezone
+        
+        eval_job = None
+        try:
+            from .models import EvaluationJob
+            end_date = timezone.now().date()
+            start_date = end_date - timedelta(days=3)
+            
+            eval_job = EvaluationJob.objects.create(
+                model_file=trader.model_file,
+                start_date=start_date.strftime('%Y-%m-%d'),
+                end_date=end_date.strftime('%Y-%m-%d'),
+                status='PENDING'
+            )
+            
+            import sys
+            from pathlib import Path
+            log_dir = Path(__file__).parent.parent / "logs"
+            log_dir.mkdir(exist_ok=True)
+            log_file = log_dir / f"eval_job_{eval_job.id}.log"
+            
+            process = _spawn_background_process(
+                [sys.executable, "run_evaluation_job.py", "--job_id", str(eval_job.id)],
+                log_file,
+            )
+            eval_job.celery_task_id = str(process.pid)
+            eval_job.save(update_fields=['celery_task_id'])
+            logger.info(f"[ONLINE LEARNING] Spawned automatic evaluation job E{eval_job.id} for edited weights of model {trader.model_file}")
+        except Exception as eval_err:
+            logger.error(f"Failed to spawn automatic evaluation for edited weights: {eval_err}", exc_info=True)
+
+        message = f"Weight updated from {old_val:+.4f} to {new_val:+.4f}."
+        if eval_job:
+            message += f" Automatically initiated a 3-day verification backtest (Job #E{eval_job.id}). View progress in the Evaluation Lab."
+
+        return JsonResponse({
+            'status': 'success',
+            'message': message,
+            'eval_job_id': eval_job.id if eval_job else None,
+            'warning': 'If the bot is currently running, please restart it to apply the modified weights.' if trader.status == 'RUNNING' else None
+        })
+        
+    except Exception as e:
+        logger.error(f"Error editing weights: {e}", exc_info=True)
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+

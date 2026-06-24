@@ -68,7 +68,7 @@ class AITradingEngine:
         self.agent.load_weights_from_bytes(read_model_bytes(self.model_path), self.model_path)
         
         # Online Learning — the AI learns from its own live trades in real-time
-        self.learner = OnlineLearner(self.agent, buffer_size=256, update_every=16)
+        self.learner = OnlineLearner(self.agent, buffer_size=256, update_every=16, trader_id=self.trader_id)
         
         self.current_sentiment = 0.0
         self._affordable_tickers = None
