@@ -352,6 +352,7 @@ class OnlineLearningLog(models.Model):
         ('CHECKPOINT', 'Checkpoint Saved'),
         ('INIT', 'Learner Initialized'),
         ('MANUAL', 'Manual Edit'),
+        ('DECISION', 'Model Decision Check'),
     ]
     trader = models.ForeignKey(PaperTrader, on_delete=models.CASCADE, null=True, blank=True)
     event_type = models.CharField(max_length=15, choices=EVENT_TYPES)

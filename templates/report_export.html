@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Cortex Diagnostics Report - AI Trader</title>
+    <!-- Rounded friendly font -->
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-primary: #fcfaf7;
+            --bg-card: #ffffff;
+            --text-primary: #2d2522;
+            --text-muted: #7d726e;
+            --border-color: #f0ece6;
+            --accent-blue: #3b82f6;
+            --accent-blue-pastel: #e2f0fd;
+            --accent-green: #10b981;
+            --accent-green-pastel: #e6f9f3;
+            --accent-rose: #f43f5e;
+            --accent-rose-pastel: #ffeef1;
+        }
+
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .no-print-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 16px 24px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(45, 37, 34, 0.05);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            border: none;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background-color: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background-color: #e5ded5;
+        }
+
+        .report-header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 20px;
+        }
+
+        .report-header h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+            color: var(--text-primary);
+            font-weight: 700;
+        }
+
+        .report-header p {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(45, 37, 34, 0.03);
+        }
+
+        .card h2 {
+            margin-top: 0;
+            margin-bottom: 16px;
+            font-size: 16px;
+            font-weight: 700;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 14px;
+            border-bottom: 1px dashed #f5f0eb;
+            padding-bottom: 6px;
+        }
+
+        .metric-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .metric-label {
+            color: var(--text-muted);
+        }
+
+        .metric-value {
+            font-weight: 700;
+        }
+
+        .badge {
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .badge-running {
+            background-color: var(--accent-green-pastel);
+            color: var(--accent-green);
+        }
+
+        .badge-paused {
+            background-color: #f3f4f6;
+            color: #4b5563;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        th {
+            background: #fcfaf7;
+            padding: 10px 12px;
+            border-bottom: 2px solid var(--border-color);
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .log-row-ENTRY {
+            border-left: 3px solid var(--accent-green);
+        }
+        .log-row-EXIT {
+            border-left: 3px solid var(--accent-rose);
+        }
+        .log-row-DECISION {
+            border-left: 3px solid var(--accent-blue);
+        }
+        .log-row-UPDATE {
+            border-left: 3px solid #8b5cf6;
+        }
+
+        .guide-section {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--border-color);
+            margin-top: 30px;
+        }
+
+        .guide-section h3 {
+            margin-top: 0;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .guide-section h4 {
+            margin-top: 20px;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--accent-blue);
+        }
+
+        .guide-section ul {
+            padding-left: 20px;
+            margin: 0;
+        }
+
+        .guide-section li {
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: #5d524f;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            font-size: 11px;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+        }
+
+        /* Print styling rules */
+        @media print {
+            body {
+                background: white;
+                color: black;
+                padding: 0;
+                font-size: 12px;
+            }
+            .no-print-bar {
+                display: none !important;
+            }
+            .card {
+                box-shadow: none !important;
+                border: 1px solid #ccc !important;
+                page-break-inside: avoid;
+            }
+            .guide-section {
+                border: 1px solid #ccc !important;
+                page-break-inside: avoid;
+            }
+            table {
+                page-break-inside: auto;
+            }
+            tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
+            }
+            .footer {
+                position: running(footer);
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Action header, hidden during PDF printing -->
+    <div class="no-print-bar">
+        <div style="font-weight: bold; font-size: 14px; color: var(--text-muted);">
+            <a href="{% url 'neural_cortex' %}" style="color: var(--accent-blue); text-decoration: none; margin-right: 15px;">
+                <i class="fas fa-arrow-left"></i> Back to Cortex
+            </a>
+            Neural Intelligence Report Exporter
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button onclick="window.print()" class="btn btn-primary">
+                <i class="fas fa-print"></i> Print / Save PDF
+            </button>
+            <a href="?format=markdown{% if trader %}&trader_id={{ trader.id }}{% endif %}" class="btn btn-secondary">
+                <i class="fas fa-file-download"></i> Download Markdown (.md)
+            </a>
+        </div>
+    </div>
+
+    <!-- Printable Report Header -->
+    <div class="report-header">
+        <h1>NEURAL DIAGNOSTICS & SYSTEM REPORT</h1>
+        <p>Generated on: {{ timestamp }} | Active Instance: Bot #{{ trader.id }} ({{ trader.name }})</p>
+    </div>
+
+    <div class="grid-2">
+        <!-- 1. Bot Configuration -->
+        <div class="card">
+            <h2><i class="fas fa-cogs" style="color: var(--accent-blue)"></i> Bot Configuration</h2>
+            <div class="metric-row">
+                <span class="metric-label">Trader Name:</span>
+                <span class="metric-value">{{ trader.name }}</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Status:</span>
+                <span class="metric-value">
+                    <span class="badge {% if trader.status == 'RUNNING' %}badge-running{% else %}badge-paused{% endif %}">
+                        {{ trader.status }}
+                    </span>
+                </span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Model File:</span>
+                <span class="metric-value" style="font-family: monospace; font-size: 11px;">{{ trader.model_file }}</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Active Symbol:</span>
+                <span class="metric-value">{{ trader.symbol }}</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Net Equity Balance:</span>
+                <span class="metric-value" style="color: var(--accent-green);">${{ trader.balance|floatformat:2 }}</span>
+            </div>
+        </div>
+
+        <!-- 2. System Resource Usage -->
+        <div class="card">
+            <h2><i class="fas fa-microchip" style="color: var(--accent-blue)"></i> System Diagnostics</h2>
+            <div class="metric-row">
+                <span class="metric-label">CPU Utilization:</span>
+                <span class="metric-value">{{ telemetry.cpu_percent|floatformat:1 }}%</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">RAM Usage Percent:</span>
+                <span class="metric-value">{{ telemetry.system_used_percent|floatformat:1 }}%</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">RAM Consumption:</span>
+                <span class="metric-value">{{ telemetry.system_used_gb|floatformat:2 }} GB / {{ telemetry.system_total_gb|floatformat:2 }} GB</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Memory Protection Limit:</span>
+                <span class="metric-value">{{ telemetry.trader_limit_mb }} MB</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Safety Suspend Threshold:</span>
+                <span class="metric-value" style="color: var(--accent-rose);">{{ telemetry.threshold_percent }}%</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid-2">
+        <!-- 3. Learning Performance -->
+        <div class="card" style="grid-column: span 2;">
+            <h2><i class="fas fa-chart-line" style="color: var(--accent-green)"></i> Active Learning Telemetry</h2>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; text-align: center; margin-top: 10px;">
+                <div>
+                    <div style="font-size: 22px; font-weight: bold; color: var(--accent-blue);">{{ completed_trades }}</div>
+                    <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">Completed Trades</div>
+                </div>
+                <div>
+                    <div style="font-size: 22px; font-weight: bold; color: {% if win_rate >= 50 %}var(--accent-green){% else %}var(--accent-rose){% endif %};">{{ win_rate }}%</div>
+                    <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">Win Rate Ratio</div>
+                </div>
+                <div>
+                    <div style="font-size: 22px; font-weight: bold; color: {% if avg_reward >= 0 %}var(--accent-green){% else %}var(--accent-rose){% endif %};">{{ avg_reward }}</div>
+                    <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">Avg PnL Reward</div>
+                </div>
+                <div>
+                    <div style="font-size: 22px; font-weight: bold; color: #8b5cf6;">{{ total_updates }}</div>
+                    <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">PPO Optimization Updates</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Neural Layer Parameters Summary -->
+    <div class="card" style="margin-bottom: 30px;">
+        <h2><i class="fas fa-network-wired" style="color: var(--accent-blue)"></i> Neural Network Weights (Active Layer Summaries)</h2>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Layer Name</th>
+                        <th>Matrix Shape</th>
+                        <th style="text-align: right;">Min Weight</th>
+                        <th style="text-align: right;">Max Weight</th>
+                        <th style="text-align: right;">Mean Value</th>
+                        <th style="text-align: right;">Std Dev</th>
+                        <th style="text-align: right;">Mean Absolute Drift</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for name, info in weights.items %}
+                    <tr>
+                        <td style="font-family: monospace; font-weight: 700; color: #443c39;">{{ name }}</td>
+                        <td style="font-family: monospace; color: var(--text-muted);">{{ info.shape }}</td>
+                        <td style="text-align: right; font-family: monospace; color: var(--accent-rose);">{{ info.min|stringformat:"+.4f" }}</td>
+                        <td style="text-align: right; font-family: monospace; color: var(--accent-green);">{{ info.max|stringformat:"+.4f" }}</td>
+                        <td style="text-align: right; font-family: monospace;">{{ info.mean|stringformat:"+.4f" }}</td>
+                        <td style="text-align: right; font-family: monospace; color: var(--text-muted);">{{ info.std|stringformat:".4f" }}</td>
+                        <td style="text-align: right; font-family: monospace; font-weight: bold; color: var(--accent-blue);">{{ info.mean_diff|stringformat:".6f" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: var(--text-muted); py-4;">No active weights summary stats loaded. Ensure bot is running a valid PyTorch model.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 5. Recent Learning Logs -->
+    <div class="card" style="margin-bottom: 30px;">
+        <h2><i class="fas fa-history" style="color: var(--accent-blue)"></i> Recent Active Learning & Decision Logs</h2>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Event Type</th>
+                        <th>Symbol</th>
+                        <th>Reason Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr class="log-row-{{ log.event_type }}">
+                        <td style="color: var(--text-muted); font-size: 11px;">{{ log.timestamp|date:"H:i:s" }}</td>
+                        <td>
+                            <span class="badge" style="font-size: 9px;
+                                {% if log.event_type == 'ENTRY' %}background-color: var(--accent-green-pastel); color: var(--accent-green);
+                                {% elif log.event_type == 'EXIT' %}background-color: var(--accent-rose-pastel); color: var(--accent-rose);
+                                {% elif log.event_type == 'DECISION' %}background-color: var(--accent-blue-pastel); color: var(--accent-blue);
+                                {% else %}background-color: #f3f4f6; color: #6b7280;{% endif %}">
+                                {{ log.event_type }}
+                            </span>
+                        </td>
+                        <td style="font-weight: bold;">{{ log.symbol|default:"-" }}</td>
+                        <td style="color: #4a3e3b; font-size: 12px; font-family: monospace;">{{ log.reason }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: var(--text-muted);">No training logs available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 6. Foolproof Operating Guide -->
+    <div class="guide-section">
+        <h3><i class="fas fa-graduation-cap" style="color: var(--accent-blue)"></i> Foolproof Operating Guide (Profit Manual)</h3>
+        
+        <h4>1. Diagnosing Underperforming Models</h4>
+        <ul>
+            <li><strong>Regime Drift Alert:</strong> If the Win Rate drops below 45% or average PnL turns negative, the model is likely experiencing regime shift. The market behavior has drifted from the training set. It is recommended to pause execution and clear model weights.</li>
+            <li><strong>Safety Threshold Trigger:</strong> When system memory exceeds 85%, the paper trading engine automatically suspends online learning logs to prevent write locks on the local database file. Ensure the VPS or machine has free memory before resuming.</li>
+            <li><strong>Optimizing Drift:</strong> Track the "Mean Absolute Drift". A value of 0.000000 indicates the optimizer is locked and is not learning. If values are too high but the win rate declines, lower the learning rate inside Settings to prevent "forgetting" generalizable patterns.</li>
+        </ul>
+
+        <h4>2. How to Overwrite Weights Safely for Profit</h4>
+        <ul>
+            <li><strong>Trend Aligning:</strong> To force the model to buy breakouts, identify the weights of the input layer linked to index 0 (Price Trend). Making these weights slightly positive will increase long recommendation signals during upward momentum.</li>
+            <li><strong>Risk Management:</strong> Scale down output weights of the Critic layer (`critic.4.weight`) to lower internal expectancy predictions, which makes the actor more conservative and less likely to hold onto losing positions.</li>
+            <li><strong>Verification Rule:</strong> Any manual weight tweak triggers a 3-day verification backtest inside the Evaluation Lab. Do not execute trades with edited models until the job achieves positive net return validation.</li>
+        </ul>
+    </div>
+
+    <div class="footer">
+        AI Trader Systems &bull; Neural Cortex Diagnostics Exporter
+    </div>
+</div>
+
+</body>
+</html>

@@ -1148,7 +1148,7 @@ def _get_git_changelog():
                 
         # 2. Fetch ALL commits metadata (no files list) - extremely fast!
         res_all = subprocess.run(
-            ["git", "log", "--pretty=format:%H|%ad|%s|%b|||", "--date=format:%B %d, %Y"],
+            ["git", "log", "--pretty=format:%H|%ad|%s|%b|%d|||", "--date=format:%B %d, %Y"],
             cwd=repo_dir, capture_output=True, text=True, encoding='utf-8', errors='ignore'
         )
         if res_all.returncode == 0:
@@ -1159,25 +1159,33 @@ def _get_git_changelog():
             for rc in raw_commits:
                 if not rc.strip():
                     continue
-                parts = rc.split('|', 3)
+                parts = rc.split('|', 4)
                 if len(parts) >= 3:
                     c_hash = parts[0].strip()
                     c_date = parts[1].strip()
                     c_subj = parts[2].strip()
                     c_body = parts[3].strip() if len(parts) > 3 else ''
+                    c_refs = parts[4].strip() if len(parts) > 4 else ''
                     
+                    if c_refs.endswith('|||'):
+                        c_refs = c_refs[:-3].strip()
                     if c_body.endswith('|||'):
                         c_body = c_body[:-3].strip()
                         
                     subj_lower = c_subj.lower()
                     
-                    # Extract explicit version from commit message (both 2-part like v1.12 and 3-part like v1.0.15)
+                    # 1. Try to extract tag from ref names (%d) e.g., "tag: v1.0.29"
                     explicit_version = None
-                    version_match = re.search(r'\bv\d+\.\d+(?:\.\d+)?(?:-patch\d+)?\b', c_subj + ' ' + c_body)
-                    if version_match:
-                        ev = version_match.group(0)
-                        if ev != 'v1.0.0':
-                            explicit_version = ev
+                    tag_match = re.search(r'tag:\s*(v\d+\.\d+(?:\.\d+)?(?:-patch\d+)?)', c_refs)
+                    if tag_match:
+                        explicit_version = tag_match.group(1)
+                    else:
+                        # 2. Fallback: Extract version from commit message
+                        version_match = re.search(r'\bv\d+\.\d+(?:\.\d+)?(?:-patch\d+)?\b', c_subj + ' ' + c_body)
+                        if version_match:
+                            ev = version_match.group(0)
+                            if ev != 'v1.0.0':
+                                explicit_version = ev
                     
                     if 'fix' in subj_lower or 'bug' in subj_lower or 'audit' in subj_lower or 'harden' in subj_lower:
                         c_type = 'fix'
@@ -4066,7 +4074,11 @@ def neural_learning_log_api(request):
         trader = PaperTrader.objects.filter(status='RUNNING').first() or PaperTrader.objects.first()
         
     if not trader:
-        return JsonResponse({'logs': [], 'stats': {}})
+        return JsonResponse({
+            'logs': [], 
+            'stats': {},
+            'telemetry': _get_memory_snapshot()
+        })
         
     from .models import OnlineLearningLog
     logs = OnlineLearningLog.objects.filter(trader=trader).order_by('-timestamp')[:100]
@@ -4110,6 +4122,7 @@ def neural_learning_log_api(request):
     return JsonResponse({
         'logs': logs_data,
         'stats': stats,
+        'telemetry': _get_memory_snapshot(),
     })
 
 
@@ -4423,28 +4436,38 @@ def past_decisions_api(request):
         return JsonResponse({'trades': []})
 
     from .models import OnlineLearningLog
-    logs = OnlineLearningLog.objects.filter(trader=trader, event_type__in=['ENTRY', 'EXIT']).order_by('-timestamp')[:30]
+    logs = OnlineLearningLog.objects.filter(
+        trader=trader, 
+        event_type__in=['ENTRY', 'EXIT', 'DECISION']
+    ).order_by('-timestamp')[:50]
 
     trades_list = []
     import re
     for log in logs:
-        # Default mock inputs to populate
+        # Default inputs to populate
         price_trend = 0.0
         sentiment = 0.0
         volatility = 0.2
         spread = 0.1
         
-        try:
-            # Extract inputs from reasons
-            sent_m = re.search(r'Sentiment:\s*([+-]?\d*\.?\d+)', log.reason, re.IGNORECASE)
-            trend_m = re.search(r'Price Trend is\s*([+-]?\d*\.?\d+)', log.reason, re.IGNORECASE)
-            vol_m = re.search(r'Volatility is\s*([+-]?\d*\.?\d+)', log.reason, re.IGNORECASE)
-            
-            if sent_m: sentiment = float(sent_m.group(1))
-            if trend_m: price_trend = float(trend_m.group(1))
-            if vol_m: volatility = float(vol_m.group(1))
-        except Exception:
-            pass
+        # 1. Try to extract directly from details JSON if available (especially for DECISION logs)
+        if isinstance(log.details, dict) and 'price_trend' in log.details:
+            price_trend = float(log.details.get('price_trend', 0.0))
+            sentiment = float(log.details.get('sentiment', 0.0))
+            volatility = float(log.details.get('volatility', 0.2))
+            spread = float(log.details.get('spread', 0.1))
+        else:
+            try:
+                # Extract inputs from reasons (for legacy ENTRY/EXIT logs)
+                sent_m = re.search(r'Sentiment:\s*([+-]?\d*\.?\d+)', log.reason, re.IGNORECASE)
+                trend_m = re.search(r'Price Trend is\s*([+-]?\d*\.?\d+)', log.reason, re.IGNORECASE)
+                vol_m = re.search(r'Volatility is\s*([+-]?\d*\.?\d+)', log.reason, re.IGNORECASE)
+                
+                if sent_m: sentiment = float(sent_m.group(1))
+                if trend_m: price_trend = float(trend_m.group(1))
+                if vol_m: volatility = float(vol_m.group(1))
+            except Exception:
+                pass
 
         trades_list.append({
             'id': log.id,
@@ -4459,4 +4482,184 @@ def past_decisions_api(request):
         })
 
     return JsonResponse({'trades': trades_list})
+
+
+@login_required
+def download_report_view(request):
+    import io
+    from datetime import datetime
+    from django.utils import timezone
+    from django.http import HttpResponse
+    from django.shortcuts import render, get_object_or_404
+    from django.db.models import Avg
+    from .models import PaperTrader, OnlineLearningLog
+    
+    trader_id = request.GET.get('trader_id')
+    if trader_id:
+        trader = PaperTrader.objects.filter(id=trader_id).first()
+    else:
+        trader = PaperTrader.objects.filter(status='RUNNING').first() or PaperTrader.objects.first()
+        
+    if not trader:
+        return HttpResponse("No trader bot instances found in the database. Please register a paper trading bot first.", status=404)
+        
+    # Get system resources usage snapshot
+    telemetry = _get_memory_snapshot() or {
+        'available': False,
+        'system_used_percent': 0.0,
+        'system_used_gb': 0.0,
+        'system_total_gb': 0.0,
+        'trader_limit_mb': 0,
+        'threshold_percent': 85,
+        'cpu_percent': 0.0
+    }
+    
+    # Get active learning logs
+    recent_logs = OnlineLearningLog.objects.filter(
+        trader=trader,
+        event_type__in=['ENTRY', 'EXIT', 'UPDATE', 'MANUAL']
+    ).order_by('-timestamp')[:20]
+    
+    # Compute weight statistics summary
+    weight_summary = {}
+    agent, _ = _get_agent_and_path_for_trader(trader)
+    if agent:
+        from src.core.online_learner import OnlineLearner
+        learner = OnlineLearner(agent, trader_id=trader.id)
+        weight_summary = learner.get_weight_summary()
+        
+    # Standard statistics
+    exits = OnlineLearningLog.objects.filter(trader=trader, event_type='EXIT')
+    win_count = exits.filter(details__reward__gt=0).count()
+    loss_count = exits.filter(details__reward__lte=0).count()
+    completed_trades = exits.count()
+    win_rate = (win_count / max(1, completed_trades)) * 100 if completed_trades > 0 else 0.0
+    avg_reward = exits.aggregate(avg=Avg('details__reward'))['avg'] or 0.0
+    total_updates = OnlineLearningLog.objects.filter(trader=trader, event_type='UPDATE').count()
+    
+    # Prepare context
+    now_str = datetime.now(timezone.get_current_timezone()).strftime('%Y-%m-%d %H:%M:%S %Z')
+    context = {
+        'trader': trader,
+        'telemetry': telemetry,
+        'logs': recent_logs,
+        'weights': weight_summary,
+        'win_rate': round(win_rate, 2),
+        'win_count': win_count,
+        'loss_count': loss_count,
+        'completed_trades': completed_trades,
+        'avg_reward': round(avg_reward, 4),
+        'total_updates': total_updates,
+        'timestamp': now_str,
+    }
+    
+    # If format=markdown is requested, generate a raw downloadable .md file
+    if request.GET.get('format') == 'markdown':
+        md_content = f"""# AI Trader - Neural Cortex & Diagnostics Report
+Generated on: {now_str}
+
+## 1. Active Bot Configuration
+- **Bot Name**: {trader.name}
+- **Status**: {trader.status}
+- **Model File**: {trader.model_file}
+- **Active Symbol**: {trader.symbol}
+- **Balance / Equity**: ${trader.balance:.2f}
+
+## 2. System Telemetry & Resource Usage
+- **CPU Utilization**: {telemetry.get('cpu_percent', 0.0):.1f}%
+- **System Memory (RAM)**: {telemetry.get('system_used_percent', 0.0):.1f}% ({telemetry.get('system_used_gb', 0.0):.2f} GB / {telemetry.get('system_total_gb', 0.0):.2f} GB)
+- **Memory Safety Alert Threshold**: {telemetry.get('threshold_percent', 85)}% (Auto-pauses paper trader if breached)
+
+## 3. Neural Active Learning Stats
+- **Completed Trades**: {completed_trades}
+- **Win Rate**: {win_rate:.2f}% ({win_count} wins, {loss_count} losses)
+- **Average PnL Reward**: {avg_reward:+.4f}
+- **Total PPO Optimizer Updates**: {total_updates}
+
+## 4. Model Weights Summary Stats
+"""
+        if weight_summary:
+            for layer_name, info in weight_summary.items():
+                md_content += f"""
+### Layer: `{layer_name}`
+- **Shape**: {info['shape']}
+- **Current Weights**: Min: {info['min']:+.4f} | Max: {info['max']:+.4f} | Mean: {info['mean']:+.4f} | StdDev: {info['std']:.4f}
+- **Previous weights**: Min: {info.get('prev_min', 0.0):+.4f} | Max: {info.get('prev_max', 0.0):+.4f} | Mean: {info.get('prev_mean', 0.0):+.4f}
+- **Mean Absolute Weight Drift**: {info.get('mean_diff', 0.0):.6f}
+"""
+        else:
+            md_content += "\n*(No weight statistics summaries available for this model file)*\n"
+            
+        md_content += "\n## 5. Recent Learning & Decision Log Feed\n"
+        if recent_logs.exists():
+            for log in recent_logs:
+                log_time = log.timestamp.strftime('%H:%M:%S')
+                md_content += f"- **[{log.event_type}]** {log_time} - Symbol: {log.symbol} - Reason: {log.reason}\n"
+        else:
+            md_content += "\n*(No learning events recorded yet)*\n"
+            
+        md_content += """
+## 6. Foolproof Operating Guide & Profit Manual
+
+### Diagnosing Model Underperformance
+1. **Regime Shift Detection**: If the win rate drops below 45% or average rewards turn negative over the last 20 exits, the model is likely experiencing regime mismatch (e.g. trading flat ranges with indicators optimized for trend breakouts).
+2. **System Health Alerts**: If CPU or memory utilization is consistently high (>80%), paper trading loops may lag. If memory usage reaches the 85% threshold, the active trader engine will automatically suspend live updates to protect the local database from write locks.
+3. **Weight Drift Audit**: Check the "Mean Absolute Weight Drift" values. If drift is zero, the model has stopped updates. If drift is high but win rate is declining, the online learner rate is too high and is overriding historical generalizable patterns.
+
+### How to Tweak Weights Profitably
+- **Adjust Trend Sensitivity**: Input-to-actor layer weights (`actor.0.weight`) control input responses. If charts are bullish but the bot keeps shorting, find the index of the "Price Trend" input. If its connection weights to the active hidden nodes are negative, you can override them to be slightly positive.
+- **Tweak Risk Margin**: Critic output layer weights (`critic.4.weight`) compute reward expectancy. If the model is taking overly aggressive positions with small reward setups, decrease the critic's magnitude by scaling down the weights.
+- **Verification Rule**: Any manual modification of neuron weight elements automatically schedules a 3-day verification backtest inside the Evaluation Lab. Do not resume live trading until this evaluation job completes successfully.
+"""
+        response = HttpResponse(md_content, content_type='text/markdown')
+        response['Content-Disposition'] = f'attachment; filename="neural_diagnostics_report_{trader.id}.md"'
+        return response
+        
+    return render(request, 'report_export.html', context)
+
+
+@login_required
+@require_POST
+def record_decision_api(request):
+    try:
+        data = json.loads(request.body)
+        trader_id = data.get('trader_id')
+        price_trend = float(data.get('price_trend', 0.0))
+        sentiment = float(data.get('sentiment', 0.0))
+        volatility = float(data.get('volatility', 0.1))
+        spread = float(data.get('spread', 0.1))
+        action_val = float(data.get('action_val', 0.0))
+        
+        trader = get_object_or_404(PaperTrader, id=trader_id)
+        
+        from .models import OnlineLearningLog
+        details = {
+            'price_trend': price_trend,
+            'sentiment': sentiment,
+            'volatility': volatility,
+            'spread': spread,
+            'action_val': action_val,
+            'manual_sandbox': True
+        }
+        
+        reason = f"Manual sandbox decision firing. Price Trend: {price_trend:+.2f}, Sentiment: {sentiment:+.2f}, Volatility: {volatility:.4f}, Action Signal: {action_val:+.4f}"
+        
+        log = OnlineLearningLog.objects.create(
+            trader=trader,
+            event_type='DECISION',
+            symbol=trader.symbol or 'SANDBOX',
+            details=details,
+            reason=reason
+        )
+        
+        # Prune old decision checks (keep max 100)
+        old_decisions = OnlineLearningLog.objects.filter(trader=trader, event_type='DECISION').order_by('-timestamp')[100:]
+        if old_decisions.exists():
+            old_ids = list(old_decisions.values_list('id', flat=True))
+            OnlineLearningLog.objects.filter(id__in=old_ids).delete()
+            
+        return JsonResponse({'status': 'success', 'message': 'Sandbox decision firing logged successfully!'})
+    except Exception as e:
+        logger.error(f"Error recording decision: {e}", exc_info=True)
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 

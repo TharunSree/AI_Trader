@@ -91,9 +91,11 @@ urlpatterns = [
     path('api/neural/weights/', views.neural_weights_api, name='neural_weights_api'),
     path('api/neural/learning-log/', views.neural_learning_log_api, name='neural_learning_log_api'),
     path('api/neural/weights/edit/', views.neural_weight_edit_api, name='neural_weight_edit_api'),
+    path('neural/download-report/', views.download_report_view, name='neural_download_report'),
     
     # Neural Decision Flow Analyzer
     path('neural/decision-flow/', views.decision_flow_view, name='neural_decision_flow'),
     path('api/neural/simulate-decision/', views.simulate_decision_api, name='simulate_decision_api'),
     path('api/neural/past-decisions/', views.past_decisions_api, name='past_decisions_api'),
+    path('api/neural/record-decision/', views.record_decision_api, name='record_decision_api'),
 ]

@@ -1,0 +1,345 @@
+/* 
+   ==========================================================================
+   AI TRADER: TRUSTABLE, CUTE, & LOVELY PASTEL THEME
+   Replaces dark gloomy slate with soft cream, lavender, light blue and green.
+   ========================================================================== 
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap');
+
+:root {
+    /* Muted soft pastels (orange changed to light blue / soft green, not too bright) */
+    --lovely-bg: #fdfbf7;
+    --lovely-card: #ffffff;
+    --lovely-text: #2d2522;
+    --lovely-text-muted: #7d726e;
+    --lovely-border: #f0ece6;
+    
+    --lovely-blue: #3b82f6;
+    --lovely-blue-pastel: #e2f0fd;
+    --lovely-green: #10b981;
+    --lovely-green-pastel: #e6f9f3;
+    --lovely-rose: #f43f5e;
+    --lovely-rose-pastel: #ffeef1;
+    --lovely-lavender: #f6f2eb;
+}
+
+/* Global Elements styling overrides */
+html, body {
+    background-color: var(--lovely-bg) !important;
+    color: var(--lovely-text) !important;
+    font-family: 'Quicksand', sans-serif !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Quicksand', sans-serif !important;
+    color: var(--lovely-text) !important;
+    font-weight: 700 !important;
+}
+
+/* Overriding Dark backgrounds to Light cards */
+.glass-panel, 
+.bg-slate-900, 
+.bg-slate-950, 
+.bg-slate-800, 
+.bg-slate-850, 
+.bg-slate-900\/60, 
+.bg-slate-950\/60,
+.bg-slate-900\/80,
+.bg-gray-900,
+.bg-gray-800,
+.bg-black\/50,
+.dark\:bg-slate-900,
+.dark\:bg-slate-950 {
+    background-color: var(--lovely-card) !important;
+    background: var(--lovely-card) !important;
+    border-color: var(--lovely-border) !important;
+    color: var(--lovely-text) !important;
+    box-shadow: 0 8px 30px rgba(45, 37, 34, 0.04) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+/* Borders mapping */
+.border-slate-800, 
+.border-slate-900, 
+.border-slate-850, 
+.border-slate-700, 
+.border-slate-750,
+.border-gray-800,
+.dark\:border-slate-800 {
+    border-color: var(--lovely-border) !important;
+}
+
+/* Text elements color mapping */
+.text-slate-100, 
+.text-slate-200, 
+.text-white, 
+.text-slate-300, 
+.text-gray-100,
+.text-gray-200,
+.text-slate-350,
+.text-slate-150,
+.dark\:text-slate-200,
+.dark\:text-slate-300,
+.dark\:text-white {
+    color: var(--lovely-text) !important;
+}
+
+.text-slate-400, 
+.text-slate-500, 
+.text-slate-450, 
+.text-slate-550, 
+.text-gray-400,
+.text-gray-500,
+.dark\:text-slate-400,
+.dark\:text-slate-500 {
+    color: var(--lovely-text-muted) !important;
+}
+
+/* Muted accent replacements (orange to light blue/green) */
+.text-cyan-400, 
+.text-cyan-500, 
+.text-brand-500,
+.text-cyan-300,
+.text-indigo-400,
+.text-indigo-500 {
+    color: var(--lovely-blue) !important;
+}
+
+.text-emerald-400, 
+.text-emerald-500, 
+.text-green-400,
+.text-green-500 {
+    color: var(--lovely-green) !important;
+}
+
+.text-red-400, 
+.text-red-500, 
+.text-rose-400, 
+.text-rose-500,
+.text-rose-450 {
+    color: var(--lovely-rose) !important;
+}
+
+/* Sidebar override to soft lavender-cream */
+aside, 
+.sidebar, 
+nav.sidebar-nav {
+    background-color: var(--lovely-lavender) !important;
+    border-right: 1px solid var(--lovely-border) !important;
+}
+
+.sidebar-title,
+.sidebar-section-title {
+    color: var(--lovely-text-muted) !important;
+}
+
+.sidebar a {
+    color: var(--lovely-text-muted) !important;
+    font-weight: 500 !important;
+}
+
+.sidebar a:hover {
+    background-color: #ede6dc !important;
+    color: var(--lovely-text) !important;
+}
+
+.sidebar a.bg-brand-50, 
+.sidebar a.dark\:bg-brand-900\/30,
+.sidebar a.bg-slate-800 {
+    background-color: #ede6dc !important;
+    color: var(--lovely-text) !important;
+    font-weight: 700 !important;
+}
+
+/* Interactive elements rounded style */
+input, 
+select, 
+textarea {
+    border-radius: 12px !important;
+    border: 1px solid var(--lovely-border) !important;
+    background-color: var(--lovely-card) !important;
+    color: var(--lovely-text) !important;
+    font-family: 'Quicksand', sans-serif !important;
+    padding: 8px 12px !important;
+}
+
+input:focus, 
+select:focus, 
+textarea:focus {
+    border-color: var(--lovely-blue) !important;
+    outline: none !important;
+}
+
+/* Range sliders */
+input[type="range"] {
+    background: #e5ded5 !important;
+    border: none !important;
+    height: 8px !important;
+    border-radius: 4px !important;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    background: var(--lovely-blue) !important;
+    box-shadow: 0 0 6px rgba(59, 130, 246, 0.3) !important;
+    border-radius: 50% !important;
+}
+
+/* Buttons */
+.btn, 
+button:not(.node-circle):not(.sidebar button) {
+    border-radius: 12px !important;
+    font-family: 'Quicksand', sans-serif !important;
+    font-weight: 700 !important;
+}
+
+.bg-cyan-500, 
+.bg-cyan-600, 
+.bg-blue-600,
+.bg-brand-600 {
+    background-color: var(--lovely-blue) !important;
+    color: white !important;
+    border: none !important;
+}
+
+.bg-cyan-500:hover, 
+.bg-cyan-600:hover,
+.bg-blue-600:hover {
+    background-color: #2563eb !important;
+    opacity: 0.95;
+}
+
+.bg-emerald-500, 
+.bg-emerald-600,
+.bg-green-600 {
+    background-color: var(--lovely-green) !important;
+    color: white !important;
+    border: none !important;
+}
+
+.bg-rose-500, 
+.bg-rose-600, 
+.bg-red-600 {
+    background-color: var(--lovely-rose) !important;
+    color: white !important;
+    border: none !important;
+}
+
+/* Scrollbars */
+.custom-scroll::-webkit-scrollbar, 
+::-webkit-scrollbar {
+    width: 6px !important;
+    height: 6px !important;
+}
+
+.custom-scroll::-webkit-scrollbar-track, 
+::-webkit-scrollbar-track {
+    background: var(--lovely-bg) !important;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb, 
+::-webkit-scrollbar-thumb {
+    background: #e2dad0 !important;
+    border-radius: 10px !important;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb:hover, 
+::-webkit-scrollbar-thumb:hover {
+    background: #c2b5a5 !important;
+}
+
+/* Tables styling */
+table {
+    border-collapse: collapse !important;
+}
+
+th {
+    background-color: #faf6f0 !important;
+    color: var(--lovely-text-muted) !important;
+    border-bottom: 2px solid var(--lovely-border) !important;
+    padding: 12px 16px !important;
+    font-weight: 700 !important;
+}
+
+td {
+    border-bottom: 1px solid var(--lovely-border) !important;
+    padding: 12px 16px !important;
+    color: var(--lovely-text) !important;
+}
+
+tr:hover td {
+    background-color: #faf6f0/30 !important;
+}
+
+/* SVG neuron map overrides */
+svg#decision-canvas, 
+svg#cortex-visualizer,
+.cortex-svg-canvas {
+    background: radial-gradient(circle, #fcfbf9 0%, #f6f2ea 100%) !important;
+    border-radius: 16px !important;
+    border: 1px solid var(--lovely-border) !important;
+}
+
+.synapse-wire {
+    stroke: #d0c5b9 !important;
+    opacity: 0.45 !important;
+}
+
+.node-circle {
+    fill: #ffffff !important;
+    stroke: #c2b5a5 !important;
+    stroke-width: 2px !important;
+}
+
+/* Badges styling */
+.badge,
+.px-2.py-0\.5.rounded {
+    border-radius: 8px !important;
+    font-weight: 700 !important;
+}
+
+.bg-emerald-950,
+.bg-emerald-900\/20,
+.bg-emerald-950\/40,
+.text-emerald-400 {
+    background-color: var(--lovely-green-pastel) !important;
+    color: var(--lovely-green) !important;
+    border-color: #d1f7ec !important;
+}
+
+.bg-rose-950,
+.bg-rose-900\/20,
+.bg-rose-950\/40,
+.text-rose-400,
+.text-red-400 {
+    background-color: var(--lovely-rose-pastel) !important;
+    color: var(--lovely-rose) !important;
+    border-color: #fddbe2 !important;
+}
+
+.bg-blue-950,
+.bg-blue-900\/20,
+.bg-blue-950\/40,
+.bg-cyan-950,
+.bg-cyan-900\/20 {
+    background-color: var(--lovely-blue-pastel) !important;
+    color: var(--lovely-blue) !important;
+    border-color: #dbeafe !important;
+}
+
+/* Specific details fixes */
+.bg-emerald-950\/60 {
+    background-color: var(--lovely-green-pastel) !important;
+}
+.bg-rose-950\/60 {
+    background-color: var(--lovely-rose-pastel) !important;
+}
+.bg-slate-950\/40 {
+    background-color: var(--lovely-bg) !important;
+    border-color: var(--lovely-border) !important;
+}
+
+.text-[10px].text-slate-500.uppercase {
+    color: var(--lovely-text-muted) !important;
+}

@@ -117,6 +117,29 @@ class OnlineLearner:
                 'action': action_tensor,
                 'logprob': logprob,
             }
+
+            # Persist decision log check in DB for background traces replayer
+            try:
+                # Reconstruct details dict safely
+                details = {
+                    'price_trend': float(state_arr[0]) if len(state_arr) > 0 else 0.0,
+                    'sentiment': float(state_arr[1]) if len(state_arr) > 1 else 0.0,
+                    'volatility': float(state_arr[2]) if len(state_arr) > 2 else 0.1,
+                    'spread': float(state_arr[3]) if len(state_arr) > 3 else 0.1,
+                    'action_val': float(action_val)
+                }
+                reason = f"Decision check for {symbol}. Price Trend is {details['price_trend']:+.2f}, Sentiment: {details['sentiment']:+.2f}, Volatility is {details['volatility']:.4f}, Signal: {action_val:+.4f}"
+                self._log_event('DECISION', symbol=symbol, details=details, reason=reason)
+                
+                # Prune old decision checks to keep database lean (keep max 100 entries)
+                from control_panel.models import OnlineLearningLog
+                old_decisions = OnlineLearningLog.objects.filter(trader_id=self.trader_id, event_type='DECISION').order_by('-timestamp')[100:]
+                if old_decisions.exists():
+                    old_ids = list(old_decisions.values_list('id', flat=True))
+                    OnlineLearningLog.objects.filter(id__in=old_ids).delete()
+            except Exception as db_err:
+                logger.debug(f"[ONLINE LEARNING] Failed to write DECISION event log to DB: {db_err}")
+
         except Exception as e:
             logger.debug(f"[ONLINE LEARNING] Observation cache error for {symbol}: {e}")
 
