@@ -59,12 +59,18 @@
         transition: r 0.25s cubic-bezier(0.4, 0, 0.2, 1), fill 0.25s, stroke-width 0.25s, filter 0.25s;
     }
     .neuron:hover circle {
-        r: 8px !important;
-        stroke-width: 2.5px !important;
-        filter: drop-shadow(0 0 6px rgba(34, 211, 238, 0.8));
+        stroke-width: 4px !important;
+        stroke: #22d3ee !important;
+        filter: drop-shadow(0 0 15px rgba(34, 211, 238, 0.95));
+    }
+    .neuron.input-node:hover circle {
+        r: 22px !important;
+    }
+    .neuron.hidden-node:hover circle {
+        r: 19px !important;
     }
     .neuron.output-node:hover circle {
-        r: 11px !important;
+        r: 27px !important;
     }
 
     /* Custom dropdown slide down animation */
@@ -136,65 +142,63 @@
         </div>
     </div>
 
+    <!-- 1. Expanded Interactive Neural Network Diagram (Full Width Hero Section) -->
+    <div class="glass-panel rounded-2xl p-6 border border-slate-800 shadow-xl relative overflow-hidden group mb-6">
+        <div class="absolute top-4 right-4 flex items-center gap-2 bg-slate-900/80 px-3 py-1 rounded-md border border-slate-800 text-[10px] font-mono text-cyan-400 tracking-wider">
+            <span class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-ping"></span>
+            ACTIVE FLOW DYNAMICS
+        </div>
+        <h3 class="text-xs font-mono font-bold tracking-widest text-slate-300 uppercase mb-4">Neural Architecture Visualizer</h3>
+        
+        <!-- SVG Neural Viz (Takes expanded major area) -->
+        <div class="w-full overflow-x-auto custom-scroll py-2">
+            <svg id="neural-svg" viewBox="0 0 1200 600" class="w-full min-w-[1000px] h-[600px] bg-slate-950/25 rounded-xl border border-slate-900">
+                <defs>
+                    <!-- Radial Background glow -->
+                    <radialGradient id="neural-glow-radial" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.10" />
+                        <stop offset="70%" stop-color="#a855f7" stop-opacity="0.03" />
+                        <stop offset="100%" stop-color="#090d16" stop-opacity="0" />
+                    </radialGradient>
+                </defs>
+
+                <!-- Holographic background -->
+                <rect x="0" y="0" width="1200" height="600" fill="url(#neural-glow-radial)" />
+                
+                <!-- Neural Grid Guidelines -->
+                <line x1="150" y1="20" x2="150" y2="580" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 6" opacity="0.25" />
+                <line x1="450" y1="20" x2="450" y2="580" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 6" opacity="0.25" />
+                <line x1="750" y1="20" x2="750" y2="580" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 6" opacity="0.25" />
+                <line x1="1050" y1="20" x2="1050" y2="580" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 6" opacity="0.25" />
+
+                <!-- Connections Group -->
+                <g id="connections-group"></g>
+
+                <!-- Layers Labels overlaying lobes -->
+                <text x="150" y="24" fill="#64748b" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle">SENSORY INPUT LAYER</text>
+                <text x="450" y="24" fill="#64748b" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle">HIDDEN LAYER 1</text>
+                <text x="750" y="24" fill="#64748b" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle">HIDDEN LAYER 2</text>
+                <text x="1050" y="24" fill="#64748b" font-family="monospace" font-size="10" font-weight="bold" text-anchor="middle">DECISION OUTPUT LAYER</text>
+
+                <!-- Neurons Group -->
+                <g id="neurons-group"></g>
+            </svg>
+        </div>
+        <div class="mt-4 flex flex-wrap gap-4 text-[10px] font-mono text-slate-400 justify-center">
+            <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-cyan-500"></div> Input States (Sensory Core)</div>
+            <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-blue-600"></div> Actor Network (Trading Action)</div>
+            <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-purple-500"></div> Critic Network (Reward Valuation)</div>
+            <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-emerald-500"></div> Actor Output (Buy/Sell Signal)</div>
+            <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-rose-500"></div> Critic Output (PnL Estimate)</div>
+        </div>
+    </div>
+
     <!-- Main Grid Layout -->
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
         
-        <!-- Left + Center: Visualizer & Weight Inspector (2 Columns) -->
+        <!-- Left + Center: Weight Inspector (2 Columns) -->
         <div class="xl:col-span-2 space-y-6">
             
-            <!-- 1. Interactive Neural Network Diagram (Brain Silhouette Layout) -->
-            <div class="glass-panel rounded-2xl p-6 border border-slate-800 shadow-xl relative overflow-hidden group">
-                <div class="absolute top-4 right-4 flex items-center gap-2 bg-slate-900/80 px-3 py-1 rounded-md border border-slate-800 text-[10px] font-mono text-cyan-400 tracking-wider">
-                    <span class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-ping"></span>
-                    CEREBRAL DYNAMICS
-                </div>
-                <h3 class="text-xs font-mono font-bold tracking-widest text-slate-300 uppercase mb-4">Holographic Synaptic Brain Map</h3>
-                
-                <!-- SVG Neural Viz -->
-                <div class="w-full overflow-x-auto custom-scroll py-2">
-                    <svg id="neural-svg" viewBox="0 0 800 320" class="w-full min-w-[700px] h-[320px] bg-slate-950/20 rounded-xl border border-slate-900">
-                        <defs>
-                            <!-- Radial Background glow -->
-                            <radialGradient id="brain-glow-radial" cx="50%" cy="50%" r="50%">
-                                <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.08" />
-                                <stop offset="70%" stop-color="#a855f7" stop-opacity="0.02" />
-                                <stop offset="100%" stop-color="#090d16" stop-opacity="0" />
-                            </radialGradient>
-                        </defs>
-
-                        <!-- Holographic brain background -->
-                        <rect x="0" y="0" width="800" height="320" fill="url(#brain-glow-radial)" />
-                        
-                        <!-- Neutral Brain Blueprint Silhouette Paths -->
-                        <path d="M 180 160 C 160 80, 220 30, 380 30 C 430 30, 460 45, 480 70 C 500 45, 530 30, 580 30 C 690 30, 710 100, 680 180 C 650 240, 580 270, 480 270 C 450 270, 420 260, 400 240 C 380 260, 350 270, 320 270 C 220 270, 160 220, 180 160 Z" 
-                              fill="none" stroke="#334155" stroke-width="1" opacity="0.18" stroke-dasharray="6 6" />
-                              
-                        <path d="M 230 110 C 270 70, 330 100, 370 80 C 410 60, 450 100, 500 80 C 560 70, 600 110, 620 150" fill="none" stroke="#334155" stroke-width="0.8" opacity="0.15" />
-                        <path d="M 240 190 C 290 220, 350 200, 390 220 C 430 240, 480 200, 530 210" fill="none" stroke="#334155" stroke-width="0.8" opacity="0.15" />
-                        <path d="M 398 30 Q 380 150, 398 270" fill="none" stroke="#334155" stroke-width="1" opacity="0.15" />
-
-                        <!-- Connections Group -->
-                        <g id="connections-group"></g>
-
-                        <!-- Layers Labels overlaying lobes -->
-                        <text x="140" y="30" fill="#64748b" font-family="monospace" font-size="9" text-anchor="middle">SENSORY INPUT</text>
-                        <text x="320" y="24" fill="#64748b" font-family="monospace" font-size="9" text-anchor="middle">HEMISPHERE LOBE 1</text>
-                        <text x="440" y="24" fill="#64748b" font-family="monospace" font-size="9" text-anchor="middle">HEMISPHERE LOBE 2</text>
-                        <text x="620" y="30" fill="#64748b" font-family="monospace" font-size="9" text-anchor="middle">MOTOR OUTPUT</text>
-
-                        <!-- Neurons Group -->
-                        <g id="neurons-group"></g>
-                    </svg>
-                </div>
-                <div class="mt-4 flex flex-wrap gap-4 text-[10px] font-mono text-slate-400 justify-center">
-                    <div class="flex items-center gap-2"><div class="w-2.5 h-2.5 rounded-full bg-cyan-500"></div> Input States (Sensory Core)</div>
-                    <div class="flex items-center gap-2"><div class="w-2.5 h-2.5 rounded-full bg-blue-600"></div> Actor Synapses (Cerebral Cortex)</div>
-                    <div class="flex items-center gap-2"><div class="w-2.5 h-2.5 rounded-full bg-purple-500"></div> Critic Synapses (Limbic/Evaluation)</div>
-                    <div class="flex items-center gap-2"><div class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div> Trading Action (Actor Tanh)</div>
-                    <div class="flex items-center gap-2"><div class="w-2.5 h-2.5 rounded-full bg-rose-500"></div> Value Judgment (Critic)</div>
-                </div>
-            </div>
-
             <!-- 2. Weight Heatmap Matrix & Interactive Controller -->
             <div class="glass-panel rounded-2xl p-6 border border-slate-800 shadow-xl">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
@@ -296,7 +300,7 @@
                             <ul class="list-disc pl-4 space-y-1">
                                 <li><span class="text-rose-400 font-bold">Rose / Red cells</span> indicate **Positive weight**: The connection amplifies the signal, pushing the output positive (more bullish).</li>
                                 <li><span class="text-blue-400 font-bold">Blue cells</span> indicate **Negative weight**: The connection inhibits the signal, pushing the output negative (more bearish).</li>
-                                <li><span class="text-slate-650 font-bold">Dark / Gray cells</span> represent **Neutral weight (near 0)**: The connection is weak and has little impact on decisions.</li>
+                                <li><span class="text-slate-605 font-bold">Dark / Gray cells</span> represent **Neutral weight (near 0)**: The connection is weak and has little impact on decisions.</li>
                             </ul>
                         </div>
                     </div>
@@ -353,10 +357,10 @@
                         <!-- Dynamic Glossary Explainers -->
                         <div class="glass-panel border border-slate-800 rounded-xl p-4 font-mono text-[10px] leading-relaxed">
                             <div class="text-[11px] font-bold text-slate-200 uppercase mb-2 flex items-center gap-2">
-                                <i class="fas fa-brain text-cyan-400"></i> Dynamic Layer Glossary
+                                <i class="fas fa-network-wired text-cyan-400"></i> Dynamic Layer Glossary
                             </div>
                             <p id="layer-explanation" class="text-slate-400">
-                                Select a layer parameters set to view its operational function inside the neural brain model.
+                                Select a layer parameters set to view its operational function inside the neural architecture model.
                             </p>
                         </div>
                     </div>
@@ -442,11 +446,11 @@
             <div class="bg-slate-950/40 p-5 rounded-xl border border-slate-900/60">
                 <h4 class="text-slate-200 font-bold mb-3 uppercase flex items-center gap-2"><div class="w-1.5 h-1.5 bg-cyan-500 rounded-full"></div> 1. Neural Inputs (Sensory Core)</h4>
                 <p>
-                    The brain receives 4 inputs representing the state of the market: **Price Trend** (momentum), **Sentiment Score** (news/sentiment extraction), **Volatility** (price swing range), and **Volume/Spread** (liquidity pressure).
+                    The model receives 4 inputs representing the state of the market: **Price Trend** (momentum), **Sentiment Score** (news/sentiment extraction), **Volatility** (price swing range), and **Volume/Spread** (liquidity pressure).
                 </p>
             </div>
             <div class="bg-slate-950/40 p-5 rounded-xl border border-slate-900/60">
-                <h4 class="text-slate-200 font-bold mb-3 uppercase flex items-center gap-2"><div class="w-1.5 h-1.5 bg-blue-500 rounded-full"></div> 2. Hidden Layers (Cortex Folds)</h4>
+                <h4 class="text-slate-200 font-bold mb-3 uppercase flex items-center gap-2"><div class="w-1.5 h-1.5 bg-blue-500 rounded-full"></div> 2. Hidden Layers (Feature Extraction)</h4>
                 <p>
                     Neurons in middle layers (Hidden 1 & 2) act as pattern detectors. They don't see the outside world directly. Instead, they extract complex triggers, like "market capitulation" or "stable consolidation," by combining inputs.
                 </p>
@@ -482,13 +486,13 @@
                 </div>
                 <div>
                     <label class="text-cyan-400 block mb-1">New Value</label>
-                    <input type="number" step="0.0001" id="modal-new-val" class="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 text-cyan-400 px-3 py-2 rounded outline-none" />
+                    <input type="number" step="0.0001" id="modal-new-val" class="w-full bg-slate-955 border border-slate-800 focus:border-cyan-500 text-cyan-400 px-3 py-2 rounded outline-none" />
                 </div>
             </div>
 
             <div>
                 <label class="text-slate-400 block mb-1">Reason for Weight Change <span class="text-red-500">*</span></label>
-                <textarea id="modal-reason" placeholder="e.g. Fine-tuning first layer bias to balance long bias action variance..." rows="3" required class="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 text-slate-200 px-3 py-2 rounded outline-none resize-none"></textarea>
+                <textarea id="modal-reason" placeholder="e.g. Fine-tuning first layer bias to balance long bias action variance..." rows="3" required class="w-full bg-slate-955 border border-slate-800 focus:border-cyan-500 text-slate-200 px-3 py-2 rounded outline-none resize-none"></textarea>
             </div>
             
             <div id="modal-warning" class="hidden p-3 bg-rose-500/10 border border-rose-500/30 rounded text-[10px] text-rose-400 leading-normal">
@@ -523,8 +527,8 @@
     const layerGlossary = {
         "actor.0.weight": "<strong>Actor Input Weights (Projection Matrix)</strong>: Map the 4 primary inputs (Price Trend, Sentiment, Volatility, and Spread) to 64 hidden pattern detectors. This matrix decides how much attention the AI pays to each market state indicator.",
         "actor.0.bias": "<strong>Actor Input Biases</strong>: Baseline thresholds of the 64 input pattern detectors. It shifts the baseline activity of the neurons before the market state inputs are factored in.",
-        "actor.2.weight": "<strong>Actor Deep Brain Connections (Hidden Layer)</strong>: Connect the first 64 pattern detectors to the next 64. This layer combines simple observations (like high volume + negative sentiment) into complex trading concepts.",
-        "actor.2.bias": "<strong>Actor Deep Brain Shift</strong>: Baseline activation offsets for the second hidden layer neurons.",
+        "actor.2.weight": "<strong>Actor Deep Network Connections (Hidden Layer)</strong>: Connect the first 64 pattern detectors to the next 64. This layer combines simple observations (like high volume + negative sentiment) into complex trading concepts.",
+        "actor.2.bias": "<strong>Actor Deep Parameter Shift</strong>: Baseline activation offsets for the second hidden layer neurons.",
         "actor.4.weight": "<strong>Actor Decision Weights</strong>: Connect the final 64 high-level combined patterns directly to the output action. It weights these complex concepts to compute a final action signal between -1.0 (Sell) and +1.0 (Buy).",
         "actor.4.bias": "<strong>Actor Baseline Action Bias</strong>: The model's baseline preference (positive favors buying, negative favors selling) when all input market states are completely neutral.",
         "critic.0.weight": "<strong>Critic Input Weights</strong>: Map the 4 market inputs to the critic's 64 evaluator neurons. This is the starting point for estimating how good or bad the current market condition is.",
@@ -657,20 +661,22 @@
         const neurGroup = document.getElementById("neurons-group");
         svg.innerHTML = "";
         neurGroup.innerHTML = "";
-
+ 
+        // Expanded feedforward coordinates (1200x600 canvas)
         const layers = [
-            { id: "input", label: "Input", units: 4, x: 200, colors: ["#06b6d4", "#0891b2"], yCoords: [110, 140, 170, 200] },
-            { id: "hidden1_act", label: "Hidden 1 (Actor)", units: 6, x: 320, colors: ["#2563eb", "#3b82f6"], yCoords: [70, 95, 120, 145, 170, 195].map(y => y - 10) },
-            { id: "hidden2_act", label: "Hidden 2 (Actor)", units: 6, x: 440, colors: ["#3b82f6", "#60a5fa"], yCoords: [70, 95, 120, 145, 170, 195].map(y => y - 10) },
-            { id: "output_act", label: "Actor (Tanh)", units: 1, x: 560, colors: ["#10b981", "#059669"], yCoords: [110] },
+            { id: "input", label: "Input", units: 4, x: 150, colors: ["#06b6d4", "#0891b2"], yCoords: [100, 220, 340, 460] },
             
-            // Critic hidden/output branch (lower limbic hemisphere)
-            { id: "hidden1_crit", label: "Hidden 1 (Critic)", units: 5, x: 320, colors: ["#8b5cf6", "#a855f7"], yCoords: [175, 200, 225, 250, 275].map(y => y - 10) },
-            { id: "hidden2_crit", label: "Hidden 2 (Critic)", units: 5, x: 440, colors: ["#a855f7", "#c084fc"], yCoords: [175, 200, 225, 250, 275].map(y => y - 10) },
-            { id: "output_crit", label: "Critic (Val)", units: 1, x: 560, colors: ["#f43f5e", "#e11d48"], yCoords: [210] }
+            { id: "hidden1_act", label: "Hidden 1 (Actor)", units: 6, x: 450, colors: ["#2563eb", "#3b82f6"], yCoords: [60, 110, 160, 210, 260, 310] },
+            { id: "hidden2_act", label: "Hidden 2 (Actor)", units: 6, x: 750, colors: ["#3b82f6", "#60a5fa"], yCoords: [60, 110, 160, 210, 260, 310] },
+            { id: "output_act", label: "Actor (Tanh)", units: 1, x: 1050, colors: ["#10b981", "#059669"], yCoords: [185] },
+            
+            // Critic hidden/output branch (lower hemisphere)
+            { id: "hidden1_crit", label: "Hidden 1 (Critic)", units: 5, x: 450, colors: ["#8b5cf6", "#a855f7"], yCoords: [360, 405, 450, 495, 540] },
+            { id: "hidden2_crit", label: "Hidden 2 (Critic)", units: 5, x: 750, colors: ["#a855f7", "#c084fc"], yCoords: [360, 405, 450, 495, 540] },
+            { id: "output_crit", label: "Critic (Val)", units: 1, x: 1050, colors: ["#f43f5e", "#e11d48"], yCoords: [450] }
         ];
-
-        // Draw connections using curved paths with flow particles
+ 
+        // Draw connections using curved paths with flow particles (thicker, highly visible lines)
         function connectLayers(l1_nodes, l2_nodes, color, isDashed = false) {
             l1_nodes.forEach(n1 => {
                 l2_nodes.forEach(n2 => {
@@ -678,27 +684,27 @@
                     const dx = n2.x - n1.x;
                     const dy = n2.y - n1.y;
                     const cx = n1.x + dx/2;
-                    const cy = n1.y + dy/2 - (dx > 100 ? 8 : 0);
+                    const cy = n1.y + dy/2 - (dx > 100 ? 15 : 0);
                     
                     const d = `M ${n1.x} ${n1.y} Q ${cx} ${cy} ${n2.x} ${n2.y}`;
                     path.setAttribute("d", d);
                     path.setAttribute("stroke", color);
-                    path.setAttribute("stroke-width", "1");
+                    path.setAttribute("stroke-width", "3.5"); // Thicker lines
                     path.setAttribute("fill", "none");
-                    path.setAttribute("opacity", "0.22");
+                    path.setAttribute("opacity", "0.55"); // High contrast visibility
                     if (isDashed) {
-                        path.setAttribute("stroke-dasharray", "4 4");
+                        path.setAttribute("stroke-dasharray", "8 8");
                     }
                     svg.appendChild(path);
-
-                    // Add synapse animated flow particles (25% chance per connection)
-                    if (Math.random() < 0.25) {
+ 
+                    // Add synapse animated flow particles (50% chance per connection)
+                    if (Math.random() < 0.50) {
                         const particle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-                        particle.setAttribute("r", "1.2");
+                        particle.setAttribute("r", "3.5"); // Bigger particles
                         particle.setAttribute("fill", color === "#3b82f6" || color === "#06b6d4" ? "#22d3ee" : "#d946ef");
                         
                         const anim = document.createElementNS("http://www.w3.org/2000/svg", "animateMotion");
-                        anim.setAttribute("dur", (1.8 + Math.random() * 1.5).toFixed(1) + "s");
+                        anim.setAttribute("dur", (1.6 + Math.random() * 1.4).toFixed(1) + "s");
                         anim.setAttribute("repeatCount", "indefinite");
                         
                         const mpath = document.createElementNS("http://www.w3.org/2000/svg", "mpath");
@@ -713,7 +719,7 @@
                 });
             });
         }
-
+ 
         const nodes = {};
         layers.forEach(layer => {
             nodes[layer.id] = [];
@@ -724,28 +730,34 @@
                 });
             }
         });
-
+ 
         connectLayers(nodes["input"], nodes["hidden1_act"], "#06b6d4");
         connectLayers(nodes["input"], nodes["hidden1_crit"], "#a855f7");
         connectLayers(nodes["hidden1_act"], nodes["hidden2_act"], "#3b82f6", true);
         connectLayers(nodes["hidden1_crit"], nodes["hidden2_crit"], "#a855f7", true);
         connectLayers(nodes["hidden2_act"], nodes["output_act"], "#10b981");
         connectLayers(nodes["hidden2_crit"], nodes["output_crit"], "#f43f5e");
-
+ 
         layers.forEach(layer => {
             nodes[layer.id].forEach((node, index) => {
                 const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
-                group.className.baseVal = `neuron ${layer.id.includes("output") ? "output-node" : ""}`;
+                let typeClass = "hidden-node";
+                if (layer.id === "input") {
+                    typeClass = "input-node";
+                } else if (layer.id.includes("output")) {
+                    typeClass = "output-node";
+                }
+                group.className.baseVal = `neuron ${typeClass}`;
                 
                 const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
                 circle.setAttribute("cx", node.x);
                 circle.setAttribute("cy", node.y);
-                circle.setAttribute("r", layer.id.includes("output") ? "8" : "5.5");
+                circle.setAttribute("r", layer.id.includes("output") ? "22" : (layer.id === "input" ? "18" : "15")); // Bigger nodes
                 circle.setAttribute("fill", layer.colors[0]);
-                circle.setAttribute("stroke", "#0f172a");
-                circle.setAttribute("stroke-width", "1.5");
+                circle.setAttribute("stroke", "#1e293b");
+                circle.setAttribute("stroke-width", "3");
                 circle.style.cursor = "pointer";
-
+ 
                 circle.onclick = () => {
                     let mapLayer = "actor.0.weight";
                     let label = "Actor Input Weights (actor.0.weight)";
@@ -775,8 +787,38 @@
                     document.getElementById("selected-layer-label").textContent = label;
                     renderLayerWeights(mapLayer);
                 };
-
+ 
+                // Add node text labels centered inside
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", node.x);
+                text.setAttribute("y", node.y + 3.5); // Center text vertically
+                text.setAttribute("fill", "#ffffff");
+                text.setAttribute("font-size", layer.id.includes("output") ? "10" : "9");
+                text.setAttribute("font-family", "monospace");
+                text.setAttribute("font-weight", "bold");
+                text.setAttribute("text-anchor", "middle");
+                text.style.pointerEvents = "none"; // clicks pass through to the circle
+                
+                let labelText = "";
+                if (layer.id === "input") {
+                    labelText = `I${index + 1}`;
+                } else if (layer.id === "hidden1_act") {
+                    labelText = `HA1.${index + 1}`;
+                } else if (layer.id === "hidden2_act") {
+                    labelText = `HA2.${index + 1}`;
+                } else if (layer.id === "output_act") {
+                    labelText = `ACT`;
+                } else if (layer.id === "hidden1_crit") {
+                    labelText = `HC1.${index + 1}`;
+                } else if (layer.id === "hidden2_crit") {
+                    labelText = `HC2.${index + 1}`;
+                } else if (layer.id === "output_crit") {
+                    labelText = `VAL`;
+                }
+                text.textContent = labelText;
+ 
                 group.appendChild(circle);
+                group.appendChild(text);
                 neurGroup.appendChild(group);
             });
         });
