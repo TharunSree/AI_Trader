@@ -328,109 +328,85 @@
                             </div>
                         </div>
 
-                        <!-- 🎓 Interactive Help & Neural Terminology Guide -->
-                        <div class="bg-slate-900/45 p-5 rounded-xl border border-slate-800/80 font-mono text-[10px] text-slate-400 space-y-3.5">
-                            <div class="text-[11px] font-bold text-slate-200 uppercase flex items-center gap-1.5">
-                                <i class="fas fa-info-circle text-cyan-400 text-xs"></i> Interactive Weight Explorer Guide
+                        <!-- 🎓 Compact Synaptic Weight Guide -->
+                        <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-800/80 font-mono text-[9px] text-slate-400 space-y-2.5">
+                            <div class="text-[10px] font-bold text-slate-200 uppercase flex items-center gap-1.5">
+                                <i class="fas fa-info-circle text-cyan-400"></i> Synaptic Weight Quick Guide
                             </div>
-                            
-                            <div class="space-y-2">
-                                <div class="text-slate-300 font-bold uppercase">1. Synaptic Weight Connection (The Matrix Grid)</div>
-                                <p class="leading-normal">
-                                    A weight value controls how strongly signal flows from a preceding input/neuron (column) to a receiving neuron (row).
-                                    <br/>• <span class="text-rose-400 font-bold">Rose / Red (+)</span>: **Positive / Bullish weight** - amplifies the signal, pushing decisions towards buying or longing assets.
-                                    <br/>• <span class="text-blue-400 font-bold">Blue (-)</span>: **Negative / Bearish weight** - inhibits the signal, pushing decisions towards selling or shorting assets.
-                                    <br/>• <span class="text-slate-500 font-bold">Dark / Gray (0.0)</span>: **Neutral weight** - connection is inactive or weak, meaning it doesn't affect decisions.
-                                </p>
+                            <div class="grid grid-cols-2 gap-3 leading-normal">
+                                <div>
+                                    <span class="text-slate-350 font-bold uppercase">Color coding:</span>
+                                    <br/>• <span class="text-rose-400 font-bold">Rose (+)</span>: Bullish trigger (Favor BUY)
+                                    <br/>• <span class="text-blue-400 font-bold">Blue (-)</span>: Bearish trigger (Favor SELL)
+                                    <br/>• <span class="text-slate-500">Dark (0)</span>: Inactive connection
+                                </div>
+                                <div>
+                                    <span class="text-slate-350 font-bold uppercase">Coordinates Shape:</span>
+                                    <br/>• <strong>Row</strong>: Destination Neuron
+                                    <br/>• <strong>Column</strong>: Source Input/Neuron
+                                    <br/>• <strong>Delta</strong>: Adaptive online change
+                                </div>
                             </div>
-
-                            <div class="space-y-2">
-                                <div class="text-slate-300 font-bold uppercase">2. Strongest Bullish (+) & Bearish (-) Leaderboard</div>
-                                <p class="leading-normal">
-                                    Identifies the pathways that exert the strongest influence on trading actions:
-                                    <br/>• **Strongest Bullish (+)**: The strongest pathways contributing to **buy triggers**.
-                                    <br/>• **Strongest Bearish (-)**: The strongest pathways contributing to **sell triggers**.
-                                    <br/>By looking at the leaderboard, you can immediately identify which specific coordinates determine the model's primary market stances.
-                                </p>
-                            </div>
-
-                            <div class="space-y-2">
-                                <div class="text-slate-300 font-bold uppercase">3. Dimensions & Shape Coordinates</div>
-                                <p class="leading-normal">
-                                    The shape represents parameters array dimension `[Rows, Cols]`.
-                                    <br/>• **Row index (Target)**: Represents the receiving neuron in the next layer.
-                                    <br/>• **Column index (Source)**: Represents the sending input feature or preceding neuron.
-                                    <br/>For example, for Input layer weights shape `[64, 4]`, column `1` represents the Sentiment input, and row `12` represents the 12th pattern detector neuron receiving it.
-                                </p>
-                            </div>
-
-                            <div class="space-y-2">
-                                <div class="text-slate-300 font-bold uppercase">4. Deltas & Parameter Tuning</div>
-                                <p class="leading-normal">
-                                    **Delta** shows how much the weight value has moved from the previous checkpoint during online learning.
-                                    <br/>To tune a weight manually: Enter coordinate indices in the **Target Coordinate Finder**, click **Find & Load Weight**, click **Manually Adjust Parameter**, input a value and a mandatory change reason, and confirm.
-                                </p>
+                            <div class="border-t border-slate-800/50 pt-2 text-[8px] text-slate-550 leading-normal">
+                                To adjust manually: Enter ROW/COL indices, click <strong>Find & Load Weight</strong>, input a new value with a reason, and confirm.
                             </div>
                         </div>
                     </div>
 
                     <!-- Selected weight inspector card + Layer explanations -->
-                    <div class="lg:col-span-2 flex flex-col justify-between gap-4">
-                        <div class="glass-panel border border-slate-800 rounded-xl p-4 flex-1 flex flex-col justify-between">
+                    <div class="lg:col-span-2 flex flex-col justify-between">
+                        <div class="glass-panel border border-slate-800 rounded-xl p-4 flex-1 flex flex-col justify-between space-y-4">
                             <div>
                                 <h4 class="text-xs font-mono font-bold text-slate-200 border-b border-slate-800 pb-2 flex justify-between items-center">
                                     <span>Weight Detail Inspector</span>
                                     <span class="text-[9px] bg-slate-900 text-slate-400 border border-slate-800 px-2 py-0.5 rounded font-mono" id="selected-index">No cell selected</span>
                                 </h4>
                                 
-                                <div class="mt-4 space-y-4 font-mono text-xs">
-                                    
-                                    <!-- Weight Comparison Box -->
-                                    <div class="grid grid-cols-2 gap-2">
-                                        <div class="bg-slate-900/60 p-2.5 rounded border border-slate-800">
-                                            <div class="text-[9px] text-slate-500 mb-1">PREVIOUS VALUE</div>
-                                            <div class="text-sm text-slate-400 font-bold" id="detail-prev">-</div>
+                                <div class="mt-3.5 space-y-3 font-mono text-xs">
+                                    <!-- High-Density Weight Comparison Box -->
+                                    <div class="grid grid-cols-3 gap-2">
+                                        <div class="bg-slate-900/60 p-2 rounded border border-slate-800 text-center">
+                                            <div class="text-[8px] text-slate-500 mb-0.5 uppercase">Previous</div>
+                                            <div class="text-xs text-slate-400 font-bold" id="detail-prev">-</div>
                                         </div>
-                                        <div class="bg-slate-900/60 p-2.5 rounded border border-slate-800 ring-1 ring-cyan-500/20">
-                                            <div class="text-[9px] text-cyan-400 mb-1">CURRENT VALUE</div>
-                                            <div class="text-sm text-cyan-400 font-bold" id="detail-curr">-</div>
+                                        <div class="bg-slate-900/60 p-2 rounded border border-slate-800 text-center ring-1 ring-cyan-500/20">
+                                            <div class="text-[8px] text-cyan-400 mb-0.5 uppercase">Current</div>
+                                            <div class="text-xs text-cyan-400 font-bold" id="detail-curr">-</div>
                                         </div>
-                                    </div>
-
-                                    <!-- Delta Change -->
-                                    <div>
-                                        <div class="text-[9px] text-slate-500 uppercase">Delta change magnitude</div>
-                                        <div class="text-sm font-bold mt-1" id="detail-delta">-</div>
+                                        <div class="bg-slate-900/60 p-2 rounded border border-slate-800 text-center">
+                                            <div class="text-[8px] text-slate-550 mb-0.5 uppercase">Delta</div>
+                                            <div class="text-xs font-bold" id="detail-delta">-</div>
+                                        </div>
                                     </div>
 
                                     <!-- Reason for last weight modification -->
-                                    <div class="bg-slate-950/80 p-3 rounded border border-slate-900">
-                                        <div class="text-[9px] text-slate-400 font-bold uppercase mb-1 flex items-center gap-1.5">
+                                    <div class="bg-slate-950/80 p-2.5 rounded border border-slate-900">
+                                        <div class="text-[8px] text-slate-400 font-bold uppercase mb-0.5 flex items-center gap-1.5">
                                             <i class="fas fa-comment-alt text-cyan-400"></i> Modification Reason
                                         </div>
-                                        <p class="text-[10px] text-slate-300 leading-normal custom-scroll max-h-[80px] overflow-y-auto" id="detail-reason">
-                                            Select a weight parameter cell in the matrix grid to inspect its specific reinforcement adjustment explanation.
+                                        <p class="text-[9px] text-slate-300 leading-normal custom-scroll max-h-[50px] overflow-y-auto" id="detail-reason">
+                                            Select a weight cell to inspect its specific reinforcement adjustment explanation.
                                         </p>
                                     </div>
                                 </div>
                             </div>
 
+                            <!-- Integrated glossary footer to save space -->
+                            <div class="border-t border-slate-850/50 pt-2.5 mt-2 font-mono">
+                                <div class="text-[8px] text-slate-500 font-bold uppercase mb-1 flex items-center gap-1.5">
+                                    <i class="fas fa-network-wired text-cyan-500/80"></i> Layer Glossary
+                                </div>
+                                <p id="layer-explanation" class="text-[9px] text-slate-500 leading-normal">
+                                    Select a layer parameters set to view its operational function inside the neural architecture model.
+                                </p>
+                            </div>
+
                             <!-- Manual Tuning Editor Button -->
-                            <div class="mt-6 border-t border-slate-800 pt-4">
-                                <button id="edit-trigger-btn" onclick="openEditModal()" disabled class="w-full bg-slate-900 hover:bg-slate-800 disabled:opacity-40 disabled:hover:bg-slate-900 border border-slate-700 text-slate-200 hover:text-white font-mono text-xs py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer">
+                            <div class="border-t border-slate-805/50 pt-3">
+                                <button id="edit-trigger-btn" onclick="openEditModal()" disabled class="w-full bg-slate-900 hover:bg-slate-800 disabled:opacity-40 disabled:hover:bg-slate-900 border border-slate-700 text-slate-200 hover:text-white font-mono text-xs py-2 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer">
                                     <i class="fas fa-sliders-h text-cyan-400"></i> Manually Adjust Parameter
                                 </button>
                             </div>
-                        </div>
-
-                        <!-- Dynamic Glossary Explainers -->
-                        <div class="glass-panel border border-slate-800 rounded-xl p-4 font-mono text-[10px] leading-relaxed">
-                            <div class="text-[11px] font-bold text-slate-200 uppercase mb-2 flex items-center gap-2">
-                                <i class="fas fa-network-wired text-cyan-400"></i> Dynamic Layer Glossary
-                            </div>
-                            <p id="layer-explanation" class="text-slate-400">
-                                Select a layer parameters set to view its operational function inside the neural architecture model.
-                            </p>
                         </div>
                     </div>
                 </div>
@@ -478,6 +454,15 @@
                     <div class="flex justify-between items-center border-b border-slate-900 pb-2">
                         <span class="text-slate-400">Trades Learned:</span>
                         <span class="text-slate-200 font-bold" id="stat-trades">0</span>
+                    </div>
+                    <div class="flex flex-col gap-1 border-b border-slate-900 pb-2">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-slate-400">PPO Update Cycle:</span>
+                            <span class="text-cyan-400 font-bold" id="stat-cycle-progress">0/8 completed</span>
+                        </div>
+                        <div class="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-900 mt-1">
+                            <div id="cycle-progress-bar" class="h-full bg-cyan-500 transition-all duration-500" style="width: 0%"></div>
+                        </div>
                     </div>
                     <div class="flex justify-between items-center border-b border-slate-900 pb-2">
                         <span class="text-slate-400">Wins / Losses:</span>
@@ -592,6 +577,36 @@
     let selectedRowIdx = null;
     let selectedColIdx = null;
     let activeViewMode = "analytics";
+    let lastLogId = null;
+
+    // Sample mode simulation variables
+    let sampleStats = {
+        total_updates: 3,
+        completed_trades: 2,
+        win_count: 1,
+        loss_count: 1,
+        win_rate: 50.0,
+        avg_reward: 0.1250,
+    };
+
+    let sampleLogs = [
+        {
+            id: "sample-log-1",
+            event_type: "ENTRY",
+            reason: "Mock Model: Sentiment divergence detected (Sentiment: +0.68). Volume/Spread indicates high buyer pressure. Opened BUY position.",
+            timestamp: new Date(Date.now() - 40000).toISOString(),
+            details: {}
+        },
+        {
+            id: "sample-log-2",
+            event_type: "EXIT",
+            reason: "Mock Model: Profit target met. Realized reward +0.32% (+0.0032 PnL equivalent). Critic updated.",
+            timestamp: new Date(Date.now() - 10000).toISOString(),
+            details: { reward: 0.0032 }
+        }
+    ];
+
+    let sampleIntervalId = null;
 
     // Dynamic layer explanations glossary
     const layerGlossary = {
@@ -627,6 +642,8 @@
             // Load dummy weights so visualizer is fully functional and interactive on boot
             loadDummyWeights();
             showNoTraderNotice();
+            // Start live simulation loop
+            startSampleSimulation();
         }
     });
 
@@ -778,6 +795,7 @@
                     path.setAttribute("stroke-width", "3.5"); // Thicker lines
                     path.setAttribute("fill", "none");
                     path.setAttribute("opacity", "0.55"); // High contrast visibility
+                    path.classList.add("synapse-path");
                     if (isDashed) {
                         path.setAttribute("stroke-dasharray", "8 8");
                     }
@@ -788,10 +806,14 @@
                         const particle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
                         particle.setAttribute("r", "3.5"); // Bigger particles
                         particle.setAttribute("fill", color === "#3b82f6" || color === "#06b6d4" ? "#22d3ee" : "#d946ef");
+                        particle.classList.add("synapse-particle");
                         
                         const anim = document.createElementNS("http://www.w3.org/2000/svg", "animateMotion");
-                        anim.setAttribute("dur", (1.6 + Math.random() * 1.4).toFixed(1) + "s");
+                        const origDur = (1.6 + Math.random() * 1.4).toFixed(1) + "s";
+                        anim.setAttribute("dur", origDur);
+                        anim.setAttribute("data-orig-dur", origDur);
                         anim.setAttribute("repeatCount", "indefinite");
+                        anim.classList.add("synapse-animation");
                         
                         const mpath = document.createElementNS("http://www.w3.org/2000/svg", "mpath");
                         const pathId = `conn-${Math.random().toString(36).substr(2, 9)}`;
@@ -847,31 +869,55 @@
                 circle.onclick = () => {
                     let mapLayer = "actor.0.weight";
                     let label = "Actor Input Weights (actor.0.weight)";
-                    if (layer.id.includes("crit")) {
-                        if (layer.id.includes("hidden2")) {
-                            mapLayer = "critic.2.weight";
-                            label = "Critic Hidden Layer 2 (critic.2.weight)";
-                        } else if (layer.id.includes("output")) {
-                            mapLayer = "critic.4.weight";
-                            label = "Critic Output Weight (critic.4.weight)";
-                        } else {
-                            mapLayer = "critic.0.weight";
-                            label = "Critic Input Weights (critic.0.weight)";
-                        }
-                    } else {
-                        if (layer.id.includes("hidden2")) {
-                            mapLayer = "actor.2.weight";
-                            label = "Actor Hidden Layer 2 (actor.2.weight)";
-                        } else if (layer.id.includes("output")) {
-                            mapLayer = "actor.4.weight";
-                            label = "Actor Output Weights (actor.4.weight)";
-                        } else {
-                            mapLayer = "actor.0.weight";
-                            label = "Actor Input Weights (actor.0.weight)";
-                        }
+                    let rIdx = 0;
+                    let cIdx = 0;
+                    
+                    if (layer.id === "input") {
+                        mapLayer = "actor.0.weight";
+                        label = "Actor Input Weights (actor.0.weight)";
+                        rIdx = 0;
+                        cIdx = index;
+                    } else if (layer.id === "hidden1_act") {
+                        mapLayer = "actor.0.weight";
+                        label = "Actor Input Weights (actor.0.weight)";
+                        rIdx = index;
+                        cIdx = 0;
+                    } else if (layer.id === "hidden2_act") {
+                        mapLayer = "actor.2.weight";
+                        label = "Actor Hidden Layer 2 (actor.2.weight)";
+                        rIdx = index;
+                        cIdx = 0;
+                    } else if (layer.id === "output_act") {
+                        mapLayer = "actor.4.weight";
+                        label = "Actor Output Weights (actor.4.weight)";
+                        rIdx = 0;
+                        cIdx = 0;
+                    } else if (layer.id === "hidden1_crit") {
+                        mapLayer = "critic.0.weight";
+                        label = "Critic Input Weights (critic.0.weight)";
+                        rIdx = index;
+                        cIdx = 0;
+                    } else if (layer.id === "hidden2_crit") {
+                        mapLayer = "critic.2.weight";
+                        label = "Critic Hidden Layer 2 (critic.2.weight)";
+                        rIdx = index;
+                        cIdx = 0;
+                    } else if (layer.id === "output_crit") {
+                        mapLayer = "critic.4.weight";
+                        label = "Critic Output Weight (critic.4.weight)";
+                        rIdx = 0;
+                        cIdx = 0;
                     }
+                    
                     document.getElementById("selected-layer-label").textContent = label;
                     renderLayerWeights(mapLayer);
+                    
+                    const searchRow = document.getElementById("search-row");
+                    const searchCol = document.getElementById("search-col");
+                    if (searchRow) searchRow.value = rIdx;
+                    if (searchCol) searchCol.value = cIdx;
+                    
+                    selectSearchedSynapse();
                 };
  
                 // Add node text labels centered inside
@@ -1342,6 +1388,7 @@
         fetch(`/api/neural/learning-log/?trader_id=${currentTraderId}`)
             .then(res => res.json())
             .then(data => {
+                let cycleProgress = 0;
                 if (data.stats) {
                     const stats = data.stats;
                     document.getElementById("stat-updates").textContent = stats.total_updates;
@@ -1364,11 +1411,27 @@
                         document.getElementById("reward-bar").className = "h-full bg-rose-500";
                         document.getElementById("reward-bar").style.width = `${Math.min(100, Math.abs(stats.avg_reward) * 200)}%`;
                     }
+
+                    cycleProgress = stats.completed_trades % 8;
+                    document.getElementById("stat-cycle-progress").textContent = `${cycleProgress}/8 completed`;
+                    document.getElementById("cycle-progress-bar").style.width = `${(cycleProgress / 8) * 100}%`;
                 }
 
                 const feed = document.getElementById("learning-feed");
                 if (data.logs.length === 0) {
-                    feed.innerHTML = "<div class='text-slate-500 text-center py-8'>No trade event logs recorded.</div>";
+                    feed.innerHTML = `
+                        <div class="p-6 bg-slate-950/60 rounded-xl border border-dashed border-slate-800 text-center text-slate-400 space-y-3">
+                            <i class="fas fa-spinner fa-spin text-cyan-500 text-xl"></i>
+                            <p class="text-xs">Awaiting trade event executions...</p>
+                            <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800 font-mono text-[10px] inline-block">
+                                <span class="text-slate-400">PPO Update Cycle:</span>
+                                <span class="text-cyan-400 font-bold">${cycleProgress}/8 completed</span>
+                                <div class="w-32 h-1 bg-slate-950 rounded-full overflow-hidden mt-1 mx-auto">
+                                    <div class="h-full bg-cyan-500" style="width: ${(cycleProgress / 8) * 100}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
                     return;
                 }
 
@@ -1414,8 +1477,197 @@
                     `;
                 });
                 feed.innerHTML = html;
+
+                // Trigger live synaptic flow animation on detecting new logs
+                if (data.logs && data.logs.length > 0) {
+                    const latestLog = data.logs[0];
+                    if (lastLogId !== null && lastLogId !== latestLog.id) {
+                        triggerSynapticFlash();
+                    }
+                    lastLogId = latestLog.id;
+                }
             })
             .catch(err => console.error("Error loading learning logs API:", err));
+    }
+
+    // Live Synaptic Flashing Trigger
+    function triggerSynapticFlash() {
+        const paths = document.querySelectorAll(".synapse-path");
+        paths.forEach(p => {
+            p.style.transition = "stroke-width 0.25s ease, opacity 0.25s ease";
+            p.setAttribute("stroke-width", "5.5");
+            p.setAttribute("opacity", "0.95");
+        });
+
+        const particles = document.querySelectorAll(".synapse-particle");
+        particles.forEach(part => {
+            part.style.transition = "r 0.25s ease";
+            part.setAttribute("r", "5.5");
+        });
+
+        const animations = document.querySelectorAll(".synapse-animation");
+        animations.forEach(anim => {
+            anim.setAttribute("dur", "0.4s");
+        });
+
+        setTimeout(() => {
+            paths.forEach(p => {
+                p.style.transition = "stroke-width 1.5s ease, opacity 1.5s ease";
+                p.setAttribute("stroke-width", "3.5");
+                p.setAttribute("opacity", "0.55");
+            });
+
+            particles.forEach(part => {
+                part.style.transition = "r 1.5s ease";
+                part.setAttribute("r", "3.5");
+            });
+
+            animations.forEach(anim => {
+                const orig = anim.getAttribute("data-orig-dur") || "2.0s";
+                anim.setAttribute("dur", orig);
+            });
+        }, 1500);
+    }
+
+    // Sample Mode Simulation loops
+    function startSampleSimulation() {
+        updateSampleUI();
+        
+        if (sampleIntervalId) clearInterval(sampleIntervalId);
+        sampleIntervalId = setInterval(() => {
+            simulateSampleEvent();
+        }, 12000);
+    }
+
+    function updateSampleUI() {
+        document.getElementById("stat-updates").textContent = sampleStats.total_updates;
+        document.getElementById("stat-trades").textContent = sampleStats.completed_trades;
+        document.getElementById("stat-wins").textContent = sampleStats.win_count;
+        document.getElementById("stat-losses").textContent = sampleStats.loss_count;
+        
+        document.getElementById("stat-win-rate").textContent = `${sampleStats.win_rate.toFixed(1)}%`;
+        document.getElementById("win-rate-ring").style.strokeDasharray = `${sampleStats.win_rate}, 100`;
+
+        const rewardSign = sampleStats.avg_reward >= 0 ? "+" : "";
+        const rewardElem = document.getElementById("stat-avg-reward");
+        rewardElem.textContent = `${rewardSign}${sampleStats.avg_reward.toFixed(4)}`;
+        if (sampleStats.avg_reward >= 0) {
+            rewardElem.className = "text-sm font-bold text-emerald-400";
+            document.getElementById("reward-bar").className = "h-full bg-emerald-500";
+            document.getElementById("reward-bar").style.width = `${Math.min(100, sampleStats.avg_reward * 200)}%`;
+        } else {
+            rewardElem.className = "text-sm font-bold text-rose-400";
+            document.getElementById("reward-bar").className = "h-full bg-rose-500";
+            document.getElementById("reward-bar").style.width = `${Math.min(100, Math.abs(sampleStats.avg_reward) * 200)}%`;
+        }
+
+        const cycleProgress = sampleStats.completed_trades % 8;
+        document.getElementById("stat-cycle-progress").textContent = `${cycleProgress}/8 completed`;
+        document.getElementById("cycle-progress-bar").style.width = `${(cycleProgress / 8) * 100}%`;
+
+        // Render feed
+        const feed = document.getElementById("learning-feed");
+        let html = "";
+        sampleLogs.forEach(log => {
+            const timeStr = new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            let badgeClass = "bg-slate-900 border-slate-800 text-slate-400";
+            let textClass = "text-slate-300";
+            let icon = "fa-info-circle";
+            
+            if (log.event_type === "ENTRY") {
+                badgeClass = "bg-emerald-950/80 border-emerald-800 text-emerald-400";
+                textClass = "text-slate-300";
+                icon = "fa-sign-in-alt";
+            } else if (log.event_type === "EXIT") {
+                const reward = log.details.reward || 0;
+                badgeClass = reward > 0 ? "bg-emerald-900/60 border-emerald-700 text-emerald-400" : "bg-rose-950/80 border-rose-800 text-rose-400";
+                textClass = "text-slate-200 font-semibold";
+                icon = "fa-sign-out-alt";
+            } else if (log.event_type === "UPDATE") {
+                badgeClass = "bg-cyan-950 border-cyan-800 text-cyan-400";
+                textClass = "text-cyan-300 font-medium";
+                icon = "fa-sync-alt";
+            } else if (log.event_type === "MANUAL") {
+                badgeClass = "bg-purple-950 border-purple-800 text-purple-400";
+                textClass = "text-purple-300";
+                icon = "fa-sliders-h";
+            } else if (log.event_type === "CHECKPOINT") {
+                badgeClass = "bg-amber-950 border-amber-800 text-amber-400";
+                icon = "fa-save";
+            }
+
+            html += `
+                <div class="p-3 bg-slate-950/40 rounded-xl border border-slate-900/60 flex items-start gap-3 hover:border-slate-800 transition-all">
+                    <span class="text-[9px] text-slate-500 font-mono self-center">${timeStr}</span>
+                    <span class="text-[9px] font-mono uppercase px-2.5 py-0.5 rounded border ${badgeClass} flex items-center gap-1.5 self-center">
+                        <i class="fas ${icon}"></i> ${log.event_type}
+                    </span>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs ${textClass} break-words leading-relaxed">${log.reason}</p>
+                    </div>
+                </div>
+            `;
+        });
+        feed.innerHTML = html;
+    }
+
+    function simulateSampleEvent() {
+        const nextTradeProgress = (sampleStats.completed_trades % 8) + 1;
+        let newLog = {};
+        
+        if (nextTradeProgress === 8) {
+            // Trigger batch update!
+            sampleStats.total_updates += 1;
+            sampleStats.completed_trades += 1;
+            
+            newLog = {
+                id: `sample-log-${Date.now()}`,
+                event_type: "UPDATE",
+                reason: `Mock Model: PPO Policy update batch optimization completed (Batch Size: 8 trades). Backpropagation updated weights: actor mean delta = ${(Math.random() * 0.005).toFixed(6)}, critic mean delta = ${(Math.random() * 0.012).toFixed(6)}. Checkpoint saved.`,
+                timestamp: new Date().toISOString(),
+                details: {}
+            };
+        } else {
+            const isEntry = Math.random() > 0.4;
+            if (isEntry) {
+                const symbols = ["BTC/USDT", "ETH/USDT", "SOL/USDT"];
+                const sym = symbols[Math.floor(Math.random() * symbols.length)];
+                newLog = {
+                    id: `sample-log-${Date.now()}`,
+                    event_type: "ENTRY",
+                    reason: `Mock Model: Sentiment divergence detected for ${sym} (Sentiment: +${(Math.random() * 0.8).toFixed(2)}). Volatility is ${(Math.random() * 0.04 + 0.01).toFixed(4)}. Opened position.`,
+                    timestamp: new Date().toISOString(),
+                    details: {}
+                };
+            } else {
+                sampleStats.completed_trades += 1;
+                const isWin = Math.random() > 0.45;
+                const reward = isWin ? (Math.random() * 0.025) : -(Math.random() * 0.015);
+                if (isWin) sampleStats.win_count += 1;
+                else sampleStats.loss_count += 1;
+                
+                sampleStats.win_rate = (sampleStats.win_count / sampleStats.completed_trades) * 100;
+                sampleStats.avg_reward = (sampleStats.avg_reward * (sampleStats.completed_trades - 1) + reward) / sampleStats.completed_trades;
+                
+                newLog = {
+                    id: `sample-log-${Date.now()}`,
+                    event_type: "EXIT",
+                    reason: isWin 
+                        ? `Mock Model: Target profit reached. Executed Sell order. Realized gain +${(reward * 100).toFixed(2)}% reward (${reward.toFixed(4)} PnL weight).`
+                        : `Mock Model: Stop-loss triggered. Executed Sell order. Realized loss ${(reward * 100).toFixed(2)}% reward (${reward.toFixed(4)} PnL weight).`,
+                    timestamp: new Date().toISOString(),
+                    details: { reward: reward }
+                };
+            }
+        }
+        
+        sampleLogs.unshift(newLog);
+        if (sampleLogs.length > 15) {
+            sampleLogs.pop();
+        }
+        
+        updateSampleUI();
+        triggerSynapticFlash();
     }
 
     function getCookie(name) {
