@@ -4246,3 +4246,217 @@ def neural_weight_edit_api(request):
         logger.error(f"Error editing weights: {e}", exc_info=True)
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
+
+@login_required
+def decision_flow_view(request):
+    trader_id = request.GET.get('trader_id')
+    if trader_id:
+        trader = get_object_or_404(PaperTrader, id=trader_id)
+    else:
+        trader = PaperTrader.objects.filter(status='RUNNING').first() or PaperTrader.objects.first()
+    
+    all_traders = PaperTrader.objects.all()
+    context = {
+        'trader': trader,
+        'all_traders': all_traders,
+        'has_trader': trader is not None,
+    }
+    return render(request, 'decision_flow.html', context)
+
+
+@login_required
+def simulate_decision_api(request):
+    trader_id = request.GET.get('trader_id')
+    
+    # Parse parameter sliders inputs
+    try:
+        price_trend = float(request.GET.get('price_trend', 0.0))
+        sentiment = float(request.GET.get('sentiment', 0.0))
+        volatility = float(request.GET.get('volatility', 0.1))
+        spread = float(request.GET.get('spread', 0.1))
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Invalid parameters'}, status=400)
+
+    state = np.array([price_trend, sentiment, volatility, spread], dtype=np.float32)
+
+    trader = None
+    if trader_id:
+        trader = PaperTrader.objects.filter(id=trader_id).first()
+    if not trader:
+        trader = PaperTrader.objects.filter(status='RUNNING').first() or PaperTrader.objects.first()
+
+    agent = None
+    if trader and trader.model_file:
+        agent, _ = _get_agent_and_path_for_trader(trader)
+
+    actor_h1 = [0.0] * 6
+    actor_h2 = [0.0] * 6
+    critic_h1 = [0.0] * 5
+    critic_h2 = [0.0] * 5
+    act_val = 0.0
+    val_val = 0.0
+    is_simulated = True
+
+    if agent and hasattr(agent.policy, 'actor'):
+        try:
+            import torch
+            with torch.no_grad():
+                state_tensor = torch.FloatTensor(state).unsqueeze(0).to(device)
+                
+                # Actor Forward
+                x1_raw = agent.policy.actor[0](state_tensor)
+                x1 = torch.tanh(x1_raw)
+                x2_raw = agent.policy.actor[2](x1)
+                x2 = torch.tanh(x2_raw)
+                act_raw = agent.policy.actor[4](x2)
+                act = torch.tanh(act_raw)
+                
+                # Critic Forward
+                v1_raw = agent.policy.critic[0](state_tensor)
+                v1 = torch.tanh(v1_raw)
+                v2_raw = agent.policy.critic[2](v1)
+                v2 = torch.tanh(v2_raw)
+                val = agent.policy.critic[4](v2)
+                
+                # Gather values
+                actor_h1 = x1[0, :6].cpu().tolist()
+                actor_h2 = x2[0, :6].cpu().tolist()
+                critic_h1 = v1[0, :5].cpu().tolist()
+                critic_h2 = v2[0, :5].cpu().tolist()
+                act_val = float(act[0, 0].item())
+                val_val = float(val[0, 0].item())
+                is_simulated = False
+        except Exception as e:
+            logger.warning(f"Error during PPO forward pass in Decision Flow: {e}")
+
+    # Fallback to deterministic mock math if model is missing/error
+    if is_simulated:
+        # Layer 1 actor
+        actor_h1[0] = float(np.tanh(price_trend + sentiment))
+        actor_h1[1] = float(np.tanh(sentiment - volatility))
+        actor_h1[2] = float(np.tanh(price_trend * 1.5))
+        actor_h1[3] = float(np.tanh(-volatility + spread))
+        actor_h1[4] = float(np.tanh(spread * 0.8))
+        actor_h1[5] = float(np.tanh(-sentiment))
+        
+        # Layer 2 actor
+        actor_h2[0] = float(np.tanh(actor_h1[0] + actor_h1[2]))
+        actor_h2[1] = float(np.tanh(actor_h1[1] - actor_h1[3]))
+        actor_h2[2] = float(np.tanh(actor_h1[4] * 1.2))
+        actor_h2[3] = float(np.tanh(actor_h1[5] - actor_h1[0]))
+        actor_h2[4] = float(np.tanh(actor_h1[2] + actor_h1[3]))
+        actor_h2[5] = float(np.tanh(actor_h1[1] * 0.9))
+
+        # Actor output recommendation
+        act_val = float(np.tanh(sum(actor_h2) / 6.0))
+
+        # Layer 1 critic
+        critic_h1[0] = float(np.tanh(price_trend * 0.5))
+        critic_h1[1] = float(np.tanh(sentiment * 0.5))
+        critic_h1[2] = float(np.tanh(volatility * -0.8))
+        critic_h1[3] = float(np.tanh(spread * 0.3))
+        critic_h1[4] = float(np.tanh(price_trend - volatility))
+        
+        # Layer 2 critic
+        critic_h2[0] = float(np.tanh(critic_h1[0] + critic_h1[1]))
+        critic_h2[1] = float(np.tanh(critic_h1[2] + critic_h1[3]))
+        critic_h2[2] = float(np.tanh(critic_h1[4] * 0.5))
+        critic_h2[3] = float(np.tanh(critic_h1[1] - critic_h1[0]))
+        critic_h2[4] = float(np.tanh(critic_h1[3] * 0.9))
+        
+        # Critic value estimate
+        val_val = float(np.tanh(sum(critic_h2) / 5.0) * 0.15)
+
+    # Human-readable decision narrative
+    price_trend_desc = "strongly bullish" if price_trend > 0.4 else ("strongly bearish" if price_trend < -0.4 else ("moderately bullish" if price_trend > 0.1 else ("moderately bearish" if price_trend < -0.1 else "neutral")))
+    sentiment_desc = "positive / greedy" if sentiment > 0.3 else ("negative / fearful" if sentiment < -0.3 else "neutral / calm")
+    volatility_desc = "high volatility risk" if volatility > 0.6 else "stable, low-risk volatility"
+    spread_desc = "wide spread/thin liquidity" if spread > 0.6 else "tight spread/deep liquidity"
+
+    narrative = [
+        f"State Analysis: Price Trend is {price_trend_desc} ({price_trend:+.2f}) with {sentiment_desc} sentiment ({sentiment:+.2f}). Market shows {volatility_desc} ({volatility:.2f}) and {spread_desc} ({spread:.2f}).",
+        f"Feature Detection (Layer 1): Input signals successfully pass to hidden pattern detectors. Node HA1.1 activations output {actor_h1[0]:+.2f}, while Critic Node HC1.3 registers {critic_h1[2]:+.2f} risk.",
+        f"High-Level Conception (Layer 2): Layer 1 nodes map to Layer 2. Hidden Node HA2.1 fires at {actor_h2[0]:+.2f}, synthesizing positive trend and bullish sentiment patterns.",
+        f"Actor output layer: Output node (ACT) Tanh activation is {act_val:+.2f}, indicating a recommendation weight of {abs(act_val)*100:.1f}% towards a {'BUY' if act_val >= 0 else 'SELL'} action.",
+        f"Critic valuation output: Output node (VAL) predicts future net return expectation at {val_val:+.4f} PnL units."
+    ]
+
+    # Actionable trading tips
+    tips = []
+    if volatility > 0.65:
+        tips.append("⚠️ Volatility is elevated: Price action swings may trigger stop-losses. We recommend lowering position sizing or pausing the bot during extreme macro news.")
+    if abs(sentiment) > 0.5 and abs(price_trend) < 0.15:
+        tips.append("ℹ️ Sideways sentiment dominance: The trade direction is driven by social sentiment while charts are flat. Verify that underlying news is not fake/manipulative.")
+    if abs(act_val) < 0.15:
+        tips.append("🔒 Flat sideways regime: Neural outputs are close to zero. The model recommends holding or minimizing new entries to avoid transaction fee drag.")
+    elif act_val >= 0.15:
+        tips.append("📈 Bullish stance: The model favors long/buy positions. Ensure your stop-loss configurations are active.")
+    else:
+        tips.append("📉 Bearish stance: The model favors short/sell positions. Ensure you have active risk guardrails.")
+
+    return JsonResponse({
+        'price_trend': price_trend,
+        'sentiment': sentiment,
+        'volatility': volatility,
+        'spread': spread,
+        'actor_h1': actor_h1,
+        'actor_h2': actor_h2,
+        'critic_h1': critic_h1,
+        'critic_h2': critic_h2,
+        'actor_out': act_val,
+        'critic_out': val_val,
+        'narrative': narrative,
+        'tips': tips,
+        'is_simulated': is_simulated
+    })
+
+
+@login_required
+def past_decisions_api(request):
+    trader_id = request.GET.get('trader_id')
+    if trader_id:
+        trader = PaperTrader.objects.filter(id=trader_id).first()
+    else:
+        trader = PaperTrader.objects.filter(status='RUNNING').first() or PaperTrader.objects.first()
+
+    if not trader:
+        return JsonResponse({'trades': []})
+
+    from .models import OnlineLearningLog
+    logs = OnlineLearningLog.objects.filter(trader=trader, event_type__in=['ENTRY', 'EXIT']).order_by('-timestamp')[:30]
+
+    trades_list = []
+    import re
+    for log in logs:
+        # Default mock inputs to populate
+        price_trend = 0.0
+        sentiment = 0.0
+        volatility = 0.2
+        spread = 0.1
+        
+        try:
+            # Extract inputs from reasons
+            sent_m = re.search(r'Sentiment:\s*([+-]?\d*\.?\d+)', log.reason, re.IGNORECASE)
+            trend_m = re.search(r'Price Trend is\s*([+-]?\d*\.?\d+)', log.reason, re.IGNORECASE)
+            vol_m = re.search(r'Volatility is\s*([+-]?\d*\.?\d+)', log.reason, re.IGNORECASE)
+            
+            if sent_m: sentiment = float(sent_m.group(1))
+            if trend_m: price_trend = float(trend_m.group(1))
+            if vol_m: volatility = float(vol_m.group(1))
+        except Exception:
+            pass
+
+        trades_list.append({
+            'id': log.id,
+            'event_type': log.event_type,
+            'symbol': log.symbol,
+            'timestamp': log.timestamp.isoformat(),
+            'reason': log.reason,
+            'price_trend': price_trend,
+            'sentiment': sentiment,
+            'volatility': volatility,
+            'spread': spread
+        })
+
+    return JsonResponse({'trades': trades_list})
+

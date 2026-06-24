@@ -1,0 +1,635 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block page_title %}Neural Decision Flow Analyzer - AI Trader{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Premium dark glassmorphism effects */
+    .glass-panel {
+        background: rgba(10, 15, 30, 0.65);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    /* Neon range slider styling */
+    input[type="range"] {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 6px;
+        background: #0f172a;
+        border-radius: 4px;
+        outline: none;
+        border: 1px solid #1e293b;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #06b6d4;
+        cursor: pointer;
+        box-shadow: 0 0 8px #06b6d4;
+        transition: transform 0.1s ease, background-color 0.1s ease;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb:hover {
+        transform: scale(1.2);
+        background: #22d3ee;
+    }
+    
+    /* Highlight nodes hover scale */
+    .neuron {
+        transition: transform 0.2s ease, filter 0.2s ease;
+    }
+    .neuron:hover {
+        transform: scale(1.08);
+        filter: brightness(1.2);
+    }
+    
+    /* Custom scrollbar */
+    .custom-scroll::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+        background: rgba(15, 23, 42, 0.5);
+        border-radius: 4px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+        background: #1e293b;
+        border-radius: 4px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+        background: #334155;
+    }
+
+    /* Glow classes */
+    .glow-rose {
+        filter: drop-shadow(0 0 10px rgba(244, 63, 94, 0.85));
+    }
+    .glow-blue {
+        filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.85));
+    }
+    .glow-cyan {
+        filter: drop-shadow(0 0 10px rgba(6, 182, 212, 0.85));
+    }
+</style>
+{% endblock extra_css %}
+
+{% block page_content %}
+<div class="space-y-6">
+    <!-- Top Action bar with bot selection -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <h1 class="text-xl font-mono font-bold text-slate-100 uppercase tracking-wider flex items-center gap-2">
+                <i class="fas fa-microchip text-cyan-400"></i> Neural Decision Flow Analyzer
+            </h1>
+            <p class="text-xs font-mono text-slate-400 mt-1">
+                Sandbox simulation explaining exactly how inputs propagate through neural nodes to trigger trades.
+            </p>
+        </div>
+        
+        <!-- Custom bot select dropdown -->
+        <div class="relative" id="custom-dropdown-trader">
+            <span class="text-[9px] font-mono text-slate-500 uppercase block mb-1">Active Trading Node</span>
+            <button type="button" onclick="toggleDropdown('dropdown-menu-trader')" class="bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-200 text-xs font-mono rounded-lg px-4 py-2 flex items-center justify-between gap-3 min-w-[240px] focus:ring-1 focus:ring-cyan-500 transition-all outline-none">
+                <span class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full {% if trader.status == 'RUNNING' %}bg-emerald-400 animate-pulse{% else %}bg-slate-500{% endif %}"></span>
+                    <span id="selected-trader-label">{% if trader %}{{ trader.name }} ({{ trader.model_file }}){% else %}No active bots{% endif %}</span>
+                </span>
+                <i class="fas fa-chevron-down text-slate-500 text-[10px]"></i>
+            </button>
+            <div id="dropdown-menu-trader" class="hidden absolute right-0 mt-1.5 w-full bg-slate-950 border border-slate-800 rounded-lg shadow-2xl z-50 overflow-hidden max-h-60 overflow-y-auto custom-scroll">
+                {% for t in all_traders %}
+                    <button onclick="changeTrader('{{ t.id }}')" class="text-slate-350 hover:bg-slate-900 hover:text-white block w-full text-left px-4 py-2.5 text-xs font-mono border-b border-slate-900/50 last:border-b-0 transition-colors">
+                        <span class="flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full {% if t.status == 'RUNNING' %}bg-emerald-400{% else %}bg-slate-500{% endif %}"></span>
+                            {{ t.name }} ({{ t.model_file }})
+                        </span>
+                    </button>
+                {% empty %}
+                    <div class="px-4 py-3 text-xs font-mono text-slate-500 text-center">No bot instances available</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left Side: Visualizer Canvas (Col-span 2) -->
+        <div class="lg:col-span-2 flex flex-col gap-4">
+            <div class="glass-panel border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[560px]">
+                <div class="flex justify-between items-center mb-4 border-b border-slate-850 pb-3">
+                    <h3 class="text-xs font-mono font-bold tracking-widest text-slate-300 uppercase flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span> Neural Propagation Map
+                    </h3>
+                    <div class="flex gap-4 text-[9px] font-mono text-slate-500">
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-rose-500/80"></span> Firing (+)</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-blue-500/80"></span> Inhibiting (-)</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-slate-800"></span> Silent (0)</span>
+                    </div>
+                </div>
+
+                <!-- SVG Visualization Canvas -->
+                <div class="flex-1 flex items-center justify-center">
+                    <svg id="decision-canvas" class="w-full h-full min-h-[460px] select-none" viewBox="0 0 1000 500">
+                        <!-- SVG Connection paths container -->
+                        <g id="flow-connections"></g>
+                        <!-- SVG Neuron groups container -->
+                        <g id="flow-neurons"></g>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side: Sandbox Controls & Translators -->
+        <div class="space-y-6">
+            
+            <!-- Sandbox Sliders Panel -->
+            <div class="glass-panel border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+                <h3 class="text-xs font-mono font-bold tracking-widest text-slate-200 uppercase flex items-center gap-2 border-b border-slate-850 pb-3">
+                    <i class="fas fa-sliders-h text-cyan-400"></i> Market State Sandbox
+                </h3>
+                
+                <div class="space-y-4 font-mono text-xs">
+                    <!-- Slider 1: Price Trend -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-slate-400">
+                            <span>Price Trend (Momentum):</span>
+                            <span class="font-bold text-cyan-400" id="val-price-trend">0.00</span>
+                        </div>
+                        <input type="range" id="slide-price-trend" min="-1" max="1" step="0.05" value="0.00" oninput="triggerSandboxUpdate()" />
+                        <div class="flex justify-between text-[8px] text-slate-500">
+                            <span>-1.0 Bearish Trend</span>
+                            <span>+1.0 Bullish Trend</span>
+                        </div>
+                    </div>
+
+                    <!-- Slider 2: Sentiment -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-slate-400">
+                            <span>Social Sentiment:</span>
+                            <span class="font-bold text-cyan-400" id="val-sentiment">0.00</span>
+                        </div>
+                        <input type="range" id="slide-sentiment" min="-1" max="1" step="0.05" value="0.00" oninput="triggerSandboxUpdate()" />
+                        <div class="flex justify-between text-[8px] text-slate-500">
+                            <span>-1.0 Negative Fear</span>
+                            <span>+1.0 Positive Greed</span>
+                        </div>
+                    </div>
+
+                    <!-- Slider 3: Volatility -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-slate-400">
+                            <span>Market Volatility:</span>
+                            <span class="font-bold text-cyan-400" id="val-volatility">0.10</span>
+                        </div>
+                        <input type="range" id="slide-volatility" min="0" max="1" step="0.05" value="0.10" oninput="triggerSandboxUpdate()" />
+                        <div class="flex justify-between text-[8px] text-slate-500">
+                            <span>0.0 Quiet / Safe</span>
+                            <span>1.0 Turbulent / Risk</span>
+                        </div>
+                    </div>
+
+                    <!-- Slider 4: Volume Spread -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-slate-400">
+                            <span>Bid-Ask Spread / Volume:</span>
+                            <span class="font-bold text-cyan-400" id="val-spread">0.10</span>
+                        </div>
+                        <input type="range" id="slide-spread" min="0" max="1" step="0.05" value="0.10" oninput="triggerSandboxUpdate()" />
+                        <div class="flex justify-between text-[8px] text-slate-500">
+                            <span>0.0 Tight / Liquid</span>
+                            <span>1.0 Wide / Illiquid</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-850 pt-3 flex justify-between">
+                    <button onclick="resetSliders()" class="bg-slate-900 border border-slate-800 text-[10px] font-mono text-slate-400 hover:text-slate-200 px-3 py-1.5 rounded-lg cursor-pointer transition-colors">
+                        <i class="fas fa-undo"></i> Reset State
+                    </button>
+                    <span id="sandbox-badge" class="bg-slate-950 border border-slate-850 text-cyan-400 text-[9px] font-mono px-2.5 py-1 rounded-full uppercase flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span> Sandbox Live
+                    </span>
+                </div>
+            </div>
+
+            <!-- English Decision narrative -->
+            <div class="glass-panel border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+                <h3 class="text-xs font-mono font-bold tracking-widest text-slate-200 uppercase flex items-center gap-2 border-b border-slate-850 pb-3">
+                    <i class="fas fa-comment-alt text-cyan-400"></i> Plain English Translator
+                </h3>
+                
+                <div class="font-mono text-xs space-y-3 leading-relaxed">
+                    <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-900 min-h-[160px] custom-scroll overflow-y-auto max-h-[220px]" id="narrative-log">
+                        <p class="text-slate-500">Adjust sliders to synthesize trace logs...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Foolproof tips -->
+            <div class="glass-panel border border-slate-800 rounded-2xl p-6 shadow-xl space-y-3">
+                <h3 class="text-xs font-mono font-bold tracking-widest text-slate-200 uppercase flex items-center gap-2 border-b border-slate-850 pb-3">
+                    <i class="fas fa-info-circle text-cyan-400"></i> Foolproof Trading Tips
+                </h3>
+                
+                <div class="font-mono text-xs text-slate-400 leading-relaxed space-y-2.5" id="tips-container">
+                    <p class="text-slate-500">Select states to calculate tips...</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Bottom row: Past Actual Trades Replay -->
+    <div class="glass-panel border border-slate-800 rounded-2xl p-6 shadow-xl">
+        <h3 class="text-xs font-mono font-bold tracking-widest text-slate-355 uppercase mb-4 border-b border-slate-850 pb-3 flex items-center gap-2">
+            <i class="fas fa-history text-cyan-500"></i> Past Execution Analyzer & Replayer
+        </h3>
+        <p class="text-[11px] font-mono text-slate-400 mb-3 leading-normal">
+            Click any past transaction to load its exact historical market state directly into the simulator to see how your neural layers fired during the trade.
+        </p>
+        
+        <div class="overflow-x-auto custom-scroll">
+            <table class="w-full text-left font-mono text-[11px] border-collapse min-w-[700px]">
+                <thead>
+                    <tr class="border-b border-slate-850 text-slate-500 uppercase text-[9px]">
+                        <th class="py-2.5">Time</th>
+                        <th class="py-2.5">Event</th>
+                        <th class="py-2.5">Symbol</th>
+                        <th class="py-2.5">Market Reason log</th>
+                        <th class="py-2.5 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="past-trades-body" class="divide-y divide-slate-900 text-slate-355">
+                    <tr>
+                        <td colspan="5" class="py-6 text-center text-slate-500">Loading past execution history...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock page_content %}
+
+{% block extra_javascript %}
+<script>
+    const currentTraderId = "{{ trader.id }}";
+    
+    // Nodes coordinates mapping
+    const layers = [
+        { id: "input", label: "Inputs", x: 100, yCoords: [80, 180, 280, 380], labels: ["Price Trend", "Sentiment", "Volatility", "Spread"] },
+        
+        // Actor branch (Top)
+        { id: "ha1", label: "Actor Hidden 1", x: 380, yCoords: [40, 80, 120, 160, 200, 240] },
+        { id: "ha2", label: "Actor Hidden 2", x: 660, yCoords: [40, 80, 120, 160, 200, 240] },
+        { id: "act", label: "Actor Out (ACT)", x: 920, yCoords: [140] },
+
+        // Critic branch (Bottom)
+        { id: "hc1", label: "Critic Hidden 1", x: 380, yCoords: [290, 330, 370, 410, 450] },
+        { id: "hc2", label: "Critic Hidden 2", x: 660, yCoords: [290, 330, 370, 410, 450] },
+        { id: "val", label: "Critic Out (VAL)", x: 920, yCoords: [370] }
+    ];
+
+    document.addEventListener("DOMContentLoaded", () => {
+        // Render initial visualizer network
+        drawDecisionArchitecture();
+        // Load sandbox simulated values
+        triggerSandboxUpdate();
+        // Load past actual trades
+        loadPastTrades();
+
+        // Dropdown toggle window listener
+        window.addEventListener("click", (e) => {
+            if (!e.target.closest("#custom-dropdown-trader")) {
+                document.getElementById("dropdown-menu-trader").classList.add("hidden");
+            }
+        });
+    });
+
+    function toggleDropdown(id) {
+        const menu = document.getElementById(id);
+        const isOpen = !menu.classList.contains("hidden");
+        document.querySelectorAll(".dropdown-menu, #dropdown-menu-trader").forEach(m => m.classList.add("hidden"));
+        if (!isOpen) {
+            menu.classList.remove("hidden");
+        }
+    }
+
+    function changeTrader(val) {
+        if (!val) return;
+        window.location.href = `?trader_id=${val}`;
+    }
+
+    function resetSliders() {
+        document.getElementById("slide-price-trend").value = 0.00;
+        document.getElementById("slide-sentiment").value = 0.00;
+        document.getElementById("slide-volatility").value = 0.10;
+        document.getElementById("slide-spread").value = 0.10;
+        triggerSandboxUpdate();
+    }
+
+    function loadHistoricalTrade(priceTrend, sentiment, volatility, spread) {
+        document.getElementById("slide-price-trend").value = priceTrend;
+        document.getElementById("slide-sentiment").value = sentiment;
+        document.getElementById("slide-volatility").value = volatility;
+        document.getElementById("slide-spread").value = spread;
+        triggerSandboxUpdate();
+        
+        // Highlight sandbox badge to indicate replay
+        const badge = document.getElementById("sandbox-badge");
+        badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> REPLAY PAST TRADE`;
+        badge.className = "bg-slate-950 border border-slate-850 text-amber-400 text-[9px] font-mono px-2.5 py-1 rounded-full uppercase flex items-center gap-1.5";
+    }
+
+    function triggerSandboxUpdate() {
+        const priceTrend = parseFloat(document.getElementById("slide-price-trend").value);
+        const sentiment = parseFloat(document.getElementById("slide-sentiment").value);
+        const volatility = parseFloat(document.getElementById("slide-volatility").value);
+        const spread = parseFloat(document.getElementById("slide-spread").value);
+
+        // Update labels
+        document.getElementById("val-price-trend").textContent = priceTrend.toFixed(2);
+        document.getElementById("val-sentiment").textContent = sentiment.toFixed(2);
+        document.getElementById("val-volatility").textContent = volatility.toFixed(2);
+        document.getElementById("val-spread").textContent = spread.toFixed(2);
+
+        // Reset badge when user manually interacts
+        const badge = document.getElementById("sandbox-badge");
+        badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span> Sandbox Live`;
+        badge.className = "bg-slate-950 border border-slate-850 text-cyan-400 text-[9px] font-mono px-2.5 py-1 rounded-full uppercase flex items-center gap-1.5";
+
+        // Query API to calculate decision flow
+        fetch(`/api/neural/simulate-decision/?trader_id=${currentTraderId}&price_trend=${priceTrend}&sentiment=${sentiment}&volatility=${volatility}&spread=${spread}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) return;
+                
+                // Update node visual glows and weights paths
+                updateVisualNodeStates(data);
+                
+                // Render Simple English logs
+                const narrativeBox = document.getElementById("narrative-log");
+                let narrativeHtml = "";
+                data.narrative.forEach(step => {
+                    narrativeHtml += `<p class="mb-2 text-slate-350 border-l border-slate-850 pl-2.5">${step}</p>`;
+                });
+                narrativeBox.innerHTML = narrativeHtml;
+
+                // Render Foolproof Tips
+                const tipsBox = document.getElementById("tips-container");
+                let tipsHtml = "";
+                data.tips.forEach(tip => {
+                    tipsHtml += `
+                        <div class="p-2.5 bg-slate-950/40 rounded-lg border border-slate-900/60 leading-normal">
+                            ${tip}
+                        </div>
+                    `;
+                });
+                tipsBox.innerHTML = tipsHtml;
+            })
+            .catch(err => console.error("Simulator API Error:", err));
+    }
+
+    function drawDecisionArchitecture() {
+        const svg = document.getElementById("flow-connections");
+        svg.innerHTML = "";
+
+        // Function to draw curve paths
+        function connectNodes(l1, l2, color, strokeWidth = "2") {
+            l1.yCoords.forEach((y1) => {
+                l2.yCoords.forEach((y2) => {
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    const dx = l2.x - l1.x;
+                    const dy = y2 - y1;
+                    const cx = l1.x + dx/2;
+                    const cy = y1 + dy/2 - (dx > 100 ? 15 : 0);
+                    
+                    const d = `M ${l1.x} ${y1} Q ${cx} ${cy} ${l2.x} ${y2}`;
+                    path.setAttribute("d", d);
+                    path.setAttribute("stroke", color);
+                    path.setAttribute("stroke-width", strokeWidth);
+                    path.setAttribute("fill", "none");
+                    path.setAttribute("opacity", "0.2");
+                    path.setAttribute("id", `path-${l1.id}-${l2.id}`);
+                    path.classList.add("synapse-wire");
+                    svg.appendChild(path);
+                });
+            });
+        }
+
+        // Draw connections wires
+        const lMap = {};
+        layers.forEach(l => lMap[l.id] = l);
+
+        connectNodes(lMap["input"], lMap["ha1"], "#2563eb", "2.5");
+        connectNodes(lMap["input"], lMap["hc1"], "#8b5cf6", "2.5");
+        connectNodes(lMap["ha1"], lMap["ha2"], "#3b82f6", "1.5");
+        connectNodes(lMap["hc1"], lMap["hc2"], "#a855f7", "1.5");
+        connectNodes(lMap["ha2"], lMap["act"], "#10b981", "2.5");
+        connectNodes(lMap["hc2"], lMap["val"], "#f43f5e", "2.5");
+
+        // Draw actual node circles
+        const neurGroup = document.getElementById("flow-neurons");
+        neurGroup.innerHTML = "";
+
+        layers.forEach(layer => {
+            layer.yCoords.forEach((y, index) => {
+                const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                group.setAttribute("class", "neuron");
+                
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("cx", layer.x);
+                circle.setAttribute("cy", y);
+                
+                let radius = 13;
+                let fill = "#1e293b";
+                if (layer.id === "input") {
+                    radius = 16;
+                    fill = "#0f172a";
+                } else if (layer.id === "act" || layer.id === "val") {
+                    radius = 20;
+                    fill = "#0f172a";
+                }
+                
+                circle.setAttribute("r", radius);
+                circle.setAttribute("fill", fill);
+                circle.setAttribute("stroke", "#334155");
+                circle.setAttribute("stroke-width", "2");
+                circle.setAttribute("id", `node-${layer.id}-${index}`);
+                circle.classList.add("node-circle");
+
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", layer.x);
+                text.setAttribute("y", y + 3);
+                text.setAttribute("fill", "#64748b");
+                text.setAttribute("font-size", layer.id === "input" ? "7" : "8");
+                text.setAttribute("font-family", "monospace");
+                text.setAttribute("font-weight", "bold");
+                text.setAttribute("text-anchor", "middle");
+                text.setAttribute("id", `text-${layer.id}-${index}`);
+                text.style.pointerEvents = "none";
+
+                let labelText = layer.id.toUpperCase() + index;
+                if (layer.id === "input") labelText = `I${index + 1}`;
+                else if (layer.id === "ha1") labelText = `HA1.${index + 1}`;
+                else if (layer.id === "ha2") labelText = `HA2.${index + 1}`;
+                else if (layer.id === "hc1") labelText = `HC1.${index + 1}`;
+                else if (layer.id === "hc2") labelText = `HC2.${index + 1}`;
+                else if (layer.id === "act") labelText = "ACT";
+                else if (layer.id === "val") labelText = "VAL";
+
+                text.textContent = labelText;
+
+                // Add input feature label text below input nodes
+                if (layer.id === "input") {
+                    const featLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    featLabel.setAttribute("x", layer.x - 22);
+                    featLabel.setAttribute("y", y + 3);
+                    featLabel.setAttribute("fill", "#cbd5e1");
+                    featLabel.setAttribute("font-size", "8");
+                    featLabel.setAttribute("font-family", "monospace");
+                    featLabel.setAttribute("font-weight", "bold");
+                    featLabel.setAttribute("text-anchor", "end");
+                    featLabel.textContent = layer.labels[index];
+                    group.appendChild(featLabel);
+                }
+
+                // Add output decision labels above output nodes
+                if (layer.id === "act" || layer.id === "val") {
+                    const descLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    descLabel.setAttribute("x", layer.x);
+                    descLabel.setAttribute("y", y - 26);
+                    descLabel.setAttribute("fill", "#cbd5e1");
+                    descLabel.setAttribute("font-size", "9");
+                    descLabel.setAttribute("font-family", "monospace");
+                    descLabel.setAttribute("font-weight", "bold");
+                    descLabel.setAttribute("text-anchor", "middle");
+                    descLabel.textContent = layer.id === "act" ? "Decision Signal" : "Estimated Return";
+                    group.appendChild(descLabel);
+                }
+
+                group.appendChild(circle);
+                group.appendChild(text);
+                neurGroup.appendChild(group);
+            });
+        });
+    }
+
+    function updateVisualNodeStates(data) {
+        // Helper to update colors/glows based on values
+        function setNodeGlow(id, val, rangeLimit = 1.0) {
+            const node = document.getElementById(id);
+            const text = document.getElementById(id.replace("node-", "text-"));
+            if (!node || !text) return;
+
+            const absVal = Math.abs(val);
+            const intensity = Math.min(1.0, absVal / rangeLimit);
+            
+            if (val > 0.02) {
+                // Hot pink/rose glow for positive activation
+                node.setAttribute("fill", `rgba(244, 63, 94, ${0.1 + intensity * 0.7})`);
+                node.setAttribute("stroke", "#f43f5e");
+                node.style.filter = `drop-shadow(0 0 ${4 + intensity * 8}px rgba(244, 63, 94, ${intensity}))`;
+                text.setAttribute("fill", "#ffffff");
+            } else if (val < -0.02) {
+                // Blue glow for negative activation
+                node.setAttribute("fill", `rgba(59, 130, 246, ${0.1 + intensity * 0.7})`);
+                node.setAttribute("stroke", "#3b82f6");
+                node.style.filter = `drop-shadow(0 0 ${4 + intensity * 8}px rgba(59, 130, 246, ${intensity}))`;
+                text.setAttribute("fill", "#ffffff");
+            } else {
+                // Neutral dim gray state
+                node.setAttribute("fill", "#1e293b");
+                node.setAttribute("stroke", "#334155");
+                node.style.filter = "none";
+                text.setAttribute("fill", "#64748b");
+            }
+        }
+
+        // 1. Set input node glows
+        setNodeGlow("node-input-0", data.price_trend);
+        setNodeGlow("node-input-1", data.sentiment);
+        setNodeGlow("node-input-2", data.volatility);
+        setNodeGlow("node-input-3", data.spread);
+
+        // 2. Set hidden actor layers node glows
+        data.actor_h1.forEach((val, i) => setNodeGlow(`node-ha1-${i}`, val));
+        data.actor_h2.forEach((val, i) => setNodeGlow(`node-ha2-${i}`, val));
+
+        // 3. Set hidden critic layers node glows
+        data.critic_h1.forEach((val, i) => setNodeGlow(`node-hc1-${i}`, val));
+        data.critic_h2.forEach((val, i) => setNodeGlow(`node-hc2-${i}`, val));
+
+        // 4. Set outputs glows
+        setNodeGlow("node-act-0", data.actor_out);
+        setNodeGlow("node-val-0", data.critic_out, 0.15); // Critic scale is smaller
+
+        // 5. Update text indicators inside output nodes
+        const actText = document.getElementById("text-act-0");
+        const valText = document.getElementById("text-val-0");
+        if (actText) actText.textContent = data.actor_out.toFixed(2);
+        if (valText) valText.textContent = data.critic_out.toFixed(3);
+    }
+
+    function loadPastTrades() {
+        const body = document.getElementById("past-trades-body");
+        fetch(`/api/neural/past-decisions/?trader_id=${currentTraderId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (!data.trades || data.trades.length === 0) {
+                    body.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="py-6 text-center text-slate-500">
+                                <i class="fas fa-history text-lg mb-2 block"></i>
+                                No trade execution logs recorded yet for this bot.
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                let html = "";
+                data.trades.forEach(trade => {
+                    const timeStr = new Date(trade.timestamp).toLocaleString();
+                    let badgeClass = "bg-slate-900 border-slate-800 text-slate-400";
+                    if (trade.event_type === "ENTRY") {
+                        badgeClass = "bg-emerald-950 border-emerald-800 text-emerald-400";
+                    } else {
+                        badgeClass = "bg-rose-950 border-rose-800 text-rose-400";
+                    }
+
+                    html += `
+                        <tr class="hover:bg-slate-950/40 transition-colors">
+                            <td class="py-3 text-slate-450">${timeStr}</td>
+                            <td class="py-3">
+                                <span class="px-2 py-0.5 rounded border ${badgeClass} uppercase text-[9px]">
+                                    ${trade.event_type}
+                                </span>
+                            </td>
+                            <td class="py-3 text-slate-200 font-bold">${trade.symbol}</td>
+                            <td class="py-3 text-slate-400 max-w-sm truncate" title="${trade.reason}">${trade.reason}</td>
+                            <td class="py-3 text-right">
+                                <button onclick="loadHistoricalTrade(${trade.price_trend}, ${trade.sentiment}, ${trade.volatility}, ${trade.spread})" class="bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold px-3 py-1 rounded cursor-pointer transition-colors text-[10px]">
+                                    <i class="fas fa-play"></i> Replay Node Flow
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                body.innerHTML = html;
+            })
+            .catch(err => {
+                console.error("Error loading past trades:", err);
+                body.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-rose-400">Failed to load trade log records</td></tr>`;
+            });
+    }
+</script>
+{% endblock extra_javascript %}
