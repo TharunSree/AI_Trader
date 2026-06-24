@@ -96,7 +96,7 @@
                 <h1 class="text-xl font-mono font-bold tracking-widest text-slate-100 uppercase">Neural Cortex Matrix</h1>
             </div>
             <p class="text-xs font-mono text-slate-400 mt-1">
-                Active Model: <span class="text-slate-300 font-bold" id="current-model-file">{{ trader.model_file|default:"No model active" }}</span>
+                Active Model: <span class="text-slate-300 font-bold" id="current-model-file">{{ trader.model_file|default:"No active trader detected" }}</span>
             </p>
         </div>
         
@@ -119,7 +119,7 @@
                             Bot #{{ t.id }} - {{ t.model_file }} ({% if t.status == 'RUNNING' %}ONLINE{% else %}{{ t.status }}{% endif %})
                         </button>
                     {% empty %}
-                        <div class="text-slate-500 px-4 py-2 text-xs font-mono">No Paper Bot Registered</div>
+                        <div class="text-slate-550 px-4 py-2.5 text-xs font-mono">No Paper Bot Registered</div>
                     {% endfor %}
                 </div>
             </div>
@@ -152,34 +152,27 @@
                 
                 <!-- SVG Neural Viz -->
                 <div class="w-full overflow-x-auto custom-scroll py-2">
-                    <svg id="neural-svg" viewBox="0 0 800 320" class="w-full min-w-[700px] h-[320px] bg-slate-950/60 rounded-xl border border-slate-900">
+                    <svg id="neural-svg" viewBox="0 0 800 320" class="w-full min-w-[700px] h-[320px] bg-slate-950/20 rounded-xl border border-slate-900">
                         <!-- Definitions for gradients -->
                         <defs>
-                            <!-- Radial Background glow -->
+                            <!-- Radial Background glow (optimized for transparent background blending) -->
                             <radialGradient id="brain-glow-radial" cx="50%" cy="50%" r="50%">
-                                <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.1" />
-                                <stop offset="60%" stop-color="#a855f7" stop-opacity="0.03" />
-                                <stop offset="100%" stop-color="#0f172a" stop-opacity="0" />
+                                <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.08" />
+                                <stop offset="70%" stop-color="#a855f7" stop-opacity="0.02" />
+                                <stop offset="100%" stop-color="#090d16" stop-opacity="0" />
                             </radialGradient>
-                            
-                            <!-- Synaptic gradient links -->
-                            <linearGradient id="actor-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.8" />
-                                <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.8" />
-                            </linearGradient>
                         </defs>
 
                         <!-- Holographic brain background -->
                         <rect x="0" y="0" width="800" height="320" fill="url(#brain-glow-radial)" />
                         
-                        <!-- Brain Silhouette Path -->
+                        <!-- Neutral Brain Blueprint Silhouette Paths -->
                         <path d="M 180 160 C 160 80, 220 30, 380 30 C 430 30, 460 45, 480 70 C 500 45, 530 30, 580 30 C 690 30, 710 100, 680 180 C 650 240, 580 270, 480 270 C 450 270, 420 260, 400 240 C 380 260, 350 270, 320 270 C 220 270, 160 220, 180 160 Z" 
-                              fill="none" stroke="#1e293b" stroke-width="2" opacity="0.3" stroke-dasharray="8 6" />
+                              fill="none" stroke="#334155" stroke-width="1" opacity="0.18" stroke-dasharray="6 6" />
                               
-                        <!-- Additional organic brain hemisphere folds -->
-                        <path d="M 230 110 C 270 70, 330 100, 370 80 C 410 60, 450 100, 500 80 C 560 70, 600 110, 620 150" fill="none" stroke="#06b6d4" stroke-width="1" opacity="0.12" />
-                        <path d="M 240 190 C 290 220, 350 200, 390 220 C 430 240, 480 200, 530 210" fill="none" stroke="#a855f7" stroke-width="1" opacity="0.12" />
-                        <path d="M 398 30 Q 380 150, 398 270" fill="none" stroke="#1e293b" stroke-width="1.5" opacity="0.25" />
+                        <path d="M 230 110 C 270 70, 330 100, 370 80 C 410 60, 450 100, 500 80 C 560 70, 600 110, 620 150" fill="none" stroke="#334155" stroke-width="0.8" opacity="0.15" />
+                        <path d="M 240 190 C 290 220, 350 200, 390 220 C 430 240, 480 200, 530 210" fill="none" stroke="#334155" stroke-width="0.8" opacity="0.15" />
+                        <path d="M 398 30 Q 380 150, 398 270" fill="none" stroke="#334155" stroke-width="1" opacity="0.15" />
 
                         <!-- Connections Group -->
                         <g id="connections-group"></g>
@@ -362,7 +355,7 @@
                     <div class="bg-slate-950/40 p-4 rounded-xl border border-slate-900 flex flex-col items-center justify-center text-center font-mono">
                         <span class="text-sm font-bold text-emerald-400" id="stat-avg-reward">+0.0000</span>
                         <span class="text-[9px] text-slate-400 mt-2 uppercase">Avg PnL Reward</span>
-                        <div class="w-full mt-2 h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                        <div class="w-full mt-2 h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-900">
                             <div id="reward-bar" class="h-full bg-emerald-500" style="width: 0%"></div>
                         </div>
                     </div>
@@ -509,8 +502,10 @@
 
     // Load initial data
     document.addEventListener("DOMContentLoaded", () => {
-        if (currentTraderId) {
-            drawNeuralArchitecture();
+        // ALWAYS draw the visualizer so the page is never blank
+        drawNeuralArchitecture();
+
+        if (currentTraderId && currentTraderId !== "None" && currentTraderId !== "") {
             fetchWeights();
             fetchLogs();
             
@@ -519,6 +514,10 @@
                 fetchLogs();
                 fetchWeights(true); // silent fetch to update values
             }, 10000);
+        } else {
+            // Load dummy weights so visualizer is fully functional and interactive on boot
+            loadDummyWeights();
+            showNoTraderNotice();
         }
     });
 
@@ -556,6 +555,67 @@
         window.location.href = `?trader_id=${val}`;
     }
 
+    // Load dummy weights if database has no active traders
+    function loadDummyWeights() {
+        const dummyLayers = ["actor.0.weight", "actor.0.bias", "actor.2.weight", "actor.2.bias", "actor.4.weight", "actor.4.bias", "critic.0.weight", "critic.0.bias", "critic.2.weight", "critic.2.bias", "critic.4.weight", "critic.4.bias"];
+        activeWeightsData = {};
+        
+        dummyLayers.forEach(layerKey => {
+            let shape = [64, 4];
+            if (layerKey.includes("bias")) {
+                shape = [64];
+                if (layerKey.includes(".4.")) shape = [1];
+            } else if (layerKey.includes(".2.")) {
+                shape = [64, 64];
+            } else if (layerKey.includes(".4.")) {
+                shape = [1, 64];
+            }
+            
+            let values = [];
+            let prevValues = [];
+            if (shape.length === 2) {
+                for (let r = 0; r < shape[0]; r++) {
+                    values.push([]);
+                    prevValues.push([]);
+                    for (let c = 0; c < shape[1]; c++) {
+                        const val = (Math.random() - 0.5) * 0.4;
+                        values[r].push(val);
+                        prevValues[r].push(val * (0.95 + Math.random() * 0.1));
+                    }
+                }
+            } else {
+                for (let i = 0; i < shape[0]; i++) {
+                    const val = (Math.random() - 0.5) * 0.4;
+                    values.push(val);
+                    prevValues.push(val * (0.95 + Math.random() * 0.1));
+                }
+            }
+            
+            activeWeightsData[layerKey] = {
+                shape: shape,
+                mean: 0.015,
+                mean_diff: 0.0014,
+                values: values,
+                prev_values: prevValues
+            };
+        });
+        
+        renderLayerWeights(selectedLayer);
+    }
+
+    function showNoTraderNotice() {
+        document.getElementById("detail-reason").innerHTML = `<span class="text-amber-400 font-bold"><i class="fas fa-exclamation-triangle"></i> SAMPLE VISUALIZATION</span><br/>No active paper trading instances detected. Setup or start a Paper Bot on the Paper Trading dashboard to inspect live neural network adjustments in real-time. Viewing sample matrix stats.`;
+        
+        const feed = document.getElementById("learning-feed");
+        feed.innerHTML = `
+            <div class="p-6 bg-slate-950/60 rounded-xl border border-dashed border-slate-800 text-center text-slate-400 space-y-3">
+                <i class="fas fa-network-wired text-cyan-500 text-xl animate-pulse"></i>
+                <p class="text-xs">Awaiting active paper execution node connection.</p>
+                <a href="/paper-trading/" class="inline-block bg-slate-900 border border-slate-700 text-slate-200 hover:text-white px-3.5 py-1.5 rounded-lg text-[10px] font-mono transition-colors">Start Bot Instance</a>
+            </div>
+        `;
+    }
+
     // SVG Neural viz drawing
     function drawNeuralArchitecture() {
         const svg = document.getElementById("connections-group");
@@ -563,8 +623,6 @@
         svg.innerHTML = "";
         neurGroup.innerHTML = "";
 
-        // Core dimensions mapping state_dim=4, action_dim=1 (actor), value=1 (critic)
-        // Laying out nodes organically over the curved brain outline path
         const layers = [
             { id: "input", label: "Input", units: 4, x: 200, colors: ["#06b6d4", "#0891b2"], yCoords: [110, 140, 170, 200] },
             { id: "hidden1_act", label: "Hidden 1 (Actor)", units: 6, x: 320, colors: ["#2563eb", "#3b82f6"], yCoords: [70, 95, 120, 145, 170, 195].map(y => y - 10) },
@@ -585,7 +643,7 @@
                     const dx = n2.x - n1.x;
                     const dy = n2.y - n1.y;
                     const cx = n1.x + dx/2;
-                    const cy = n1.y + dy/2 - (dx > 100 ? 8 : 0); // slight curve
+                    const cy = n1.y + dy/2 - (dx > 100 ? 8 : 0);
                     
                     const d = `M ${n1.x} ${n1.y} Q ${cx} ${cy} ${n2.x} ${n2.y}`;
                     path.setAttribute("d", d);
@@ -621,7 +679,6 @@
             });
         }
 
-        // Generate coordinate mapping
         const nodes = {};
         layers.forEach(layer => {
             nodes[layer.id] = [];
@@ -633,19 +690,13 @@
             }
         });
 
-        // input connects to both actor H1 and critic H1
         connectLayers(nodes["input"], nodes["hidden1_act"], "#06b6d4");
         connectLayers(nodes["input"], nodes["hidden1_crit"], "#a855f7");
-        
-        // H1 -> H2
         connectLayers(nodes["hidden1_act"], nodes["hidden2_act"], "#3b82f6", true);
         connectLayers(nodes["hidden1_crit"], nodes["hidden2_crit"], "#a855f7", true);
-        
-        // H2 -> Outputs
         connectLayers(nodes["hidden2_act"], nodes["output_act"], "#10b981");
         connectLayers(nodes["hidden2_crit"], nodes["output_crit"], "#f43f5e");
 
-        // Render nodes
         layers.forEach(layer => {
             nodes[layer.id].forEach((node, index) => {
                 const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -660,7 +711,6 @@
                 circle.setAttribute("stroke-width", "1.5");
                 circle.style.cursor = "pointer";
 
-                // Click layer selection binding
                 circle.onclick = () => {
                     let mapLayer = "actor.0.weight";
                     let label = "Actor Input Weights (actor.0.weight)";
@@ -697,7 +747,6 @@
         });
     }
 
-    // Fetch parameters weights
     function fetchWeights(silent = false) {
         if (!currentTraderId) return;
         
@@ -715,7 +764,6 @@
             .catch(err => console.error("Error fetching weights API:", err));
     }
 
-    // Render parameters matrix heatmap
     function renderLayerWeights(layerKey, silent = false) {
         selectedLayer = layerKey;
         const grid = document.getElementById("heatmap-grid");
@@ -727,10 +775,8 @@
             return;
         }
 
-        // Update Dynamic Glossary description
         document.getElementById("layer-explanation").innerHTML = layerGlossary[layerKey] || "Unknown parameter layer.";
 
-        // Stats UI elements update
         document.getElementById("stat-shape").textContent = `[${layer.shape.join(", ")}]`;
         document.getElementById("stat-diff").textContent = layer.mean_diff ? layer.mean_diff.toFixed(6) : "0.000000";
         document.getElementById("stat-mean").textContent = layer.mean.toFixed(4);
@@ -785,7 +831,6 @@
             }
         }
 
-        // If previously selected weight was updated, refresh details
         if (selectedRowIdx !== null) {
             let newVal, newPrevVal;
             if (shape.length === 2 && selectedColIdx !== null) {
@@ -847,14 +892,17 @@
 
         const latestReasonElement = document.getElementById("detail-reason");
         
-        fetch(`/api/neural/weights/?trader_id=${currentTraderId}`)
-            .then(res => res.json())
-            .then(data => {
-                latestReasonElement.textContent = data.latest_reason;
-            });
+        if (currentTraderId && currentTraderId !== "None" && currentTraderId !== "") {
+            fetch(`/api/neural/weights/?trader_id=${currentTraderId}`)
+                .then(res => res.json())
+                .then(data => {
+                    latestReasonElement.textContent = data.latest_reason;
+                });
+        }
 
+        // Enable override action (only if we have a real trader)
         const editBtn = document.getElementById("edit-trigger-btn");
-        editBtn.disabled = false;
+        editBtn.disabled = !(currentTraderId && currentTraderId !== "None" && currentTraderId !== "");
     }
 
     function openEditModal() {
