@@ -4103,12 +4103,19 @@ def neural_learning_log_api(request):
         
     # Calculate live stats from logs
     exits = OnlineLearningLog.objects.filter(trader=trader, event_type='EXIT')
-    win_count = exits.filter(details__reward__gt=0).count()
-    loss_count = exits.filter(details__reward__lte=0).count()
-    completed_trades = exits.count()
+    exit_rewards = []
+    for e in exits:
+        try:
+            r = float(e.details.get('reward', 0.0))
+            exit_rewards.append(r)
+        except (ValueError, TypeError):
+            exit_rewards.append(0.0)
+            
+    completed_trades = len(exit_rewards)
+    win_count = sum(1 for r in exit_rewards if r > 0.0)
+    loss_count = completed_trades - win_count
     win_rate = (win_count / max(1, completed_trades)) * 100 if completed_trades > 0 else 0.0
-    
-    avg_reward = exits.aggregate(avg=Avg('details__reward'))['avg'] or 0.0
+    avg_reward = sum(exit_rewards) / max(1, completed_trades) if completed_trades > 0 else 0.0
     
     total_updates = OnlineLearningLog.objects.filter(trader=trader, event_type='UPDATE').count()
     
@@ -4442,7 +4449,7 @@ def past_decisions_api(request):
     logs = OnlineLearningLog.objects.filter(
         trader=trader, 
         event_type__in=['ENTRY', 'EXIT', 'DECISION']
-    ).order_by('-timestamp')[:50]
+    ).order_by('-timestamp')[:20]
 
     trades_list = []
     import re
@@ -4583,11 +4590,19 @@ def download_report_view(request):
         
         # Standard statistics
         exits = OnlineLearningLog.objects.filter(trader=trader, event_type='EXIT')
-        win_count = exits.filter(details__reward__gt=0).count()
-        loss_count = exits.filter(details__reward__lte=0).count()
-        completed_trades = exits.count()
+        exit_rewards = []
+        for e in exits:
+            try:
+                r = float(e.details.get('reward', 0.0))
+                exit_rewards.append(r)
+            except (ValueError, TypeError):
+                exit_rewards.append(0.0)
+                
+        completed_trades = len(exit_rewards)
+        win_count = sum(1 for r in exit_rewards if r > 0.0)
+        loss_count = completed_trades - win_count
         win_rate = (win_count / max(1, completed_trades)) * 100 if completed_trades > 0 else 0.0
-        avg_reward = exits.aggregate(avg=Avg('details__reward'))['avg'] or 0.0
+        avg_reward = sum(exit_rewards) / max(1, completed_trades) if completed_trades > 0 else 0.0
         total_updates = OnlineLearningLog.objects.filter(trader=trader, event_type='UPDATE').count()
     
     # Compute weight statistics summary
@@ -4752,8 +4767,8 @@ def record_decision_api(request):
             reason=reason
         )
         
-        # Prune old decision checks (keep max 100)
-        old_decisions = OnlineLearningLog.objects.filter(trader=trader, event_type='DECISION').order_by('-timestamp')[100:]
+        # Prune old decision checks (keep max 20)
+        old_decisions = OnlineLearningLog.objects.filter(trader=trader, event_type='DECISION').order_by('-timestamp')[20:]
         if old_decisions.exists():
             old_ids = list(old_decisions.values_list('id', flat=True))
             OnlineLearningLog.objects.filter(id__in=old_ids).delete()

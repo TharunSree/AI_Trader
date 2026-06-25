@@ -237,7 +237,7 @@
                         <i class="fas fa-undo"></i> Reset
                     </button>
                     
-                    <button onclick="recordCurrentSandboxState()" class="bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-mono px-2.5 py-1.5 rounded-lg cursor-pointer transition-all flex items-center gap-1.5" id="btn-record-sandbox">
+                    <button onclick="recordCurrentSandboxState()" class="bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-mono px-2.5 py-1.5 rounded-lg cursor-pointer transition-all flex items-center gap-1.5" id="btn-record-sandbox" style="display: none;">
                         <i class="fas fa-save"></i> Record Firing
                     </button>
 
@@ -385,12 +385,24 @@
         triggerSandboxUpdate();
     }
 
+    let autoSaveTimeout = null;
+    function queueAutoSave() {
+        if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
+        autoSaveTimeout = setTimeout(() => {
+            const badge = document.getElementById("sandbox-badge");
+            if (badge && badge.textContent.includes("REPLAY")) {
+                return; // Do not auto-save past trade replays
+            }
+            recordCurrentSandboxState(true);
+        }, 1000);
+    }
+
     function loadHistoricalTrade(priceTrend, sentiment, volatility, spread) {
         document.getElementById("slide-price-trend").value = priceTrend;
         document.getElementById("slide-sentiment").value = sentiment;
         document.getElementById("slide-volatility").value = volatility;
         document.getElementById("slide-spread").value = spread;
-        triggerSandboxUpdate();
+        triggerSandboxUpdate(true); // pass animate = true
         
         // Highlight sandbox badge to indicate replay
         const badge = document.getElementById("sandbox-badge");
@@ -398,7 +410,7 @@
         badge.className = "bg-slate-950 border border-slate-850 text-amber-400 text-[9px] font-mono px-2.5 py-1 rounded-full uppercase flex items-center gap-1.5";
     }
 
-    function triggerSandboxUpdate() {
+    function triggerSandboxUpdate(animate = false) {
         const priceTrend = parseFloat(document.getElementById("slide-price-trend").value);
         const sentiment = parseFloat(document.getElementById("slide-sentiment").value);
         const volatility = parseFloat(document.getElementById("slide-volatility").value);
@@ -412,8 +424,10 @@
 
         // Reset badge when user manually interacts
         const badge = document.getElementById("sandbox-badge");
-        badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span> Sandbox Live`;
-        badge.className = "bg-slate-950 border border-slate-850 text-cyan-400 text-[9px] font-mono px-2.5 py-1 rounded-full uppercase flex items-center gap-1.5";
+        if (!animate && badge && badge.textContent.includes("REPLAY")) {
+            badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span> Sandbox Live`;
+            badge.className = "bg-slate-950 border border-slate-850 text-cyan-400 text-[9px] font-mono px-2.5 py-1 rounded-full uppercase flex items-center gap-1.5";
+        }
 
         // Query API to calculate decision flow
         fetch(`/api/neural/simulate-decision/?trader_id=${currentTraderId}&price_trend=${priceTrend}&sentiment=${sentiment}&volatility=${volatility}&spread=${spread}`)
@@ -422,7 +436,7 @@
                 if (data.error) return;
                 
                 // Update node visual glows and weights paths
-                updateVisualNodeStates(data);
+                updateVisualNodeStates(data, animate);
                 
                 // Render Simple English logs
                 const narrativeBox = document.getElementById("narrative-log");
@@ -443,6 +457,11 @@
                     `;
                 });
                 tipsBox.innerHTML = tipsHtml;
+                
+                // Queue automatic sandbox save
+                if (!animate) {
+                    queueAutoSave();
+                }
             })
             .catch(err => console.error("Simulator API Error:", err));
     }
@@ -572,7 +591,27 @@
         });
     }
 
-    function updateVisualNodeStates(data) {
+    function highlightWires(fromLayer, toLayer, color) {
+        const idPrefix = `path-${fromLayer}-${toLayer}`;
+        const paths = document.querySelectorAll(`[id^="${idPrefix}"]`);
+        paths.forEach(path => {
+            const originalStroke = path.getAttribute("stroke-width");
+            const originalOpacity = path.getAttribute("opacity") || "0.2";
+            
+            path.setAttribute("stroke", color);
+            path.setAttribute("stroke-width", "4");
+            path.setAttribute("opacity", "0.95");
+            path.style.filter = `drop-shadow(0 0 4px ${color})`;
+            
+            setTimeout(() => {
+                path.setAttribute("stroke-width", originalStroke);
+                path.setAttribute("opacity", originalOpacity);
+                path.style.filter = "none";
+            }, 600);
+        });
+    }
+
+    function updateVisualNodeStates(data, animate = false) {
         // Helper to update colors/glows based on values
         function setNodeGlow(id, val, rangeLimit = 1.0) {
             const node = document.getElementById(id);
@@ -603,29 +642,65 @@
             }
         }
 
-        // 1. Set input node glows
-        setNodeGlow("node-input-0", data.price_trend);
-        setNodeGlow("node-input-1", data.sentiment);
-        setNodeGlow("node-input-2", data.volatility);
-        setNodeGlow("node-input-3", data.spread);
+        // Reset all nodes to neutral dim gray before starting animation
+        if (animate) {
+            const allCircles = document.querySelectorAll(".node-circle");
+            allCircles.forEach(c => {
+                c.setAttribute("fill", "#1e293b");
+                c.setAttribute("stroke", "#334155");
+                c.style.filter = "none";
+            });
+            const allTexts = document.querySelectorAll(".neuron text");
+            allTexts.forEach(t => t.setAttribute("fill", "#64748b"));
+        }
 
-        // 2. Set hidden actor layers node glows
-        data.actor_h1.forEach((val, i) => setNodeGlow(`node-ha1-${i}`, val));
-        data.actor_h2.forEach((val, i) => setNodeGlow(`node-ha2-${i}`, val));
+        const delayStep = animate ? 250 : 0;
 
-        // 3. Set hidden critic layers node glows
-        data.critic_h1.forEach((val, i) => setNodeGlow(`node-hc1-${i}`, val));
-        data.critic_h2.forEach((val, i) => setNodeGlow(`node-hc2-${i}`, val));
+        // 1. Set input node glows (Layer 0) - Immediate
+        setTimeout(() => {
+            setNodeGlow("node-input-0", data.price_trend);
+            setNodeGlow("node-input-1", data.sentiment);
+            setNodeGlow("node-input-2", data.volatility);
+            setNodeGlow("node-input-3", data.spread);
+            
+            if (animate) {
+                highlightWires("input", "ha1", "#2563eb");
+                highlightWires("input", "hc1", "#8b5cf6");
+            }
+        }, 0);
 
-        // 4. Set outputs glows
-        setNodeGlow("node-act-0", data.actor_out);
-        setNodeGlow("node-val-0", data.critic_out, 0.15); // Critic scale is smaller
+        // 2. Set hidden layer 1 node glows (Layer 1) - After 250ms
+        setTimeout(() => {
+            data.actor_h1.forEach((val, i) => setNodeGlow(`node-ha1-${i}`, val));
+            data.critic_h1.forEach((val, i) => setNodeGlow(`node-hc1-${i}`, val));
+            
+            if (animate) {
+                highlightWires("ha1", "ha2", "#3b82f6");
+                highlightWires("hc1", "hc2", "#a855f7");
+            }
+        }, delayStep);
 
-        // 5. Update text indicators inside output nodes
-        const actText = document.getElementById("text-act-0");
-        const valText = document.getElementById("text-val-0");
-        if (actText) actText.textContent = data.actor_out.toFixed(2);
-        if (valText) valText.textContent = data.critic_out.toFixed(3);
+        // 3. Set hidden layer 2 node glows (Layer 2) - After 500ms
+        setTimeout(() => {
+            data.actor_h2.forEach((val, i) => setNodeGlow(`node-ha2-${i}`, val));
+            data.critic_h2.forEach((val, i) => setNodeGlow(`node-hc2-${i}`, val));
+            
+            if (animate) {
+                highlightWires("ha2", "act", "#10b981");
+                highlightWires("hc2", "val", "#f43f5e");
+            }
+        }, delayStep * 2);
+
+        // 4. Set output layer node glows (Layer 3) - After 750ms
+        setTimeout(() => {
+            setNodeGlow("node-act-0", data.actor_out);
+            setNodeGlow("node-val-0", data.critic_out, 0.15);
+            
+            const actText = document.getElementById("text-act-0");
+            const valText = document.getElementById("text-val-0");
+            if (actText) actText.textContent = data.actor_out.toFixed(2);
+            if (valText) valText.textContent = data.critic_out.toFixed(3);
+        }, delayStep * 3);
     }
 
     function loadPastTrades() {
@@ -683,7 +758,7 @@
             });
     }
 
-    function recordCurrentSandboxState() {
+    function recordCurrentSandboxState(isSilent = false) {
         const priceTrend = parseFloat(document.getElementById("slide-price-trend").value);
         const sentiment = parseFloat(document.getElementById("slide-sentiment").value);
         const volatility = parseFloat(document.getElementById("slide-volatility").value);
@@ -694,8 +769,10 @@
         const actionVal = parseFloat(actTextVal) || 0.0;
         
         const btn = document.getElementById("btn-record-sandbox");
-        btn.disabled = true;
-        btn.innerHTML = `<i class="fas fa-spinner animate-spin"></i> Saving...`;
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fas fa-spinner animate-spin"></i> Saving...`;
+        }
         
         const csrfTokenEl = document.querySelector('[name=csrfmiddlewaretoken]');
         const token = csrfTokenEl ? csrfTokenEl.value : getCookie('csrftoken');
@@ -717,20 +794,30 @@
         })
         .then(res => res.json())
         .then(data => {
-            btn.disabled = false;
-            btn.innerHTML = `<i class="fas fa-save"></i> Record Firing`;
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fas fa-save"></i> Record Firing`;
+            }
             if (data.status === 'success') {
-                alert("Decision firing logged successfully!");
+                if (!isSilent) {
+                    alert("Decision firing logged successfully!");
+                }
                 loadPastTrades();
             } else {
-                alert("Failed to log decision: " + data.message);
+                if (!isSilent) {
+                    alert("Failed to log decision: " + data.message);
+                }
             }
         })
         .catch(err => {
-            btn.disabled = false;
-            btn.innerHTML = `<i class="fas fa-save"></i> Record Firing`;
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fas fa-save"></i> Record Firing`;
+            }
             console.error("Error logging decision:", err);
-            alert("Network/Server error recording decision.");
+            if (!isSilent) {
+                alert("Network/Server error recording decision.");
+            }
         });
     }
     

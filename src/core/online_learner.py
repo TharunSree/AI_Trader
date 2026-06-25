@@ -131,9 +131,9 @@ class OnlineLearner:
                 reason = f"Decision check for {symbol}. Price Trend is {details['price_trend']:+.2f}, Sentiment: {details['sentiment']:+.2f}, Volatility is {details['volatility']:.4f}, Signal: {action_val:+.4f}"
                 self._log_event('DECISION', symbol=symbol, details=details, reason=reason)
                 
-                # Prune old decision checks to keep database lean (keep max 100 entries)
+                # Prune old decision checks to keep database lean (keep max 20 entries)
                 from control_panel.models import OnlineLearningLog
-                old_decisions = OnlineLearningLog.objects.filter(trader_id=self.trader_id, event_type='DECISION').order_by('-timestamp')[100:]
+                old_decisions = OnlineLearningLog.objects.filter(trader_id=self.trader_id, event_type='DECISION').order_by('-timestamp')[20:]
                 if old_decisions.exists():
                     old_ids = list(old_decisions.values_list('id', flat=True))
                     OnlineLearningLog.objects.filter(id__in=old_ids).delete()
