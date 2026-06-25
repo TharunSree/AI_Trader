@@ -82,6 +82,7 @@
 {% endblock extra_css %}
 
 {% block page_content %}
+{% csrf_token %}
 <div class="space-y-6">
     <!-- Top Action bar with bot selection -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -696,11 +697,14 @@
         btn.disabled = true;
         btn.innerHTML = `<i class="fas fa-spinner animate-spin"></i> Saving...`;
         
+        const csrfTokenEl = document.querySelector('[name=csrfmiddlewaretoken]');
+        const token = csrfTokenEl ? csrfTokenEl.value : getCookie('csrftoken');
+        
         fetch('/api/neural/record-decision/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
+                'X-CSRFToken': token
             },
             body: JSON.stringify({
                 trader_id: currentTraderId,

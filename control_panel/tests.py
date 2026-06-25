@@ -97,3 +97,51 @@ class DashboardViewTests(TestCase):
         self.assertEqual(snapshot['cpu_percent'], 45.2)
         cache.delete("system_telemetry_cpu")
 
+    def test_download_report_view_anonymous_redirect(self):
+        response = self.client.get(reverse('neural_download_report'))
+        self.assertEqual(response.status_code, 302)
+
+    def test_download_report_view_mock_fallback(self):
+        self.client.force_login(self.user)
+        # Verify that it loads successfully even with no PaperTrader objects in database (since it falls back to mock)
+        response = self.client.get(reverse('neural_download_report'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Simulated Paper Trader (Demo Mode)")
+        self.assertContains(response, "best_model.pth")
+        
+        # Test markdown download
+        response_md = self.client.get(reverse('neural_download_report') + '?format=markdown')
+        self.assertEqual(response_md.status_code, 200)
+        self.assertEqual(response_md['Content-Type'], 'text/markdown')
+        self.assertIn(b'# AI Trader - Neural Cortex & Diagnostics Report', response_md.content)
+
+    def test_record_decision_api_creates_log(self):
+        self.client.force_login(self.user)
+        # First register a PaperTrader bot
+        from control_panel.models import PaperTrader, OnlineLearningLog
+        trader = PaperTrader.objects.create(
+            status="RUNNING",
+            model_file="best_model.pth"
+        )
+        
+        payload = {
+            'trader_id': trader.id,
+            'price_trend': 0.5,
+            'sentiment': -0.2,
+            'volatility': 0.15,
+            'spread': 0.05,
+            'action_val': 0.65
+        }
+        # Post to endpoint
+        response = self.client.post(
+            reverse('record_decision_api'),
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        resp_data = json.loads(response.content)
+        self.assertEqual(resp_data['status'], 'success')
+        
+        # Verify event was recorded in database
+        self.assertEqual(OnlineLearningLog.objects.filter(trader=trader, event_type='DECISION').count(), 1)
+

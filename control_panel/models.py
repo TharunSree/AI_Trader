@@ -117,6 +117,14 @@ class PaperTrader(models.Model):
     account = models.ForeignKey(BrokerAccount, on_delete=models.SET_NULL, null=True, blank=True, related_name='instances')
     live_net_profit = models.FloatField(default=0.0)
 
+    @property
+    def name(self):
+        return f"Paper Bot #{self.id}"
+
+    @property
+    def symbol(self):
+        return "BTC/USD"
+
     def __str__(self):
         return f"Paper Trading Bot - Status: {self.status}"
 
