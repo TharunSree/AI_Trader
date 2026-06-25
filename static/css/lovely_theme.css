@@ -55,6 +55,7 @@ h1, h2, h3, h4, h5, h6 {
 .bg-slate-950\/80,
 .bg-slate-900\/50,
 .bg-gray-100,
+.bg-gray-850,
 .bg-gray-800,
 .bg-gray-900,
 .bg-gray-950,
@@ -82,7 +83,28 @@ h1, h2, h3, h4, h5, h6 {
 .dark\:bg-\[\#0c0f16\]\/50,
 .dark\:bg-gray-800,
 .dark\:bg-gray-900,
-.dark\:bg-gray-950 {
+.dark\:bg-gray-950,
+/* Specific nested dark mode overrides to force light theme specificity */
+.dark .dark\:bg-slate-100,
+.dark .dark\:bg-slate-800,
+.dark .dark\:bg-slate-850,
+.dark .dark\:bg-slate-900,
+.dark .dark\:bg-slate-950:not(body),
+.dark .dark\:bg-slate-900\/40,
+.dark .dark\:bg-slate-900\/50,
+.dark .dark\:bg-slate-900\/60,
+.dark .dark\:bg-slate-900\/80,
+.dark .dark\:bg-slate-950\/25,
+.dark .dark\:bg-slate-950\/40,
+.dark .dark\:bg-slate-950\/60,
+.dark .dark\:bg-slate-950\/80,
+.dark .dark\:bg-slate-900\/30,
+.dark .dark\:bg-\[\#0a0a0c\],
+.dark .dark\:bg-\[\#0c0f16\],
+.dark .dark\:bg-\[\#0c0f16\]\/50,
+.dark .dark\:bg-gray-800,
+.dark .dark\:bg-gray-900,
+.dark .dark\:bg-gray-950 {
     background-color: var(--lovely-card) !important;
     background: var(--lovely-card) !important;
     border-color: var(--lovely-border) !important;
@@ -96,7 +118,9 @@ h1, h2, h3, h4, h5, h6 {
 body.bg-slate-50,
 body.dark\:bg-slate-950,
 .bg-slate-50,
-.dark\:bg-slate-950 {
+.dark\:bg-slate-950,
+.dark body.bg-slate-50,
+.dark body.dark\:bg-slate-950 {
     background-color: var(--lovely-bg) !important;
     background: var(--lovely-bg) !important;
 }
@@ -104,7 +128,9 @@ body.dark\:bg-slate-950,
 /* Header Override */
 header,
 .bg-white\/80,
-.dark\:bg-slate-900\/80 {
+.dark\:bg-slate-900\/80,
+.dark header,
+.dark .dark\:bg-slate-900\/80 {
     background-color: var(--lovely-card) !important;
     background: var(--lovely-card) !important;
     border-bottom: 1px solid var(--lovely-border) !important;
@@ -119,19 +145,20 @@ header,
 .border-slate-800, 
 .border-slate-900, 
 .border-slate-850, 
+.border-gray-250,
 .border-gray-200,
 .border-gray-700,
 .border-gray-800,
 .border-gray-900,
-.dark\:border-slate-700,
-.dark\:border-slate-750,
-.dark\:border-slate-800,
-.dark\:border-slate-850,
-.dark\:border-slate-900,
-.dark\:border-slate-800\/80,
-.dark\:border-gray-700,
-.dark\:border-gray-850,
-.dark\:border-gray-800 {
+.dark .dark\:border-slate-700,
+.dark .dark\:border-slate-750,
+.dark .dark\:border-slate-800,
+.dark .dark\:border-slate-850,
+.dark .dark\:border-slate-900,
+.dark .dark\:border-slate-800\/80,
+.dark .dark\:border-gray-700,
+.dark .dark\:border-gray-850,
+.dark .dark\:border-gray-800 {
     border-color: var(--lovely-border) !important;
 }
 
@@ -147,14 +174,15 @@ header,
 .text-gray-250,
 .text-gray-200,
 .text-gray-300,
-.dark\:text-slate-100,
-.dark\:text-slate-200,
-.dark\:text-slate-300,
-.dark\:text-slate-350,
-.dark\:text-slate-150,
-.dark\:text-white,
-.dark\:text-gray-200,
-.dark\:text-gray-300 {
+.dark .dark\:text-slate-100,
+.dark .dark\:text-slate-200,
+.dark .dark\:text-slate-300,
+.dark .dark\:text-slate-350,
+.dark .dark\:text-slate-150,
+.dark .dark\:text-white,
+.dark .dark\:text-gray-250,
+.dark .dark\:text-gray-200,
+.dark .dark\:text-gray-300 {
     color: var(--lovely-text) !important;
 }
 
@@ -164,12 +192,12 @@ header,
 .text-slate-550, 
 .text-gray-400,
 .text-gray-500,
-.dark\:text-slate-400,
-.dark\:text-slate-450,
-.dark\:text-slate-500,
-.dark\:text-slate-550,
-.dark\:text-gray-400,
-.dark\:text-gray-500 {
+.dark .dark\:text-slate-400,
+.dark .dark\:text-slate-450,
+.dark .dark\:text-slate-500,
+.dark .dark\:text-slate-550,
+.dark .dark\:text-gray-400,
+.dark .dark\:text-gray-500 {
     color: var(--lovely-text-muted) !important;
 }
 
@@ -180,13 +208,14 @@ header,
 .text-brand-500,
 .text-indigo-400,
 .text-indigo-500,
-.dark\:text-cyan-445,
-.dark\:text-cyan-450,
-.dark\:text-cyan-400,
-.dark\:text-cyan-500,
-.dark\:text-brand-500,
-.dark\:text-indigo-400,
-.dark\:text-indigo-500 {
+.dark .dark\:text-cyan-300,
+.dark .dark\:text-cyan-445,
+.dark .dark\:text-cyan-450,
+.dark .dark\:text-cyan-400,
+.dark .dark\:text-cyan-500,
+.dark .dark\:text-brand-500,
+.dark .dark\:text-indigo-400,
+.dark .dark\:text-indigo-500 {
     color: var(--lovely-blue) !important;
 }
 
@@ -194,10 +223,10 @@ header,
 .text-emerald-500, 
 .text-green-400,
 .text-green-500,
-.dark\:text-emerald-400,
-.dark\:text-emerald-500,
-.dark\:text-green-400,
-.dark\:text-green-500 {
+.dark .dark\:text-emerald-400,
+.dark .dark\:text-emerald-500,
+.dark .dark\:text-green-400,
+.dark .dark\:text-green-500 {
     color: var(--lovely-green) !important;
 }
 
@@ -206,11 +235,11 @@ header,
 .text-rose-400, 
 .text-rose-450,
 .text-rose-500,
-.dark\:text-red-400,
-.dark\:text-red-500,
-.dark\:text-rose-400,
-.dark\:text-rose-450,
-.dark\:text-rose-500 {
+.dark .dark\:text-red-400,
+.dark .dark\:text-red-500,
+.dark .dark\:text-rose-400,
+.dark .dark\:text-rose-450,
+.dark .dark\:text-rose-500 {
     color: var(--lovely-rose) !important;
 }
 
@@ -257,12 +286,21 @@ nav.sidebar-nav,
 /* Interactive elements rounded style */
 input, 
 select, 
-textarea {
+textarea,
+.btn,
+a[class*="bg-"]:not(.node-circle),
+a[class*="btn"]:not(.node-circle),
+button:not(.node-circle):not(.sidebar button) {
     border-radius: 12px !important;
-    border: 1px solid var(--lovely-border) !important;
+    border: 1px solid var(--lovely-border);
+    font-family: 'Quicksand', sans-serif !important;
+}
+
+input, 
+select, 
+textarea {
     background-color: var(--lovely-card) !important;
     color: var(--lovely-text) !important;
-    font-family: 'Quicksand', sans-serif !important;
     padding: 8px 12px !important;
 }
 
@@ -285,14 +323,6 @@ input[type="range"]::-webkit-slider-thumb {
     background: var(--lovely-blue) !important;
     box-shadow: 0 0 6px rgba(59, 130, 246, 0.3) !important;
     border-radius: 50% !important;
-}
-
-/* Buttons */
-.btn, 
-button:not(.node-circle):not(.sidebar button) {
-    border-radius: 12px !important;
-    font-family: 'Quicksand', sans-serif !important;
-    font-weight: 700 !important;
 }
 
 .bg-cyan-500, 
@@ -337,7 +367,8 @@ button:not(.node-circle):not(.sidebar button) {
 .hover\:bg-slate-950\/40:hover,
 .dark\:hover\:bg-slate-800:hover,
 .dark\:hover\:bg-slate-800\/50:hover,
-.dark\:hover\:bg-slate-900\/50:hover {
+.dark\:hover\:bg-slate-900\/50:hover,
+.dark .dark\:hover\:bg-slate-700:hover {
     background-color: #faf6f0 !important;
     background: #faf6f0 !important;
     color: var(--lovely-text) !important;
@@ -422,7 +453,8 @@ svg#flow-connections {
 .bg-emerald-900\/20,
 .bg-emerald-950\/40,
 .text-emerald-400,
-.dark\:text-emerald-400 {
+.dark\:text-emerald-400,
+.dark .dark\:text-emerald-400 {
     background-color: var(--lovely-green-pastel) !important;
     color: var(--lovely-green) !important;
     border-color: #d1f7ec !important;
@@ -433,7 +465,8 @@ svg#flow-connections {
 .bg-rose-950\/40,
 .text-rose-400,
 .text-red-400,
-.dark\:text-rose-400 {
+.dark\:text-rose-400,
+.dark .dark\:text-rose-400 {
     background-color: var(--lovely-rose-pastel) !important;
     color: var(--lovely-rose) !important;
     border-color: #fddbe2 !important;
@@ -445,7 +478,9 @@ svg#flow-connections {
 .bg-cyan-950,
 .bg-cyan-900\/20,
 .dark\:bg-blue-950,
-.dark\:bg-blue-900\/20 {
+.dark\:bg-blue-900\/20,
+.dark .dark\:bg-blue-950,
+.dark .dark\:bg-blue-900\/20 {
     background-color: var(--lovely-blue-pastel) !important;
     color: var(--lovely-blue) !important;
     border-color: #dbeafe !important;
