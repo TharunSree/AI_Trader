@@ -105,11 +105,15 @@ urlpatterns = [
     # Relax Lounge (Gaming Hub)
     path('relax/', views.relax_view, name='relax_view'),
     path('relax/browse/', views.relax_browse_dir, name='relax_browse_dir'),
+    path('relax/serve-local-file/', views.serve_local_file, name='serve_local_file'),
     path('relax/game/sync-steam/', views.relax_sync_steam_playtimes, name='relax_sync_steam_playtimes'),
     path('relax/game/add/', views.relax_add_game, name='relax_add_game'),
+    path('relax/game/edit/<int:game_id>/', views.relax_edit_game, name='relax_edit_game'),
     path('relax/game/delete/<int:game_id>/', views.relax_delete_game, name='relax_delete_game'),
     path('relax/guide/add/', views.relax_add_guide, name='relax_add_guide'),
     path('relax/video/add/', views.relax_add_video, name='relax_add_video'),
     path('relax/game/launch/<int:game_id>/', views.relax_launch_game, name='relax_launch_game'),
+    path('relax/game/search-artwork/', views.relax_search_artwork, name='relax_search_artwork'),
 ]
+
 

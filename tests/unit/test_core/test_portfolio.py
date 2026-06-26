@@ -12,33 +12,28 @@ def test_portfolio_initialization():
 
 
 def test_buy_transaction():
-    p = Portfolio(initial_cash=10000)
-    timestamp = pd.Timestamp("2023-01-01")
-    p.transact_position(timestamp, "SPY", 10, 100.0, 0.001)  # Buy 10 shares @ $100
+    p = Portfolio(initial_cash=10000, transaction_cost=0.001)
+    p.execute_trade(1, 10, 100.0)  # Buy 10 shares @ $100
 
     # Cost = 10 * 100 = 1000. Fees = 1000 * 0.001 = 1. Total = 1001
     assert p.cash == 10000 - 1001
-    assert p.positions["SPY"] == 10
+    assert p.positions[0] == 10
 
 
 def test_sell_transaction():
-    p = Portfolio(initial_cash=10000)
-    p.positions["SPY"] = 20  # Assume we already have 20 shares
+    p = Portfolio(initial_cash=10000, transaction_cost=0.001)
+    p.positions[0] = 20  # Assume we already have 20 shares
 
-    timestamp = pd.Timestamp("2023-01-02")
-    p.transact_position(timestamp, "SPY", -5, 110.0, 0.001)  # Sell 5 shares @ $110
+    p.execute_trade(2, 5, 110.0)  # Sell 5 shares @ $110
 
     # Proceeds = 5 * 110 = 550. Fees = 550 * 0.001 = 0.55. Total = 550 - 0.55
     assert p.cash == 10000 + 549.45
-    assert p.positions["SPY"] == 15
+    assert p.positions[0] == 15
 
 
 def test_insufficient_funds():
-    p = Portfolio(initial_cash=500)
-    timestamp = pd.Timestamp("2023-01-01")
-    p.transact_position(
-        timestamp, "SPY", 10, 100.0, 0.001
-    )  # Attempt to buy $1000 worth
+    p = Portfolio(initial_cash=500, transaction_cost=0.001)
+    p.execute_trade(1, 10, 100.0)  # Attempt to buy $1000 worth
 
     assert p.cash == 500  # No change
-    assert "SPY" not in p.positions
+    assert p.positions[0] == 0

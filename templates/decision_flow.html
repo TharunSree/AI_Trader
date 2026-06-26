@@ -5,13 +5,6 @@
 
 {% block extra_css %}
 <style>
-    /* Premium dark glassmorphism effects */
-    .glass-panel {
-        background: rgba(10, 15, 30, 0.65);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-    }
     
     /* Neon range slider styling */
     input[type="range"] {
@@ -96,75 +89,73 @@
         </div>
         
         <!-- Custom bot select dropdown -->
-        <div class="flex flex-wrap items-center gap-3">
-            <div class="relative" id="custom-dropdown-trader">
-                <span class="text-[9px] font-mono text-slate-500 uppercase block mb-1">Active Trading Node</span>
-                <button type="button" onclick="toggleDropdown('dropdown-menu-trader')" class="bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-200 text-xs font-mono rounded-lg px-4 py-2 flex items-center justify-between gap-3 min-w-[240px] focus:ring-1 focus:ring-cyan-500 transition-all outline-none">
-                    <span class="flex items-center gap-2">
+        <div class="d-flex flex-wrap items-center gap-3">
+            <div class="dropdown" id="custom-dropdown-trader-parent">
+                <span class="text-[9px] font-mono text-slate-500 uppercase d-block mb-1">Active Trading Node</span>
+                <button class="btn btn-sm btn-outline-light dropdown-toggle font-mono text-xs d-flex align-items-center justify-content-between gap-3 min-w-[240px]" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <span class="d-flex align-items-center gap-2">
                         <span class="w-2 h-2 rounded-full {% if trader.status == 'RUNNING' %}bg-emerald-400 animate-pulse{% else %}bg-slate-500{% endif %}"></span>
                         <span id="selected-trader-label">{% if trader %}{{ trader.name }} ({{ trader.model_file }}){% else %}No active bots{% endif %}</span>
                     </span>
-                    <i class="fas fa-chevron-down text-slate-550 text-[10px]"></i>
                 </button>
-                <div id="dropdown-menu-trader" class="hidden absolute right-0 mt-1.5 w-full bg-slate-950 border border-slate-800 rounded-lg shadow-2xl z-50 overflow-hidden max-h-60 overflow-y-auto custom-scroll">
+                <div class="dropdown-menu dropdown-menu-end shadow-lg" aria-labelledby="dropdownMenuButton" style="max-height: 240px; overflow-y: auto;">
                     {% for t in all_traders %}
-                        <button onclick="changeTrader('{{ t.id }}')" class="text-slate-350 hover:bg-slate-900 hover:text-white block w-full text-left px-4 py-2.5 text-xs font-mono border-b border-slate-900/50 last:border-b-0 transition-colors">
-                            <span class="flex items-center gap-2">
-                                <span class="w-1.5 h-1.5 rounded-full {% if t.status == 'RUNNING' %}bg-emerald-400{% else %}bg-slate-500{% endif %}"></span>
-                                {{ t.name }} ({{ t.model_file }})
-                            </span>
-                        </button>
+                        <a class="dropdown-item font-mono text-xs d-flex align-items-center gap-2" href="#" onclick="changeTrader('{{ t.id }}'); return false;">
+                            <span class="w-1.5 h-1.5 rounded-full {% if t.status == 'RUNNING' %}bg-emerald-400{% else %}bg-slate-500{% endif %}"></span>
+                            {{ t.name }} ({{ t.model_file }})
+                        </a>
                     {% empty %}
-                        <div class="px-4 py-3 text-xs font-mono text-slate-500 text-center">No bot instances available</div>
+                        <div class="dropdown-item font-mono text-xs text-muted text-center py-2">No bot instances available</div>
                     {% endfor %}
                 </div>
             </div>
             
-            <div class="flex flex-col">
-                <span class="text-[9px] font-mono text-slate-500 uppercase block mb-1">System Health</span>
-                <div class="flex items-center gap-4 bg-slate-900/60 border border-slate-800 rounded-lg px-4 py-2 text-[10px] font-mono text-slate-400">
-                    <span class="flex items-center gap-1.5">
-                        <i class="fas fa-microchip text-cyan-400"></i> CPU: <strong class="text-slate-200" id="flow-stat-cpu">0.0%</strong>
+            <div class="d-flex flex-column">
+                <span class="text-[9px] font-mono text-slate-500 uppercase d-block mb-1">System Health</span>
+                <div class="d-flex align-items-center gap-2 py-1">
+                    <span class="badge border border-info text-info font-mono py-1.5 px-2.5 rounded-3 d-flex align-items-center gap-1.5">
+                        <i class="fas fa-microchip"></i> CPU: <strong id="flow-stat-cpu">0.0%</strong>
                     </span>
-                    <span class="flex items-center gap-1.5">
-                        <i class="fas fa-hdd text-cyan-400"></i> RAM: <strong class="text-slate-200" id="flow-stat-mem">0.0%</strong>
+                    <span class="badge border border-info text-info font-mono py-1.5 px-2.5 rounded-3 d-flex align-items-center gap-1.5">
+                        <i class="fas fa-hdd"></i> RAM: <strong id="flow-stat-mem">0.0%</strong>
                     </span>
                 </div>
             </div>
-
-            <div class="flex flex-col justify-end self-end">
-                <a href="{% url 'neural_download_report' %}{% if trader %}?trader_id={{ trader.id }}{% endif %}" class="bg-cyan-500 hover:bg-cyan-600 text-slate-950 text-xs font-mono font-bold px-4 py-2.5 rounded-lg transition-all flex items-center gap-2">
+            
+            <div class="d-flex flex-column justify-content-end align-self-end">
+                <a href="{% url 'neural_download_report' %}{% if trader %}?trader_id={{ trader.id }}{% endif %}" class="btn btn-sm btn-outline-info font-mono py-1.5 px-3 d-flex align-items-center gap-2">
                     <i class="fas fa-file-export"></i> Download Report
                 </a>
             </div>
         </div>
-    </div>
 
     <!-- Main Content Layout -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         <!-- Left Side: Visualizer Canvas (Col-span 2) -->
         <div class="lg:col-span-2 flex flex-col gap-4">
-            <div class="glass-panel border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[560px]">
-                <div class="flex justify-between items-center mb-4 border-b border-slate-850 pb-3">
-                    <h3 class="text-xs font-mono font-bold tracking-widest text-slate-300 uppercase flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span> Neural Propagation Map
-                    </h3>
-                    <div class="flex gap-4 text-[9px] font-mono text-slate-500">
-                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-rose-500/80"></span> Firing (+)</span>
-                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-blue-500/80"></span> Inhibiting (-)</span>
-                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-slate-800"></span> Silent (0)</span>
+            <div class="card mb-4 flex flex-col justify-between min-h-[560px]">
+                <div class="card-body p-4 d-flex flex-column justify-content-between h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-3 border-b border-slate-850 pb-3">
+                        <h4 class="card-title font-mono tracking-widest uppercase mb-0 d-flex align-items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span> Neural Propagation Map
+                        </h4>
+                        <div class="flex gap-4 text-[9px] font-mono text-slate-500">
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-rose-500/80"></span> Firing (+)</span>
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-blue-500/80"></span> Inhibiting (-)</span>
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-slate-800"></span> Silent (0)</span>
+                        </div>
                     </div>
-                </div>
 
-                <!-- SVG Visualization Canvas -->
-                <div class="flex-1 flex items-center justify-center">
-                    <svg id="decision-canvas" class="w-full h-full min-h-[460px] select-none" viewBox="0 0 1000 500">
-                        <!-- SVG Connection paths container -->
-                        <g id="flow-connections"></g>
-                        <!-- SVG Neuron groups container -->
-                        <g id="flow-neurons"></g>
-                    </svg>
+                    <!-- SVG Visualization Canvas -->
+                    <div class="flex-grow-1 d-flex align-items-center justify-content-center">
+                        <svg id="decision-canvas" class="w-full h-full min-h-[460px] select-none" viewBox="0 0 1000 500">
+                            <!-- SVG Connection paths container -->
+                            <g id="flow-connections"></g>
+                            <!-- SVG Neuron groups container -->
+                            <g id="flow-neurons"></g>
+                        </svg>
+                    </div>
                 </div>
             </div>
         </div>
@@ -173,10 +164,11 @@
         <div class="space-y-6">
             
             <!-- Sandbox Sliders Panel -->
-            <div class="glass-panel border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-                <h3 class="text-xs font-mono font-bold tracking-widest text-slate-200 uppercase flex items-center gap-2 border-b border-slate-850 pb-3">
-                    <i class="fas fa-sliders-h text-cyan-400"></i> Market State Sandbox
-                </h3>
+            <div class="card mb-4">
+                <div class="card-body space-y-4">
+                    <h4 class="card-title font-mono tracking-widest uppercase mb-0 border-b border-slate-850 pb-3 d-flex align-items-center gap-2">
+                        <i class="fas fa-sliders-h text-cyan-400"></i> Market State Sandbox
+                    </h4>
                 
                 <div class="space-y-4 font-mono text-xs">
                     <!-- Slider 1: Price Trend -->
@@ -232,12 +224,12 @@
                     </div>
                 </div>
 
-                <div class="border-t border-slate-850 pt-3 flex justify-between items-center gap-2">
-                    <button onclick="resetSliders()" class="bg-slate-900 border border-slate-800 text-[10px] font-mono text-slate-400 hover:text-slate-200 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors" title="Reset to defaults">
+                <div class="border-t border-slate-855 pt-3 d-flex justify-content-between align-items-center gap-2">
+                    <button onclick="resetSliders()" class="btn btn-sm btn-outline-secondary font-mono" title="Reset to defaults">
                         <i class="fas fa-undo"></i> Reset
                     </button>
                     
-                    <button onclick="recordCurrentSandboxState()" class="bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-mono px-2.5 py-1.5 rounded-lg cursor-pointer transition-all flex items-center gap-1.5" id="btn-record-sandbox" style="display: none;">
+                    <button onclick="recordCurrentSandboxState()" class="btn btn-sm btn-outline-primary font-mono" id="btn-record-sandbox" style="display: none;">
                         <i class="fas fa-save"></i> Record Firing
                     </button>
 
@@ -246,28 +238,33 @@
                     </span>
                 </div>
             </div>
+            </div>
 
             <!-- English Decision narrative -->
-            <div class="glass-panel border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-                <h3 class="text-xs font-mono font-bold tracking-widest text-slate-200 uppercase flex items-center gap-2 border-b border-slate-850 pb-3">
-                    <i class="fas fa-comment-alt text-cyan-400"></i> Plain English Translator
-                </h3>
-                
-                <div class="font-mono text-xs space-y-3 leading-relaxed">
-                    <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-900 min-h-[160px] custom-scroll overflow-y-auto max-h-[220px]" id="narrative-log">
-                        <p class="text-slate-500">Adjust sliders to synthesize trace logs...</p>
+            <div class="card mb-4">
+                <div class="card-body space-y-4">
+                    <h4 class="card-title font-mono tracking-widest uppercase mb-0 pb-3 border-b border-slate-850 d-flex align-items-center gap-2">
+                        <i class="fas fa-comment-alt text-cyan-400"></i> Plain English Translator
+                    </h4>
+                    
+                    <div class="font-mono text-xs space-y-3 leading-relaxed">
+                        <div class="bg-slate-955 p-3 rounded border border-slate-900 min-h-[160px] custom-scroll overflow-y-auto max-h-[220px]" id="narrative-log">
+                            <p class="text-slate-500">Adjust sliders to synthesize trace logs...</p>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Foolproof tips -->
-            <div class="glass-panel border border-slate-800 rounded-2xl p-6 shadow-xl space-y-3">
-                <h3 class="text-xs font-mono font-bold tracking-widest text-slate-200 uppercase flex items-center gap-2 border-b border-slate-850 pb-3">
-                    <i class="fas fa-info-circle text-cyan-400"></i> Foolproof Trading Tips
-                </h3>
-                
-                <div class="font-mono text-xs text-slate-400 leading-relaxed space-y-2.5" id="tips-container">
-                    <p class="text-slate-500">Select states to calculate tips...</p>
+            <div class="card mb-4">
+                <div class="card-body space-y-3">
+                    <h4 class="card-title font-mono tracking-widest uppercase mb-0 pb-3 border-b border-slate-850 d-flex align-items-center gap-2">
+                        <i class="fas fa-info-circle text-cyan-400"></i> Foolproof Trading Tips
+                    </h4>
+                    
+                    <div class="font-mono text-xs text-slate-400 leading-relaxed space-y-2.5" id="tips-container">
+                        <p class="text-slate-500">Select states to calculate tips...</p>
+                    </div>
                 </div>
             </div>
 
@@ -275,13 +272,14 @@
     </div>
 
     <!-- Bottom row: Past Actual Trades Replay -->
-    <div class="glass-panel border border-slate-800 rounded-2xl p-6 shadow-xl">
-        <h3 class="text-xs font-mono font-bold tracking-widest text-slate-355 uppercase mb-4 border-b border-slate-850 pb-3 flex items-center gap-2">
-            <i class="fas fa-history text-cyan-500"></i> Past Execution Analyzer & Replayer
-        </h3>
-        <p class="text-[11px] font-mono text-slate-400 mb-3 leading-normal">
-            Click any past transaction to load its exact historical market state directly into the simulator to see how your neural layers fired during the trade.
-        </p>
+    <div class="card mb-4">
+        <div class="card-body">
+            <h4 class="card-title font-mono tracking-widest uppercase mb-0 border-b border-slate-850 pb-3 d-flex align-items-center gap-2">
+                <i class="fas fa-history text-cyan-500"></i> Past Execution Analyzer & Replayer
+            </h4>
+            <p class="text-[11px] font-mono text-slate-400 my-3 leading-normal">
+                Click any past transaction to load its exact historical market state directly into the simulator to see how your neural layers fired during the trade.
+            </p>
         
         <div class="overflow-x-auto custom-scroll">
             <table class="w-full text-left font-mono text-[11px] border-collapse min-w-[700px]">
@@ -335,10 +333,11 @@
         pollTelemetry();
         setInterval(pollTelemetry, 5000);
 
-        // Dropdown toggle window listener
+        // Dropdown toggle window listener (for any custom legacy dropdowns, checking existence first)
         window.addEventListener("click", (e) => {
-            if (!e.target.closest("#custom-dropdown-trader")) {
-                document.getElementById("dropdown-menu-trader").classList.add("hidden");
+            const legacyMenu = document.getElementById("dropdown-menu-trader");
+            if (legacyMenu && !e.target.closest("#custom-dropdown-trader")) {
+                legacyMenu.classList.add("hidden");
             }
         });
     });
@@ -365,6 +364,7 @@
 
     function toggleDropdown(id) {
         const menu = document.getElementById(id);
+        if (!menu) return;
         const isOpen = !menu.classList.contains("hidden");
         document.querySelectorAll(".dropdown-menu, #dropdown-menu-trader").forEach(m => m.classList.add("hidden"));
         if (!isOpen) {
@@ -584,8 +584,24 @@
                     group.appendChild(descLabel);
                 }
 
+                const valText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                valText.setAttribute("x", layer.x);
+                let valY = y + 21;
+                if (layer.id === "input") valY = y + 26;
+                else if (layer.id === "act" || layer.id === "val") valY = y + 32;
+                valText.setAttribute("y", valY);
+                valText.setAttribute("fill", "#64748b");
+                valText.setAttribute("font-size", "7.5");
+                valText.setAttribute("font-family", "monospace");
+                valText.setAttribute("font-weight", "bold");
+                valText.setAttribute("text-anchor", "middle");
+                valText.setAttribute("id", `val-text-${layer.id}-${index}`);
+                valText.style.pointerEvents = "none";
+                valText.textContent = "0.00";
+
                 group.appendChild(circle);
                 group.appendChild(text);
+                group.appendChild(valText);
                 neurGroup.appendChild(group);
             });
         });
@@ -612,14 +628,18 @@
     }
 
     function updateVisualNodeStates(data, animate = false) {
-        // Helper to update colors/glows based on values
         function setNodeGlow(id, val, rangeLimit = 1.0) {
             const node = document.getElementById(id);
             const text = document.getElementById(id.replace("node-", "text-"));
+            const valText = document.getElementById(id.replace("node-", "val-text-"));
             if (!node || !text) return;
 
             const absVal = Math.abs(val);
             const intensity = Math.min(1.0, absVal / rangeLimit);
+            
+            if (valText) {
+                valText.textContent = (val >= 0 ? "+" : "") + val.toFixed(2);
+            }
             
             if (val > 0.02) {
                 // Hot pink/rose glow for positive activation
@@ -627,18 +647,21 @@
                 node.setAttribute("stroke", "#f43f5e");
                 node.style.filter = `drop-shadow(0 0 ${4 + intensity * 8}px rgba(244, 63, 94, ${intensity}))`;
                 text.setAttribute("fill", "#ffffff");
+                if (valText) valText.setAttribute("fill", "#fda4af");
             } else if (val < -0.02) {
                 // Blue glow for negative activation
                 node.setAttribute("fill", `rgba(59, 130, 246, ${0.1 + intensity * 0.7})`);
                 node.setAttribute("stroke", "#3b82f6");
                 node.style.filter = `drop-shadow(0 0 ${4 + intensity * 8}px rgba(59, 130, 246, ${intensity}))`;
                 text.setAttribute("fill", "#ffffff");
+                if (valText) valText.setAttribute("fill", "#93c5fd");
             } else {
                 // Neutral dim gray state
                 node.setAttribute("fill", "#1e293b");
                 node.setAttribute("stroke", "#334155");
                 node.style.filter = "none";
                 text.setAttribute("fill", "#64748b");
+                if (valText) valText.setAttribute("fill", "#64748b");
             }
         }
 

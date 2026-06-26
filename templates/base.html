@@ -136,6 +136,29 @@
             vertical-align: middle;
             margin-left: 4px;
         }
+
+        /* Collapse sidebar fixes for custom elements */
+        body.vertical-collpsed .vertical-menu li.mt-3,
+        body.vertical-collpsed .vertical-menu li.mt-4,
+        body.vertical-collpsed .vertical-menu li.menu-title,
+        body.vertical-collpsed .vertical-menu .input-group,
+        body.vertical-collpsed .vertical-menu label,
+        body.vertical-collpsed .vertical-menu form,
+        body.vertical-collpsed .vertical-menu button,
+        body.vertical-collpsed .vertical-menu .text-muted,
+        body.vertical-collpsed .vertical-menu .font-mono {
+            display: none !important;
+        }
+
+        /* Lockscreen 2 Styles */
+        #global-lockscreen-overlay { display: none; }
+        #global-lockscreen-overlay.ls-visible {
+            display: block !important;
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            overflow-y: auto;
+        }
     </style>
     
     {% block extra_head %}{% endblock %}
@@ -329,7 +352,7 @@
                             <li class="menu-title">Analysis Vault</li>
                             <li>
                                 <a href="{% url 'reports_hub' %}" class="waves-effect {% if 'intelligence-vault' in request.path %}active{% endif %}">
-                                    <i class="mdi mdi-file-document-multiple-outline"></i>
+                                    <i class="mdi mdi-file-document"></i>
                                     <span>Reports & Logs</span>
                                 </a>
                             </li>
@@ -355,7 +378,7 @@
                             <li class="menu-title">System Settings</li>
                             <li>
                                 <a href="{% url 'settings' %}" class="waves-effect {% if 'settings' in request.path %}active{% endif %}">
-                                    <i class="mdi mdi-cog-outline"></i>
+                                    <i class="mdi mdi-cog"></i>
                                     <span>Configuration</span>
                                 </a>
                             </li>
@@ -450,54 +473,57 @@
     </div>
 
     <!-- Seamless Lockscreen Overlay -->
-    <div id="global-lockscreen-overlay" class="fixed inset-0 z-[10000] flex flex-col items-center justify-center overflow-hidden bg-slate-950/80 backdrop-blur-xl" style="font-family: 'Inter', 'Roboto Mono', monospace;">
-        <div class="absolute inset-0 pointer-events-none" style="opacity:0.05; background-image: radial-gradient(rgb(165 173 203) 1px, transparent 1px); background-size: 26px 26px;"></div>
-        <div class="ls-scan"></div>
-        <div class="absolute top-0 left-0 right-0 h-px pointer-events-none" style="background: linear-gradient(90deg, transparent 0%, rgb(125 196 228 / 0.6) 50%, transparent 100%);"></div>
-        
-        <div class="relative z-10 flex flex-col items-center w-full max-w-xs px-4">
-            <!-- Clock -->
-            <div class="ls-clock text-center mb-8 w-full">
-                <div id="lock-clock" style="font-size: clamp(3.5rem, 16vw, 6.5rem); font-weight: 800; letter-spacing: -0.04em; color: rgb(202 211 245); line-height: 1; font-variant-numeric: tabular-nums;">00:00</div>
-                <div class="mx-auto mt-3 mb-2 h-px w-24" style="background: linear-gradient(90deg, transparent, rgb(73 77 100), transparent);"></div>
-                <p id="lock-date" class="text-[11px] uppercase tracking-[0.3em]" style="color: rgb(110 115 140);">Loading...</p>
-            </div>
+    <div id="global-lockscreen-overlay">
+        <!-- Begin page -->
+        <div class="accountbg" style="background: url('{% static 'veltrix/images/bg.jpg' %}') no-repeat center center; background-size: cover; position: absolute; inset: 0; z-index: 1;"></div>
 
-            <!-- Auth card -->
-            <div class="ls-panel w-full">
-                <div class="rounded-2xl overflow-hidden bg-slate-900/40 backdrop-blur-md border border-slate-700/60 shadow-[0_25px_60px_rgba(0,0,0,0.6)]">
-                    <div class="flex items-center justify-between px-4 py-2.5" style="border-bottom: 1px solid rgb(45 48 65);">
-                        <div class="flex items-center gap-1.5">
-                            <span class="w-1.5 h-1.5 rounded-full inline-block" style="background: rgb(125 196 228);"></span>
-                            <span class="text-[9px] uppercase tracking-[0.22em]" style="color: rgb(110 115 140);">AI Trader &middot; Locked</span>
-                        </div>
-                        <i class="fas fa-lock" style="color: rgb(80 85 110); font-size: 9px;"></i>
-                    </div>
-
-                    <div class="px-5 py-5">
-                        <form id="unlock-form" method="POST" action="{% url 'lockscreen_api' %}">
-                            {% csrf_token %}
-                            <div class="flex flex-col items-center mb-5">
-                                <div class="w-11 h-11 rounded-full flex items-center justify-center mb-2.5" style="background: rgb(36 39 58); border: 1px solid rgb(64 68 90);">
-                                    <i class="fas fa-user-circle" style="color: rgb(138 173 244); font-size: 1.1rem;"></i>
+        <div class="wrapper-page account-page-full" style="position: relative; z-index: 2;">
+            <div class="card shadow-none">
+                <div class="card-block">
+                    <div class="account-box">
+                        <div class="card-box shadow-none p-4">
+                            <div class="p-2">
+                                <div class="text-center mt-4">
+                                    <h4 class="text-primary font-bold uppercase tracking-[0.2em] font-mono mb-0">QuantTrader</h4>
+                                    <p class="text-[9px] text-muted tracking-[0.3em] uppercase mt-1">Node Security</p>
                                 </div>
-                                <label id="pin-prompt" class="text-[10px] uppercase tracking-[0.18em]" style="color: rgb(140 145 165);">Enter password</label>
-                            </div>
-                            <input type="password" id="pin-input" name="password" autocomplete="off" required placeholder="••••••••" class="w-full text-center rounded-xl px-3 py-2.5 mb-4 outline-none transition-all duration-200" style="background: rgb(20 21 34); border: 1px solid rgb(55 58 80); color: rgb(202 211 245); font-size: 1.1rem; letter-spacing: 0.3em; caret-color: rgb(125 196 228);">
-                            <button type="submit" class="ls-btn-unlock w-full py-2.5 rounded-xl text-[10px] uppercase tracking-[0.22em] font-semibold transition-all duration-200" style="background: rgb(36 39 58); border: 1px solid rgb(80 100 160 / 0.5); color: rgb(138 173 244);">
-                                <i class="fas fa-unlock-alt mr-1.5 opacity-60"></i>Unlock
-                            </button>
-                        </form>
-                    </div>
-                </div>
 
-                <div class="mt-4 text-center">
-                    <form method="POST" action="{% url 'logout' %}" class="inline">
-                        {% csrf_token %}
-                        <button type="submit" class="text-[9px] uppercase tracking-[0.22em] transition-colors" style="color: rgb(70 74 100);">
-                            <i class="fas fa-power-off mr-1"></i>End Session
-                        </button>
-                    </form>
+                                <h4 class="font-size-18 mt-5 text-center font-mono" id="lock-clock-2" style="font-size: 2.2rem; font-weight: 800; letter-spacing: -0.04em;">00:00</h4>
+                                <p class="text-muted text-center text-xs font-mono tracking-wider uppercase mb-4" id="lock-date-2">LOADING...</p>
+
+                                <form class="mt-4" id="unlock-form" method="POST" action="{% url 'lockscreen_api' %}">
+                                    {% csrf_token %}
+
+                                    <div class="pt-3 text-center mb-4">
+                                        <div class="w-16 h-16 rounded-circle img-thumbnail avatar-lg mx-auto flex items-center justify-center bg-slate-900 border border-slate-700">
+                                            <i class="fas fa-user-astronaut text-primary" style="font-size: 1.8rem;"></i>
+                                        </div>
+                                        <h6 class="font-size-14 mt-3 font-mono text-muted uppercase tracking-widest" id="pin-prompt">Locked</h6>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="pin-input" class="form-label font-mono text-[9px] uppercase tracking-wider text-muted">Passcode</label>
+                                        <input type="password" class="form-control text-center font-mono" id="pin-input" name="password" placeholder="••••••••" autocomplete="off" required style="font-size: 1.1rem; letter-spacing: 0.3em; background-color: var(--bs-body-bg);">
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-12 text-end">
+                                            <button class="btn btn-outline-primary w-100 waves-effect waves-light font-mono text-xs uppercase tracking-widest py-2" type="submit">
+                                                <i class="fas fa-unlock-alt me-1.5 opacity-60"></i>Unlock
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+
+                                <div class="mt-5 pt-4 text-center">
+                                    <form method="POST" action="{% url 'logout' %}" class="inline">
+                                        {% csrf_token %}
+                                        <p class="font-mono text-xs mb-0 text-muted">Not you? <button type="submit" class="btn btn-link p-0 text-decoration-none fw-medium text-danger align-baseline font-mono text-xs uppercase tracking-wider">Sign Out</button></p>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -549,12 +575,12 @@
                 const now = new Date();
                 const h = now.getHours().toString().padStart(2, '0');
                 const m = now.getMinutes().toString().padStart(2, '0');
-                const clk = document.getElementById('lock-clock');
+                const clk = document.getElementById('lock-clock-2');
                 if(clk) clk.textContent = `${h}:${m}`;
                 
                 const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-                const dt = document.getElementById('lock-date');
-                if(dt) dt.textContent = now.toLocaleDateString('en-US', options);
+                const dt = document.getElementById('lock-date-2');
+                if(dt) dt.textContent = now.toLocaleDateString('en-US', options).toUpperCase();
             }
             setInterval(updateClock, 1000);
             updateClock();

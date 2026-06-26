@@ -5022,6 +5022,93 @@ def relax_delete_game(request, game_id):
     return redirect('relax_view')
 
 
+@login_required
+@require_POST
+def relax_edit_game(request, game_id):
+    game = get_object_or_404(Game, id=game_id)
+    name = request.POST.get('name', '').strip()
+    steam_app_id = request.POST.get('steam_app_id', '').strip() or None
+    local_path = request.POST.get('local_path', '').strip() or None
+    hours_played = float(request.POST.get('hours_played', 0.0) or 0.0)
+    cover_image_url = request.POST.get('cover_image_url', '').strip() or None
+    animated_bg_url = request.POST.get('animated_bg_url', '').strip() or None
+
+    if not name:
+        messages.error(request, "Game name is required.")
+        return redirect('relax_view')
+
+    if not cover_image_url:
+        cover_image_url = "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?q=80&w=350&auto=format&fit=crop"
+
+    game.name = name
+    game.steam_app_id = steam_app_id
+    game.local_path = local_path
+    game.hours_played = hours_played
+    game.cover_image_url = cover_image_url
+    game.animated_bg_url = animated_bg_url
+    game.save()
+
+    messages.success(request, f"Game '{game.name}' updated successfully!")
+    return redirect(f'/relax/?game_id={game.id}')
+
+
+@login_required
+def serve_local_file(request):
+    import os
+    from django.http import FileResponse, Http404
+    file_path = request.GET.get('path', '').strip()
+    if not file_path:
+        raise Http404("Path is empty")
+        
+    file_path = os.path.abspath(file_path)
+    
+    allowed_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webm', '.mp4', '.mkv', '.avi', '.mp3', '.wav']
+    _, ext = os.path.splitext(file_path.lower())
+    if ext not in allowed_extensions:
+        raise Http404("File extension not allowed")
+        
+    if not os.path.exists(file_path) or not os.path.isfile(file_path):
+        raise Http404("File does not exist")
+        
+    return FileResponse(open(file_path, 'rb'))
+
+
+@login_required
+def relax_search_artwork(request):
+    import urllib.request
+    import urllib.parse
+    import json
+    term = request.GET.get('term', '').strip()
+    if not term:
+        return JsonResponse({'status': 'error', 'message': 'Search term is required.'}, status=400)
+    
+    try:
+        url = f"https://store.steampowered.com/api/storesearch/?term={urllib.parse.quote(term)}&l=english&cc=US"
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=5) as response:
+            data = json.loads(response.read().decode('utf-8'))
+            
+        if data.get('success') and data.get('items'):
+            results = []
+            for item in data['items']:
+                appid = item['id']
+                results.append({
+                    'appid': appid,
+                    'name': item['name'],
+                    'cover_url': f"https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/{appid}/library_600x900_2x.jpg",
+                    'hero_url': f"https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/{appid}/library_hero.jpg",
+                    'header_url': f"https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/{appid}/header.jpg",
+                })
+            return JsonResponse({'status': 'success', 'results': results})
+        else:
+            return JsonResponse({'status': 'success', 'results': []})
+    except Exception as e:
+        logger.error(f"Artwork search failed: {e}")
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+
+
 def extract_style_from_html(html_content):
     if not html_content:
         return ""
@@ -5147,6 +5234,14 @@ def relax_sync_steam_playtimes(request):
         
     request.session['steam_username'] = username
     
+    # Parse full URLs
+    if 'steamcommunity.com/' in username.lower():
+        username = username.rstrip('/')
+        if '/profiles/' in username.lower():
+            username = username.split('/profiles/')[-1].split('/')[0].strip()
+        elif '/id/' in username.lower():
+            username = username.split('/id/')[-1].split('/')[0].strip()
+            
     if username.isdigit() and len(username) == 17:
         url = f"https://steamcommunity.com/profiles/{username}/games/?xml=1"
     else:

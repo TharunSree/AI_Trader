@@ -21,19 +21,18 @@ def test_save_load_agent(agent_and_path):
     agent1, filepath = agent_and_path
 
     # Save the initial state
-    agent1.save(filepath)
+    agent1.save_weights(filepath)
 
     # Create a new agent and load the state
-    agent2 = PPOAgent(
-        agent1.actor.network[0].in_features, agent1.actor.network[-2].out_features
-    )
-    agent2.load(filepath)
+    agent2 = PPOAgent(10, 3)
+    agent2.load_weights(filepath)
 
     # Compare the state dictionaries of the models
-    assert agent1.actor.state_dict().keys() == agent2.actor.state_dict().keys()
+    assert agent1.policy.actor.state_dict().keys() == agent2.policy.actor.state_dict().keys()
 
-    for p1, p2 in zip(agent1.actor.parameters(), agent2.actor.parameters()):
+    for p1, p2 in zip(agent1.policy.actor.parameters(), agent2.policy.actor.parameters()):
         assert torch.equal(p1, p2)
 
-    for p1, p2 in zip(agent1.critic.parameters(), agent2.critic.parameters()):
+    for p1, p2 in zip(agent1.policy.critic.parameters(), agent2.policy.critic.parameters()):
         assert torch.equal(p1, p2)
+

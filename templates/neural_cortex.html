@@ -105,82 +105,79 @@
 <div class="space-y-6">
     
     <!-- Top Header & Custom Bot Selector -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 glass-panel rounded-2xl border border-slate-800 shadow-xl">
-        <div>
-            <div class="flex items-center gap-3">
-                <div class="w-3 h-3 rounded-full bg-cyan-500 animate-pulse glow-cyan-strong"></div>
-                <h1 class="text-xl font-mono font-bold tracking-widest text-slate-100 uppercase">Neural Cortex Matrix</h1>
-            </div>
-            <p class="text-xs font-mono text-slate-400 mt-1">
-                Active Model: <span class="text-slate-300 font-bold" id="current-model-file">{{ trader.model_file|default:"No active trader detected" }}</span>
-            </p>
-        </div>
-        
-        <div class="flex flex-wrap items-center gap-3">
-            <!-- Custom Trader Selector Dropdown -->
-            <div class="dropdown-container" id="custom-dropdown-trader">
-                <button type="button" onclick="toggleDropdown('dropdown-menu-trader')" class="bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-200 text-xs font-mono rounded-lg px-4 py-2 flex items-center justify-between gap-3 min-w-[240px] focus:ring-1 focus:ring-cyan-500 transition-all outline-none">
-                    <span id="selected-trader-label">
-                        {% if trader %}
-                            Bot #{{ trader.id }} - {{ trader.model_file }}
-                        {% else %}
-                            Select Trader Bot
-                        {% endif %}
-                    </span>
-                    <i class="fas fa-chevron-down text-slate-400 text-[10px]"></i>
-                </button>
-                <div id="dropdown-menu-trader" class="hidden absolute right-0 mt-2 w-full rounded-lg bg-slate-950 border border-slate-800 shadow-2xl z-50 py-1">
-                    {% for t in all_traders %}
-                        <button onclick="changeTrader('{{ t.id }}')" class="text-slate-300 hover:bg-slate-900 hover:text-white block w-full text-left px-4 py-2.5 text-xs font-mono border-b border-slate-900/50 last:border-b-0 transition-colors">
-                            Bot #{{ t.id }} - {{ t.model_file }} ({% if t.status == 'RUNNING' %}ONLINE{% else %}{{ t.status }}{% endif %})
-                        </button>
-                    {% empty %}
-                        <div class="text-slate-550 px-4 py-2.5 text-xs font-mono">No Paper Bot Registered</div>
-                    {% endfor %}
+    <div class="card">
+        <div class="card-body d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="badge bg-success animate-pulse me-1">LIVE</span>
+                    <h4 class="card-title mb-0 font-mono tracking-widest uppercase">Neural Cortex Matrix</h4>
                 </div>
+                <p class="text-muted text-xs font-mono mb-0 mt-1">
+                    Active Model: <span class="text-primary font-bold" id="current-model-file">{{ trader.model_file|default:"No active trader detected" }}</span>
+                </p>
             </div>
             
-            <!-- Quick restart helper -->
-            {% if trader %}
-            <form action="{% url 'restart_trader' trader.id %}" method="POST" class="inline">
-                {% csrf_token %}
-                <button type="submit" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-mono px-4 py-2 rounded-lg transition-all flex items-center gap-2 cursor-pointer">
-                    <i class="fas fa-redo text-cyan-400"></i> Restart Node
-                </button>
-            </form>
-            {% endif %}
-            <a href="{% url 'neural_download_report' %}{% if trader %}?trader_id={{ trader.id }}{% endif %}" class="bg-cyan-500 hover:bg-cyan-600 text-slate-950 text-xs font-mono font-bold px-4 py-2 rounded-lg transition-all flex items-center gap-2">
-                <i class="fas fa-file-export"></i> Download Report
-            </a>
-        </div>
-    </div>
-
-    <!-- 1. Expanded Interactive Neural Network Diagram (Full Width Hero Section) -->
-    <div class="glass-panel rounded-2xl p-6 border border-slate-800 shadow-xl relative overflow-hidden group mb-6">
-        <div class="absolute top-4 right-4 flex items-center gap-2 bg-slate-900/80 px-3 py-1 rounded-md border border-slate-800 text-[10px] font-mono text-cyan-400 tracking-wider">
-            <span class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-ping"></span>
-            ACTIVE FLOW DYNAMICS
-        </div>
-        <h3 class="text-xs font-mono font-bold tracking-widest text-slate-300 uppercase mb-4">Neural Architecture Visualizer</h3>
-        
-        <!-- SVG Neural Viz (Takes expanded major area) -->
-        <div class="w-full overflow-x-auto custom-scroll py-2">
-            <svg id="neural-svg" viewBox="0 0 1200 600" class="w-full min-w-[1000px] h-[600px] bg-slate-950/25 rounded-xl border border-slate-900">
-                <defs>
-                    <!-- Radial Background glow -->
-                    <radialGradient id="neural-glow-radial" cx="50%" cy="50%" r="50%">
-                        <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.10" />
-                        <stop offset="70%" stop-color="#a855f7" stop-opacity="0.03" />
-                        <stop offset="100%" stop-color="#090d16" stop-opacity="0" />
-                    </radialGradient>
-                </defs>
-
-                <!-- Holographic background -->
-                <rect x="0" y="0" width="1200" height="600" fill="url(#neural-glow-radial)" />
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <!-- Custom Trader Selector Dropdown -->
+                <div class="dropdown" id="custom-dropdown-trader">
+                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle font-mono" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span id="selected-trader-label">
+                            {% if trader %}
+                                Bot #{{ trader.id }} - {{ trader.model_file }}
+                            {% else %}
+                                Select Trader Bot
+                            {% endif %}
+                        </span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow font-mono">
+                        {% for t in all_traders %}
+                            <li>
+                                <button onclick="changeTrader('{{ t.id }}')" class="dropdown-item text-xs">
+                                    Bot #{{ t.id }} - {{ t.model_file }} ({% if t.status == 'RUNNING' %}ONLINE{% else %}{{ t.status }}{% endif %})
+                                </button>
+                            </li>
+                        {% empty %}
+                            <li class="dropdown-item disabled text-xs">No Paper Bot Registered</li>
+                        {% endfor %}
+                    </ul>
+                </div>
                 
-                <!-- Neural Grid Guidelines -->
-                <line x1="150" y1="20" x2="150" y2="580" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 6" opacity="0.25" />
-                <line x1="450" y1="20" x2="450" y2="580" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 6" opacity="0.25" />
+                <!-- Quick restart helper -->
+                {% if trader %}
+                <form action="{% url 'restart_trader' trader.id %}" method="POST" class="inline m-0">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-warning font-mono">
+                        <i class="mdi mdi-refresh mr-1"></i> Restart Node
+                    </button>
+                </form>
+                {% endif %}
+                <a href="{% url 'neural_download_report' %}{% if trader %}?trader_id={{ trader.id }}{% endif %}" class="btn btn-sm btn-outline-info font-mono">
+                    <i class="mdi mdi-download mr-1"></i> Download Report
+                </a>
+            </div>
+        </div>
+    </div>    <!-- 1. Expanded Interactive Neural Network Diagram (Full Width Hero Section) -->
+    <div class="card mb-4 relative overflow-hidden group">
+        <div class="card-body">
+            <div class="position-absolute top-0 end-0 mt-3 me-3 d-flex align-items-center gap-2 badge bg-info-subtle border border-info/20 text-info font-mono uppercase tracking-wider py-1.5 px-2.5 rounded-3">
+                <span class="w-1.5 h-1.5 rounded-full bg-info animate-ping"></span>
+                ACTIVE FLOW DYNAMICS
+            </div>
+            <h4 class="card-title font-mono tracking-widest uppercase mb-4">Neural Architecture Visualizer</h4>
+            
+            <div class="w-full overflow-x-auto custom-scroll py-2">
+                <svg id="neural-svg" viewBox="0 0 1200 600" class="w-full min-w-[1000px] h-[600px] bg-slate-950 rounded-xl border border-slate-900">
+                    <defs>
+                        <radialGradient id="net-glow" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stop-color="#0e1726" stop-opacity="1" />
+                            <stop offset="100%" stop-color="#030712" stop-opacity="1" />
+                        </radialGradient>
+                    </defs>
+                    <rect width="100%" height="100%" fill="url(#net-glow)" rx="12" />
+                    <g id="synapses-group"></g>
+                    
+                    <line x1="150" y1="20" x2="150" y2="580" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 6" opacity="0.25" />
+                    <line x1="450" y1="20" x2="450" y2="580" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 6" opacity="0.25" />
                 <line x1="750" y1="20" x2="750" y2="580" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 6" opacity="0.25" />
                 <line x1="1050" y1="20" x2="1050" y2="580" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 6" opacity="0.25" />
 
@@ -213,35 +210,35 @@
         <div class="xl:col-span-2 space-y-6">
             
             <!-- 2. Weight Heatmap Matrix & Interactive Controller -->
-            <div class="glass-panel rounded-2xl p-6 border border-slate-800 shadow-xl">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                    <div>
-                        <h3 class="text-xs font-mono font-bold tracking-widest text-slate-300 uppercase">Weight Matrix Inspector</h3>
-                        <p class="text-[10px] font-mono text-slate-400 mt-1">Select a model layer parameters to display the weight tensor matrix.</p>
-                    </div>
-                    
-                    <!-- Custom Layer Selector Dropdown -->
-                    <div class="dropdown-container" id="custom-dropdown-layer">
-                        <button type="button" onclick="toggleDropdown('dropdown-menu-layer')" class="bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-200 text-xs font-mono rounded-lg px-4 py-2.5 flex items-center justify-between gap-3 min-w-[280px] focus:ring-1 focus:ring-cyan-500 transition-all outline-none">
-                            <span id="selected-layer-label">Actor Input Weights (actor.0.weight)</span>
-                            <i class="fas fa-chevron-down text-slate-400 text-[10px]"></i>
-                        </button>
-                        <div id="dropdown-menu-layer" class="hidden absolute right-0 mt-2 w-full rounded-lg bg-slate-950 border border-slate-800 shadow-2xl z-50 py-1 max-h-60 overflow-y-auto custom-scroll">
-                            <button onclick="selectLayerOption('actor.0.weight', 'Actor Input Weights (actor.0.weight)')" class="text-slate-300 hover:bg-slate-900 hover:text-white block w-full text-left px-4 py-2 text-xs font-mono transition-colors">Actor Input Weights (actor.0.weight [64, 4])</button>
-                            <button onclick="selectLayerOption('actor.0.bias', 'Actor Input Biases (actor.0.bias)')" class="text-slate-300 hover:bg-slate-900 hover:text-white block w-full text-left px-4 py-2 text-xs font-mono transition-colors">Actor Input Biases (actor.0.bias [64])</button>
-                            <button onclick="selectLayerOption('actor.2.weight', 'Actor Hidden Layer 2 (actor.2.weight)')" class="text-slate-300 hover:bg-slate-900 hover:text-white block w-full text-left px-4 py-2 text-xs font-mono transition-colors">Actor Hidden Layer 2 (actor.2.weight [64, 64])</button>
-                            <button onclick="selectLayerOption('actor.2.bias', 'Actor Hidden 2 Biases (actor.2.bias)')" class="text-slate-300 hover:bg-slate-900 hover:text-white block w-full text-left px-4 py-2 text-xs font-mono transition-colors">Actor Hidden 2 Biases (actor.2.bias [64])</button>
-                            <button onclick="selectLayerOption('actor.4.weight', 'Actor Output Weights (actor.4.weight)')" class="text-slate-300 hover:bg-slate-900 hover:text-white block w-full text-left px-4 py-2 text-xs font-mono transition-colors">Actor Output Weights (actor.4.weight [1, 64])</button>
-                            <button onclick="selectLayerOption('actor.4.bias', 'Actor Output Bias (actor.4.bias)')" class="text-slate-300 hover:bg-slate-900 hover:text-white block w-full text-left px-4 py-2 text-xs font-mono transition-colors">Actor Output Bias (actor.4.bias [1])</button>
-                            <button onclick="selectLayerOption('critic.0.weight', 'Critic Input Weights (critic.0.weight)')" class="text-slate-300 hover:bg-slate-900 hover:text-white block w-full text-left px-4 py-2 text-xs font-mono transition-colors">Critic Input Weights (critic.0.weight [64, 4])</button>
-                            <button onclick="selectLayerOption('critic.0.bias', 'Critic Input Biases (critic.0.bias)')" class="text-slate-300 hover:bg-slate-900 hover:text-white block w-full text-left px-4 py-2 text-xs font-mono transition-colors">Critic Input Biases (critic.0.bias [64])</button>
-                            <button onclick="selectLayerOption('critic.2.weight', 'Critic Hidden Layer 2 (critic.2.weight)')" class="text-slate-300 hover:bg-slate-900 hover:text-white block w-full text-left px-4 py-2 text-xs font-mono transition-colors">Critic Hidden Layer 2 (critic.2.weight [64, 64])</button>
-                            <button onclick="selectLayerOption('critic.2.bias', 'Critic Hidden 2 Biases (critic.2.bias)')" class="text-slate-300 hover:bg-slate-900 hover:text-white block w-full text-left px-4 py-2 text-xs font-mono transition-colors">Critic Hidden 2 Biases (critic.2.bias [64])</button>
-                            <button onclick="selectLayerOption('critic.4.weight', 'Critic Output Weight (critic.4.weight)')" class="text-slate-300 hover:bg-slate-900 hover:text-white block w-full text-left px-4 py-2 text-xs font-mono transition-colors">Critic Output Weight (critic.4.weight [1, 64])</button>
-                            <button onclick="selectLayerOption('critic.4.bias', 'Critic Output Bias (critic.4.bias)')" class="text-slate-300 hover:bg-slate-900 hover:text-white block w-full text-left px-4 py-2 text-xs font-mono transition-colors">Critic Output Bias (critic.4.bias [1])</button>
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex flex-column sm:flex-row justify-content-between align-items-start sm:align-items-center gap-3 mb-4">
+                        <div>
+                            <h4 class="card-title font-mono tracking-widest uppercase mb-0">Weight Matrix Inspector</h4>
+                            <p class="text-muted text-xs font-mono mb-0 mt-1">Select a model layer parameters to display the weight tensor matrix.</p>
+                        </div>
+                        
+                        <!-- Custom Layer Selector Dropdown -->
+                        <div class="dropdown" id="custom-dropdown-layer">
+                            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle font-mono" data-bs-toggle="dropdown" aria-expanded="false">
+                                <span id="selected-layer-label">Actor Input Weights (actor.0.weight)</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow font-mono max-h-60 overflow-y-auto custom-scroll" id="dropdown-menu-layer">
+                                <li><button onclick="selectLayerOption('actor.0.weight', 'Actor Input Weights (actor.0.weight)')" class="dropdown-item text-xs">Actor Input Weights (actor.0.weight [64, 4])</button></li>
+                                <li><button onclick="selectLayerOption('actor.0.bias', 'Actor Input Biases (actor.0.bias)')" class="dropdown-item text-xs">Actor Input Biases (actor.0.bias [64])</button></li>
+                                <li><button onclick="selectLayerOption('actor.2.weight', 'Actor Hidden Layer 2 (actor.2.weight)')" class="dropdown-item text-xs">Actor Hidden Layer 2 (actor.2.weight [64, 64])</button></li>
+                                <li><button onclick="selectLayerOption('actor.2.bias', 'Actor Hidden 2 Biases (actor.2.bias)')" class="dropdown-item text-xs">Actor Hidden 2 Biases (actor.2.bias [64])</button></li>
+                                <li><button onclick="selectLayerOption('actor.4.weight', 'Actor Output Weights (actor.4.weight)')" class="dropdown-item text-xs">Actor Output Weights (actor.4.weight [1, 64])</button></li>
+                                <li><button onclick="selectLayerOption('actor.4.bias', 'Actor Output Bias (actor.4.bias)')" class="dropdown-item text-xs">Actor Output Bias (actor.4.bias [1])</button></li>
+                                <li><button onclick="selectLayerOption('critic.0.weight', 'Critic Input Weights (critic.0.weight)')" class="dropdown-item text-xs">Critic Input Weights (critic.0.weight [64, 4])</button></li>
+                                <li><button onclick="selectLayerOption('critic.0.bias', 'Critic Input Biases (critic.0.bias)')" class="dropdown-item text-xs">Critic Input Biases (critic.0.bias [64])</button></li>
+                                <li><button onclick="selectLayerOption('critic.2.weight', 'Critic Hidden Layer 2 (critic.2.weight)')" class="dropdown-item text-xs">Critic Hidden Layer 2 (critic.2.weight [64, 64])</button></li>
+                                <li><button onclick="selectLayerOption('critic.2.bias', 'Critic Hidden 2 Biases (critic.2.bias)')" class="dropdown-item text-xs">Critic Hidden 2 Biases (critic.2.bias [64])</button></li>
+                                <li><button onclick="selectLayerOption('critic.4.weight', 'Critic Output Weight (critic.4.weight)')" class="dropdown-item text-xs">Critic Output Weight (critic.4.weight [1, 64])</button></li>
+                                <li><button onclick="selectLayerOption('critic.4.bias', 'Critic Output Bias (critic.4.bias)')" class="dropdown-item text-xs">Critic Output Bias (critic.4.bias [1])</button></li>
+                            </ul>
                         </div>
                     </div>
-                </div>
 
                 <!-- Main Weight Panel: Heatmap/Distribution (left) + Weight details (right) -->
                 <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -249,7 +246,7 @@
                     <!-- Heatmap Grid or Curve Distribution -->
                     <div class="lg:col-span-3 space-y-4">
                         <!-- Stats Header Row -->
-                        <div class="grid grid-cols-3 gap-2 bg-slate-950/80 p-3 rounded-lg border border-slate-900 font-mono text-[10px] text-slate-400">
+                        <div class="grid grid-cols-3 gap-2 bg-slate-100 dark:bg-slate-950/80 p-3 rounded-lg border border-slate-200 dark:border-slate-900 font-mono text-[10px] text-slate-600 dark:text-slate-400">
                             <div>Shape: <span class="text-slate-200" id="stat-shape">-</span></div>
                             <div>Mean Diff: <span class="text-cyan-400" id="stat-diff">-</span></div>
                             <div>Mean Abs: <span class="text-slate-200" id="stat-mean">-</span></div>
@@ -266,7 +263,7 @@
                         </div>
 
                         <!-- Heatmap / Distribution Panel Container -->
-                        <div class="relative bg-slate-950/50 rounded-xl p-4 border border-slate-900 min-h-[220px] flex flex-col justify-center">
+                        <div class="relative bg-slate-100/50 dark:bg-slate-950/50 rounded-xl p-4 border border-slate-200 dark:border-slate-900 min-h-[220px] flex flex-col justify-center">
                             
                             <!-- 1. Grid Heatmap view (shown when heatmap mode is active) -->
                             <div id="heatmap-grid-container" class="hidden w-full overflow-y-auto max-h-[350px] custom-scroll">
@@ -307,7 +304,7 @@
                         </div>
 
                         <!-- Target Synapse Selector Card -->
-                        <div id="large-layer-search" class="bg-slate-900/40 p-4 rounded-xl border border-slate-800/80 font-mono text-[10px] space-y-3">
+                        <div id="large-layer-search" class="bg-slate-55 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] space-y-3">
                             <div class="text-[11px] font-bold text-slate-300 uppercase flex items-center gap-1.5">
                                 <i class="fas fa-crosshairs text-cyan-400"></i> Target Coordinate Finder
                             </div>
@@ -319,20 +316,20 @@
                             <div class="flex flex-wrap items-center gap-4">
                                 <div class="flex items-center gap-2">
                                     <span class="text-slate-550 font-bold">ROW:</span>
-                                    <input type="number" id="search-row" min="0" max="63" placeholder="0" class="w-16 bg-slate-950 border border-slate-800 text-slate-200 text-xs px-2 py-1.5 rounded-lg outline-none text-center focus:border-cyan-500 transition-colors" />
+                                    <input type="number" id="search-row" min="0" max="63" placeholder="0" class="w-16 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 text-xs px-2 py-1.5 rounded-lg outline-none text-center focus:border-cyan-500 transition-colors" />
                                 </div>
                                 <div id="search-col-container" class="flex items-center gap-2">
                                     <span class="text-slate-550 font-bold">COL:</span>
-                                    <input type="number" id="search-col" min="0" max="63" placeholder="0" class="w-16 bg-slate-950 border border-slate-800 text-slate-200 text-xs px-2 py-1.5 rounded-lg outline-none text-center focus:border-cyan-500 transition-colors" />
+                                    <input type="number" id="search-col" min="0" max="63" placeholder="0" class="w-16 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 text-xs px-2 py-1.5 rounded-lg outline-none text-center focus:border-cyan-500 transition-colors" />
                                 </div>
-                                <button type="button" onclick="selectSearchedSynapse()" class="bg-cyan-500 hover:bg-cyan-600 text-slate-950 text-xs font-bold px-4 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5">
-                                    <i class="fas fa-search-location"></i> Find & Load Weight
+                                <button type="button" onclick="selectSearchedSynapse()" class="btn btn-sm btn-outline-info font-mono">
+                                    <i class="fas fa-search-location me-1"></i> Find & Load Weight
                                 </button>
                             </div>
                         </div>
 
                         <!-- 🎓 Compact Synaptic Weight Guide -->
-                        <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-800/80 font-mono text-[9px] text-slate-400 space-y-2.5">
+                        <div class="bg-slate-55 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-200 dark:border-slate-800/80 font-mono text-[9px] text-slate-600 dark:text-slate-400 space-y-2.5">
                             <div class="text-[10px] font-bold text-slate-200 uppercase flex items-center gap-1.5">
                                 <i class="fas fa-info-circle text-cyan-400"></i> Synaptic Weight Quick Guide
                             </div>
@@ -357,12 +354,12 @@
                     </div>
 
                     <!-- Selected weight inspector card + Layer explanations -->
-                    <div class="lg:col-span-2 flex flex-col justify-between">
-                        <div class="glass-panel border border-slate-800 rounded-xl p-4 flex-1 flex flex-col justify-between space-y-4">
+                    <div class="lg:col-span-2 d-flex flex-column justify-content-between">
+                        <div class="card border border-secondary-subtle rounded-3 p-3 flex-grow-1 d-flex flex-column justify-content-between gap-3">
                             <div>
-                                <h4 class="text-xs font-mono font-bold text-slate-200 border-b border-slate-800 pb-2 flex justify-between items-center">
+                                <h4 class="card-title font-mono tracking-widest uppercase mb-0 pb-2 border-b border-slate-800 d-flex justify-content-between align-items-center">
                                     <span>Weight Detail Inspector</span>
-                                    <span class="text-[9px] bg-slate-900 text-slate-400 border border-slate-800 px-2 py-0.5 rounded font-mono" id="selected-index">No cell selected</span>
+                                    <span class="badge bg-dark text-slate-400 font-mono" id="selected-index">No cell selected</span>
                                 </h4>
                                 
                                 <div class="mt-3.5 space-y-3 font-mono text-xs">
@@ -383,7 +380,7 @@
                                     </div>
 
                                     <!-- Reason for last weight modification -->
-                                    <div class="bg-slate-950/80 p-2.5 rounded border border-slate-900">
+                                    <div class="bg-slate-100 dark:bg-slate-950/80 p-2.5 rounded border border-slate-200 dark:border-slate-900">
                                         <div class="text-[8px] text-slate-400 font-bold uppercase mb-0.5 flex items-center gap-1.5">
                                             <i class="fas fa-comment-alt text-cyan-400"></i> Modification Reason
                                         </div>
@@ -406,8 +403,8 @@
 
                             <!-- Manual Tuning Editor Button -->
                             <div class="border-t border-slate-805/50 pt-3">
-                                <button id="edit-trigger-btn" onclick="openEditModal()" disabled class="w-full bg-slate-900 hover:bg-slate-800 disabled:opacity-40 disabled:hover:bg-slate-900 border border-slate-700 text-slate-200 hover:text-white font-mono text-xs py-2 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer">
-                                    <i class="fas fa-sliders-h text-cyan-400"></i> Manually Adjust Parameter
+                                <button id="edit-trigger-btn" onclick="openEditModal()" disabled class="btn btn-sm btn-outline-info w-100 font-mono">
+                                    <i class="fas fa-sliders-h me-1"></i> Manually Adjust Parameter
                                 </button>
                             </div>
                         </div>
@@ -421,79 +418,70 @@
         <div class="space-y-6">
             
             <!-- 1. Stats Dashboard -->
-            <div class="glass-panel rounded-2xl p-6 border border-slate-800 shadow-xl space-y-5">
-                <h3 class="text-xs font-mono font-bold tracking-widest text-slate-300 uppercase">Reinforced Learning Stats</h3>
-                
-                <div class="grid grid-cols-2 gap-4">
-                    <!-- Win Rate Circular Progress -->
-                    <div class="bg-slate-950/40 p-4 rounded-xl border border-slate-900 flex flex-col items-center justify-center text-center">
-                        <div class="relative w-16 h-16 flex items-center justify-center">
-                            <!-- Circular SVG -->
-                            <svg class="absolute inset-0 w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                                <path class="text-slate-800" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                                <path id="win-rate-ring" class="text-cyan-500 transition-all duration-1000" stroke-dasharray="0, 100" stroke-width="3" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                            </svg>
-                            <span class="text-xs font-mono font-bold text-slate-200" id="stat-win-rate">0.0%</span>
+            <div class="card mb-4">
+                <div class="card-body space-y-4">
+                    <h4 class="card-title font-mono tracking-widest uppercase mb-3">Reinforced Learning Stats</h4>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- Win Rate Circular Progress -->
+                        <div class="bg-slate-100/50 dark:bg-slate-950/40 p-4 rounded-xl border border-slate-200 dark:border-slate-900 flex flex-col items-center justify-center text-center">
+                            <div class="relative w-16 h-16 flex items-center justify-center">
+                                <!-- Circular SVG -->
+                                <svg class="absolute inset-0 w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                                    <path class="text-slate-800" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                    <path id="win-rate-ring" class="text-cyan-500 transition-all duration-1000" stroke-dasharray="0, 100" stroke-width="3" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                </svg>
+                                <span class="text-xs font-mono font-bold text-slate-200" id="stat-win-rate">0.0%</span>
+                            </div>
+                            <span class="text-[9px] font-mono text-slate-400 mt-2 uppercase">Win Rate</span>
                         </div>
-                        <span class="text-[9px] font-mono text-slate-400 mt-2 uppercase">Win Rate</span>
+
+                        <!-- Avg Reward -->
+                        <div class="bg-slate-100/50 dark:bg-slate-950/40 p-4 rounded-xl border border-slate-200 dark:border-slate-900 flex flex-col items-center justify-center text-center font-mono">
+                            <span class="text-sm font-bold text-emerald-400" id="stat-avg-reward">+0.0000</span>
+                            <span class="text-[9px] text-slate-400 mt-2 uppercase">Avg PnL Reward</span>
+                            <div class="w-full mt-2 h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-900">
+                                <div id="reward-bar" class="h-full bg-emerald-500" style="width: 0%"></div>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Avg Reward -->
-                    <div class="bg-slate-950/40 p-4 rounded-xl border border-slate-900 flex flex-col items-center justify-center text-center font-mono">
-                        <span class="text-sm font-bold text-emerald-400" id="stat-avg-reward">+0.0000</span>
-                        <span class="text-[9px] text-slate-400 mt-2 uppercase">Avg PnL Reward</span>
-                        <div class="w-full mt-2 h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-900">
-                            <div id="reward-bar" class="h-full bg-emerald-500" style="width: 0%"></div>
+                    <!-- Linear stats checklist -->
+                    <div class="space-y-3 font-mono text-xs">
+                        <div class="flex justify-between items-center border-b border-slate-900 pb-2">
+                            <span class="text-slate-400">Total Steps Run:</span>
+                            <span class="text-slate-200 font-bold" id="stat-steps">0</span>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Linear stats checklist -->
-                <div class="space-y-3 font-mono text-xs">
-                    <div class="flex justify-between items-center border-b border-slate-900 pb-2">
-                        <span class="text-slate-400">Total Updates:</span>
-                        <span class="text-slate-200 font-bold" id="stat-updates">0</span>
-                    </div>
-                    <div class="flex justify-between items-center border-b border-slate-900 pb-2">
-                        <span class="text-slate-400">Trades Learned:</span>
-                        <span class="text-slate-200 font-bold" id="stat-trades">0</span>
-                    </div>
-                    <div class="flex flex-col gap-1 border-b border-slate-900 pb-2">
-                        <div class="flex justify-between items-center text-xs">
-                            <span class="text-slate-400">PPO Update Cycle:</span>
-                            <span class="text-cyan-400 font-bold" id="stat-cycle-progress">0/8 completed</span>
+                        <div class="flex justify-between items-center border-b border-slate-900 pb-2">
+                            <span class="text-slate-400">Wins / Losses:</span>
+                            <span class="text-slate-200"><span class="text-emerald-400 font-bold" id="stat-wins">0</span> / <span class="text-red-400 font-bold" id="stat-losses">0</span></span>
                         </div>
-                        <div class="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-900 mt-1">
-                            <div id="cycle-progress-bar" class="h-full bg-cyan-500 transition-all duration-500" style="width: 0%"></div>
+                        <div class="flex justify-between items-center border-b border-slate-900 pb-2">
+                            <span class="text-slate-400">System CPU:</span>
+                            <span class="text-slate-200 font-bold" id="stat-cpu">0.0%</span>
                         </div>
-                    </div>
-                    <div class="flex justify-between items-center border-b border-slate-900 pb-2">
-                        <span class="text-slate-400">Wins / Losses:</span>
-                        <span class="text-slate-200"><span class="text-emerald-400 font-bold" id="stat-wins">0</span> / <span class="text-red-400 font-bold" id="stat-losses">0</span></span>
-                    </div>
-                    <div class="flex justify-between items-center border-b border-slate-900 pb-2">
-                        <span class="text-slate-400">System CPU:</span>
-                        <span class="text-slate-200 font-bold" id="stat-cpu">0.0%</span>
-                    </div>
-                    <div class="flex justify-between items-center border-b border-slate-900 pb-2">
-                        <span class="text-slate-400">System RAM:</span>
-                        <span class="text-slate-200 font-bold" id="stat-mem">0.0%</span>
+                        <div class="flex justify-between items-center border-b border-slate-900 pb-2">
+                            <span class="text-slate-400">System RAM:</span>
+                            <span class="text-slate-200 font-bold" id="stat-mem">0.0%</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- 2. Scrolling Live Learning Logs -->
-            <div class="glass-panel rounded-2xl p-6 border border-slate-800 shadow-xl flex flex-col h-[400px]">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xs font-mono font-bold tracking-widest text-slate-300 uppercase">Live Learning Feed</h3>
-                    <span class="text-[9px] font-mono bg-slate-950 text-cyan-400 border border-slate-850 px-2.5 py-1 rounded-full animate-pulse flex items-center gap-1.5">
-                        <span class="w-1 h-1 rounded-full bg-cyan-400"></span> AUTO POLL
-                    </span>
-                </div>
-                
-                <!-- Logs list -->
-                <div id="learning-feed" class="flex-1 overflow-y-auto custom-scroll space-y-3 pr-1 text-[11px] font-mono">
-                    <div class="text-slate-500 text-center py-8">Awaiting trade event executions...</div>
+            <div class="card mb-4 flex flex-col h-[400px]">
+                <div class="card-body d-flex flex-column h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="card-title font-mono tracking-widest uppercase mb-0">Live Learning Feed</h4>
+                        <span class="badge bg-info-subtle border border-info/20 text-info font-mono uppercase tracking-wider py-1.5 px-2.5 rounded-3 animate-pulse">
+                            <span class="w-1.5 h-1.5 rounded-full bg-info me-1 d-inline-block"></span> AUTO POLL
+                        </span>
+                    </div>
+                    
+                    <!-- Logs list -->
+                    <div id="learning-feed" class="flex-1 overflow-y-auto custom-scroll space-y-3 pr-1 text-[11px] font-mono">
+                        <div class="text-slate-500 text-center py-8">Awaiting trade event executions...</div>
+                    </div>
                 </div>
             </div>
             
@@ -502,29 +490,31 @@
     </div>
 
     <!-- Educational section explaining weights -->
-    <div class="glass-panel rounded-2xl p-8 border border-slate-800 shadow-xl">
-        <h2 class="text-lg font-mono font-bold text-slate-200 mb-6 uppercase tracking-wider border-b border-slate-850 pb-4">
-            <i class="fas fa-graduation-cap text-cyan-400 mr-2"></i> PPO Learning & Weights Guide
-        </h2>
-        
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 font-mono text-xs leading-relaxed text-slate-400">
-            <div class="bg-slate-950/40 p-5 rounded-xl border border-slate-900/60">
-                <h4 class="text-slate-200 font-bold mb-3 uppercase flex items-center gap-2"><div class="w-1.5 h-1.5 bg-cyan-500 rounded-full"></div> 1. Neural Inputs (Sensory Core)</h4>
-                <p>
-                    The model receives 4 inputs representing the state of the market: **Price Trend** (momentum), **Sentiment Score** (news/sentiment extraction), **Volatility** (price swing range), and **Volume/Spread** (liquidity pressure).
-                </p>
-            </div>
-            <div class="bg-slate-950/40 p-5 rounded-xl border border-slate-900/60">
-                <h4 class="text-slate-200 font-bold mb-3 uppercase flex items-center gap-2"><div class="w-1.5 h-1.5 bg-blue-500 rounded-full"></div> 2. Hidden Layers (Feature Extraction)</h4>
-                <p>
-                    Neurons in middle layers (Hidden 1 & 2) act as pattern detectors. They don't see the outside world directly. Instead, they extract complex triggers, like "market capitulation" or "stable consolidation," by combining inputs.
-                </p>
-            </div>
-            <div class="bg-slate-950/40 p-5 rounded-xl border border-slate-900/60">
-                <h4 class="text-slate-200 font-bold mb-3 uppercase flex items-center gap-2"><div class="w-1.5 h-1.5 bg-purple-500 rounded-full"></div> 3. Action Output (Actor/Critic)</h4>
-                <p>
-                    The **Actor** outputs the action signal strictly between **-1.0 (Sell)** and **+1.0 (Buy)**. The **Critic** outputs the predicted trade return to evaluate if decisions were optimal, guiding online PPO reinforcement updates.
-                </p>
+    <div class="card mb-4">
+        <div class="card-body p-4">
+            <h2 class="card-title font-mono tracking-wider uppercase mb-4 pb-3 border-b border-slate-850">
+                <i class="fas fa-graduation-cap text-cyan-400 mr-2"></i> PPO Learning & Weights Guide
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 font-mono text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+                <div class="bg-slate-100/50 dark:bg-slate-950/40 p-5 rounded-xl border border-slate-200 dark:border-slate-900/60">
+                    <h4 class="text-slate-800 dark:text-slate-200 font-bold mb-3 uppercase flex items-center gap-2"><div class="w-1.5 h-1.5 bg-cyan-500 rounded-full"></div> 1. Neural Inputs (Sensory Core)</h4>
+                    <p>
+                        The model receives 4 inputs representing the state of the market: **Price Trend** (momentum), **Sentiment Score** (news/sentiment extraction), **Volatility** (price swing range), and **Volume/Spread** (liquidity pressure).
+                    </p>
+                </div>
+                <div class="bg-slate-100/50 dark:bg-slate-950/40 p-5 rounded-xl border border-slate-200 dark:border-slate-900/60">
+                    <h4 class="text-slate-800 dark:text-slate-200 font-bold mb-3 uppercase flex items-center gap-2"><div class="w-1.5 h-1.5 bg-blue-500 rounded-full"></div> 2. Hidden Layers (Feature Extraction)</h4>
+                    <p>
+                        Neurons in middle layers (Hidden 1 & 2) act as pattern detectors. They don't see the outside world directly. Instead, they extract complex triggers, like "market capitulation" or "stable consolidation," by combining inputs.
+                    </p>
+                </div>
+                <div class="bg-slate-100/50 dark:bg-slate-950/40 p-5 rounded-xl border border-slate-200 dark:border-slate-900/60">
+                    <h4 class="text-slate-800 dark:text-slate-200 font-bold mb-3 uppercase flex items-center gap-2"><div class="w-1.5 h-1.5 bg-purple-500 rounded-full"></div> 3. Action Output (Actor/Critic)</h4>
+                    <p>
+                        The **Actor** outputs the action signal strictly between **-1.0 (Sell)** and **+1.0 (Buy)**. The **Critic** outputs the predicted trade return to evaluate if decisions were optimal, guiding online PPO reinforcement updates.
+                    </p>
+                </div>
             </div>
         </div>
     </div>
@@ -532,47 +522,49 @@
 
 <!-- Pristine Weight Edit Modal -->
 <div id="edit-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm">
-    <div class="glass-panel w-full max-w-md mx-4 rounded-2xl border border-slate-800 shadow-2xl p-6 relative">
-        <h3 class="text-sm font-mono font-bold text-slate-100 uppercase border-b border-slate-800 pb-3 mb-4 flex items-center gap-2">
-            <i class="fas fa-sliders-h text-cyan-400"></i> Edit Neural Parameter
-        </h3>
+    <div class="card w-full max-w-md mx-4 shadow-2xl p-3 relative">
+        <div class="card-body">
+            <h3 class="card-title font-mono tracking-widest uppercase pb-3 border-b border-slate-800 mb-4 d-flex align-items-center gap-2">
+                <i class="fas fa-sliders-h text-cyan-400"></i> Edit Neural Parameter
+            </h3>
 
-        <!-- Form fields -->
-        <div class="space-y-4 font-mono text-xs">
-            <div>
-                <label class="text-slate-400 block mb-1">Parameter Key</label>
-                <input type="text" id="modal-layer-name" readonly class="w-full bg-slate-900 border border-slate-800 text-slate-300 px-3 py-2 rounded outline-none" />
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
+            <!-- Form fields -->
+            <div class="space-y-4 font-mono text-xs">
                 <div>
-                    <label class="text-slate-400 block mb-1">Current Weight</label>
-                    <input type="text" id="modal-curr-val" readonly class="w-full bg-slate-900 border border-slate-800 text-slate-500 px-3 py-2 rounded outline-none" />
+                    <label class="text-slate-400 block mb-1">Parameter Key</label>
+                    <input type="text" id="modal-layer-name" readonly class="w-full bg-slate-900 border border-slate-800 text-slate-300 px-3 py-2 rounded outline-none" />
                 </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-slate-400 block mb-1">Current Weight</label>
+                        <input type="text" id="modal-curr-val" readonly class="w-full bg-slate-900 border border-slate-800 text-slate-500 px-3 py-2 rounded outline-none" />
+                    </div>
+                    <div>
+                        <label class="text-cyan-400 block mb-1">New Value</label>
+                        <input type="number" step="0.0001" id="modal-new-val" class="w-full bg-slate-955 border border-slate-800 focus:border-cyan-500 text-cyan-400 px-3 py-2 rounded outline-none" />
+                    </div>
+                </div>
+
                 <div>
-                    <label class="text-cyan-400 block mb-1">New Value</label>
-                    <input type="number" step="0.0001" id="modal-new-val" class="w-full bg-slate-955 border border-slate-800 focus:border-cyan-500 text-cyan-400 px-3 py-2 rounded outline-none" />
+                    <label class="text-slate-400 block mb-1">Reason for Weight Change <span class="text-red-500">*</span></label>
+                    <textarea id="modal-reason" placeholder="e.g. Fine-tuning first layer bias to balance long bias action variance..." rows="3" required class="w-full bg-slate-955 border border-slate-800 focus:border-cyan-500 text-slate-200 px-3 py-2 rounded outline-none resize-none"></textarea>
+                </div>
+                
+                <div id="modal-warning" class="hidden p-3 bg-rose-500/10 border border-rose-500/30 rounded text-[10px] text-rose-400 leading-normal">
+                    <!-- Warning message -->
                 </div>
             </div>
 
-            <div>
-                <label class="text-slate-400 block mb-1">Reason for Weight Change <span class="text-red-500">*</span></label>
-                <textarea id="modal-reason" placeholder="e.g. Fine-tuning first layer bias to balance long bias action variance..." rows="3" required class="w-full bg-slate-955 border border-slate-800 focus:border-cyan-500 text-slate-200 px-3 py-2 rounded outline-none resize-none"></textarea>
+            <!-- Buttons -->
+            <div class="mt-4 d-flex justify-content-end gap-2 font-mono text-xs">
+                <button onclick="closeEditModal()" class="btn btn-sm btn-outline-secondary">
+                    Cancel
+                </button>
+                <button onclick="submitWeightEdit()" class="btn btn-sm btn-outline-primary">
+                    Confirm Weight Override
+                </button>
             </div>
-            
-            <div id="modal-warning" class="hidden p-3 bg-rose-500/10 border border-rose-500/30 rounded text-[10px] text-rose-400 leading-normal">
-                <!-- Warning message -->
-            </div>
-        </div>
-
-        <!-- Buttons -->
-        <div class="mt-6 flex justify-end gap-3 font-mono text-xs">
-            <button onclick="closeEditModal()" class="bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200 px-4 py-2 rounded-lg transition-all cursor-pointer">
-                Cancel
-            </button>
-            <button onclick="submitWeightEdit()" class="bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold px-4 py-2 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer">
-                Confirm Weight Override
-            </button>
         </div>
     </div>
 </div>

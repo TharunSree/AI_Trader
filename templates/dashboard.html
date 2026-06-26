@@ -311,7 +311,7 @@
                 <span class="text-[9px] font-bold px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full font-mono border border-slate-100 dark:border-slate-700 uppercase tracking-wider">{{ total_trades }} TOTAL</span>
             </div>
             
-            <div class="p-4 space-y-2.5" id="recent-executions-container">
+            <div class="p-4 space-y-2.5 overflow-y-auto" id="recent-executions-container" style="max-height: 300px;">
                 {% for trade in recent_trades %}
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800 hover:shadow-sm transition-all duration-200 gap-2">
                     <div class="flex items-center gap-3">
@@ -1161,7 +1161,6 @@
                     ${v.error_message ? `<div class="mt-2 text-[8px] text-rose-500/70 font-mono truncate">${v.error_message}</div>` : ''}
                 </div>`;
             });
-            });
             container.innerHTML = html;
         }).catch(e => {
             container.innerHTML = '<div class="text-center text-[10px] text-red-400 font-mono py-3">Failed to load variants</div>';
@@ -1616,7 +1615,6 @@
         });
     }
     window.fetchSystemLogs = fetchSystemLogs;
-    })();
 </script>
 {% endblock extra_javascript %}
 

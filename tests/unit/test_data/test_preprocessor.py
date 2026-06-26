@@ -22,27 +22,37 @@ def sample_ohlcv_df() -> pd.DataFrame:
     return pd.DataFrame(data, index=index)
 
 
-def test_calculate_features(sample_ohlcv_df: pd.DataFrame):
-    """Tests that feature calculation adds the correct columns and drops NaNs."""
-    # The rolling(5) and pct_change() will create NaNs for the first 4 and 1 rows respectively.
-    # The dropna() will remove the first 4 rows where SMA is NaN.
-    # So the resulting dataframe will have only 1 row.
+def test_calculate_features():
+    """Tests that feature calculation adds the correct columns and fills NaNs."""
+    # Create a dummy DataFrame with 250 rows to satisfy 200-day rolling window
+    np.random.seed(42)
+    dates = pd.date_range(start="2023-01-01", periods=250)
+    close_prices = 100.0 + np.cumsum(np.random.normal(0, 1, 250))
+    high_prices = close_prices + np.random.uniform(0.5, 2.0, 250)
+    low_prices = close_prices - np.random.uniform(0.5, 2.0, 250)
+    open_prices = close_prices + np.random.normal(0, 0.5, 250)
+    volume = np.random.randint(1000, 5000, 250)
 
-    # Let's create a larger dataframe for a more meaningful test
-    close_prices = np.arange(100, 120)
-    index = pd.to_datetime([f"2023-01-{i + 1:02d}" for i in range(20)])
-    df = pd.DataFrame({"Close": close_prices}, index=index)
+    df = pd.DataFrame({
+        "Open": open_prices,
+        "High": high_prices,
+        "Low": low_prices,
+        "Close": close_prices,
+        "Volume": volume
+    }, index=dates)
 
     processed_df = calculate_features(df)
 
-    assert "returns" in processed_df.columns
-    assert "SMA_5" in processed_df.columns
+    # Check for expected technical indicators
+    expected_cols = [
+        "returns", "SMA_50", "SMA_20", "SMA_200", 
+        "RSI_14", "STOCHk_14_3_3", "MACDh_12_26_9", 
+        "ADX_14", "BBP_20_2", "ATR_14", "OBV"
+    ]
+    for col in expected_cols:
+        assert col in processed_df.columns
 
-    # Check that NaNs are dropped. Initial df has 20 rows.
-    # SMA_5 creates 4 NaNs. dropna() removes them.
-    assert len(processed_df) == 16  # 20 - 4
+    # Verify no NaN values exist in the processed DataFrame
+    assert not processed_df.isnull().any().any()
+    assert len(processed_df) == 250
 
-    # Verify a calculated value
-    # For the first valid row (index 4, date 2023-01-05), Close is 104
-    # The SMA_5 should be the mean of [100, 101, 102, 103, 104] = 102.0
-    assert processed_df["SMA_5"].iloc[0] == 102.0
