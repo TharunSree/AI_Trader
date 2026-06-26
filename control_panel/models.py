@@ -376,3 +376,45 @@ class OnlineLearningLog(models.Model):
         return f"[{self.event_type}] {self.timestamp:%Y-%m-%d %H:%M} - {self.reason or self.event_type}"
 
 
+class Game(models.Model):
+    name = models.CharField(max_length=150)
+    steam_app_id = models.CharField(max_length=50, blank=True, null=True, help_text="Steam App ID if it is a Steam game")
+    local_path = models.CharField(max_length=500, blank=True, null=True, help_text="Path to local executable for non-Steam games")
+    hours_played = models.FloatField(default=0.0)
+    cover_image_url = models.CharField(max_length=500, blank=True, null=True)
+    animated_bg_url = models.CharField(max_length=500, blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+
+class GameGuide(models.Model):
+    game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='guides')
+    title = models.CharField(max_length=250)
+    source_url = models.URLField(blank=True, null=True)
+    content_markdown = models.TextField(help_text="Extracted guide content styled in markdown")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.game.name} - {self.title}"
+
+
+class GameVideo(models.Model):
+    game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='videos')
+    title = models.CharField(max_length=250)
+    youtube_url = models.URLField()
+    video_id = models.CharField(max_length=50, blank=True, null=True, help_text="Extracted YouTube Video ID")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if self.youtube_url and not self.video_id:
+            import re
+            match = re.search(r'(?:v=|\/v\/|embed\/|youtu\.be\/|\/shorts\/)([^#\&\?]+)', self.youtube_url)
+            if match:
+                self.video_id = match.group(1)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.game.name} - {self.title}"

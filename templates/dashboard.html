@@ -56,49 +56,55 @@
 <!-- KPI STAT CARDS ROW -->
 <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
     <!-- Fleet P&L -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all duration-300">
         <div class="flex items-center justify-between mb-2">
-            <span class="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Fleet P&L</span>
-            <i class="fas fa-chart-line text-xs {% if fleet_realized_pnl >= 0 %}text-green-400{% else %}text-red-400{% endif %}"></i>
+            <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Fleet P&L</span>
+            <div class="w-7 h-7 rounded-full {% if fleet_realized_pnl >= 0 %}bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600{% else %}bg-rose-50 dark:bg-rose-950/20 text-rose-600{% endif %} flex items-center justify-center">
+                <i class="fas fa-chart-line text-xs"></i>
+            </div>
         </div>
-        <div class="text-xl font-bold font-mono {% if fleet_realized_pnl >= 0 %}text-green-500{% else %}text-red-500{% endif %}">
+        <div class="text-2xl font-bold font-mono {% if fleet_realized_pnl >= 0 %}text-emerald-500{% else %}text-rose-500{% endif %}">
             {% if fleet_realized_pnl >= 0 %}+{% endif %}${{ fleet_realized_pnl|floatformat:2 }}
         </div>
-        <div class="text-[10px] font-mono {% if fleet_pnl_pct >= 0 %}text-green-400/70{% else %}text-red-400/70{% endif %} mt-0.5">
+        <div class="text-[10px] font-mono {% if fleet_pnl_pct >= 0 %}text-emerald-500/70{% else %}text-rose-500/70{% endif %} mt-1">
             {% if fleet_pnl_pct >= 0 %}+{% endif %}{{ fleet_pnl_pct|floatformat:2 }}% · ${{ fleet_initial_cash|floatformat:0 }} initial
         </div>
     </div>
 
     <!-- Win Rate -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all duration-300">
         <div class="flex items-center justify-between mb-2">
-            <span class="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Win Rate</span>
-            <i class="fas fa-trophy text-xs text-amber-400"></i>
+            <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Win Rate</span>
+            <div class="w-7 h-7 rounded-full bg-amber-50 dark:bg-amber-950/20 text-amber-500 flex items-center justify-center">
+                <i class="fas fa-trophy text-xs"></i>
+            </div>
         </div>
-        <div class="text-xl font-bold font-mono text-slate-900 dark:text-white">{{ win_rate|floatformat:0 }}%</div>
-        <div class="text-[10px] font-mono text-slate-500 mt-0.5">{{ wins }}W / {{ losses }}L · {{ total_trades }} total</div>
+        <div class="text-2xl font-bold font-mono text-slate-900 dark:text-white">{{ win_rate|floatformat:0 }}%</div>
+        <div class="text-[10px] font-mono text-slate-500 mt-1">{{ wins }}W / {{ losses }}L · {{ total_trades }} total</div>
     </div>
 
     <!-- Today's Volume -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all duration-300">
         <div class="flex items-center justify-between mb-2">
-            <span class="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Today</span>
-            <i class="fas fa-bolt text-xs text-sky-400"></i>
+            <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Today</span>
+            <div class="w-7 h-7 rounded-full bg-sky-50 dark:bg-sky-950/20 text-sky-500 flex items-center justify-center">
+                <i class="fas fa-bolt text-xs"></i>
+            </div>
         </div>
-        <div class="text-xl font-bold font-mono text-slate-900 dark:text-white">{{ today_total_trades }}</div>
-        <div class="text-[10px] font-mono text-slate-500 mt-0.5">
-            <span class="text-green-400">{{ today_buys }}B</span> / <span class="text-red-400">{{ today_sells }}S</span> · ${{ today_volume|floatformat:2 }} vol
+        <div class="text-2xl font-bold font-mono text-slate-900 dark:text-white">{{ today_total_trades }}</div>
+        <div class="text-[10px] font-mono text-slate-500 mt-1">
+            <span class="text-emerald-500 font-bold">{{ today_buys }}B</span> / <span class="text-rose-500 font-bold">{{ today_sells }}S</span> · ${{ today_volume|floatformat:2 }} vol
         </div>
     </div>
 
     <!-- Active Bots -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all duration-300">
         <div class="flex items-center justify-between mb-2">
-            <span class="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Engine</span>
+            <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Engine</span>
             <span id="trader-status-indicator" class="relative flex h-2 w-2">
                 {% if running_count > 0 %}
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 {% elif sleeping_count > 0 %}
                 <span class="animate-pulse absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                 <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
@@ -107,13 +113,13 @@
                 {% endif %}
             </span>
         </div>
-        <div class="text-xl font-bold font-mono text-slate-900 dark:text-white flex items-center gap-1.5">
+        <div class="text-2xl font-bold font-mono text-slate-900 dark:text-white flex items-center gap-1.5">
             <span id="trader-status-text">
                 {% if running_count > 0 %}ONLINE{% elif sleeping_count > 0 %}SLEEPING{% else %}STANDBY{% endif %}
             </span>
             <span id="trader-status-badge" class="hidden"></span>
         </div>
-        <div class="text-[10px] font-mono text-slate-500 mt-0.5">
+        <div class="text-[10px] font-mono text-slate-500 mt-1">
             {{ running_count }} running · {{ sleeping_count }} sleeping · {{ ready_models_count }} models
         </div>
     </div>
@@ -125,64 +131,64 @@
     <div class="xl:col-span-3 flex flex-col gap-4 min-h-0">
         
         <!-- Fleet Portfolio Summary -->
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
-            <h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all duration-300">
+            <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                 <i class="fas fa-wallet text-brand-500"></i> Fleet Portfolio
             </h3>
             
-            <div class="space-y-2 font-mono text-sm">
-                <div class="flex justify-between">
-                    <span class="text-xs text-slate-500">Initial Capital</span>
+            <div class="space-y-3 font-mono text-sm">
+                <div class="flex justify-between items-center bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-800/60">
+                    <span class="text-xs text-slate-550">Initial Capital</span>
                     <span class="text-xs font-bold text-slate-800 dark:text-slate-200">${{ fleet_initial_cash|floatformat:2 }}</span>
                 </div>
-                <div class="flex justify-between">
-                    <span class="text-xs text-slate-500">Total Bought</span>
-                    <span class="text-xs text-red-400">${{ fleet_total_bought|floatformat:2 }}</span>
+                <div class="flex justify-between items-center bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-800/60">
+                    <span class="text-xs text-slate-555">Total Bought</span>
+                    <span class="text-xs font-bold text-rose-500">${{ fleet_total_bought|floatformat:2 }}</span>
                 </div>
-                <div class="flex justify-between">
-                    <span class="text-xs text-slate-500">Total Sold</span>
-                    <span class="text-xs text-green-400">${{ fleet_total_sold|floatformat:2 }}</span>
+                <div class="flex justify-between items-center bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-800/60">
+                    <span class="text-xs text-slate-550">Total Sold</span>
+                    <span class="text-xs font-bold text-emerald-500">${{ fleet_total_sold|floatformat:2 }}</span>
                 </div>
-                <div class="border-t border-slate-100 dark:border-slate-800 pt-2 flex justify-between">
+                <div class="flex justify-between items-center bg-brand-50/50 dark:bg-brand-950/10 p-2.5 rounded-2xl border border-brand-100/50 dark:border-brand-900/10 mt-1">
                     <span class="text-xs font-bold text-slate-700 dark:text-slate-300">Current Balance</span>
-                    <span class="text-xs font-bold {% if fleet_realized_pnl >= 0 %}text-green-400{% else %}text-red-400{% endif %}">${{ fleet_balance|floatformat:2 }}</span>
+                    <span class="text-xs font-bold {% if fleet_realized_pnl >= 0 %}text-emerald-500{% else %}text-rose-500{% endif %}">${{ fleet_balance|floatformat:2 }}</span>
                 </div>
             </div>
         </div>
 
         <!-- AI Training Pulse -->
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
-            <h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all duration-300">
+            <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                 <i class="fas fa-network-wired text-brand-500"></i> Active Pipelines
             </h3>
             
-            <div class="space-y-3 font-mono text-sm">
+            <div class="space-y-4 font-mono text-sm">
                 {% if active_meta %}
-                <div>
-                    <div class="flex justify-between items-center mb-1">
+                <div class="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/60">
+                    <div class="flex justify-between items-center mb-2">
                         <span class="text-xs font-bold text-slate-700 dark:text-slate-300">META_COACH</span>
-                        <span class="text-[10px] text-brand-600 dark:text-brand-400 uppercase tracking-wider">{{ active_meta.status }}</span>
+                        <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-brand-50 dark:bg-brand-950/20 text-brand-600 uppercase tracking-wider">{{ active_meta.status }}</span>
                     </div>
-                    <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5">
-                        <div class="bg-brand-500 h-1.5 rounded-full transition-all" style="width: {{ active_meta.progress|default:10 }}%"></div>
+                    <div class="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2">
+                        <div class="bg-brand-500 h-2 rounded-full transition-all" style="width: {{ active_meta.progress|default:10 }}%"></div>
                     </div>
                 </div>
                 {% endif %}
                 
                 {% if active_training %}
-                <div>
-                    <div class="flex justify-between items-center mb-1">
+                <div class="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/60">
+                    <div class="flex justify-between items-center mb-2">
                         <span class="text-xs font-bold text-slate-700 dark:text-slate-300">STD_MODEL</span>
-                        <span class="text-[10px] text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">{{ active_training.status }}</span>
+                        <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 uppercase tracking-wider">{{ active_training.status }}</span>
                     </div>
-                    <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5">
-                        <div class="bg-indigo-500 h-1.5 rounded-full transition-all" style="width: {{ active_training.progress|default:10 }}%"></div>
+                    <div class="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2">
+                        <div class="bg-indigo-500 h-2 rounded-full transition-all" style="width: {{ active_training.progress|default:10 }}%"></div>
                     </div>
                 </div>
                 {% endif %}
                 
                 {% if not active_meta and not active_training %}
-                <div class="text-slate-400 dark:text-slate-600 text-xs text-center py-3 tracking-widest">
+                <div class="text-slate-400 dark:text-slate-600 text-xs text-center py-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800/60 tracking-widest font-bold">
                     [ NO ACTIVE TRAINING ]
                 </div>
                 {% endif %}
@@ -190,15 +196,15 @@
 
             <!-- Evolution Status -->
             {% if evolution_testing > 0 or evolution_pending > 0 %}
-            <div class="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <div class="flex justify-between items-center">
-                    <span class="text-[10px] text-slate-500 uppercase tracking-wider font-mono">🧬 Evolution</span>
+                    <span class="text-[10px] text-slate-500 uppercase tracking-wider font-mono font-bold">🧬 Evolution</span>
                     <div class="flex gap-2">
                         {% if evolution_testing > 0 %}
-                        <span class="text-[9px] px-1.5 py-0.5 bg-sky-500/10 text-sky-400 border border-sky-500/30 rounded font-mono font-bold">{{ evolution_testing }} TESTING</span>
+                        <span class="text-[9px] px-2.5 py-0.5 bg-sky-50 dark:bg-sky-950/20 text-sky-500 border border-sky-100 dark:border-sky-900/30 rounded-full font-mono font-bold">{{ evolution_testing }} TESTING</span>
                         {% endif %}
                         {% if evolution_pending > 0 %}
-                        <span class="text-[9px] px-1.5 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded font-mono font-bold animate-pulse">{{ evolution_pending }} PENDING</span>
+                        <span class="text-[9px] px-2.5 py-0.5 bg-amber-50 dark:bg-amber-950/20 text-amber-500 border border-amber-100 dark:border-amber-900/30 rounded-full font-mono font-bold animate-pulse">{{ evolution_pending }} PENDING</span>
                         {% endif %}
                     </div>
                 </div>
@@ -207,45 +213,51 @@
         </div>
 
         <!-- System Health Telemetry -->
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
-            <h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all duration-300">
+            <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                 <i class="fas fa-microchip text-brand-500"></i> System Telemetry
             </h3>
             
-            <div class="space-y-3 font-mono text-sm">
+            <div class="space-y-4 font-mono">
                 {% if telemetry and telemetry.available %}
-                <!-- CPU -->
-                <div>
-                    <div class="flex justify-between items-center mb-1 text-xs">
-                        <span class="text-slate-500">CPU Usage</span>
-                        <span id="telemetry-cpu-val" class="text-slate-800 dark:text-slate-200 font-bold">{{ telemetry.cpu_percent }}%</span>
+                <!-- Side-by-side SVG Circular Rings -->
+                <div class="flex items-center justify-around py-2">
+                    <!-- CPU Circular Gauge -->
+                    <div class="flex flex-col items-center">
+                        <div class="relative flex items-center justify-center">
+                            <svg class="w-16 h-16 transform -rotate-90" viewBox="0 0 36 36">
+                                <path class="text-slate-100 dark:text-slate-800" stroke="currentColor" stroke-width="3.5" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                <path id="telemetry-cpu-ring" class="text-brand-500 transition-all duration-500" stroke="currentColor" stroke-width="3.5" stroke-dasharray="{{ telemetry.cpu_percent }}, 100" stroke-linecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            </svg>
+                            <div class="absolute text-[10px] font-bold font-mono text-slate-800 dark:text-slate-200" id="telemetry-cpu-val">{{ telemetry.cpu_percent }}%</div>
+                        </div>
+                        <span class="text-[9px] uppercase font-bold text-slate-500 dark:text-slate-400 mt-2 tracking-wider">CPU</span>
                     </div>
-                    <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5">
-                        <div id="telemetry-cpu-bar" class="bg-brand-500 h-1.5 rounded-full transition-all" style="width: {{ telemetry.cpu_percent }}%"></div>
+                    
+                    <!-- RAM Circular Gauge -->
+                    <div class="flex flex-col items-center">
+                        <div class="relative flex items-center justify-center">
+                            <svg class="w-16 h-16 transform -rotate-90" viewBox="0 0 36 36">
+                                <path class="text-slate-100 dark:text-slate-800" stroke="currentColor" stroke-width="3.5" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                <path id="telemetry-ram-ring" class="text-indigo-500 transition-all duration-500" stroke="currentColor" stroke-width="3.5" stroke-dasharray="{{ telemetry.system_used_percent }}, 100" stroke-linecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            </svg>
+                            <div class="absolute text-[10px] font-bold font-mono text-slate-800 dark:text-slate-200" id="telemetry-ram-val">{{ telemetry.system_used_percent }}%</div>
+                        </div>
+                        <span class="text-[9px] uppercase font-bold text-slate-500 dark:text-slate-400 mt-2 tracking-wider">RAM</span>
                     </div>
                 </div>
                 
-                <!-- RAM -->
-                <div>
-                    <div class="flex justify-between items-center mb-1 text-xs">
-                        <span class="text-slate-500">RAM Usage</span>
-                        <span id="telemetry-ram-val" class="text-slate-800 dark:text-slate-200 font-bold">{{ telemetry.system_used_percent }}%</span>
-                    </div>
-                    <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5">
-                        <div id="telemetry-ram-bar" class="bg-indigo-500 h-1.5 rounded-full transition-all" style="width: {{ telemetry.system_used_percent }}%"></div>
-                    </div>
-                    <div id="telemetry-ram-text" class="text-[9px] text-slate-400 mt-1">
-                        {{ telemetry.system_used_gb }} GB / {{ telemetry.system_total_gb }} GB
-                    </div>
+                <div id="telemetry-ram-text" class="text-[9px] text-slate-400 dark:text-slate-550 text-center font-mono">
+                    {{ telemetry.system_used_gb }} GB / {{ telemetry.system_total_gb }} GB
                 </div>
                 
                 <!-- Memory Budget -->
-                <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-xs">
-                    <span class="text-slate-500">Memory Budget</span>
+                <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-xs">
+                    <span class="text-slate-550">Memory Budget</span>
                     <span id="telemetry-limit-val" class="text-slate-700 dark:text-slate-300 font-bold">{{ telemetry.trader_limit_mb }} MB</span>
                 </div>
                 {% else %}
-                <div class="text-slate-400 dark:text-slate-600 text-xs text-center py-3 tracking-widest">
+                <div class="text-slate-400 dark:text-slate-600 text-xs text-center py-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800/60 tracking-widest font-bold">
                     [ TELEMETRY OFFLINE ]
                 </div>
                 {% endif %}
@@ -258,9 +270,9 @@
     <div class="xl:col-span-6 flex flex-col gap-4 min-h-0">
         
         <!-- Live Asset Stream -->
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 shadow-sm flex items-center justify-between">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between">
             <div>
-                <h3 class="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Live Asset Stream</h3>
+                <h3 class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Live Asset Stream</h3>
                 <div class="text-xl font-bold font-mono text-slate-900 dark:text-white" id="live-price-display">
                     AWAITING FEED...
                 </div>
@@ -270,8 +282,8 @@
                     <div class="text-[10px] text-slate-500 uppercase tracking-widest font-mono">Equity</div>
                     <div class="text-sm font-bold font-mono text-slate-800 dark:text-slate-200" id="account-equity-global">${{ live_equity }}</div>
                 </div>
-                <div class="h-10 w-24 bg-slate-50 dark:bg-slate-800 rounded flex items-center justify-center border border-slate-100 dark:border-slate-700">
-                     <svg class="w-full h-full text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 100 40" preserveAspectRatio="none">
+                <div class="h-10 w-24 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center border border-slate-100 dark:border-slate-700">
+                     <svg class="w-full h-full text-brand-300 dark:text-brand-900/40" fill="none" viewBox="0 0 100 40" preserveAspectRatio="none">
                          <polyline points="0,30 20,20 40,35 60,15 80,25 100,10" fill="none" stroke="currentColor" stroke-width="2" vector-effect="non-scaling-stroke"></polyline>
                      </svg>
                 </div>
@@ -279,74 +291,54 @@
         </div>
 
         <!-- Active Positions Card -->
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm flex flex-col">
-            <div class="p-3 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center py-2">
-                <h3 class="text-xs font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-widest">Active Positions</h3>
-                <span class="text-[10px] px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-mono border border-slate-200 dark:border-slate-700">PORTFOLIO</span>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col">
+            <div class="p-4 border-b border-slate-100 dark:border-slate-800/80 flex justify-between items-center">
+                <h3 class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest">Active Positions</h3>
+                <span class="text-[9px] font-bold px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full font-mono border border-slate-100 dark:border-slate-700">PORTFOLIO</span>
             </div>
             
-            <div class="flex-1">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-50 dark:bg-slate-800/50 text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono sticky top-0">
-                            <th class="px-3 py-1.5 font-medium border-b border-slate-200 dark:border-slate-800">Asset</th>
-                            <th class="px-3 py-1.5 font-medium border-b border-slate-200 dark:border-slate-800 text-right">Holdings</th>
-                            <th class="px-3 py-1.5 font-medium border-b border-slate-200 dark:border-slate-800 text-right">Market Value</th>
-                        </tr>
-                    </thead>
-                    <tbody class="text-sm divide-y divide-slate-100 dark:divide-slate-800" id="positions-tbody">
-                        <tr>
-                            <td colspan="3" class="p-6 text-center text-slate-400 dark:text-slate-600 font-mono text-xs tracking-widest uppercase">
-                                Loading positions...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="p-4 space-y-2.5" id="positions-container">
+                <div class="text-center text-slate-400 dark:text-slate-600 font-mono text-xs tracking-widest uppercase py-6 bg-slate-50 dark:bg-slate-800/20 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    Loading positions...
+                </div>
             </div>
         </div>
 
         <!-- Recent Executions Table -->
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm flex flex-col">
-            <div class="p-3 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center py-2">
-                <h3 class="text-xs font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-widest">Recent Executions</h3>
-                <span class="text-[10px] px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-mono border border-slate-200 dark:border-slate-700">{{ total_trades }} TOTAL</span>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm hover:shadow-md transition-all duration-300 flex flex-col">
+            <div class="p-4 border-b border-slate-100 dark:border-slate-800/80 flex justify-between items-center">
+                <h3 class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest">Recent Executions</h3>
+                <span class="text-[9px] font-bold px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full font-mono border border-slate-100 dark:border-slate-700 uppercase tracking-wider">{{ total_trades }} TOTAL</span>
             </div>
             
-            <div class="flex-1">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-50 dark:bg-slate-800/50 text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono sticky top-0">
-                            <th class="px-3 py-1.5 font-medium border-b border-slate-200 dark:border-slate-800">Time</th>
-                            <th class="px-3 py-1.5 font-medium border-b border-slate-200 dark:border-slate-800">Symbol</th>
-                            <th class="px-3 py-1.5 font-medium border-b border-slate-200 dark:border-slate-800">Side</th>
-                            <th class="px-3 py-1.5 font-medium border-b border-slate-200 dark:border-slate-800 text-right">Price</th>
-                            <th class="px-3 py-1.5 font-medium border-b border-slate-200 dark:border-slate-800 text-right">Notional</th>
-                            <th class="px-3 py-1.5 font-medium border-b border-slate-200 dark:border-slate-800 text-right hidden xl:table-cell">Bot</th>
-                        </tr>
-                    </thead>
-                    <tbody class="text-sm divide-y divide-slate-100 dark:divide-slate-800" id="recent-executions-tbody">
-                        {% for trade in recent_trades %}
-                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                            <td class="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-400 font-mono">{{ trade.timestamp|date:"H:i:s" }}</td>
-                            <td class="px-3 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">{{ trade.symbol }}</td>
-                            <td class="px-3 py-1.5">
-                                <span class="text-[10px] font-bold font-mono tracking-wider {% if trade.action == 'BUY' %}text-green-500{% else %}text-red-500{% endif %}">
-                                    {{ trade.action }}
-                                </span>
-                            </td>
-                            <td class="px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 font-mono text-right">${{ trade.price|floatformat:2 }}</td>
-                            <td class="px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 font-mono text-right">${{ trade.notional_value|floatformat:2 }}</td>
-                            <td class="px-3 py-1.5 text-[10px] text-slate-500 font-mono text-right hidden xl:table-cell">T#{{ trade.trader_id }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="6" class="p-8 text-center text-slate-400 dark:text-slate-600 font-mono text-xs tracking-widest uppercase">
-                                NO TRADES YET
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="p-4 space-y-2.5" id="recent-executions-container">
+                {% for trade in recent_trades %}
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800 hover:shadow-sm transition-all duration-200 gap-2">
+                    <div class="flex items-center gap-3">
+                        <span class="text-[9px] font-bold font-mono px-2 py-0.5 rounded-full uppercase tracking-wider {% if trade.action == 'BUY' %}bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 border border-emerald-100 dark:border-emerald-900/30{% else %}bg-rose-50 dark:bg-rose-950/20 text-rose-600 border border-rose-100 dark:border-rose-900/30{% endif %}">
+                            {{ trade.action }}
+                        </span>
+                        <div class="flex flex-col">
+                            <span class="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">${{ trade.symbol }}</span>
+                            <span class="text-[9px] text-slate-400 font-mono">{{ trade.timestamp|date:"H:i:s" }} &middot; Bot T#{{ trade.trader_id }}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between sm:justify-end gap-6">
+                        <div class="flex flex-col text-left sm:text-right">
+                            <span class="text-[9px] text-slate-450 uppercase font-mono tracking-wider">Price</span>
+                            <span class="text-xs font-bold text-slate-700 dark:text-slate-300 font-mono">${{ trade.price|floatformat:2 }}</span>
+                        </div>
+                        <div class="flex flex-col text-right">
+                            <span class="text-[9px] text-slate-450 uppercase font-mono tracking-wider">Notional</span>
+                            <span class="text-xs font-bold text-slate-900 dark:text-white font-mono">${{ trade.notional_value|floatformat:2 }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center text-slate-400 dark:text-slate-600 font-mono text-xs tracking-widest uppercase py-8 bg-slate-50 dark:bg-slate-800/20 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    NO TRADES YET
+                </div>
+                {% endfor %}
             </div>
         </div>
         
@@ -356,35 +348,35 @@
     <div class="xl:col-span-3 flex flex-col gap-4 min-h-0">
         
         <!-- Command Center -->
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
-            <h3 class="text-xs font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-widest mb-3">Command Center</h3>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all duration-300">
+            <h3 class="text-xs font-bold text-slate-850 dark:text-slate-200 uppercase tracking-widest mb-4">Command Center</h3>
             
-            <div class="space-y-2">
+            <div class="space-y-3">
                 <form id="global-kill-switch-form" method="post" action="{% url 'global_kill_switch_api' %}">
                     {% csrf_token %}
-                    <button type="button" onclick="window.confirmAction('Trigger Global Kill Switch? All active bots will be STOPPED and ALL positions will be immediately liquidated at market price. Are you sure?', () => document.getElementById('global-kill-switch-form').submit())" class="w-full flex items-center justify-between px-3 py-2.5 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/30 rounded-lg text-xs font-mono font-bold tracking-widest uppercase transition-colors">
+                    <button type="button" onclick="window.confirmAction('Trigger Global Kill Switch? All active bots will be STOPPED and ALL positions will be immediately liquidated at market price. Are you sure?', () => document.getElementById('global-kill-switch-form').submit())" class="w-full flex items-center justify-between px-4 py-3 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-500/30 rounded-full text-xs font-mono font-bold tracking-widest uppercase transition-all duration-200">
                         <span>Global Kill Switch</span>
                         <i class="fas fa-skull"></i>
                     </button>
                 </form>
                 
-                <button id="evolution-toggle-btn" onclick="window.toggleEvolutionPanel()" class="w-full flex items-center justify-between px-3 py-2.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 rounded-lg text-xs font-mono font-bold tracking-widest uppercase transition-colors">
+                <button id="evolution-toggle-btn" onclick="window.toggleEvolutionPanel()" class="w-full flex items-center justify-between px-4 py-3 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/30 rounded-full text-xs font-mono font-bold tracking-widest uppercase transition-all duration-200">
                     <span>🧬 Neural Evolution</span>
                     <i class="fas fa-dna"></i>
                 </button>
 
                 <!-- Quick Nav -->
                 <div class="grid grid-cols-2 gap-2 pt-1">
-                    <a href="{% url 'papertrading' %}" class="flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-lg text-[9px] font-mono font-bold tracking-widest uppercase transition-colors">
+                    <a href="{% url 'papertrading' %}" class="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-850 text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-slate-800 rounded-full text-[9px] font-mono font-bold tracking-widest uppercase transition-all duration-200">
                         <i class="fas fa-robot"></i> Fleet
                     </a>
-                    <a href="{% url 'training' %}" class="flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-lg text-[9px] font-mono font-bold tracking-widest uppercase transition-colors">
+                    <a href="{% url 'training' %}" class="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-850 text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-slate-800 rounded-full text-[9px] font-mono font-bold tracking-widest uppercase transition-all duration-200">
                         <i class="fas fa-brain"></i> Train
                     </a>
-                    <a href="{% url 'models_hub' %}" class="flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-lg text-[9px] font-mono font-bold tracking-widest uppercase transition-colors">
+                    <a href="{% url 'models_hub' %}" class="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-850 text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-slate-800 rounded-full text-[9px] font-mono font-bold tracking-widest uppercase transition-all duration-200">
                         <i class="fas fa-cubes"></i> Models
                     </a>
-                    <a href="{% url 'reports_hub' %}" class="flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-lg text-[9px] font-mono font-bold tracking-widest uppercase transition-colors">
+                    <a href="{% url 'reports_hub' %}" class="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-850 text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-slate-800 rounded-full text-[9px] font-mono font-bold tracking-widest uppercase transition-all duration-200">
                         <i class="fas fa-file-alt"></i> Reports
                     </a>
                 </div>
@@ -392,14 +384,14 @@
 
             <!-- Neural Evolution Panel (expandable) -->
             <div id="evolution-panel" class="mt-4 hidden">
-                <div class="border-t border-slate-200 dark:border-slate-700 pt-4">
+                <div class="border-t border-slate-150 dark:border-slate-800 pt-4">
                     <div class="flex items-center justify-between mb-3">
-                        <h4 class="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Challenger Variants</h4>
-                        <button onclick="window.fetchEvolutionVariants()" class="text-[9px] text-indigo-400 hover:text-indigo-300 transition-colors font-mono tracking-wider">
+                        <h4 class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Challenger Variants</h4>
+                        <button onclick="window.fetchEvolutionVariants()" class="text-[9px] text-indigo-400 hover:text-indigo-300 transition-colors font-mono tracking-wider font-bold">
                             <i class="fas fa-sync-alt"></i> REFRESH
                         </button>
                     </div>
-                    <div id="evolution-variants-list" class="space-y-2">
+                    <div id="evolution-variants-list" class="space-y-3">
                         <div class="text-center text-[10px] text-slate-500 font-mono py-3">Loading variants...</div>
                     </div>
                 </div>
@@ -407,13 +399,13 @@
         </div>
 
         <!-- System Logs -->
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm flex-1 flex flex-col overflow-hidden min-h-[250px]">
-            <div class="p-2.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between py-1.5">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm hover:shadow-md transition-all duration-300 flex-1 flex flex-col overflow-hidden min-h-[280px]">
+            <div class="p-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <div class="flex gap-2">
-                    <button id="log-tab-alerts" onclick="window.switchLogTab('alerts')" class="text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 transition-colors">
-                        Alerts<span id="alerts-count-badge" class="ml-1 text-[8px] px-1 bg-red-500/20 text-red-400 rounded {% if not system_alerts %}hidden{% endif %}">{% if system_alerts %}{{ system_alerts|length }}{% else %}0{% endif %}</span>
+                    <button id="log-tab-alerts" onclick="window.switchLogTab('alerts')" class="text-[10px] font-mono font-bold uppercase tracking-wider px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 transition-all">
+                        Alerts<span id="alerts-count-badge" class="ml-1 text-[8px] px-1.5 py-0.5 bg-rose-500/20 text-rose-500 rounded-full {% if not system_alerts %}hidden{% endif %}">{% if system_alerts %}{{ system_alerts|length }}{% else %}0{% endif %}</span>
                     </button>
-                    <button id="log-tab-live" onclick="window.switchLogTab('live')" class="text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-1 rounded text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors">
+                    <button id="log-tab-live" onclick="window.switchLogTab('live')" class="text-[10px] font-mono font-bold uppercase tracking-wider px-3 py-1.5 rounded-full text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-all">
                         Live Feed
                     </button>
                 </div>
@@ -425,22 +417,22 @@
             </div>
             
             <!-- Alerts Tab Panel -->
-            <div id="log-panel-alerts" class="p-2.5 flex-1 overflow-y-auto space-y-1.5 bg-slate-50/50 dark:bg-slate-900">
+            <div id="log-panel-alerts" class="p-4 flex-1 overflow-y-auto space-y-2.5 bg-slate-50/50 dark:bg-slate-900">
                 {% if system_alerts %}
                     {% for alert in system_alerts %}
-                    <div id="alert-card-{{ alert.id }}" class="p-2 rounded border transition-all duration-300 {% if alert.level == 'CRITICAL' %}bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-500/30{% elif alert.level == 'EVOLUTION' %}bg-indigo-50 border-indigo-200 dark:bg-indigo-900/20 dark:border-indigo-500/30{% elif alert.level == 'WARNING' %}bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-500/30{% else %}bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700{% endif %}">
-                        <div class="flex justify-between items-start mb-0.5">
-                            <span class="text-[9px] font-bold font-mono {% if alert.level == 'CRITICAL' %}text-red-600 dark:text-red-400{% elif alert.level == 'EVOLUTION' %}text-indigo-600 dark:text-indigo-400{% elif alert.level == 'WARNING' %}text-amber-600 dark:text-amber-400{% else %}text-slate-700 dark:text-slate-300{% endif %} uppercase tracking-wider truncate max-w-[180px]">{{ alert.title }}</span>
+                    <div id="alert-card-{{ alert.id }}" class="p-3 rounded-2xl border transition-all duration-300 {% if alert.level == 'CRITICAL' %}bg-red-50 border-red-100 dark:bg-red-900/20 dark:border-red-500/30{% elif alert.level == 'EVOLUTION' %}bg-indigo-50 border-indigo-100 dark:bg-indigo-900/20 dark:border-indigo-500/30{% elif alert.level == 'WARNING' %}bg-amber-50 border-amber-100 dark:bg-amber-900/20 dark:border-amber-500/30{% else %}bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700{% endif %}">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="text-[10px] font-bold font-mono {% if alert.level == 'CRITICAL' %}text-red-600 dark:text-red-400{% elif alert.level == 'EVOLUTION' %}text-indigo-600 dark:text-indigo-400{% elif alert.level == 'WARNING' %}text-amber-600 dark:text-amber-400{% else %}text-slate-700 dark:text-slate-300{% endif %} uppercase tracking-wider truncate max-w-[180px]">{{ alert.title }}</span>
                             <button type="button" onclick="dismissAlert({{ alert.id }})" class="text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors cursor-pointer"><i class="fas fa-times"></i></button>
                         </div>
-                        <p class="text-[10px] text-slate-600 dark:text-slate-400 font-mono line-clamp-2">{{ alert.message|truncatewords:25 }}</p>
-                        <div class="text-[8px] text-slate-400 font-mono mt-1">{{ alert.timestamp|timesince }} ago</div>
+                        <p class="text-[10px] text-slate-600 dark:text-slate-400 font-mono line-clamp-2 leading-relaxed">{{ alert.message|truncatewords:25 }}</p>
+                        <div class="text-[8px] text-slate-450 font-mono mt-1.5">{{ alert.timestamp|timesince }} ago</div>
                     </div>
                     {% endfor %}
                 {% else %}
                     <div class="text-center py-8">
-                        <i class="fas fa-check-circle text-green-500/20 text-3xl mb-2"></i>
-                        <div class="text-[10px] text-slate-400 dark:text-slate-600 font-mono tracking-widest uppercase">
+                        <i class="fas fa-check-circle text-emerald-500/20 text-4xl mb-2"></i>
+                        <div class="text-[10px] text-slate-400 dark:text-slate-600 font-mono tracking-widest uppercase font-bold">
                             All systems operational
                         </div>
                     </div>
@@ -448,7 +440,7 @@
  
                 <!-- Latest Report Link -->
                 {% if latest_report %}
-                <div class="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                <div class="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                     <a href="{% url 'reports_hub' %}" class="flex items-center gap-2 text-[10px] text-slate-500 hover:text-brand-400 transition-colors font-mono">
                         <i class="fas fa-file-pdf text-red-400/60"></i>
                         <span class="truncate">{{ latest_report.report_type }} Report — {{ latest_report.timestamp|date:"M d, H:i" }}</span>
@@ -459,7 +451,7 @@
  
             <!-- Live Logs Tab Panel -->
             <div id="log-panel-live" class="hidden p-2 bg-slate-950 flex-1 flex flex-col overflow-hidden">
-                <pre id="system-logs-box" class="flex-1 overflow-y-auto text-slate-300 p-2 rounded font-mono text-[9px] h-full leading-relaxed select-all scrollbar-thin whitespace-pre-wrap">Loading main log stream...</pre>
+                <pre id="system-logs-box" class="flex-1 overflow-y-auto text-slate-300 p-2 rounded-2xl font-mono text-[9px] h-full leading-relaxed select-all scrollbar-thin whitespace-pre-wrap">Loading main log stream...</pre>
             </div>
         </div>
 
@@ -849,14 +841,14 @@
                     if (data.status === 'success' && data.telemetry && data.telemetry.available) {
                         const t = data.telemetry;
                         const elCpuVal = document.getElementById('telemetry-cpu-val');
-                        const elCpuBar = document.getElementById('telemetry-cpu-bar');
+                        const elCpuRing = document.getElementById('telemetry-cpu-ring');
                         if (elCpuVal) elCpuVal.innerText = t.cpu_percent + '%';
-                        if (elCpuBar) elCpuBar.style.width = t.cpu_percent + '%';
+                        if (elCpuRing) elCpuRing.setAttribute('stroke-dasharray', `${t.cpu_percent}, 100`);
 
                         const elRamVal = document.getElementById('telemetry-ram-val');
-                        const elRamBar = document.getElementById('telemetry-ram-bar');
+                        const elRamRing = document.getElementById('telemetry-ram-ring');
                         if (elRamVal) elRamVal.innerText = t.system_used_percent + '%';
-                        if (elRamBar) elRamBar.style.width = t.system_used_percent + '%';
+                        if (elRamRing) elRamRing.setAttribute('stroke-dasharray', `${t.system_used_percent}, 100`);
 
                         const elRamText = document.getElementById('telemetry-ram-text');
                         if (elRamText) elRamText.innerText = t.system_used_gb + ' GB / ' + t.system_total_gb + ' GB';
@@ -870,17 +862,17 @@
         setInterval(fetchSystemTelemetry, 3000);
 
         window.renderPositionsPage = function(page) {
-            const tbody = document.getElementById("positions-tbody");
-            if (!tbody) return;
+            const container = document.getElementById("positions-container");
+            if (!container) return;
             if (!globalPositions || globalPositions.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="3" class="p-6 text-center text-slate-400 dark:text-slate-600 font-mono text-xs tracking-widest uppercase">No Active Positions</td></tr>';
+                container.innerHTML = '<div class="text-center text-slate-400 dark:text-slate-600 font-mono text-xs tracking-widest uppercase py-6 bg-slate-50 dark:bg-slate-800/20 rounded-2xl border border-slate-100 dark:border-slate-800">No Active Positions</div>';
                 return;
             }
 
             const itemsPerPage = 3;
             const totalPages = Math.ceil(globalPositions.length / itemsPerPage);
             if (totalPages < 1) {
-                tbody.innerHTML = '<tr><td colspan="3" class="p-6 text-center text-slate-400 dark:text-slate-600 font-mono text-xs tracking-widest uppercase">No Active Positions</td></tr>';
+                container.innerHTML = '<div class="text-center text-slate-400 dark:text-slate-600 font-mono text-xs tracking-widest uppercase py-6 bg-slate-50 dark:bg-slate-800/20 rounded-2xl border border-slate-100 dark:border-slate-800">No Active Positions</div>';
                 return;
             }
             if(page < 1) page = 1;
@@ -889,49 +881,52 @@
 
             const slice = globalPositions.slice((page - 1) * itemsPerPage, page * itemsPerPage);
             
-            tbody.innerHTML = '';
+            let html = '';
             slice.forEach(p => {
                 const qty = parseFloat(p.qty) || 0;
                 const mktVal = parseFloat(p.market_value) || 0;
-                tbody.innerHTML += `
-                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                        <td class="p-3 py-2 text-slate-800 dark:text-slate-200 font-medium font-mono text-xs flex items-center gap-2">
-                           <span class="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
-                           ${p.symbol}
-                        </td>
-                        <td class="p-3 py-2 text-slate-600 dark:text-slate-400 font-mono text-xs text-right">${qty.toFixed(5)}</td>
-                        <td class="p-3 py-2 text-slate-900 dark:text-white font-mono font-medium text-xs text-right">$${mktVal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                    </tr>
+                html += `
+                    <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800 hover:shadow-sm transition-all duration-200">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-full bg-brand-50 dark:bg-brand-950/20 flex items-center justify-center text-brand-600 font-bold text-xs">
+                                ${p.symbol.substring(0, 2)}
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">${p.symbol}</span>
+                                <span class="text-[9px] text-slate-400 font-mono">Qty: ${qty.toFixed(4)}</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs font-bold text-slate-900 dark:text-white font-mono">$${mktVal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                    </div>
                 `;
             });
 
             if(totalPages > 1) {
-                tbody.innerHTML += `
-                    <tr>
-                        <td colspan="3" class="p-2 text-center border-t border-slate-100 dark:border-slate-800">
-                            <div class="flex items-center justify-between text-[10px] font-mono text-slate-400 dark:text-slate-500">
-                                <button onclick="window.renderPositionsPage(${currentPosPage - 1})" class="hover:text-brand-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" ${currentPosPage === 1 ? 'disabled' : ''}>&larr; PREV</button>
-                                <span>PAGE ${currentPosPage} / ${totalPages}</span>
-                                <button onclick="window.renderPositionsPage(${currentPosPage + 1})" class="hover:text-brand-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" ${currentPosPage === totalPages ? 'disabled' : ''}>NEXT &rarr;</button>
-                            </div>
-                        </td>
-                    </tr>
+                html += `
+                    <div class="flex items-center justify-between text-[10px] font-mono text-slate-400 dark:text-slate-500 pt-2 border-t border-slate-100 dark:border-slate-800">
+                        <button onclick="window.renderPositionsPage(${currentPosPage - 1})" class="hover:text-brand-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed font-bold" ${currentPosPage === 1 ? 'disabled' : ''}>&larr; PREV</button>
+                        <span class="font-bold">PAGE ${currentPosPage} / ${totalPages}</span>
+                        <button onclick="window.renderPositionsPage(${currentPosPage + 1})" class="hover:text-brand-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed font-bold" ${currentPosPage === totalPages ? 'disabled' : ''}>NEXT &rarr;</button>
+                    </div>
                 `;
             }
+            container.innerHTML = html;
         };
 
         window.renderRecentTradesPage = function(page) {
-            const tbody = document.getElementById("recent-executions-tbody");
-            if (!tbody) return;
+            const container = document.getElementById("recent-executions-container");
+            if (!container) return;
             if (!globalRecentTrades || globalRecentTrades.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-400 dark:text-slate-600 font-mono text-xs tracking-widest uppercase">No Trades Yet</td></tr>';
+                container.innerHTML = '<div class="text-center text-slate-400 dark:text-slate-600 font-mono text-xs tracking-widest uppercase py-8 bg-slate-50 dark:bg-slate-800/20 rounded-2xl border border-slate-100 dark:border-slate-800">No Trades Yet</div>';
                 return;
             }
 
             const itemsPerPage = 5;
             const totalPages = Math.ceil(globalRecentTrades.length / itemsPerPage);
             if (totalPages < 1) {
-                tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-400 dark:text-slate-600 font-mono text-xs tracking-widest uppercase">No Trades Yet</td></tr>';
+                container.innerHTML = '<div class="text-center text-slate-400 dark:text-slate-600 font-mono text-xs tracking-widest uppercase py-8 bg-slate-50 dark:bg-slate-800/20 rounded-2xl border border-slate-100 dark:border-slate-800">No Trades Yet</div>';
                 return;
             }
             if(page < 1) page = 1;
@@ -940,40 +935,47 @@
 
             const slice = globalRecentTrades.slice((page - 1) * itemsPerPage, page * itemsPerPage);
             
-            tbody.innerHTML = '';
+            let html = '';
             slice.forEach(trade => {
-                const actionColor = trade.action === 'BUY' ? 'text-green-500' : 'text-red-500';
+                const isBuy = trade.action === 'BUY';
+                const actionBg = isBuy ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30' : 'bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/30';
                 const price = parseFloat(trade.price) || 0;
                 const notional = parseFloat(trade.notional_value) || 0;
-                tbody.innerHTML += `
-                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                        <td class="p-3 py-2 text-xs text-slate-600 dark:text-slate-400 font-mono">${trade.timestamp}</td>
-                        <td class="p-3 py-2 text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">${trade.symbol}</td>
-                        <td class="p-3 py-2">
-                            <span class="text-[10px] font-bold font-mono tracking-wider ${actionColor}">
+                html += `
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800 hover:shadow-sm transition-all duration-200 gap-2">
+                        <div class="flex items-center gap-3">
+                            <span class="text-[9px] font-bold font-mono px-2 py-0.5 rounded-full uppercase tracking-wider ${actionBg}">
                                 ${trade.action}
                             </span>
-                        </td>
-                        <td class="p-3 py-2 text-xs text-slate-700 dark:text-slate-300 font-mono text-right">$${price.toFixed(2)}</td>
-                        <td class="p-3 py-2 text-xs text-slate-700 dark:text-slate-300 font-mono text-right">$${notional.toFixed(2)}</td>
-                        <td class="p-3 py-2 text-[10px] text-slate-500 font-mono text-right hidden xl:table-cell">T#${trade.trader_id}</td>
-                    </tr>
+                            <div class="flex flex-col">
+                                <span class="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">${trade.symbol}</span>
+                                <span class="text-[9px] text-slate-400 font-mono">${trade.timestamp} &middot; Bot T#${trade.trader_id}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between sm:justify-end gap-6">
+                            <div class="flex flex-col text-left sm:text-right">
+                                <span class="text-[9px] text-slate-450 uppercase font-mono tracking-wider">Price</span>
+                                <span class="text-xs font-bold text-slate-700 dark:text-slate-300 font-mono">$${price.toFixed(2)}</span>
+                            </div>
+                            <div class="flex flex-col text-right">
+                                <span class="text-[9px] text-slate-450 uppercase font-mono tracking-wider">Notional</span>
+                                <span class="text-xs font-bold text-slate-900 dark:text-white font-mono">$${notional.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    </div>
                 `;
             });
 
             if(totalPages > 1) {
-                tbody.innerHTML += `
-                    <tr>
-                        <td colspan="6" class="p-2 text-center border-t border-slate-100 dark:border-slate-800">
-                            <div class="flex items-center justify-between text-[10px] font-mono text-slate-400 dark:text-slate-500">
-                                <button onclick="window.renderRecentTradesPage(${currentTradesPage - 1})" class="hover:text-brand-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" ${currentTradesPage === 1 ? 'disabled' : ''}>&larr; PREV</button>
-                                <span>PAGE ${currentTradesPage} / ${totalPages}</span>
-                                <button onclick="window.renderRecentTradesPage(${currentTradesPage + 1})" class="hover:text-brand-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" ${currentTradesPage === totalPages ? 'disabled' : ''}>NEXT &rarr;</button>
-                            </div>
-                        </td>
-                    </tr>
+                html += `
+                    <div class="flex items-center justify-between text-[10px] font-mono text-slate-400 dark:text-slate-500 pt-2 border-t border-slate-100 dark:border-slate-800">
+                        <button onclick="window.renderRecentTradesPage(${currentTradesPage - 1})" class="hover:text-brand-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed font-bold" ${currentTradesPage === 1 ? 'disabled' : ''}>&larr; PREV</button>
+                        <span class="font-bold">PAGE ${currentTradesPage} / ${totalPages}</span>
+                        <button onclick="window.renderRecentTradesPage(${currentTradesPage + 1})" class="hover:text-brand-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed font-bold" ${currentTradesPage === totalPages ? 'disabled' : ''}>NEXT &rarr;</button>
+                    </div>
                 `;
             }
+            container.innerHTML = html;
         };
 
         function updatePositions(positions) {
@@ -1117,47 +1119,48 @@
             }
             let html = '';
             data.variants.forEach(v => {
-                const pnlColor = v.virtual_pnl_pct >= 0 ? 'text-green-400' : 'text-red-400';
+                const pnlColor = v.virtual_pnl_pct >= 0 ? 'text-emerald-500 font-bold' : 'text-rose-500 font-bold';
                 const statusColors = {
-                    'TESTING': 'bg-sky-500/20 text-sky-400 border-sky-500/30',
-                    'PENDING': 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-                    'PROMOTED': 'bg-green-500/20 text-green-400 border-green-500/30',
-                    'FAILED': 'bg-red-500/20 text-red-400 border-red-500/30',
-                    'QUEUED': 'bg-slate-500/20 text-slate-400 border-slate-500/30',
+                    'TESTING': 'bg-sky-55/60 dark:bg-sky-950/20 text-sky-500 border-sky-100 dark:border-sky-900/30',
+                    'PENDING': 'bg-amber-55/60 dark:bg-amber-950/20 text-amber-500 border-amber-100 dark:border-amber-900/30',
+                    'PROMOTED': 'bg-emerald-55/60 dark:bg-emerald-950/20 text-emerald-500 border-emerald-100 dark:border-emerald-900/30',
+                    'FAILED': 'bg-rose-55/60 dark:bg-rose-950/20 text-rose-500 border-rose-100 dark:border-rose-900/30',
+                    'QUEUED': 'bg-slate-55 dark:bg-slate-800 text-slate-500 border-slate-100 dark:border-slate-700',
                 };
                 const sc = statusColors[v.status] || statusColors['QUEUED'];
                 const showActions = v.status === 'TESTING' || v.status === 'PENDING';
 
                 html += `
-                <div class="bg-slate-800/50 border border-slate-700/50 rounded-lg p-3">
+                <div class="bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 rounded-2xl p-4 transition-all duration-200">
                     <div class="flex items-center justify-between mb-2">
-                        <span class="text-[10px] font-mono text-slate-200 font-semibold truncate max-w-[140px]">${v.name}</span>
-                        <span class="text-[8px] font-mono font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border ${sc}">${v.status}</span>
+                        <span class="text-[10px] font-mono text-slate-800 dark:text-slate-200 font-bold truncate max-w-[140px]">${v.name}</span>
+                        <span class="text-[8px] font-mono font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full border ${sc}">${v.status}</span>
                     </div>
                     <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-[9px] font-mono">
                         <div class="text-slate-500">PnL</div>
-                        <div class="${pnlColor} text-right font-bold">${v.virtual_pnl_pct >= 0 ? '+' : ''}${v.virtual_pnl_pct.toFixed(2)}%</div>
-                        <div class="text-slate-500">Sharpe</div>
-                        <div class="text-slate-300 text-right">${v.sharpe_ratio.toFixed(2)}</div>
-                        <div class="text-slate-500">Max DD</div>
-                        <div class="text-red-400/80 text-right">${v.max_drawdown_pct.toFixed(1)}%</div>
-                        <div class="text-slate-500">Win Rate</div>
-                        <div class="text-slate-300 text-right">${v.win_rate.toFixed(0)}%</div>
-                        <div class="text-slate-500">Trades</div>
-                        <div class="text-slate-300 text-right">${v.virtual_trades_count}</div>
-                        ${v.status === 'TESTING' ? `<div class="text-slate-500">Remaining</div><div class="text-indigo-400 text-right">${v.days_remaining}d</div>` : ''}
+                        <div class="${pnlColor} text-right">${v.virtual_pnl_pct >= 0 ? '+' : ''}${v.virtual_pnl_pct.toFixed(2)}%</div>
+                        <div class="text-slate-550">Sharpe</div>
+                        <div class="text-slate-700 dark:text-slate-300 text-right">${v.sharpe_ratio.toFixed(2)}</div>
+                        <div class="text-slate-550">Max DD</div>
+                        <div class="text-rose-500 text-right font-bold">${v.max_drawdown_pct.toFixed(1)}%</div>
+                        <div class="text-slate-550">Win Rate</div>
+                        <div class="text-slate-700 dark:text-slate-300 text-right">${v.win_rate.toFixed(0)}%</div>
+                        <div class="text-slate-550">Trades</div>
+                        <div class="text-slate-700 dark:text-slate-300 text-right">${v.virtual_trades_count}</div>
+                        ${v.status === 'TESTING' ? `<div class="text-slate-550">Remaining</div><div class="text-indigo-500 text-right font-bold">${v.days_remaining}d</div>` : ''}
                     </div>
                     ${showActions ? `
-                    <div class="flex gap-2 mt-2 pt-2 border-t border-slate-700/50">
-                        <button onclick="window.promoteVariant(${v.id}, '${v.name.replace(/'/g, "\\'")}')" class="flex-1 text-[8px] font-mono font-bold uppercase tracking-widest py-1.5 rounded bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/30 transition-colors">
+                    <div class="flex gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                        <button onclick="window.promoteVariant(${v.id}, '${v.name.replace(/'/g, "\\'")}')" class="flex-1 text-[8px] font-mono font-bold uppercase tracking-widest py-2 rounded-full bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/30 transition-all">
                             <i class="fas fa-rocket mr-1"></i>Promote
                         </button>
-                        <button onclick="window.rejectVariant(${v.id})" class="flex-1 text-[8px] font-mono font-bold uppercase tracking-widest py-1.5 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition-colors">
+                        <button onclick="window.rejectVariant(${v.id})" class="flex-1 text-[8px] font-mono font-bold uppercase tracking-widest py-2 rounded-full bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-500/30 transition-all">
                             <i class="fas fa-times mr-1"></i>Reject
                         </button>
                     </div>` : ''}
-                    ${v.error_message ? `<div class="mt-1 text-[8px] text-red-400/70 font-mono truncate">${v.error_message}</div>` : ''}
+                    ${v.error_message ? `<div class="mt-2 text-[8px] text-rose-500/70 font-mono truncate">${v.error_message}</div>` : ''}
                 </div>`;
+            });
             });
             container.innerHTML = html;
         }).catch(e => {
@@ -1613,6 +1616,7 @@
         });
     }
     window.fetchSystemLogs = fetchSystemLogs;
+    })();
 </script>
 {% endblock extra_javascript %}
 

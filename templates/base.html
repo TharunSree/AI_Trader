@@ -1,12 +1,12 @@
 {% load static %}
-<!DOCTYPE html>
-<html lang="en" class="light">
+<!doctype html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8">
     <title>{% block title %}QuantTrader Pro{% endblock %} | Engine</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <!-- Tailwind CSS -->
+    <!-- Tailwind CSS (Hybrid Layout Support) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -14,50 +14,8 @@
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['"JetBrains Mono"', 'monospace'],
+                        sans: ['Quicksand', 'sans-serif'],
                         mono: ['"JetBrains Mono"', 'monospace'],
-                    },
-                    colors: {
-                        brand: {
-                            50: 'rgb(var(--c-brand-50) / <alpha-value>)',
-                            100: 'rgb(var(--c-brand-100) / <alpha-value>)',
-                            400: 'rgb(var(--c-brand-400) / <alpha-value>)',
-                            500: 'rgb(var(--c-brand-500) / <alpha-value>)',
-                            600: 'rgb(var(--c-brand-600) / <alpha-value>)',
-                            700: 'rgb(var(--c-brand-700) / <alpha-value>)',
-                            800: 'rgb(var(--c-brand-800) / <alpha-value>)',
-                            900: 'rgb(var(--c-brand-900) / <alpha-value>)',
-                            950: 'rgb(var(--c-brand-950) / <alpha-value>)',
-                        },
-                        slate: {
-                            50: 'rgb(var(--c-slate-50) / <alpha-value>)',
-                            100: 'rgb(var(--c-slate-100) / <alpha-value>)',
-                            200: 'rgb(var(--c-slate-200) / <alpha-value>)',
-                            300: 'rgb(var(--c-slate-300) / <alpha-value>)',
-                            400: 'rgb(var(--c-slate-400) / <alpha-value>)',
-                            500: 'rgb(var(--c-slate-500) / <alpha-value>)',
-                            600: 'rgb(var(--c-slate-600) / <alpha-value>)',
-                            700: 'rgb(var(--c-slate-700) / <alpha-value>)',
-                            800: 'rgb(var(--c-slate-800) / <alpha-value>)',
-                            900: 'rgb(var(--c-slate-900) / <alpha-value>)',
-                            950: 'rgb(var(--c-slate-950) / <alpha-value>)',
-                        },
-                        cat: {
-                            rosewater: '#f4dbd6',
-                            flamingo: '#f0c6c6',
-                            pink: '#f5bde6',
-                            mauve: '#c6a0f6',
-                            red: '#ed8796',
-                            maroon: '#ee99a0',
-                            peach: '#f5a97f',
-                            yellow: '#eed49f',
-                            green: '#a6da95',
-                            teal: '#8bd5ca',
-                            sky: '#91d7e3',
-                            sapphire: '#7dc4e4',
-                            blue: '#8aadf4',
-                            lavender: '#b7bdf8',
-                        }
                     }
                 }
             }
@@ -65,544 +23,68 @@
     </script>
     
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Icons -->
+    <!-- Icons Css -->
+    <link href="{% static 'veltrix/css/icons.min.css' %}" rel="stylesheet" type="text/css">
+    
+    <!-- Bootstrap & Veltrix CSS -->
+    <link href="{% static 'veltrix/css/bootstrap.min.css' %}" id="bootstrap-style" rel="stylesheet" type="text/css">
+    <link href="{% static 'veltrix/css/app.min.css' %}" id="app-style" rel="stylesheet" type="text/css">
+    
+    <!-- FontAwesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- Pre-load Dark Mode Script -->
     <script>
-        // Check local storage for dark mode preference BEFORE page loads to prevent flash
         if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-bs-theme', 'dark');
         } else {
             document.documentElement.classList.remove('dark');
+            document.documentElement.setAttribute('data-bs-theme', 'light');
         }
     </script>
     
-    <style>
-        :root {
-            /* Catppuccin Latte (Light) - RGB format for opacity support */
-            --c-slate-50: 239 241 245;   /* Base #eff1f5 */
-            --c-slate-100: 230 233 239;  /* Mantle #e6e9ef */
-            --c-slate-200: 204 208 218;  /* Surface0 #ccd0da */
-            --c-slate-300: 188 192 204;  /* Surface1 #bcc0cc */
-            --c-slate-400: 172 176 190;  /* Surface2 #acb0be */
-            --c-slate-500: 140 143 161;  /* Overlay1 #8c8fa1 */
-            --c-slate-600: 124 127 147;  /* Subtext0 #7c7f93 */
-            --c-slate-700: 108 111 133;  /* Subtext1 #6c6f85 */
-            --c-slate-800: 76 79 105;    /* Text #4c4f69 */
-            --c-slate-900: 76 79 105;    
-            --c-slate-950: 76 79 105;    
-            
-            --c-brand-50: 230 233 239;
-            --c-brand-100: 114 135 253;
-            --c-brand-400: 30 102 245;
-            --c-brand-500: 30 102 245; 
-            --c-brand-600: 23 146 153; 
-            --c-brand-700: 4 165 229;
-            --c-brand-800: 32 159 181;
-            --c-brand-900: 30 102 245;
-            --c-brand-950: 30 102 245;
-            
-            /* App Overrides for solid backgrounds that use explicit bg-white */
-            --tw-bg-opacity: 1;
-        }
-
-        .dark {
-            /* Catppuccin Macchiato (Dark) - RGB format for opacity support */
-            --c-slate-50: 202 211 245;   /* Text #cad3f5 */
-            --c-slate-100: 184 192 224;
-            --c-slate-200: 202 211 245;  /* Text #cad3f5 */
-            --c-slate-300: 184 192 224;  /* Subtext1 #b8c0e0 */
-            --c-slate-400: 165 173 203;  /* Subtext0 #a5adcb */
-            --c-slate-500: 128 135 162;  /* Overlay1 #8087a2 */
-            --c-slate-600: 91 96 120;    /* Surface2 #5b6078 */
-            --c-slate-700: 73 77 100;    /* Surface1 #494d64 */
-            --c-slate-800: 54 58 79;     /* Surface0 #363a4f */
-            --c-slate-900: 30 32 48;     /* Mantle #1e2030 */
-            --c-slate-950: 24 25 38;     /* Crust #181926 */
-            
-            --c-brand-50: 30 32 48;      /* Mantle */
-            --c-brand-100: 138 173 244;
-            --c-brand-400: 138 173 244;  /* Blue */
-            --c-brand-500: 125 196 228;  /* Sapphire */
-            --c-brand-600: 139 213 202;  /* Teal */
-            --c-brand-700: 145 215 227;  
-            --c-brand-800: 125 196 228;
-            --c-brand-900: 138 173 244;
-            --c-brand-950: 138 173 244;
-        }
-
-        /* Custom scrollbar for high density data tables */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: var(--c-slate-300); border-radius: 10px; }
-        .dark ::-webkit-scrollbar-thumb { background: var(--c-slate-300); }
-        ::-webkit-scrollbar-thumb:hover { background: var(--c-slate-400); }
-        .dark ::-webkit-scrollbar-thumb:hover { background: var(--c-slate-400); }
-
-        /* Sidebar collapse transitions */
-        #app-sidebar { transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        #app-sidebar.collapsed { width: 72px; }
-        
-        .nav-label, .sidebar-section-title, .sidebar-logo-text, .sidebar-logout-text {
-            transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            white-space: nowrap;
-            overflow: hidden;
-            opacity: 1;
-            max-width: 250px;
-        }
-        
-        #app-sidebar.collapsed .nav-label,
-        #app-sidebar.collapsed .sidebar-section-title,
-        #app-sidebar.collapsed .sidebar-logo-text,
-        #app-sidebar.collapsed .sidebar-logout-text { 
-            opacity: 0;
-            max-width: 0;
-            padding: 0;
-            margin: 0;
-        }
-        
-        #app-sidebar nav a { transition: all 0.2s ease; }
-        #app-sidebar.collapsed nav a { justify-content: center; padding-left: 0; padding-right: 0; gap: 0; }
-        #app-sidebar.collapsed nav a i { margin: 0; }
-        #app-sidebar.collapsed .sidebar-logo { justify-content: center; padding-left: 0; padding-right: 0; }
-        #app-sidebar.collapsed .sidebar-logo > div { justify-content: center; width: auto; gap: 0; }
-        #app-sidebar.collapsed #sidebar-collapse-btn { display: none; }
-        .dark #app-sidebar.collapsed #sidebar-collapse-btn { display: none; }
-        #app-sidebar.collapsed #sidebar-collapse-btn i { margin-left: 2px; }
-        #app-sidebar.collapsed .sidebar-footer button { justify-content: center; padding-left: 0; padding-right: 0; gap: 0; }
-
-        /* Mobile off-canvas */
-        @media (max-width: 767px) {
-            #app-sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 50; width: 260px !important; transform: translateX(-100%); }
-            #app-sidebar.mobile-open { transform: translateX(0); }
-            #app-sidebar.collapsed { width: 260px !important; } /* ignore collapse on mobile */
-            #app-sidebar.collapsed .nav-label,
-            #app-sidebar.collapsed .sidebar-section-title,
-            #app-sidebar.collapsed .sidebar-logo-text,
-            #app-sidebar.collapsed .sidebar-logout-text { display: inline; }
-            #app-sidebar.collapsed nav a { justify-content: flex-start; padding-left: 0.75rem; padding-right: 0.75rem; }
-        }
-    </style>
-    
-    <link rel="stylesheet" href="{% static 'css/lovely_theme.css' %}">
-    {% block extra_head %}{% endblock %}
-</head>
-<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 font-sans antialiased transition-colors duration-300">
-
-    <!-- Mobile sidebar backdrop -->
-    <div id="sidebar-backdrop" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden md:hidden transition-opacity" onclick="closeMobileSidebar()"></div>
-
-    <div class="flex h-screen overflow-hidden">
-        
-        <!-- SIDEBAR -->
-        <aside id="app-sidebar" class="w-64 flex-shrink-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-colors duration-300 z-50">
-            <!-- Logo Area -->
-            <div class="h-16 flex items-center px-4 border-b border-slate-200 dark:border-slate-800 sidebar-logo">
-                <div class="flex items-center justify-between w-full">
-                    <div class="w-8 h-8 rounded bg-brand-600 flex items-center justify-center text-white font-bold font-mono flex-shrink-0 cursor-pointer" onclick="toggleSidebarCollapse()">Q</div>
-                    <span class="sidebar-logo-text text-sm font-bold tracking-tight text-slate-900 dark:text-white uppercase">QuantTrader</span>
-                    <!-- Collapse toggle (desktop only) -->
-                    <button id="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" class="hidden md:flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300 transition-colors flex-shrink-0" title="Collapse sidebar">
-                        <i class="fas fa-angles-left text-xs" id="collapse-icon"></i>
-                    </button>
-                    <!-- Close button (mobile only) -->
-                    <button onclick="closeMobileSidebar()" class="ml-auto flex md:hidden items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                        <i class="fas fa-xmark text-sm"></i>
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Navigation -->
-            <nav class="flex-1 overflow-y-auto py-6 px-3 space-y-1">
-                <a href="{% url 'dashboard' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {% if request.path == '/' %}bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400{% else %}text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white{% endif %} transition-colors" title="System Overview">
-                    <i class="fas fa-chart-line w-5 text-center flex-shrink-0"></i>
-                    <span class="nav-label">System Overview</span>
-                </a>
-                <a href="{% url 'models_hub' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white transition-colors" title="Intelligence Hub">
-                    <i class="fas fa-brain w-5 text-center flex-shrink-0"></i>
-                    <span class="nav-label">Intelligence Hub</span>
-                </a>
-                <a href="{% url 'training' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {% if 'training' in request.path %}bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400{% else %}text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white{% endif %} transition-colors" title="Training Center">
-                    <i class="fas fa-dumbbell w-5 text-center flex-shrink-0"></i>
-                    <span class="nav-label">Training Center</span>
-                </a>
-                <a href="{% url 'evolution_hub' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {% if 'evolution-chamber' in request.path %}bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400{% else %}text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white{% endif %} transition-colors" title="Evolution Chamber">
-                    <i class="fas fa-dna w-5 text-center flex-shrink-0 text-purple-500"></i>
-                    <span class="nav-label text-purple-600 dark:text-purple-400">Evolution Chamber</span>
-                </a>
-                <a href="{% url 'evaluation' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {% if 'evaluation' in request.path %}bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400{% else %}text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white{% endif %} transition-colors" title="Evaluation Lab">
-                    <i class="fas fa-vial w-5 text-center flex-shrink-0"></i>
-                    <span class="nav-label">Evaluation Lab</span>
-                </a>
-                <a href="{% url 'papertrading' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white transition-colors" title="Paper Trading">
-                    <i class="fas fa-flask w-5 text-center flex-shrink-0"></i>
-                    <span class="nav-label">Paper Trading</span>
-                </a>
-                <a href="{% url 'realtrading' %}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white transition-colors" title="Live Execution">
-                    <i class="fas fa-bolt w-5 text-center flex-shrink-0"></i>
-                    <span class="nav-label">Live Execution</span>
-                </a>
-                <div class="pt-4 mt-4 border-t border-slate-200 dark:border-slate-800">
-                    <p class="sidebar-section-title px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Analysis</p>
-                    <a href="{% url 'reports_hub' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white transition-colors" title="Reports & Logs">
-                        <i class="fas fa-file-alt w-5 text-center flex-shrink-0"></i>
-                        <span class="nav-label">Reports & Logs</span>
-                    </a>
-                    <a href="{% url 'neural_cortex' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium {% if 'neural-cortex' in request.path %}bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400{% else %}text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white{% endif %} transition-colors" title="Neural Cortex">
-                        <i class="fas fa-network-wired w-5 text-center flex-shrink-0 text-cyan-500"></i>
-                        <span class="nav-label text-cyan-600 dark:text-cyan-400">Neural Cortex</span>
-                    </a>
-                    <a href="{% url 'neural_decision_flow' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium {% if 'decision-flow' in request.path %}bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400{% else %}text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white{% endif %} transition-colors" title="Decision Flow">
-                        <i class="fas fa-microchip w-5 text-center flex-shrink-0 text-cyan-500"></i>
-                        <span class="nav-label text-cyan-600 dark:text-cyan-400 font-medium">Decision Flow</span>
-                    </a>
-                    <a href="{% url 'neural_download_report' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium {% if 'download-report' in request.path %}bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400{% else %}text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white{% endif %} transition-colors" title="Download Report">
-                        <i class="fas fa-file-export w-5 text-center flex-shrink-0 text-cyan-500"></i>
-                        <span class="nav-label text-cyan-600 dark:text-cyan-400">Intel Report</span>
-                    </a>
-                    <a href="{% url 'settings' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white transition-colors" title="Configuration">
-                        <i class="fas fa-cog w-5 text-center flex-shrink-0"></i>
-                        <span class="nav-label">Configuration</span>
-                    </a>
-                    <a href="{% url 'guide' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white transition-colors" title="Documentation">
-                        <i class="fas fa-book w-5 text-center flex-shrink-0"></i>
-                        <span class="nav-label">Documentation</span>
-                    </a>
-                    <a href="{% url 'changelog' %}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white transition-colors" title="Update History">
-                        <i class="fas fa-history w-5 text-center flex-shrink-0"></i>
-                        <span class="nav-label">Update History</span>
-                    </a>
-                </div>
-            </nav>
-            
-            <!-- User Profile / Logout -->
-            <div class="sidebar-footer p-4 border-t border-slate-200 dark:border-slate-800">
-                <form action="{% url 'logout' %}" method="post">
-                    {% csrf_token %}
-                    <button type="submit" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10 transition-colors" title="Terminate Session">
-                        <i class="fas fa-sign-out-alt w-5 text-center flex-shrink-0"></i>
-                        <span class="sidebar-logout-text">Terminate Session</span>
-                    </button>
-                </form>
-            </div>
-        </aside>
-
-        <!-- MAIN CONTENT -->
-        <main class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-            
-            <!-- TOP HEADER -->
-            <header class="h-14 md:h-16 flex-shrink-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-3 md:px-6 z-10 transition-colors duration-300">
-                <!-- Left: Hamburger + Breadcrumbs -->
-                <div class="flex items-center gap-2 md:gap-3 text-sm font-medium text-slate-500 dark:text-slate-400 min-w-0">
-                    <!-- Mobile hamburger -->
-                    <button onclick="openMobileSidebar()" class="flex md:hidden items-center justify-center w-9 h-9 -ml-1 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex-shrink-0">
-                        <i class="fas fa-bars text-base"></i>
-                    </button>
-                    <span class="text-slate-800 dark:text-slate-200 hidden sm:inline">Workspace</span>
-                    <i class="fas fa-chevron-right text-xs hidden sm:inline"></i>
-                    <span class="text-brand-600 dark:text-brand-400 truncate">{% block page_title %}Dashboard{% endblock %}</span>
-                </div>
-
-                <!-- Right Header Tools -->
-                <div class="flex items-center gap-2 md:gap-4 lg:gap-6 flex-shrink-0">
-                    
-                    <!-- System Updates Page Link -->
-                    <a href="{% url 'system_updates' %}" id="system-update-trigger" class="relative text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none rounded-lg text-sm p-2 transition-colors" title="System Updates">
-                        <i class="fas fa-satellite-dish w-5 h-5 text-center"></i>
-                        <span id="update-badge" class="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[14px] h-[14px] px-1 text-[8px] font-bold font-mono text-white bg-orange-500 rounded-full hidden">
-                            0
-                        </span>
-                    </a>
-
-                    <!-- Manual Lockscreen Trigger -->
-                    <button id="manual-lock-trigger" type="button" class="hidden sm:flex text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none rounded-lg text-sm p-2 transition-colors">
-                        <i id="lock-icon-inner" class="fas fa-lock w-5 h-5 text-center transition-all duration-300"></i>
-                    </button>
-
-                    <!-- Dark Mode Toggle -->
-                    <button id="theme-toggle" type="button" class="text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none rounded-lg text-sm p-2 transition-colors">
-                        <i id="theme-toggle-dark-icon" class="fas fa-moon hidden w-5 h-5 text-center"></i>
-                        <i id="theme-toggle-light-icon" class="fas fa-sun hidden w-5 h-5 text-center"></i>
-                    </button>
-
-                    <!-- Connection Status (hidden on small mobile) -->
-                    <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                        <span class="relative flex h-2 w-2">
-                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                          <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                        </span>
-                        <span class="text-xs font-mono font-medium text-slate-600 dark:text-slate-300 uppercase tracking-widest">Online</span>
-                    </div>
-
-                    <!-- Account Value (hidden on small mobile) -->
-                    <div class="hidden lg:flex flex-col items-end border-l border-slate-200 dark:border-slate-700 pl-4 xl:pl-6">
-                        <span class="text-[10px] uppercase font-mono text-slate-500 tracking-widest">Global Equity</span>
-                        <span class="text-sm font-bold font-mono text-slate-900 dark:text-white" id="account-equity-global">
-                            {% if current_equity %}
-                                ${{ current_equity|floatformat:2 }}
-                            {% else %}
-                                $--
-                            {% endif %}
-                        </span>
-                    </div>
-                </div>
-            </header>
-
-            <!-- SCROLLABLE PAGE CONTENT -->
-            <div class="flex-1 overflow-y-auto p-3 md:p-6 scroll-smooth">
-                {% block page_content %}{% endblock %}
-            </div>
-            
-        </main>
-    </div>
-
-    <!-- Common Overlay Handler (Replacing Jarvis Loader) -->
-    <div id="standard-overlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] hidden flex-col items-center justify-center opacity-0 transition-opacity duration-300">
-        <div class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-2xl flex flex-col items-center max-w-sm w-full border border-slate-200 dark:border-slate-700">
-            <svg class="w-10 h-10 text-brand-600 dark:text-brand-400 animate-spin mb-4" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <h3 id="overlay-text" class="text-slate-800 dark:text-slate-200 font-mono text-sm tracking-widest uppercase text-center">Processing...</h3>
-        </div>
-    </div>
-
-    <!-- Standardized Premium Confirm Modal -->
-    <div id="standard-confirm-modal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[110] hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
-        <div id="confirm-modal-box" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl shadow-2xl flex flex-col max-w-sm w-full transform scale-95 transition-all duration-300">
-            <div class="flex items-start space-x-4 mb-5">
-                <div class="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 text-amber-500 border border-amber-200 dark:border-amber-500/20 shrink-0">
-                    <i class="fa-solid fa-triangle-exclamation text-lg animate-pulse"></i>
-                </div>
-                <div class="flex-1">
-                    <h3 class="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-widest font-mono mb-2">SYSTEM PROTOCOL</h3>
-                    <p id="confirm-modal-message" class="text-xs text-slate-600 dark:text-slate-400 font-mono leading-relaxed">Execute instruction?</p>
-                </div>
-            </div>
-            
-            <div class="flex items-center justify-end space-x-3">
-                <button id="confirm-modal-btn-cancel" class="px-4 py-2 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-400 rounded-lg text-[10px] font-mono font-bold tracking-widest uppercase transition-colors">
-                    Cancel
-                </button>
-                <button id="confirm-modal-btn-confirm" class="px-4 py-2 bg-red-500 hover:bg-red-600 dark:bg-red-500/20 dark:hover:bg-red-500/30 text-white dark:text-red-400 border border-red-200 dark:border-red-500/30 rounded-lg text-[10px] font-mono font-bold tracking-widest uppercase transition-colors">
-                    Confirm
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Dark Mode Toggle Logic
-        var themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
-        var themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
-
-        // Change the icons inside the button based on previous settings
-        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            themeToggleLightIcon.classList.remove('hidden');
-        } else {
-            themeToggleDarkIcon.classList.remove('hidden');
-        }
-
-        var themeToggleBtn = document.getElementById('theme-toggle');
-
-        themeToggleBtn.addEventListener('click', function() {
-            // toggle icons inside button
-            themeToggleDarkIcon.classList.toggle('hidden');
-            themeToggleLightIcon.classList.toggle('hidden');
-
-            // if set via local storage previously
-            if (localStorage.getItem('color-theme')) {
-                if (localStorage.getItem('color-theme') === 'light') {
-                    document.documentElement.classList.add('dark');
-                    localStorage.setItem('color-theme', 'dark');
-                } else {
-                    document.documentElement.classList.remove('dark');
-                    localStorage.setItem('color-theme', 'light');
-                }} else {
-                if (document.documentElement.classList.contains('dark')) {
-                    document.documentElement.classList.remove('dark');
-                    localStorage.setItem('color-theme', 'light');
-                } else {
-                    document.documentElement.classList.add('dark');
-                    localStorage.setItem('color-theme', 'dark');
-                }
-            }
-        });
-
-        // Standardized Overlay Function
-        window.launchOverlay = function(formOrUrl, messageText = "PROCESSING...") {
-            const overlay = document.getElementById('standard-overlay');
-            const textElem = document.getElementById('overlay-text');
-            textElem.innerText = messageText;
-            
-            overlay.classList.remove('hidden');
-            overlay.classList.add('flex');
-            // small delay to allow display block to apply before animating opacity
-            setTimeout(() => {
-                overlay.classList.remove('opacity-0');
-            }, 10);
-
-            if (formOrUrl instanceof HTMLElement && formOrUrl.tagName.toLowerCase() === 'form') {
-                setTimeout(() => formOrUrl.submit(), 500);
-            } else if (typeof formOrUrl === 'string') {
-                setTimeout(() => window.location.href = formOrUrl, 500);
-            }
-        };
-
-        window.confirmAction = function(msg, callback, options = {}) {
-            const modal = document.getElementById('standard-confirm-modal');
-            const box = document.getElementById('confirm-modal-box');
-            const msgElem = document.getElementById('confirm-modal-message');
-            const confirmBtn = document.getElementById('confirm-modal-btn-confirm');
-            const cancelBtn = document.getElementById('confirm-modal-btn-cancel');
-            
-            // Set message text
-            msgElem.innerText = msg;
-            
-            // Customize confirm button style based on options or keyword matching for danger actions
-            const isDanger = options.danger || /kill|wipe|terminate|sever|delete|destroy|purge|abort|cancel/i.test(msg);
-            if (isDanger) {
-                confirmBtn.className = "px-4 py-2 bg-red-500 hover:bg-red-600 dark:bg-red-500/20 dark:hover:bg-red-500/30 text-white dark:text-red-400 border border-red-200 dark:border-red-500/30 rounded-lg text-[10px] font-mono font-bold tracking-widest uppercase transition-colors";
-            } else {
-                confirmBtn.className = "px-4 py-2 bg-brand-500 hover:bg-brand-600 dark:bg-brand-400/20 dark:hover:bg-brand-400/30 text-white dark:text-brand-400 border border-brand-500/30 dark:border-brand-400/30 rounded-lg text-[10px] font-mono font-bold tracking-widest uppercase transition-colors";
-            }
-            
-            // Display modal
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            
-            // Trigger animation
-            setTimeout(() => {
-                modal.classList.remove('opacity-0');
-                box.classList.remove('scale-95');
-            }, 10);
-            
-            // Clean up old event listeners (by cloning buttons)
-            const newConfirmBtn = confirmBtn.cloneNode(true);
-            const newCancelBtn = cancelBtn.cloneNode(true);
-            confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
-            cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
-            
-            const closeModal = () => {
-                modal.classList.add('opacity-0');
-                box.classList.add('scale-95');
-                setTimeout(() => {
-                    modal.classList.remove('flex');
-                    modal.classList.add('hidden');
-                }, 300);
-            };
-            
-            newConfirmBtn.addEventListener('click', () => {
-                closeModal();
-                if (typeof callback === 'function') callback();
-            });
-            
-            newCancelBtn.addEventListener('click', closeModal);
-            
-            // Also close if clicked outside
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) closeModal();
-            });
-        };
-
-        // DOMContentLoaded interceptor to automatically hook native form confirms
-        document.addEventListener('DOMContentLoaded', function() {
-            // Find all forms with inline confirm calls
-            document.querySelectorAll('form').forEach(function(form) {
-                const onsubmitAttr = form.getAttribute('onsubmit');
-                if (onsubmitAttr && onsubmitAttr.includes('confirm(')) {
-                    // Extract message from confirm('...') or confirm("...")
-                    const match = onsubmitAttr.match(/confirm\(['"](.*?)['"]\)/);
-                    if (match && match[1]) {
-                        const message = match[1];
-                        
-                        // Remove inline blocking onsubmit
-                        form.removeAttribute('onsubmit');
-                        
-                        // Hook new premium confirm submit action
-                        form.addEventListener('submit', function(e) {
-                            e.preventDefault();
-                            window.confirmAction(message, function() {
-                                if (onsubmitAttr.includes('window.launchOverlay')) {
-                                    const overlayMatch = onsubmitAttr.match(/launchOverlay\(.*?, ['"](.*?)['"]\)/);
-                                    const loadingMsg = (overlayMatch && overlayMatch[1]) ? overlayMatch[1] : "PROCESSING...";
-                                    window.launchOverlay(form, loadingMsg);
-                                } else {
-                                    form.submit();
-                                }
-                            });
-                        });
-                    }
-                }
-            });
-        });
-
-        // ── Sidebar Toggle Logic ──
-        const sidebar = document.getElementById('app-sidebar');
-        const backdrop = document.getElementById('sidebar-backdrop');
-        const collapseIcon = document.getElementById('collapse-icon');
-
-        // Restore desktop collapse state from localStorage
-        if (localStorage.getItem('sidebar-collapsed') === 'true' && window.innerWidth >= 768) {
-            sidebar.classList.add('collapsed');
-            if (collapseIcon) collapseIcon.classList.replace('fa-angles-left', 'fa-angles-right');
-        }
-
-        function toggleSidebarCollapse() {
-            sidebar.classList.toggle('collapsed');
-            const isCollapsed = sidebar.classList.contains('collapsed');
-            localStorage.setItem('sidebar-collapsed', isCollapsed);
-            if (collapseIcon) {
-                collapseIcon.classList.toggle('fa-angles-left', !isCollapsed);
-                collapseIcon.classList.toggle('fa-angles-right', isCollapsed);
-            }
-        }
-
-        function openMobileSidebar() {
-            sidebar.classList.add('mobile-open');
-            backdrop.classList.remove('hidden');
-        }
-
-        function closeMobileSidebar() {
-            sidebar.classList.remove('mobile-open');
-            backdrop.classList.add('hidden');
-        }
-
-        // Close mobile sidebar on navigation (auto-close after clicking a link)
-        sidebar.querySelectorAll('nav a').forEach(link => {
-            link.addEventListener('click', () => {
-                if (window.innerWidth < 768) closeMobileSidebar();
-            });
-        });
-
-        // Close mobile sidebar on resize to desktop
-        window.addEventListener('resize', () => {
-            if (window.innerWidth >= 768) {
-                closeMobileSidebar();
-            }
-        });
-    </script>
+    <!-- No lovely_theme.css link is loaded here -->
     
     <style>
-        /* Professional Terminal Animations */
-        @keyframes scanline {
-            0% { transform: translateY(-100%); }
-            100% { transform: translateY(100vh); }
+        body {
+            font-family: 'Quicksand', sans-serif !important;
         }
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0; }
+        .page-content {
+            padding-top: 94px !important; /* 70px header height + 24px gap */
         }
-        .animate-scanline { animation: scanline 8s linear infinite; }
-        .animate-blink { animation: blink 1s step-end infinite; }
-    </style>
+        .font-mono, pre, code {
+            font-family: 'JetBrains Mono', monospace !important;
+        }
 
-    <!-- Global Seamless Lockscreen Overlay -->
-    <!-- LOCKSCREEN OVERLAY — Catppuccin Macchiato Theme -->
-    <style>
-        /* ── Lock / Unlock animation ──────────────────────────── */
+        /* Mode Switch Pill style (Veltrix-compatible) */
+        .mode-switch-pill {
+            background-color: transparent;
+            color: #3b82f6;
+            font-weight: 700;
+            border: 1px solid rgba(59, 130, 246, 0.5);
+            border-radius: 50px;
+            padding: 6px 16px;
+            transition: all 0.2s ease;
+        }
+        .mode-switch-pill:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.15);
+        }
+        .mode-switch-pill.relax {
+            background-color: transparent;
+            color: #a855f7;
+            border-color: rgba(168, 85, 247, 0.5);
+        }
+        .mode-switch-pill.relax:hover {
+            background-color: rgba(168, 85, 247, 0.1);
+            box-shadow: 0 4px 10px rgba(168, 85, 247, 0.15);
+        }
+
+        /* Seamless Lockscreen Overlay & Keyframe Animations */
         @keyframes lockIn {
             0%   { opacity: 0; transform: scale(1.04); filter: blur(8px); }
             100% { opacity: 1; transform: scale(1);    filter: blur(0);   }
@@ -618,10 +100,6 @@
         @keyframes scanDown {
             0%   { top: -20%; }
             100% { top: 120%; }
-        }
-        @keyframes shimmer {
-            0%   { background-position: -400px 0; }
-            100% { background-position: 400px 0; }
         }
         @keyframes pulseDot {
             0%, 100% { opacity: 1; transform: scale(1); }
@@ -658,50 +136,326 @@
             vertical-align: middle;
             margin-left: 4px;
         }
-        .ls-shimmer-bar {
-            background: linear-gradient(90deg,
-                rgb(54 58 79) 0%, rgb(73 77 100) 40%,
-                rgb(54 58 79) 60%, rgb(54 58 79) 100%);
-            background-size: 800px 1px;
-            animation: shimmer 2.5s linear infinite;
-        }
-        #pin-input {
-            transition: all 0.25s ease-in-out;
-        }
-        #pin-input:focus {
-            border-color: rgb(125 196 228) !important;
-            box-shadow: 0 0 15px rgba(125, 196, 228, 0.2) !important;
-            background: rgb(24 25 38) !important;
-        }
-        .ls-btn-unlock {
-            transition: all 0.25s ease-in-out;
-        }
-        .ls-btn-unlock:hover {
-            background: rgb(54 58 79) !important;
-            border-color: rgb(125 196 228) !important;
-            color: rgb(202 211 245) !important;
-            box-shadow: 0 0 15px rgba(125, 196, 228, 0.15) !important;
-        }
     </style>
+    
+    {% block extra_head %}{% endblock %}
+</head>
 
-    <div id="global-lockscreen-overlay"
-         class="fixed inset-0 z-[10000] flex flex-col items-center justify-center overflow-hidden bg-slate-950/80 backdrop-blur-xl"
-         style="font-family: 'Inter', 'Roboto Mono', monospace;">
+<body data-sidebar="dark">
 
-        <!-- Dot grid background -->
-        <div class="absolute inset-0 pointer-events-none"
-             style="opacity:0.05; background-image: radial-gradient(rgb(165 173 203) 1px, transparent 1px); background-size: 26px 26px;"></div>
+    <!-- Begin page -->
+    <div id="layout-wrapper">
 
-        <!-- Scan band -->
+        <!-- HEADER TOPBAR -->
+        <header id="page-topbar">
+            <div class="navbar-header">
+                <div class="d-flex align-items-center">
+                    <!-- LOGO AREA -->
+                    <div class="navbar-brand-box d-flex align-items-center justify-content-center">
+                        <a href="{% url 'dashboard' %}" class="logo logo-light">
+                            <span class="logo-sm">
+                                <span class="text-brand-600 font-bold font-mono text-xl">Q</span>
+                            </span>
+                            <span class="logo-lg">
+                                <span class="text-brand-600 font-bold font-mono text-lg tracking-wider uppercase">QuantTrader</span>
+                            </span>
+                        </a>
+                    </div>
+
+                    <!-- Hamburger -->
+                    <button type="button" class="btn btn-sm px-3 font-size-24 header-item waves-effect" id="vertical-menu-btn">
+                        <i class="mdi mdi-menu"></i>
+                    </button>
+
+                    <!-- Breadcrumbs / View Title -->
+                    <div class="d-none d-sm-block ms-2">
+                        <h4 class="font-size-14 text-slate-800 dark:text-slate-200 font-bold uppercase tracking-wider mb-0 px-2">
+                            {% block page_title %}Dashboard{% endblock %}
+                        </h4>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-3 pe-4">
+                    <!-- Work / Relax Toggle switch -->
+                    {% if selected_game is not None or request.resolver_match.url_name == 'relax_view' %}
+                        <a href="{% url 'dashboard' %}" class="mode-switch-pill d-flex align-items-center gap-2 text-decoration-none">
+                            <i class="fas fa-briefcase"></i>
+                            <span class="text-xs uppercase tracking-wider">Switch to Work Mode</span>
+                        </a>
+                    {% else %}
+                        <a href="{% url 'relax_view' %}" class="mode-switch-pill relax d-flex align-items-center gap-2 text-decoration-none">
+                            <i class="fas fa-gamepad"></i>
+                            <span class="text-xs uppercase tracking-wider">Switch to Relax Mode</span>
+                        </a>
+                    {% endif %}
+
+                    <!-- System Updates Page Link -->
+                    <a href="{% url 'system_updates' %}" id="system-update-trigger" class="relative text-slate-500 hover:text-brand-500 focus:outline-none rounded-lg text-sm p-2 transition-colors" title="System Updates">
+                        <i class="fas fa-satellite-dish w-5 h-5 text-center"></i>
+                        <span id="update-badge" class="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[14px] h-[14px] px-1 text-[8px] font-bold font-mono text-white bg-orange-500 rounded-full hidden">
+                            0
+                        </span>
+                    </a>
+
+                    <!-- Manual Lockscreen Trigger -->
+                    <button id="manual-lock-trigger" type="button" class="d-none d-md-flex text-slate-500 hover:text-slate-700 focus:outline-none rounded-lg text-sm p-2 transition-colors">
+                        <i id="lock-icon-inner" class="fas fa-lock w-5 h-5 text-center transition-all duration-300"></i>
+                    </button>
+
+                    <!-- Dark Mode Toggle -->
+                    <button id="theme-toggle" type="button" class="text-slate-500 hover:text-slate-700 focus:outline-none rounded-lg text-sm p-2 transition-colors">
+                        <i id="theme-toggle-dark-icon" class="fas fa-moon hidden w-5 h-5 text-center"></i>
+                        <i id="theme-toggle-light-icon" class="fas fa-sun hidden w-5 h-5 text-center"></i>
+                    </button>
+
+                    <!-- Connection Status Indicator -->
+                    <div class="d-none d-md-flex align-items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200">
+                        <span class="relative flex h-2 w-2">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        <span class="text-xs font-mono font-medium text-slate-600 dark:text-slate-300 uppercase tracking-widest">Online</span>
+                    </div>
+
+                    <!-- Global Account Value -->
+                    <div class="d-none d-lg-flex flex-column align-items-end border-start border-slate-200 ps-4">
+                        <span class="text-[9px] uppercase font-mono text-slate-500 tracking-widest leading-none mb-1">Global Equity</span>
+                        <span class="text-sm font-bold font-mono text-slate-900 dark:text-white" id="account-equity-global">
+                            {% if current_equity %}
+                                ${{ current_equity|floatformat:2 }}
+                            {% else %}
+                                $--
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- SIDEBAR LEFT NAVIGATION -->
+        <div class="vertical-menu">
+            <div data-simplebar class="h-100">
+                <div id="sidebar-menu">
+                    <ul class="metismenu list-unstyled" id="side-menu">
+                        {% if 'relax' in request.path %}
+                            <li class="menu-title">Arcade Lounge</li>
+                            <li>
+                                <a href="{% url 'dashboard' %}" class="waves-effect">
+                                    <i class="mdi mdi-arrow-left text-danger"></i>
+                                    <span class="text-danger font-bold">Exit Relax Mode</span>
+                                </a>
+                            </li>
+                            
+                            <li class="menu-title font-mono tracking-widest text-[9px] uppercase mt-3">My Library</li>
+                            {% for g in games %}
+                                <li>
+                                    <a href="?game_id={{ g.id }}" class="waves-effect {% if selected_game.id == g.id %}active{% endif %}">
+                                        <i class="mdi mdi-gamepad-variant text-purple-500"></i>
+                                        <span class="{% if selected_game.id == g.id %}font-bold text-purple-700{% endif %}">{{ g.name }}</span>
+                                    </a>
+                                </li>
+                            {% empty %}
+                                <li class="px-3 py-2 text-muted text-xs font-mono">No games found</li>
+                            {% endfor %}
+                            
+                            <li class="mt-3 px-3">
+                                <button type="button" class="btn btn-sm btn-outline-primary w-100 rounded-pill font-size-10 uppercase tracking-widest font-bold" data-bs-toggle="modal" data-bs-target="#addGameModal">
+                                    <i class="fas fa-plus mr-1"></i> Add Game
+                                </button>
+                            </li>
+                            
+                            <!-- Steam Playtime Sync panel in sidebar -->
+                            <li class="mt-4 px-3 border-top border-slate-200 dark:border-slate-800 pt-3">
+                                <label class="form-label text-[9px] uppercase font-mono tracking-widest font-bold text-slate-400">Sync Steam Playtimes</label>
+                                <div class="input-group input-group-sm mb-1">
+                                    <input type="text" id="steam_username_sync" class="form-control font-mono text-[10px]" placeholder="Steam ID/Custom URL" value="{{ request.session.steam_username|default:'' }}">
+                                    <button class="btn btn-sm btn-outline-primary py-0.5 px-2 text-[10px]" type="button" onclick="syncSteamPlaytimes()">Sync</button>
+                                </div>
+                                <div class="text-[8px] text-muted font-mono">Requires public profile.</div>
+                            </li>
+                        {% else %}
+                            <li class="menu-title">Main Control</li>
+                            <li>
+                                <a href="{% url 'dashboard' %}" class="waves-effect {% if request.path == '/' %}active{% endif %}">
+                                    <i class="mdi mdi-view-dashboard"></i>
+                                    <span>System Overview</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'models_hub' %}" class="waves-effect {% if 'models' in request.path %}active{% endif %}">
+                                    <i class="mdi mdi-brain"></i>
+                                    <span>Intelligence Hub</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'training' %}" class="waves-effect {% if 'training' in request.path %}active{% endif %}">
+                                    <i class="mdi mdi-dumbbell"></i>
+                                    <span>Training Center</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'evolution_hub' %}" class="waves-effect {% if 'evolution-chamber' in request.path %}active{% endif %}">
+                                    <i class="mdi mdi-dna text-purple-500"></i>
+                                    <span class="text-purple-600 dark:text-purple-400">Evolution Chamber</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'evaluation' %}" class="waves-effect {% if 'evaluation' in request.path %}active{% endif %}">
+                                    <i class="mdi mdi-flask-outline"></i>
+                                    <span>Evaluation Lab</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'papertrading' %}" class="waves-effect {% if 'paper-trading' in request.path %}active{% endif %}">
+                                    <i class="mdi mdi-chart-line-stacked"></i>
+                                    <span>Paper Trading</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'realtrading' %}" class="waves-effect {% if 'real-trading' in request.path %}active{% endif %}">
+                                    <i class="mdi mdi-flash"></i>
+                                    <span>Live Execution</span>
+                                </a>
+                            </li>
+
+                            <li class="menu-title">Relax & Lounge</li>
+                            <li>
+                                <a href="{% url 'relax_view' %}" class="waves-effect {% if 'relax' in request.path %}active{% endif %}">
+                                    <i class="mdi mdi-gamepad-variant text-purple-600"></i>
+                                    <span class="text-purple-700 font-bold">Gaming Lounge</span>
+                                </a>
+                            </li>
+
+                            <li class="menu-title">Analysis Vault</li>
+                            <li>
+                                <a href="{% url 'reports_hub' %}" class="waves-effect {% if 'intelligence-vault' in request.path %}active{% endif %}">
+                                    <i class="mdi mdi-file-document-multiple-outline"></i>
+                                    <span>Reports & Logs</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'trader_report' %}" class="waves-effect {% if 'trader-report' in request.path %}active{% endif %}">
+                                    <i class="mdi mdi-receipt"></i>
+                                    <span>Complete Trade History</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'neural_cortex' %}" class="waves-effect {% if 'neural-cortex' in request.path %}active{% endif %}">
+                                    <i class="mdi mdi-lan-connect text-info"></i>
+                                    <span class="text-info">Neural Cortex</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'neural_decision_flow' %}" class="waves-effect {% if 'decision-flow' in request.path %}active{% endif %}">
+                                    <i class="mdi mdi-chip text-info"></i>
+                                    <span class="text-info">Decision Flow</span>
+                                </a>
+                            </li>
+
+                            <li class="menu-title">System Settings</li>
+                            <li>
+                                <a href="{% url 'settings' %}" class="waves-effect {% if 'settings' in request.path %}active{% endif %}">
+                                    <i class="mdi mdi-cog-outline"></i>
+                                    <span>Configuration</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'guide' %}" class="waves-effect {% if 'guide' in request.path %}active{% endif %}">
+                                    <i class="mdi mdi-book-open-page-variant"></i>
+                                    <span>Documentation</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'changelog' %}" class="waves-effect {% if 'changelog' in request.path %}active{% endif %}">
+                                    <i class="mdi mdi-history"></i>
+                                    <span>Update History</span>
+                                </a>
+                            </li>
+                            
+                            <li class="mt-4 px-3">
+                                <form action="{% url 'logout' %}" method="post">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger w-100 rounded-pill font-size-10 uppercase tracking-widest font-bold">
+                                        <i class="mdi mdi-logout mr-1"></i> Terminate Session
+                                    </button>
+                                </form>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT CONTAINER -->
+        <div class="main-content">
+            <div class="page-content">
+                <div class="container-fluid">
+                    
+                    <!-- Alert Messages Banner -->
+                    {% if messages %}
+                        <div class="row">
+                            <div class="col-12 mb-3">
+                                {% for message in messages %}
+                                    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show rounded-3 bg-white border shadow-sm p-3 flex justify-between items-center" role="alert">
+                                        <div class="flex items-center gap-2">
+                                            <i class="fas {% if message.tags == 'success' %}fa-circle-check text-emerald-500{% elif message.tags == 'error' %}fa-circle-xmark text-rose-500{% else %}fa-circle-info text-blue-500{% endif %}"></i>
+                                            <span class="text-xs font-mono font-bold">{{ message }}</span>
+                                        </div>
+                                        <button type="button" class="btn-close relative" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    {% block page_content %}{% endblock %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Processing Overlay Loader -->
+    <div id="standard-overlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] hidden flex-col items-center justify-center opacity-0 transition-opacity duration-300">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center max-w-sm w-full border border-slate-200">
+            <svg class="w-10 h-10 text-brand-600 animate-spin mb-4" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <h3 id="overlay-text" class="text-slate-800 font-mono text-sm tracking-widest uppercase text-center font-bold">Processing...</h3>
+        </div>
+    </div>
+
+    <!-- Standardized Premium Confirm Modal -->
+    <div id="standard-confirm-modal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[110] hidden items-center justify-center opacity-0 transition-opacity duration-300">
+        <div id="confirm-modal-box" class="bg-white border border-slate-200 p-6 rounded-2xl shadow-2xl flex flex-col max-w-sm w-full transform scale-95 transition-all duration-300">
+            <div class="flex items-start space-x-4 mb-5">
+                <div class="p-2.5 rounded-xl bg-amber-50 text-amber-500 border border-amber-200 shrink-0">
+                    <i class="fa-solid fa-triangle-exclamation text-lg animate-pulse"></i>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-xs font-bold text-slate-800 uppercase tracking-widest font-mono mb-2">SYSTEM PROTOCOL</h3>
+                    <p id="confirm-modal-message" class="text-xs text-slate-600 font-mono leading-relaxed">Execute instruction?</p>
+                </div>
+            </div>
+            <div class="flex items-center justify-end space-x-3">
+                <button id="confirm-modal-btn-cancel" class="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-lg text-[10px] font-mono font-bold tracking-widest uppercase transition-colors">
+                    Cancel
+                </button>
+                <button id="confirm-modal-btn-confirm" class="px-4 py-2 border border-rose-500 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg text-[10px] font-mono font-bold tracking-widest uppercase transition-colors">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seamless Lockscreen Overlay -->
+    <div id="global-lockscreen-overlay" class="fixed inset-0 z-[10000] flex flex-col items-center justify-center overflow-hidden bg-slate-950/80 backdrop-blur-xl" style="font-family: 'Inter', 'Roboto Mono', monospace;">
+        <div class="absolute inset-0 pointer-events-none" style="opacity:0.05; background-image: radial-gradient(rgb(165 173 203) 1px, transparent 1px); background-size: 26px 26px;"></div>
         <div class="ls-scan"></div>
-
-        <!-- Top accent -->
-        <div class="absolute top-0 left-0 right-0 h-px pointer-events-none"
-             style="background: linear-gradient(90deg, transparent 0%, rgb(125 196 228 / 0.6) 50%, transparent 100%);"></div>
-
-        <!-- Main content -->
+        <div class="absolute top-0 left-0 right-0 h-px pointer-events-none" style="background: linear-gradient(90deg, transparent 0%, rgb(125 196 228 / 0.6) 50%, transparent 100%);"></div>
+        
         <div class="relative z-10 flex flex-col items-center w-full max-w-xs px-4">
-
             <!-- Clock -->
             <div class="ls-clock text-center mb-8 w-full">
                 <div id="lock-clock" style="font-size: clamp(3.5rem, 16vw, 6.5rem); font-weight: 800; letter-spacing: -0.04em; color: rgb(202 211 245); line-height: 1; font-variant-numeric: tabular-nums;">00:00</div>
@@ -712,9 +466,7 @@
             <!-- Auth card -->
             <div class="ls-panel w-full">
                 <div class="rounded-2xl overflow-hidden bg-slate-900/40 backdrop-blur-md border border-slate-700/60 shadow-[0_25px_60px_rgba(0,0,0,0.6)]">
-
-                    <div class="flex items-center justify-between px-4 py-2.5"
-                         style="border-bottom: 1px solid rgb(45 48 65);">
+                    <div class="flex items-center justify-between px-4 py-2.5" style="border-bottom: 1px solid rgb(45 48 65);">
                         <div class="flex items-center gap-1.5">
                             <span class="w-1.5 h-1.5 rounded-full inline-block" style="background: rgb(125 196 228);"></span>
                             <span class="text-[9px] uppercase tracking-[0.22em]" style="color: rgb(110 115 140);">AI Trader &middot; Locked</span>
@@ -726,26 +478,13 @@
                         <form id="unlock-form" method="POST" action="{% url 'lockscreen_api' %}">
                             {% csrf_token %}
                             <div class="flex flex-col items-center mb-5">
-                                <div class="w-11 h-11 rounded-full flex items-center justify-center mb-2.5"
-                                     style="background: rgb(36 39 58); border: 1px solid rgb(64 68 90);">
+                                <div class="w-11 h-11 rounded-full flex items-center justify-center mb-2.5" style="background: rgb(36 39 58); border: 1px solid rgb(64 68 90);">
                                     <i class="fas fa-user-circle" style="color: rgb(138 173 244); font-size: 1.1rem;"></i>
                                 </div>
-                                <label id="pin-prompt" class="text-[10px] uppercase tracking-[0.18em]"
-                                       style="color: rgb(140 145 165);">Enter password</label>
+                                <label id="pin-prompt" class="text-[10px] uppercase tracking-[0.18em]" style="color: rgb(140 145 165);">Enter password</label>
                             </div>
-
-                            <input type="password"
-                                   id="pin-input"
-                                   name="password"
-                                   autocomplete="off"
-                                   required
-                                   placeholder="••••••••"
-                                   class="w-full text-center rounded-xl px-3 py-2.5 mb-4 outline-none transition-all duration-200"
-                                   style="background: rgb(20 21 34); border: 1px solid rgb(55 58 80); color: rgb(202 211 245); font-size: 1.1rem; letter-spacing: 0.3em; caret-color: rgb(125 196 228);">
-
-                            <button type="submit"
-                                    class="ls-btn-unlock w-full py-2.5 rounded-xl text-[10px] uppercase tracking-[0.22em] font-semibold transition-all duration-200"
-                                    style="background: rgb(36 39 58); border: 1px solid rgb(80 100 160 / 0.5); color: rgb(138 173 244);">
+                            <input type="password" id="pin-input" name="password" autocomplete="off" required placeholder="••••••••" class="w-full text-center rounded-xl px-3 py-2.5 mb-4 outline-none transition-all duration-200" style="background: rgb(20 21 34); border: 1px solid rgb(55 58 80); color: rgb(202 211 245); font-size: 1.1rem; letter-spacing: 0.3em; caret-color: rgb(125 196 228);">
+                            <button type="submit" class="ls-btn-unlock w-full py-2.5 rounded-xl text-[10px] uppercase tracking-[0.22em] font-semibold transition-all duration-200" style="background: rgb(36 39 58); border: 1px solid rgb(80 100 160 / 0.5); color: rgb(138 173 244);">
                                 <i class="fas fa-unlock-alt mr-1.5 opacity-60"></i>Unlock
                             </button>
                         </form>
@@ -755,9 +494,7 @@
                 <div class="mt-4 text-center">
                     <form method="POST" action="{% url 'logout' %}" class="inline">
                         {% csrf_token %}
-                        <button type="submit"
-                                class="text-[9px] uppercase tracking-[0.22em] transition-colors"
-                                style="color: rgb(70 74 100);">
+                        <button type="submit" class="text-[9px] uppercase tracking-[0.22em] transition-colors" style="color: rgb(70 74 100);">
                             <i class="fas fa-power-off mr-1"></i>End Session
                         </button>
                     </form>
@@ -765,42 +502,49 @@
             </div>
         </div>
     </div>
-    
-    <!-- Global Evolution Promotion Toast (Bottom-Right) -->
+
+    <!-- Global Evolution Promotion Toast -->
     <div id="evolution-promotion-toast" class="fixed bottom-24 right-6 z-[10001] hidden transform translate-y-6 opacity-0 transition-all duration-300 font-mono" style="width: 360px;">
-        <div class="bg-white dark:bg-slate-900 border border-purple-500/20 dark:border-purple-500/30 rounded-xl shadow-2xl p-4 flex items-center gap-4">
-            <div class="w-10 h-10 rounded-full bg-purple-500/10 dark:bg-purple-500/20 flex items-center justify-center text-purple-600 dark:text-purple-400 border border-purple-500/30 shrink-0">
+        <div class="bg-white border border-purple-500/20 rounded-xl shadow-2xl p-4 flex items-center gap-4">
+            <div class="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-600 border border-purple-500/30 shrink-0">
                 <i class="fas fa-dna animate-pulse"></i>
             </div>
             <div class="flex-1 min-w-0">
-                <h4 class="text-slate-800 dark:text-slate-200 text-xs font-bold uppercase tracking-widest">Model Ready</h4>
-                <p class="text-slate-600 dark:text-slate-400 text-[10px] mt-1 whitespace-normal leading-relaxed" id="evo-toast-msg">A mutated variant outperformed the parent!</p>
-                <a id="evo-toast-link" href="/evolution-chamber/" class="text-[9px] uppercase tracking-widest text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-bold mt-2 inline-block">
+                <h4 class="text-slate-800 text-xs font-bold uppercase tracking-widest">Model Ready</h4>
+                <p class="text-slate-600 text-[10px] mt-1 whitespace-normal leading-relaxed" id="evo-toast-msg">A mutated variant outperformed the parent!</p>
+                <a id="evo-toast-link" href="/evolution-chamber/" class="text-[9px] uppercase tracking-widest text-purple-600 hover:text-purple-700 font-bold mt-2 inline-block">
                     Review Variant &rarr;
                 </a>
             </div>
-            <button onclick="dismissEvoToast()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 self-start">
+            <button onclick="dismissEvoToast()" class="text-slate-400 hover:text-slate-600 self-start">
                 <i class="fas fa-times text-xs"></i>
             </button>
         </div>
     </div>
 
-    <!-- Scripts -->
+    <!-- REQUIRED BASE SCRIPTS -->
+    <script src="{% static 'veltrix/libs/jquery/jquery.min.js' %}"></script>
+    <script src="{% static 'veltrix/libs/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+    <script src="{% static 'veltrix/libs/metismenu/metisMenu.min.js' %}"></script>
+    <script src="{% static 'veltrix/libs/simplebar/simplebar.min.js' %}"></script>
+    <script src="{% static 'veltrix/libs/node-waves/waves.min.js' %}"></script>
+    
+    <script src="{% static 'veltrix/js/app.js' %}"></script>
+    
+    <!-- Custom logic & Telemetry WebSockets scripts -->
     <script src="{% static 'js/idle_tracker.js' %}"></script>
+    
     <script>
-        // --- FRESH LOGIN LOCKSCREEN BYPASS ---
-        // If the user just logged in via the login page, Django sets fresh_login=True.
-        // We clear the sessionStorage lock flag so the lockscreen never auto-shows.
+        // Clear fresh login lockscreen flag if applicable
         {% if request.session.fresh_login %}
         sessionStorage.removeItem('qt_locked');
         {% endif %}
 
-        // --- 1. Idle Telemetry Engine ---
+        // Init Idle Telemetry Engine
         document.addEventListener('DOMContentLoaded', () => {
-            // Initialize Idle Tracker
             window.qtIdleEngine = new IdleTelemetryEngine("{% url 'security_status_api' %}", "{% url 'logout' %}");
 
-            // Start lockscreen clock
+            // Date/Clock ticking helper
             function updateClock() {
                 const now = new Date();
                 const h = now.getHours().toString().padStart(2, '0');
@@ -815,18 +559,17 @@
             setInterval(updateClock, 1000);
             updateClock();
 
-            // --- 2. Manual Lock Trigger (inside DOMContentLoaded so qtIdleEngine exists) ---
+            // Manual Lock Button
             const lockTrigger = document.getElementById('manual-lock-trigger');
             if (lockTrigger) {
                 lockTrigger.addEventListener('click', () => {
                     if (window.qtIdleEngine) {
                         if (!window.qtIdleEngine.hasPassword) {
-                            alert('Lockscreen password is not configured. Please set one in Settings or Admin.');
+                            alert('Lockscreen password is not configured. Please set one in Settings.');
                             return;
                         }
                         window.qtIdleEngine.triggerLock();
                     } else {
-                        // Fallback: show overlay directly if engine not ready
                         const overlay = document.getElementById('global-lockscreen-overlay');
                         if (overlay) {
                             overlay.classList.remove('ls-hiding');
@@ -838,7 +581,7 @@
             }
         });
 
-        // --- 3. Unlock Form Handler ---
+        // Unlock action handler
         const unlockForm = document.getElementById('unlock-form');
         const pinInput = document.getElementById('pin-input');
         const pinPrompt = document.getElementById('pin-prompt');
@@ -856,12 +599,8 @@
                         'X-Requested-With': 'XMLHttpRequest',
                         'X-CSRFToken': csrfToken
                     }
-                }).then(r => {
-                    if (!r.ok) throw new Error("Network Response Fail");
-                    return r.json();
-                }).then(data => {
+                }).then(r => r.json()).then(data => {
                     if (data.status === 'success') {
-                        // Unlock
                         window.qtIdleEngine.isLocked = false;
                         window.qtIdleEngine.lastActivity = Date.now();
                         sessionStorage.removeItem('qt_locked');
@@ -880,7 +619,6 @@
                         pinPrompt.textContent = 'INCORRECT — Try Again';
                         pinPrompt.style.color = 'rgb(243 139 168)';
                         
-                        // Shake effect
                         const shakeEl = pinInput.closest('div') || pinInput;
                         shakeEl.style.transform = 'translateX(-8px)';
                         setTimeout(() => shakeEl.style.transform = 'translateX(8px)', 60);
@@ -892,87 +630,172 @@
             });
         }
 
-        // --- 3. System Update Badging ---
-        const updateBadge = document.getElementById('update-badge');
+        // Overlay handlers
+        window.launchOverlay = function(formOrUrl, messageText = "PROCESSING...") {
+            const overlay = document.getElementById('standard-overlay');
+            const textElem = document.getElementById('overlay-text');
+            textElem.innerText = messageText;
+            
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+            setTimeout(() => overlay.classList.remove('opacity-0'), 10);
 
-        function checkUpdates() {
-            fetch("{% url 'check_updates_api' %}")
-            .then(r => r.json())
-            .then(data => {
-                if (data.commits_behind > 0) {
-                    if (updateBadge) {
-                        updateBadge.textContent = data.commits_behind;
-                        updateBadge.classList.remove('hidden');
-                    }
-                } else {
-                    if (updateBadge) {
-                        updateBadge.classList.add('hidden');
+            if (formOrUrl instanceof HTMLElement && formOrUrl.tagName.toLowerCase() === 'form') {
+                setTimeout(() => formOrUrl.submit(), 500);
+            } else if (typeof formOrUrl === 'string') {
+                setTimeout(() => window.location.href = formOrUrl, 500);
+            }
+        };
+
+        window.confirmAction = function(msg, callback, options = {}) {
+            const modal = document.getElementById('standard-confirm-modal');
+            const box = document.getElementById('confirm-modal-box');
+            const msgElem = document.getElementById('confirm-modal-message');
+            const confirmBtn = document.getElementById('confirm-modal-btn-confirm');
+            const cancelBtn = document.getElementById('confirm-modal-btn-cancel');
+            
+            msgElem.innerText = msg;
+            const isDanger = options.danger || /kill|wipe|terminate|sever|delete|destroy|purge|abort|cancel|remove/i.test(msg);
+            if (isDanger) {
+                confirmBtn.className = "btn btn-sm btn-outline-danger text-[10px] font-mono font-bold tracking-widest uppercase transition-all px-4 py-2";
+            } else {
+                confirmBtn.className = "btn btn-sm btn-outline-primary text-[10px] font-mono font-bold tracking-widest uppercase transition-all px-4 py-2";
+            }
+            cancelBtn.className = "btn btn-sm btn-outline-secondary text-[10px] font-mono font-bold tracking-widest uppercase transition-all px-4 py-2";
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                box.classList.remove('scale-95');
+            }, 10);
+            
+            const newConfirmBtn = confirmBtn.cloneNode(true);
+            const newCancelBtn = cancelBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+            cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+            
+            const closeModal = () => {
+                modal.classList.add('opacity-0');
+                box.classList.add('scale-95');
+                setTimeout(() => {
+                    modal.classList.remove('flex');
+                    modal.classList.add('hidden');
+                }, 300);
+            };
+            
+            newConfirmBtn.addEventListener('click', () => {
+                closeModal();
+                if (typeof callback === 'function') callback();
+            });
+            newCancelBtn.addEventListener('click', closeModal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+        };
+
+        // Automatic confirm dialog hooks on DOMForms
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('form').forEach(form => {
+                const attr = form.getAttribute('onsubmit');
+                if (attr && attr.includes('confirm(')) {
+                    const match = attr.match(/confirm\(['"](.*?)['"]\)/);
+                    if (match && match[1]) {
+                        const msg = match[1];
+                        form.removeAttribute('onsubmit');
+                        form.addEventListener('submit', e => {
+                            e.preventDefault();
+                            window.confirmAction(msg, () => {
+                                if (attr.includes('launchOverlay')) {
+                                    const ovMatch = attr.match(/launchOverlay\(.*?, ['"](.*?)['"]\)/);
+                                    window.launchOverlay(form, ovMatch ? ovMatch[1] : "PROCESSING...");
+                                } else {
+                                    form.submit();
+                                }
+                            });
+                        });
                     }
                 }
-            }).catch(e => console.error("Update check failed", e));
+            });
+        });
+
+        // Dark/Light Theme Switching Icon State Sync
+        var themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
+        var themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
+        if (document.documentElement.classList.contains('dark')) {
+            themeToggleLightIcon.classList.remove('hidden');
+            document.body.setAttribute('data-bs-theme', 'dark');
+        } else {
+            themeToggleDarkIcon.classList.remove('hidden');
+            document.body.setAttribute('data-bs-theme', 'light');
+        }
+
+        document.getElementById('theme-toggle').addEventListener('click', () => {
+            themeToggleDarkIcon.classList.toggle('hidden');
+            themeToggleLightIcon.classList.toggle('hidden');
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                document.documentElement.setAttribute('data-bs-theme', 'light');
+                document.body.setAttribute('data-bs-theme', 'light');
+                localStorage.setItem('color-theme', 'light');
+            } else {
+                document.documentElement.classList.add('dark');
+                document.documentElement.setAttribute('data-bs-theme', 'dark');
+                document.body.setAttribute('data-bs-theme', 'dark');
+                localStorage.setItem('color-theme', 'dark');
+            }
+        });
+
+        // Check system updates badge
+        const updateBadge = document.getElementById('update-badge');
+        function checkUpdates() {
+            fetch("{% url 'check_updates_api' %}")
+            .then(r => r.json()).then(data => {
+                if (data.commits_behind > 0 && updateBadge) {
+                    updateBadge.textContent = data.commits_behind;
+                    updateBadge.classList.remove('hidden');
+                } else if(updateBadge) {
+                    updateBadge.classList.add('hidden');
+                }
+            }).catch(() => {});
         }
         setInterval(checkUpdates, 300000);
         checkUpdates();
 
-        // --- Evolution Promotion Notification Checker ---
+        // Evolution model variant promotion badges
         let lastNotifiedVariantId = localStorage.getItem('last_notified_variant_id') || '';
-        
         function checkPromotionVariants() {
-            if (window.location.pathname.includes('/login/') || window.location.pathname.includes('/logout/')) {
-                return;
-            }
+            if (window.location.pathname.includes('/login/') || window.location.pathname.includes('/logout/')) return;
             fetch("/api/evolution/variants/")
-            .then(res => { if(!res.ok) throw new Error(); return res.json(); })
-            .then(data => {
+            .then(res => res.json()).then(data => {
                 if(data.status === 'success' && data.variants) {
-                    const pendingVariant = data.variants.find(v => v.status === 'PENDING');
-                    if(pendingVariant) {
-                        const variantIdStr = String(pendingVariant.id);
-                        if(lastNotifiedVariantId !== variantIdStr) {
-                            showEvoToast(pendingVariant);
-                        }
-                    } else {
-                        if(lastNotifiedVariantId) {
-                            localStorage.removeItem('last_notified_variant_id');
-                            lastNotifiedVariantId = '';
-                        }
+                    const pending = data.variants.find(v => v.status === 'PENDING');
+                    if(pending && String(pending.id) !== lastNotifiedVariantId) {
+                        showEvoToast(pending);
                     }
                 }
-            })
-            .catch(() => {});
+            }).catch(() => {});
         }
-        
-        function showEvoToast(variant) {
+        function showEvoToast(v) {
             const toast = document.getElementById('evolution-promotion-toast');
             const msg = document.getElementById('evo-toast-msg');
             const link = document.getElementById('evo-toast-link');
             if(!toast) return;
-            
-            msg.textContent = `${variant.name} outperformed its parent model and is ready for promotion!`;
-            link.href = `/evolution-chamber/variant/${variant.id}/`;
-            
+            msg.textContent = `${v.name} outperformed its parent model and is ready for promotion!`;
+            link.href = `/evolution-chamber/variant/${v.id}/`;
             toast.classList.remove('hidden');
-            setTimeout(() => {
-                toast.classList.remove('translate-y-6', 'opacity-0');
-            }, 50);
-            
-            localStorage.setItem('last_notified_variant_id', String(variant.id));
-            lastNotifiedVariantId = String(variant.id);
+            setTimeout(() => toast.classList.remove('translate-y-6', 'opacity-0'), 50);
+            localStorage.setItem('last_notified_variant_id', String(v.id));
+            lastNotifiedVariantId = String(v.id);
         }
-        
         window.dismissEvoToast = function() {
-            const toast = document.getElementById('evolution-promotion-toast');
-            if(!toast) return;
-            toast.classList.add('translate-y-6', 'opacity-0');
-            setTimeout(() => {
-                toast.classList.add('hidden');
-            }, 300);
+            const t = document.getElementById('evolution-promotion-toast');
+            if(!t) return;
+            t.classList.add('translate-y-6', 'opacity-0');
+            setTimeout(() => t.classList.add('hidden'), 300);
         };
-        
         setInterval(checkPromotionVariants, 15000);
         setTimeout(checkPromotionVariants, 2000);
-
     </script>
+
     {% block extra_javascript %}{% endblock %}
 </body>
 </html>

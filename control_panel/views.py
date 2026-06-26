@@ -4778,3 +4778,464 @@ def record_decision_api(request):
         logger.error(f"Error recording decision: {e}", exc_info=True)
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
+
+# ── RELAX LOUNGE (GAMING HUB) VIEWS ──
+
+import urllib.request
+import json
+import re
+import os
+import subprocess
+from html.parser import HTMLParser
+from django.contrib import messages
+from .models import Game, GameGuide, GameVideo
+
+def fetch_steam_details(app_id):
+    try:
+        url = f"https://store.steampowered.com/api/appdetails?appids={app_id}"
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=8) as response:
+            data = json.loads(response.read().decode())
+            if str(app_id) in data and data[str(app_id)]['success']:
+                game_data = data[str(app_id)]['data']
+                name = game_data.get('name')
+                cover = game_data.get('header_image')
+                
+                # Check for animated movies/trailers first!
+                bg = None
+                movies = game_data.get('movies')
+                if movies:
+                    first_movie = movies[0]
+                    if 'webm' in first_movie and 'max' in first_movie['webm']:
+                        bg = first_movie['webm']['max']
+                    elif 'mp4' in first_movie and 'max' in first_movie['mp4']:
+                        bg = first_movie['mp4']['max']
+                
+                # Fallback to background image or screenshot
+                if not bg:
+                    bg = game_data.get('background') or (game_data.get('screenshots', [{}])[0].get('path_full') if game_data.get('screenshots') else None)
+                
+                return name, cover, bg
+    except Exception as e:
+        logger.error(f"Steam details fetch failed for AppID {app_id}: {e}")
+    return None, None, None
+
+
+def search_steam_game_id(query):
+    try:
+        import urllib.parse
+        quoted_query = urllib.parse.quote(query)
+        url = f"https://store.steampowered.com/api/storesearch/?term={quoted_query}&l=english&cc=US"
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=6) as response:
+            data = json.loads(response.read().decode())
+            if 'items' in data and data['items']:
+                return data['items'][0].get('id')
+    except Exception as e:
+        logger.error(f"Steam store search failed for query '{query}': {e}")
+    return None
+
+
+@login_required
+def relax_browse_dir(request):
+    import os
+    import platform
+    current_path = request.GET.get('path', '').strip()
+    
+    if not current_path:
+        if platform.system() == 'Windows':
+            current_path = os.environ.get('USERPROFILE', 'C:\\')
+        else:
+            current_path = os.environ.get('HOME', '/')
+            
+    current_path = os.path.abspath(current_path)
+    
+    if not os.path.exists(current_path) or not os.path.isdir(current_path):
+        if platform.system() == 'Windows':
+            current_path = 'C:\\'
+        else:
+            current_path = '/'
+            
+    drives = []
+    if platform.system() == 'Windows':
+        import string
+        from ctypes import windll
+        bitmask = windll.kernel32.GetLogicalDrives()
+        for letter in string.ascii_uppercase:
+            if bitmask & 1:
+                drives.append(f"{letter}:\\")
+            bitmask >>= 1
+            
+    parent_path = os.path.dirname(current_path)
+    if parent_path == current_path:
+        parent_path = ""
+        
+    items = []
+    try:
+        for entry in os.scandir(current_path):
+            try:
+                is_dir = entry.is_dir()
+                if entry.name.startswith('.') or (platform.system() == 'Windows' and entry.name.startswith('$')):
+                    continue
+                items.append({
+                    'name': entry.name,
+                    'is_dir': is_dir,
+                    'path': entry.path
+                })
+            except OSError:
+                continue
+        items.sort(key=lambda x: (not x['is_dir'], x['name'].lower()))
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+        
+    return JsonResponse({
+        'current_path': current_path,
+        'parent_path': parent_path,
+        'drives': drives,
+        'items': items
+    })
+
+
+class SimpleHTMLScraper(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.text_list = []
+        self.in_body = False
+        self.ignore_tags = {'script', 'style', 'nav', 'footer', 'header', 'iframe', 'noscript'}
+        self.current_tag = None
+        self.depth_ignore = 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'body':
+            self.in_body = True
+        if tag in self.ignore_tags:
+            self.depth_ignore += 1
+        self.current_tag = tag
+
+    def handle_endtag(self, tag):
+        if tag == 'body':
+            self.in_body = False
+        if tag in self.ignore_tags:
+            self.depth_ignore = max(0, self.depth_ignore - 1)
+
+    def handle_data(self, data):
+        if self.in_body and self.depth_ignore == 0:
+            text = data.strip()
+            if text:
+                if self.current_tag in {'h1', 'h2', 'h3', 'h4'}:
+                    self.text_list.append(f"\n### {text}\n")
+                elif self.current_tag == 'p':
+                    self.text_list.append(f"\n{text}\n")
+                elif self.current_tag == 'li':
+                    self.text_list.append(f"- {text}")
+                else:
+                    self.text_list.append(text)
+
+
+def scrape_guide_content(url):
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=10) as response:
+            html_content = response.read().decode('utf-8', errors='ignore')
+            
+            title_match = re.search(r'<title>(.*?)</title>', html_content, re.IGNORECASE)
+            title = title_match.group(1).strip() if title_match else "Scraped Guide"
+            
+            parser = SimpleHTMLScraper()
+            parser.feed(html_content)
+            
+            content = "\n".join(parser.text_list)
+            content = re.sub(r'\n\s*\n', '\n\n', content)
+            return title, content
+    except Exception as e:
+        return "Failed to fetch guide", f"Error occurred while fetching or parsing webpage: {str(e)}"
+
+
+@login_required
+def relax_view(request):
+    games = Game.objects.filter(is_active=True)
+    selected_game = None
+    game_id = request.GET.get('game_id')
+    if game_id:
+        selected_game = get_object_or_404(Game, id=game_id)
+    
+    context = {
+        'games': games,
+        'selected_game': selected_game,
+        'page_title': 'Relax Lounge',
+    }
+    return render(request, 'relax.html', context)
+
+
+@login_required
+@require_POST
+def relax_add_game(request):
+    name = request.POST.get('name', '').strip()
+    steam_app_id = request.POST.get('steam_app_id', '').strip() or None
+    local_path = request.POST.get('local_path', '').strip() or None
+    hours_played = float(request.POST.get('hours_played', 0.0) or 0.0)
+    cover_image_url = request.POST.get('cover_image_url', '').strip() or None
+    animated_bg_url = request.POST.get('animated_bg_url', '').strip() or None
+
+    # Auto-resolve Steam App ID by name search if empty!
+    if not steam_app_id and name:
+        searched_id = search_steam_game_id(name)
+        if searched_id:
+            steam_app_id = str(searched_id)
+
+    if steam_app_id:
+        steam_name, steam_cover, steam_bg = fetch_steam_details(steam_app_id)
+        if steam_name:
+            if not name:
+                name = steam_name
+            if not cover_image_url:
+                cover_image_url = steam_cover
+            if not animated_bg_url:
+                animated_bg_url = steam_bg
+
+    if not name:
+        messages.error(request, "Game name is required.")
+        return redirect('relax_view')
+
+    if not cover_image_url:
+        cover_image_url = "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?q=80&w=350&auto=format&fit=crop"
+
+    game = Game.objects.create(
+        name=name,
+        steam_app_id=steam_app_id,
+        local_path=local_path,
+        hours_played=hours_played,
+        cover_image_url=cover_image_url,
+        animated_bg_url=animated_bg_url
+    )
+    messages.success(request, f"Game '{game.name}' added successfully to your library!")
+    return redirect('relax_view')
+
+
+@login_required
+@require_POST
+def relax_delete_game(request, game_id):
+    game = get_object_or_404(Game, id=game_id)
+    game.is_active = False
+    game.save()
+    messages.success(request, f"Removed '{game.name}' from library.")
+    return redirect('relax_view')
+
+
+def extract_style_from_html(html_content):
+    if not html_content:
+        return ""
+    if '<' in html_content and '>' in html_content:
+        try:
+            parser = SimpleHTMLScraper()
+            parsed_html = html_content
+            if '<body' not in html_content.lower():
+                parsed_html = f"<body>{html_content}</body>"
+            parser.feed(parsed_html)
+            content = "\n".join(parser.text_list)
+            content = re.sub(r'\n\s*\n', '\n\n', content)
+            return content.strip()
+        except Exception as e:
+            logger.error(f"HTML inline extraction failed: {e}")
+    return html_content
+
+
+@login_required
+@require_POST
+def relax_add_guide(request):
+    game_id = request.POST.get('game_id')
+    title = request.POST.get('title', '').strip()
+    source_url = request.POST.get('source_url', '').strip()
+    content_markdown = request.POST.get('content_markdown', '').strip()
+
+    game = get_object_or_404(Game, id=game_id)
+
+    if source_url and not content_markdown:
+        scraped_title, scraped_content = scrape_guide_content(source_url)
+        if not title:
+            title = scraped_title
+        content_markdown = scraped_content
+    elif content_markdown:
+        content_markdown = extract_style_from_html(content_markdown)
+
+    if not title:
+        title = "Manual Guide Entry"
+
+    if not content_markdown:
+        messages.error(request, "Guide content is empty.")
+        return redirect(f"/relax/?game_id={game.id}")
+
+    GameGuide.objects.create(
+        game=game,
+        title=title,
+        source_url=source_url or None,
+        content_markdown=content_markdown
+    )
+    messages.success(request, f"New guide added for {game.name}!")
+    return redirect(f"/relax/?game_id={game.id}")
+
+
+@login_required
+@require_POST
+def relax_add_video(request):
+    game_id = request.POST.get('game_id')
+    title = request.POST.get('title', '').strip()
+    youtube_url = request.POST.get('youtube_url', '').strip()
+
+    game = get_object_or_404(Game, id=game_id)
+
+    if not title:
+        title = "Gameplay Clip"
+
+    if not youtube_url:
+        messages.error(request, "YouTube URL is required.")
+        return redirect(f"/relax/?game_id={game.id}")
+
+    GameVideo.objects.create(
+        game=game,
+        title=title,
+        youtube_url=youtube_url
+    )
+    messages.success(request, f"Gameplay video added for {game.name}!")
+    return redirect(f"/relax/?game_id={game.id}")
+
+
+@login_required
+def relax_launch_game(request, game_id):
+    game = get_object_or_404(Game, id=game_id)
+    try:
+        import platform
+        if game.steam_app_id:
+            steam_url = f"steam://rungameid/{game.steam_app_id}"
+            if platform.system() == 'Windows':
+                os.startfile(steam_url)
+                messages.success(request, f"Launching '{game.name}' via Steam on host...")
+            else:
+                subprocess.Popen(['xdg-open', steam_url] if platform.system() == 'Linux' else ['open', steam_url])
+                messages.success(request, f"Launching '{game.name}' via Steam on host...")
+        elif game.local_path:
+            is_uri = ':' in game.local_path and not ('\\' in game.local_path or '/' in game.local_path)
+            if is_uri or os.path.exists(game.local_path):
+                if platform.system() == 'Windows':
+                    os.startfile(game.local_path)
+                else:
+                    subprocess.Popen([game.local_path], shell=False)
+                messages.success(request, f"Launching '{game.name}' locally on host...")
+            else:
+                if game.local_path.startswith(('xbox:', 'steam:', 'epic:', 'com.epicgames.launcher:')):
+                    if platform.system() == 'Windows':
+                        os.startfile(game.local_path)
+                        messages.success(request, f"Launching '{game.name}' via protocol on host...")
+                    else:
+                        messages.error(request, f"Protocols are only supported on Windows: {game.local_path}")
+                else:
+                    messages.error(request, f"Local path not found on host: {game.local_path}")
+        else:
+            messages.error(request, "No launch path or Steam ID specified.")
+    except Exception as e:
+        messages.error(request, f"Error launching game: {str(e)}")
+        
+    return redirect(f"/relax/?game_id={game.id}")
+
+
+@login_required
+def relax_sync_steam_playtimes(request):
+    import xml.etree.ElementTree as ET
+    username = request.GET.get('username', '').strip()
+    if not username:
+        return JsonResponse({'status': 'error', 'message': 'Steam username or ID64 is required.'}, status=400)
+        
+    request.session['steam_username'] = username
+    
+    if username.isdigit() and len(username) == 17:
+        url = f"https://steamcommunity.com/profiles/{username}/games/?xml=1"
+    else:
+        url = f"https://steamcommunity.com/id/{username}/games/?xml=1"
+        
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=10) as response:
+            xml_data = response.read()
+            
+        root = ET.fromstring(xml_data)
+        
+        error_node = root.find('error')
+        if error_node is not None:
+            return JsonResponse({'status': 'error', 'message': error_node.text}, status=400)
+            
+        updated_count = 0
+        games_list = root.findall('.//game')
+        
+        for g_node in games_list:
+            appid_node = g_node.find('appID')
+            hours_node = g_node.find('hoursOnRecord')
+            
+            if appid_node is not None:
+                appid = appid_node.text.strip()
+                hours = 0.0
+                if hours_node is not None and hours_node.text:
+                    try:
+                        hours = float(hours_node.text.replace(',', '').strip())
+                    except ValueError:
+                        pass
+                
+                matching_games = Game.objects.filter(steam_app_id=appid, is_active=True)
+                for game in matching_games:
+                    game.hours_played = hours
+                    game.save()
+                    updated_count += 1
+                    
+        return JsonResponse({
+            'status': 'success',
+            'message': f'Successfully synced playtimes for {updated_count} game(s) from Steam.',
+            'updated_count': updated_count
+        })
+    except Exception as e:
+        logger.error(f"Steam playtimes sync failed for user {username}: {e}", exc_info=True)
+        return JsonResponse({'status': 'error', 'message': f'Failed to sync: {str(e)}'}, status=500)
+
+
+@login_required
+def trader_report_view(request):
+    trader, _ = PaperTrader.objects.get_or_create(id=1)
+    trades = TradeLog.objects.filter(trader=trader).order_by('-timestamp')
+
+    ZERO_DEC = Value(0, output_field=DecimalField(max_digits=20, decimal_places=2))
+
+    sell_trades = trades.filter(action='SELL')
+    buy_trades = trades.filter(action='BUY')
+
+    total_notional_sells = sell_trades.aggregate(
+        total=Coalesce(Sum('notional_value'), ZERO_DEC)
+    )['total']
+
+    total_notional_buys = buy_trades.aggregate(
+        total=Coalesce(Sum('notional_value'), ZERO_DEC)
+    )['total']
+
+    gross_pnl = (total_notional_sells or 0) - (total_notional_buys or 0)
+
+    context = {
+        'trader': trader,
+        'all_trades': trades,
+        'total_trades': trades.count(),
+        'buy_count': buy_trades.count(),
+        'sell_count': sell_trades.count(),
+        'gross_pnl': gross_pnl,
+        'total_volume': (total_notional_buys or 0) + (total_notional_sells or 0),
+    }
+    return render(request, 'trader_report.html', context)
+
+
+@login_required
+def reset_trader_report_view(request):
+    """
+    Deletes all trade logs for the primary paper trader.
+    """
+    if request.method == 'POST':
+        trader, _ = PaperTrader.objects.get_or_create(id=1)
+        trades_deleted, _ = TradeLog.objects.filter(trader=trader).delete()
+        messages.success(request, f"Successfully deleted {trades_deleted} trade log entries.")
+    return redirect('trader_report')
+
+

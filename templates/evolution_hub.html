@@ -1,93 +1,87 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Evolution Chamber | Neural Architecture{% endblock %}
 
 {% block page_title %}Evolution Chamber{% endblock %}
 
 {% block page_content %}
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+<div class="row">
+    <!-- Left: Live Mutation Terminal -->
+    <div class="col-lg-8 mb-4">
+        <div class="card rounded-4 border-0 shadow-sm overflow-hidden flex flex-col min-h-[600px]">
+            <!-- Top Bar -->
+            <div class="px-4 py-3 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-xl bg-purple-500/10 flex items-center justify-center border border-purple-200">
+                        <i class="fas fa-dna text-purple-600 animate-pulse"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xs font-bold text-slate-800 tracking-widest uppercase mb-0.5">Live Mutation Terminal</h2>
+                        <p class="text-[9px] text-purple-600 font-mono font-bold uppercase mb-0" id="evolve-status-text">SYSTEM STANDBY</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-1 rounded-full text-[9px] font-bold bg-slate-100 text-slate-500 border border-slate-200 tracking-wider flex items-center gap-1.5" id="sync-status">
+                        <i class="fas fa-circle text-[6px] text-slate-400"></i> OFFLINE
+                    </span>
+                    <button id="btn-trigger-mutation" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1.5 font-bold font-mono text-[9px] uppercase tracking-widest">
+                        <i class="fas fa-bolt mr-1"></i> Force Mutate
+                    </button>
+                </div>
+            </div>
 
-  <!-- Left: Live Mutation Terminal -->
-  <div class="lg:col-span-2 bg-slate-900 rounded-xl border border-slate-800 shadow-xl overflow-hidden flex flex-col min-h-[600px] relative">
-    
-    <!-- Top Bar -->
-    <div class="h-14 border-b border-brand-500/20 bg-slate-950 flex items-center px-6 justify-between shrink-0 relative z-10">
-      <div class="flex items-center gap-4">
-        <div class="w-8 h-8 rounded-lg bg-brand-500/10 flex items-center justify-center border border-brand-500/30">
-          <i class="fas fa-dna text-brand-400 animate-pulse"></i>
+            <!-- Terminal Window -->
+            <div class="flex-1 bg-slate-50/50 p-4 min-h-[450px] relative overflow-hidden flex flex-col border-bottom rounded-b-4">
+                <!-- Logs Area -->
+                <div id="mutation-terminal-content" class="flex-1 overflow-y-auto text-[11px] text-slate-700 font-mono leading-relaxed scroll-smooth pb-12 select-text">
+                    <!-- Logs injected here -->
+                    <div class="text-slate-400">Awaiting stream packets...</div>
+                </div>
+            </div>
         </div>
-        <div>
-          <h2 class="text-sm font-bold text-slate-100 tracking-widest uppercase">Live Cognition Terminal</h2>
-          <p class="text-[10px] text-brand-500 font-mono" id="evolve-status-text">SYSTEM STANDBY</p>
-        </div>
-      </div>
-      <div class="flex items-center gap-3">
-        <span class="px-2.5 py-1 rounded-md text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700 tracking-wider flex items-center gap-2" id="sync-status">
-          <i class="fas fa-circle text-[8px] text-slate-500"></i> OFFLINE
-        </span>
-        <button id="btn-trigger-mutation" class="px-4 py-1.5 rounded-md text-xs font-bold font-mono uppercase tracking-widest bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 hover:border-brand-500/50 text-brand-400 hover:text-brand-300 transition-all duration-300 shadow-[0_0_15px_rgba(var(--color-brand-500),0.15)] hover:shadow-[0_0_20px_rgba(var(--color-brand-500),0.3)]">
-          <i class="fas fa-bolt mr-1"></i> Force Mutate
-        </button>
-      </div>
     </div>
 
-    <!-- Terminal Window -->
-    <div class="flex-1 bg-[#0a0a0c] relative overflow-hidden group">
-      <!-- Glows -->
-      <div class="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-brand-500/20 to-transparent"></div>
-      <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand-900/10 via-transparent to-transparent pointer-events-none"></div>
-      
-      <!-- Logs Area -->
-      <div id="mutation-terminal-content" class="absolute inset-0 overflow-y-auto p-6 text-[13px] text-slate-300 font-mono leading-relaxed scroll-smooth pb-12">
-        <!-- Logs injected here -->
-      </div>
-      
-      <!-- Scanline -->
-      <div class="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,3px_100%] opacity-10"></div>
-    </div>
-  </div>
-
-  <!-- Right: Recent Variants & Controls -->
-  <div class="flex flex-col gap-6">
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
-      <h3 class="text-xs uppercase tracking-widest font-bold text-slate-800 dark:text-slate-200 mb-1 flex items-center gap-2">
-        <i class="fas fa-microchip text-brand-500"></i> Mutation Engine
-      </h3>
-      <p class="text-[11px] text-slate-500 dark:text-slate-400 font-mono mb-4 leading-relaxed">
-        The Cognitive Mutator analyzes trading reports, modifies its own PPO agent source code, and saves the new logic as a variant.
-      </p>
-      
-      <div class="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex flex-col gap-2 font-mono text-[11px]">
-        <div class="flex justify-between items-center">
-          <span class="text-slate-500">Target Config:</span>
-          <span class="text-slate-700 dark:text-slate-300 font-bold">src/models/ppo_agent.py</span>
+    <!-- Right: Recent Variants & Controls -->
+    <div class="col-lg-4">
+        <!-- Mutation Engine info card -->
+        <div class="card rounded-4 border-0 shadow-sm p-4 mb-4">
+            <h3 class="text-xs uppercase tracking-widest font-bold text-slate-800 mb-1 flex items-center gap-2">
+                <i class="fas fa-microchip text-brand-600"></i> Mutation Engine
+            </h3>
+            <p class="text-[11px] text-slate-500 font-mono mb-3 leading-relaxed">
+                The Cognitive Mutator analyzes trading reports, modifies its own PPO agent source code, and saves the new logic as a variant.
+            </p>
+            <div class="p-3 rounded-xl bg-slate-50 border flex flex-col gap-2 font-mono text-[10px]">
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-500">Target Config:</span>
+                    <span class="text-slate-700 font-bold">src/models/ppo_agent.py</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-500">AI Provider:</span>
+                    <span class="text-brand-600 font-bold">Configured Primary</span>
+                </div>
+            </div>
         </div>
-        <div class="flex justify-between items-center">
-          <span class="text-slate-500">AI Provider:</span>
-          <span class="text-brand-600 dark:text-brand-400 font-bold">Configured Primary</span>
-        </div>
-      </div>
-    </div>
 
-    <!-- Variant List -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex flex-col flex-1 shadow-sm overflow-hidden min-h-[300px]">
-      <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
-        <h3 class="text-xs uppercase tracking-widest font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-          <i class="fas fa-layer-group text-slate-400"></i> Recent Variants
-        </h3>
-        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700" id="variant-count">0</span>
-      </div>
-      
-      <div class="flex-1 overflow-y-auto p-2" id="variant-list">
-        <!-- Variants injected via JS -->
-        <div class="text-center text-slate-400 text-[11px] font-mono mt-10">
-          <i class="fas fa-circle-notch fa-spin mb-2 text-slate-300"></i><br>
-          Syncing variants...
+        <!-- Variant List -->
+        <div class="card rounded-4 border-0 shadow-sm flex flex-col min-h-[400px]">
+            <div class="px-4 py-3 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                <h3 class="text-xs uppercase tracking-widest font-bold text-slate-800 flex items-center gap-2 mb-0">
+                    <i class="fas fa-layer-group text-slate-400"></i> Recent Variants
+                </h3>
+                <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-100 text-slate-500 border border-slate-200" id="variant-count">0</span>
+            </div>
+            
+            <div class="card-body p-3 overflow-y-auto max-h-[500px]" id="variant-list">
+                <!-- Variants injected via JS -->
+                <div class="text-center text-slate-400 text-[10px] font-mono mt-12">
+                    <i class="fas fa-circle-notch fa-spin mb-2 text-slate-300"></i><br>
+                    Syncing variants...
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
-
 </div>
 
 <!-- CSRF Form for AJAX -->
@@ -116,10 +110,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const lines = rawLogs.split('\n');
         return lines.map(line => {
             if(!line.trim()) return '';
-            let color = 'text-slate-300';
-            if(line.includes('[ERROR]') || line.includes('Failed')) color = 'text-rose-400 font-bold';
-            else if(line.includes('[EVOLVE]') || line.includes('[SYSTEM]') || line.includes('>>>')) color = 'text-brand-400';
-            else if(line.includes('Success') || line.includes('Complete') || line.includes('saved')) color = 'text-emerald-400 font-bold';
+            let color = 'text-slate-600';
+            if(line.includes('[ERROR]') || line.includes('Failed')) color = 'text-rose-600 font-bold';
+            else if(line.includes('[EVOLVE]') || line.includes('[SYSTEM]') || line.includes('>>>')) color = 'text-purple-600 font-bold';
+            else if(line.includes('Success') || line.includes('Complete') || line.includes('saved')) color = 'text-emerald-600 font-bold';
             return `<div class="${color} py-0.5 whitespace-pre-wrap">${line}</div>`;
         }).join('');
     }
@@ -135,12 +129,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if(data.logs.includes('[DONE]') || data.logs.includes('Evolution complete')) {
                     statusTxt.textContent = "SYSTEM STANDBY";
-                    syncStatus.innerHTML = '<i class="fas fa-circle text-[8px] text-emerald-500"></i> IDLE';
-                    syncStatus.className = 'px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 tracking-wider flex items-center gap-2';
+                    statusTxt.className = "text-[9px] text-purple-600 font-mono font-bold uppercase mb-0";
+                    syncStatus.innerHTML = '<i class="fas fa-circle text-[6px] text-emerald-500"></i> IDLE';
+                    syncStatus.className = 'px-2.5 py-1 rounded-full text-[9px] font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 tracking-wider flex items-center gap-1.5';
                 } else if(data.logs.trim().length > 0 && !data.logs.includes('No mutation logs found')) {
                     statusTxt.textContent = "EVOLUTION IN PROGRESS...";
-                    syncStatus.innerHTML = '<i class="fas fa-circle fa-beat text-[8px] text-brand-500"></i> LIVE';
-                    syncStatus.className = 'px-2.5 py-1 rounded-md text-[10px] font-bold bg-brand-500/10 text-brand-400 border border-brand-500/20 tracking-wider flex items-center gap-2';
+                    statusTxt.className = "text-[9px] text-brand-600 font-mono font-bold uppercase mb-0 animate-pulse";
+                    syncStatus.innerHTML = '<i class="fas fa-circle fa-beat text-[6px] text-brand-500"></i> LIVE';
+                    syncStatus.className = 'px-2.5 py-1 rounded-full text-[9px] font-bold bg-brand-500/10 text-brand-600 border border-brand-500/20 tracking-wider flex items-center gap-1.5';
                 }
             }
         })
@@ -164,7 +160,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 'Content-Type': 'application/json'
             }
         }).then(r => r.json()).then(data => {
-            term.innerHTML += `<div class="text-yellow-400 font-bold py-1">>>> USER INITIATED OVERRIDE: ${data.message} <<<</div>`;
+            term.innerHTML += `<div class="text-brand-600 font-bold py-1">>>> USER INITIATED OVERRIDE: ${data.message} <<<</div>`;
             scrollToBottom();
             setTimeout(() => {
                 btnTrigger.disabled = false;
@@ -173,7 +169,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Variants polling — cards link to dedicated details page
+    // Variants polling
     function pollVariants() {
         fetch("{% url 'evolution_variants_api' %}")
         .then(r => r.json())
@@ -183,36 +179,35 @@ document.addEventListener('DOMContentLoaded', function() {
                 const container = document.getElementById('variant-list');
                 
                 if(data.variants.length === 0) {
-                    container.innerHTML = '<div class="text-center text-slate-500 text-[11px] font-mono mt-10">No mutation variants found in DB.</div>';
+                    container.innerHTML = '<div class="text-center text-slate-400 text-[10px] font-mono mt-12">No variants found in DB.</div>';
                     return;
                 }
                 
                 container.innerHTML = data.variants.map(v => {
-                    let stColor = 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400';
-                    if(v.status === 'PROMOTED') stColor = 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400';
-                    if(v.status === 'TESTING') stColor = 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400';
-                    if(v.status === 'FAILED') stColor = 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400';
-                    if(v.status === 'PENDING') stColor = 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400';
+                    let stColor = 'bg-slate-100 text-slate-500 border-slate-200';
+                    if(v.status === 'PROMOTED') stColor = 'bg-emerald-50 text-emerald-600 border-emerald-100';
+                    if(v.status === 'TESTING') stColor = 'bg-blue-50 text-blue-600 border-blue-100';
+                    if(v.status === 'FAILED') stColor = 'bg-rose-50 text-rose-600 border-rose-100';
+                    if(v.status === 'PENDING') stColor = 'bg-amber-50 text-amber-600 border-amber-100';
                     
                     return `
-                    <a href="/evolution-chamber/variant/${v.id}/" class="block p-3 mb-2 rounded border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950/50 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-brand-500/50 transition-all cursor-pointer group">
+                    <a href="/evolution-chamber/variant/${v.id}/" class="block p-3 mb-2 rounded-3 border border-slate-150 bg-white hover:bg-blue-50/40 hover:border-blue-300 transition-all cursor-pointer group text-decoration-none">
                         <div class="flex justify-between items-start mb-2">
                             <div>
-                                <div class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-brand-400 transition-colors">${v.name}</div>
-                                <div class="text-[10px] font-mono text-slate-400">Created: ${v.created_at ? v.created_at.split('T')[0] : 'N/A'}</div>
+                                <div class="text-xs font-bold text-slate-800 group-hover:text-brand-600 transition-colors">${v.name}</div>
+                                <div class="text-[9px] font-mono text-slate-400 mt-0.5">Created: ${v.created_at ? v.created_at.split('T')[0] : 'N/A'}</div>
                             </div>
-                            <div class="flex items-center gap-1.5">
-                                <button onclick="event.preventDefault(); event.stopPropagation(); deleteVariant(${v.id});" class="p-1 text-slate-400 hover:text-rose-500 rounded hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors" title="Delete variant">
+                            <div class="flex items-center gap-1">
+                                <button onclick="event.preventDefault(); event.stopPropagation(); deleteVariant(${v.id});" class="p-1 text-slate-400 hover:text-rose-500 rounded hover:bg-slate-100 transition-colors" title="Delete variant">
                                     <i class="fas fa-trash-alt text-[9px]"></i>
                                 </button>
-                                <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${stColor}">${v.status}</span>
-                                <i class="fas fa-arrow-right text-[8px] text-slate-600 group-hover:text-brand-400 transition-colors opacity-0 group-hover:opacity-100"></i>
+                                <span class="px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border ${stColor}">${v.status}</span>
                             </div>
                         </div>
-                        <div class="flex items-center justify-between text-[10px] font-mono border-t border-slate-100 dark:border-slate-800 pt-2 mt-2">
-                            <span class="text-slate-500">P&L: <span class="${v.virtual_pnl > 0 ? 'text-emerald-500' : 'text-rose-500'} font-bold">$${v.virtual_pnl.toFixed(2)}</span></span>
-                            <span class="text-slate-500">Trades: <span class="text-slate-300">${v.virtual_trades_count}</span></span>
-                            <span class="text-slate-500">Win: <span class="text-slate-300">${v.win_rate.toFixed(0)}%</span></span>
+                        <div class="flex items-center justify-between text-[9px] font-mono border-t border-slate-100 pt-2 mt-2">
+                            <span class="text-slate-500">P&L: <span class="${v.virtual_pnl > 0 ? 'text-emerald-600' : 'text-rose-605'} font-bold">$${v.virtual_pnl.toFixed(2)}</span></span>
+                            <span class="text-slate-500">Trades: <span class="text-slate-700 font-bold">${v.virtual_trades_count}</span></span>
+                            <span class="text-slate-500">Win: <span class="text-slate-700 font-bold">${v.win_rate.toFixed(0)}%</span></span>
                         </div>
                     </a>
                     `;

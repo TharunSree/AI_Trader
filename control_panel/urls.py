@@ -52,6 +52,9 @@ urlpatterns = [
     path('intelligence-vault/markdown/<int:report_id>/', views.download_report_markdown_view, name='download_report_markdown'),
     path('api/reports/<int:report_id>/content/', views.report_content_api, name='report_content_api'),
 
+    path('trader-report/', views.trader_report_view, name='trader_report'),
+    path('trader-report/reset/', views.reset_trader_report_view, name='reset_trader_report'),
+
     path('real-trading/', views.realtrading_view, name='realtrading'),
     path('real-trading/start/', views.start_real_trader_view, name='start_real_trader'),
     path('settings/', views.settings_view, name='settings'),
@@ -98,4 +101,15 @@ urlpatterns = [
     path('api/neural/simulate-decision/', views.simulate_decision_api, name='simulate_decision_api'),
     path('api/neural/past-decisions/', views.past_decisions_api, name='past_decisions_api'),
     path('api/neural/record-decision/', views.record_decision_api, name='record_decision_api'),
+
+    # Relax Lounge (Gaming Hub)
+    path('relax/', views.relax_view, name='relax_view'),
+    path('relax/browse/', views.relax_browse_dir, name='relax_browse_dir'),
+    path('relax/game/sync-steam/', views.relax_sync_steam_playtimes, name='relax_sync_steam_playtimes'),
+    path('relax/game/add/', views.relax_add_game, name='relax_add_game'),
+    path('relax/game/delete/<int:game_id>/', views.relax_delete_game, name='relax_delete_game'),
+    path('relax/guide/add/', views.relax_add_guide, name='relax_add_guide'),
+    path('relax/video/add/', views.relax_add_video, name='relax_add_video'),
+    path('relax/game/launch/<int:game_id>/', views.relax_launch_game, name='relax_launch_game'),
 ]
+

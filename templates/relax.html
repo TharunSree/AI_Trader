@@ -1,0 +1,668 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Relax Lounge & Gaming Hub{% endblock %}
+
+{% block page_title %}Relax Lounge & Arcade{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Arcade Neon Pastel theme overrides for relax mode */
+    .game-card {
+        border-radius: 20px !important;
+        overflow: hidden;
+        border: 1px solid rgba(0, 0, 0, 0.08) !important;
+        background-color: #ffffff !important;
+        box-shadow: 0 4px 18px rgba(0,0,0,0.02) !important;
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+    .game-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(147, 51, 234, 0.08) !important;
+        border-color: rgba(147, 51, 234, 0.3) !important;
+    }
+    .game-cover-container {
+        height: 180px;
+        position: relative;
+        background-size: cover;
+        background-position: center;
+    }
+    .game-cover-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%);
+        display: flex;
+        align-items: end;
+        padding: 15px;
+    }
+    .game-badge {
+        font-size: 8px !important;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        padding: 4px 10px;
+        border-radius: 50px;
+    }
+    .active-bg-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        background-size: cover;
+        background-position: center;
+        opacity: 0.08;
+        filter: blur(15px);
+        pointer-events: none;
+        transition: background-image 0.5s ease;
+    }
+    .video-grid-item {
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        transition: all 0.2s ease;
+    }
+    .video-grid-item:hover {
+        border-color: rgba(59, 130, 246, 0.4);
+        transform: scale(1.02);
+    }
+    /* Simple markdown reader styling */
+    .markdown-body {
+        font-family: 'Quicksand', sans-serif;
+        line-height: 1.6;
+    }
+    .markdown-body h3 {
+        font-size: 14px;
+        font-weight: 700;
+        margin-top: 20px;
+        color: #1e293b;
+        border-left: 3px solid #9333ea;
+        padding-left: 8px;
+    }
+    .markdown-body p {
+        font-size: 12px;
+        margin-bottom: 12px;
+        color: #64748b;
+    }
+    .markdown-body li {
+        font-size: 12px;
+        margin-left: 20px;
+        list-style-type: disc;
+        color: #64748b;
+    }
+    @keyframes gradientBG {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+</style>
+{% endblock %}
+
+{% block page_content %}
+<!-- Fullpage animated blur overlay from selected game -->
+{% if selected_game %}
+    {% if selected_game.animated_bg_url %}
+        {% if ".mp4" in selected_game.animated_bg_url or ".webm" in selected_game.animated_bg_url or "movies/" in selected_game.animated_bg_url %}
+            <video class="active-bg-overlay" autoplay loop muted playsinline style="object-fit: cover; width: 100%; height: 100%; position: fixed; inset: 0; z-index: -1; opacity: 0.12; pointer-events: none;">
+                <source src="{{ selected_game.animated_bg_url }}" type="{% if '.webm' in selected_game.animated_bg_url %}video/webm{% else %}video/mp4{% endif %}">
+            </video>
+        {% else %}
+            <div class="active-bg-overlay" style="background-image: url('{{ selected_game.animated_bg_url }}'); opacity: 0.15;"></div>
+        {% endif %}
+    {% else %}
+        <!-- CSS Animated fallback gradient background -->
+        <div class="active-bg-overlay default-animated-bg" style="position: fixed; inset: 0; z-index: -1; opacity: 0.1; pointer-events: none; background: linear-gradient(125deg, #1e1b4b, #311042, #0f172a); background-size: 400% 400%; animation: gradientBG 15s ease infinite;"></div>
+    {% endif %}
+{% endif %}
+
+<div class="row">
+    <!-- Top Action Headers -->
+    <div class="col-12 mb-4 d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="font-size-20 text-slate-800 font-bold uppercase tracking-widest flex items-center gap-2 mb-1">
+                <i class="mdi mdi-gamepad-round text-purple-600 animate-pulse"></i> Arcade Cabin
+            </h2>
+            <p class="text-xs text-slate-500 font-mono">Launch games, track stats, extract webpage manuals, and view gameplay recordings.</p>
+        </div>
+        <button type="button" class="btn btn-outline-primary rounded-pill px-4 py-2 font-bold font-mono text-xs uppercase tracking-wider" data-bs-toggle="modal" data-bs-target="#addGameModal">
+            <i class="fas fa-plus mr-1"></i> Add Game
+        </button>
+    </div>
+
+    <!-- MAIN GRID LAYOUT -->
+    <div class="col-lg-4 col-xl-3">
+        <!-- Game Library list column -->
+        <h4 class="font-size-11 uppercase tracking-widest text-slate-400 font-bold font-mono mb-3">My Library</h4>
+        <div class="d-flex flex-column gap-3 overflow-y-auto max-h-[70vh] pr-2">
+            {% for game in games %}
+                <a href="?game_id={{ game.id }}" class="text-decoration-none">
+                    <div class="card mb-0 game-card {% if selected_game.id == game.id %}border-purple-500 border-2{% endif %}">
+                        <div class="game-cover-container" style="background-image: url('{{ game.cover_image_url }}');">
+                            <div class="game-cover-overlay">
+                                <div class="w-100 flex justify-between items-end">
+                                    <div class="min-w-0 pr-2">
+                                        <h3 class="text-white text-xs font-bold truncate mb-0">{{ game.name }}</h3>
+                                        <span class="text-[9px] font-mono text-slate-300">Playtime: {{ game.hours_played }} hrs</span>
+                                    </div>
+                                    <span class="game-badge {% if game.steam_app_id %}bg-blue-500/20 text-blue-300{% else %}bg-purple-500/20 text-purple-300{% endif %} border border-white/10">
+                                        {% if game.steam_app_id %}Steam{% else %}Local{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            {% empty %}
+                <div class="bg-white border rounded-4 p-8 text-center text-slate-400">
+                    <i class="fas fa-gamepad text-3xl mb-2 opacity-30"></i>
+                    <p class="font-mono text-xs uppercase tracking-widest">Library is empty</p>
+                    <p class="font-mono text-[9px] mt-1">Add a game using the launcher tool above to configure your arcade cabin.</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Selected game detail panel -->
+    <div class="col-lg-8 col-xl-9">
+        {% if selected_game %}
+            <!-- Header Panel -->
+            <div class="card rounded-4 border-0 shadow-sm p-4 mb-4">
+                <div class="row align-items-center">
+                    <div class="col-md-8 d-flex align-items-center gap-4">
+                        <img src="{{ selected_game.cover_image_url }}" alt="" class="rounded-3 shadow" style="width: 80px; height: 110px; object-fit: cover;">
+                        <div>
+                            <h2 class="font-size-22 text-slate-800 font-bold mb-1">{{ selected_game.name }}</h2>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="badge bg-purple-500/10 text-purple-600 border border-purple-200 rounded-pill px-2.5 py-1 text-[10px] font-bold">
+                                    <i class="mdi mdi-clock-outline mr-1"></i>{{ selected_game.hours_played }} Hours Logged
+                                </span>
+                                {% if selected_game.steam_app_id %}
+                                    <span class="badge bg-blue-500/10 text-blue-600 border border-blue-200 rounded-pill px-2.5 py-1 text-[10px] font-bold">
+                                        Steam ID: {{ selected_game.steam_app_id }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-md-end mt-3 mt-md-0 d-flex gap-2 justify-content-md-end">
+                        {% if selected_game.steam_app_id or selected_game.local_path %}
+                            <a href="{% url 'relax_launch_game' selected_game.id %}" class="btn btn-outline-primary rounded-pill px-4 py-2 font-bold font-mono text-xs uppercase tracking-widest">
+                                <i class="fas fa-play mr-1"></i> {% if selected_game.steam_app_id %}Boot Steam{% else %}Boot Local{% endif %}
+                            </a>
+                        {% endif %}
+
+                        <form action="{% url 'relax_delete_game' selected_game.id %}" method="POST" onsubmit="return confirm('Remove this game from library?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-danger rounded-circle p-2 flex items-center justify-center w-9 h-9" title="Delete Game">
+                                <i class="fas fa-trash-alt text-xs"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Navigation (Guides / Videos) -->
+            <div class="card rounded-4 border-0 shadow-sm overflow-hidden">
+                <!-- Navigation tabs header -->
+                <div class="px-4 pt-3 border-b border-slate-100 bg-slate-50/50">
+                    <ul class="nav nav-tabs nav-tabs-custom nav-justified border-0" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link active font-bold text-xs uppercase tracking-wider py-2.5" data-bs-toggle="tab" href="#guides-tab" role="tab">
+                                <i class="mdi mdi-book-open-page-variant mr-1"></i> Manuals & Web Guides
+                            </a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link font-bold text-xs uppercase tracking-wider py-2.5" data-bs-toggle="tab" href="#videos-tab" role="tab">
+                                <i class="mdi mdi-youtube mr-1"></i> Video Recordings
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="card-body p-4">
+                    <div class="tab-content text-muted">
+                        
+                        <!-- TAB 1: GUIDES -->
+                        <div class="tab-pane active" id="guides-tab" role="tabpanel">
+                            <div class="row">
+                                <!-- Guide list sidebar -->
+                                <div class="col-md-4 border-end border-slate-100 pr-4">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h4 class="font-size-11 uppercase tracking-widest text-slate-400 font-bold font-mono">Dossier Guides</h4>
+                                        <button class="btn btn-sm btn-outline-primary rounded-pill font-mono text-[9px] font-bold px-2.5" data-bs-toggle="collapse" data-bs-target="#addGuideCollapse">
+                                            <i class="fas fa-plus mr-1"></i> Add URL
+                                        </button>
+                                    </div>
+
+                                    <!-- Add Guide Collapse Form -->
+                                    <div class="collapse mb-3" id="addGuideCollapse">
+                                        <div class="p-3 bg-slate-50 rounded-3 border">
+                                            <form action="{% url 'relax_add_guide' %}" method="POST" onsubmit="window.launchOverlay(this, 'EXTRACTING GUIDE CONTENT...');">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="game_id" value="{{ selected_game.id }}">
+                                                <div class="mb-2">
+                                                    <label class="form-label text-[9px] uppercase font-mono tracking-widest font-bold">Guide Title</label>
+                                                    <input type="text" name="title" class="form-control form-control-sm text-xs rounded-xl border-slate-200" placeholder="e.g. Boss Fight Strategy">
+                                                </div>
+                                                <div class="mb-2">
+                                                    <label class="form-label text-[9px] uppercase font-mono tracking-widest font-bold">Webpage URL (to scrape automatically)</label>
+                                                    <input type="url" name="source_url" class="form-control form-control-sm text-xs rounded-xl border-slate-200" placeholder="https://example.com/guide">
+                                                </div>
+                                                <div class="text-center my-2 text-[8px] uppercase font-mono tracking-widest text-slate-400 font-bold">— OR —</div>
+                                                <div class="mb-3">
+                                                    <label class="form-label text-[9px] uppercase font-mono tracking-widest font-bold">Paste Webpage Content / HTML / Markdown</label>
+                                                    <textarea name="content_markdown" rows="4" class="form-control text-xs rounded-xl font-mono border-slate-200" placeholder="Paste webpage text, HTML code, or markdown content here..."></textarea>
+                                                </div>
+                                                <button type="submit" class="btn btn-xs btn-outline-primary w-100 rounded-pill font-bold uppercase tracking-wider text-[9px] py-1.5">
+                                                    Extract & Add Guide
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+
+                                    <!-- Scraped guides catalog -->
+                                    <div class="d-flex flex-column gap-2 overflow-y-auto max-h-[40vh] pr-1">
+                                        {% for guide in selected_game.guides.all %}
+                                            <button onclick="viewGuide({{ guide.id }})" class="btn text-start p-2.5 rounded-3 border text-xs font-medium bg-slate-50/50 hover:bg-slate-50 transition-colors w-100 block truncate" id="guide-btn-{{ guide.id }}">
+                                                <i class="far fa-file-alt text-purple-500 mr-2"></i>{{ guide.title }}
+                                            </button>
+                                        {% empty %}
+                                            <div class="text-center text-slate-400 py-6 border border-dashed rounded-3">
+                                                <i class="far fa-folder-open text-xl mb-1 opacity-40"></i>
+                                                <div class="text-[9px] font-mono uppercase tracking-widest">No manuals found</div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+
+                                <!-- Guide reader area -->
+                                <div class="col-md-8 pl-md-4 mt-4 mt-md-0">
+                                    <div id="guide-reader-placeholder" class="text-center py-12 text-slate-400">
+                                        <i class="mdi mdi-book-open-page-variant text-4xl mb-2 opacity-20"></i>
+                                        <p class="font-mono text-xs uppercase tracking-widest">Select a manual</p>
+                                        <p class="font-mono text-[9px] mt-1">Select a dossier guide from the left or paste a new URL to parse it.</p>
+                                    </div>
+                                    {% for guide in selected_game.guides.all %}
+                                        <div class="guide-content-panel hidden" id="guide-panel-{{ guide.id }}">
+                                            <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-100">
+                                                <h3 class="font-size-16 text-slate-800 font-bold mb-0">{{ guide.title }}</h3>
+                                                {% if guide.source_url %}
+                                                    <a href="{{ guide.source_url }}" target="_blank" class="text-[10px] text-brand-500 font-mono font-bold text-decoration-none">
+                                                        <i class="fas fa-external-link-alt mr-1"></i>Open Original Source &rarr;
+                                                    </a>
+                                                {% endif %}
+                                            </div>
+                                            <div class="markdown-body font-mono max-h-[50vh] overflow-y-auto pr-2">
+                                                {{ guide.content_markdown|linebreaks }}
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TAB 2: VIDEOS -->
+                        <div class="tab-pane" id="videos-tab" role="tabpanel">
+                            <div class="row">
+                                <!-- Videos list / Embedded Player -->
+                                <div class="col-md-8 pr-md-4">
+                                    <div id="video-player-placeholder" class="bg-black rounded-4 flex items-center justify-center flex-col text-slate-400 py-24 relative overflow-hidden" style="min-height: 380px;">
+                                        <i class="mdi mdi-youtube-play text-5xl text-rose-500 mb-2"></i>
+                                        <p class="font-mono text-xs uppercase tracking-widest">Choose a Video</p>
+                                        <p class="font-mono text-[9px] mt-1">Select one of your gameplay videos from the sidebar to start watching.</p>
+                                    </div>
+                                    <div id="video-player-container" class="hidden relative rounded-4 overflow-hidden shadow-lg border" style="padding-top: 56.25%;">
+                                        <iframe id="youtube-iframe" class="absolute inset-0 w-100 h-100 border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                                    </div>
+                                </div>
+
+                                <!-- Videos gallery controls -->
+                                <div class="col-md-4 pl-4 mt-4 mt-md-0 border-start border-slate-100">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h4 class="font-size-11 uppercase tracking-widest text-slate-400 font-bold font-mono">Video Catalog</h4>
+                                        <button class="btn btn-sm btn-outline-primary rounded-pill font-mono text-[9px] font-bold px-2.5" data-bs-toggle="collapse" data-bs-target="#addVideoCollapse">
+                                            <i class="fas fa-plus mr-1"></i> Add Link
+                                        </button>
+                                    </div>
+
+                                    <!-- Add Video Collapse Form -->
+                                    <div class="collapse mb-3" id="addVideoCollapse">
+                                        <div class="p-3 bg-slate-50 rounded-3 border">
+                                            <form action="{% url 'relax_add_video' %}" method="POST">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="game_id" value="{{ selected_game.id }}">
+                                                <div class="mb-2">
+                                                    <label class="form-label text-[9px] uppercase font-mono tracking-widest">Video Title</label>
+                                                    <input type="text" name="title" required class="form-control form-control-sm text-xs rounded-xl" placeholder="e.g. Strategy Guide Ep. 1">
+                                                </div>
+                                                <div class="mb-2">
+                                                    <label class="form-label text-[9px] uppercase font-mono tracking-widest">YouTube Video Link</label>
+                                                    <input type="url" name="youtube_url" required class="form-control form-control-sm text-xs rounded-xl" placeholder="https://youtube.com/watch?v=...">
+                                                </div>
+                                                <button type="submit" class="btn btn-xs btn-outline-primary w-100 rounded-pill font-bold uppercase tracking-wider text-[9px] py-1.5">
+                                                    Add Video
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+
+                                    <!-- Scraped videos catalog list -->
+                                    <div class="d-flex flex-column gap-2.5 overflow-y-auto max-h-[40vh] pr-1">
+                                        {% for video in selected_game.videos.all %}
+                                            {% if video.video_id %}
+                                                <button onclick="playVideo('{{ video.video_id }}')" class="btn text-start p-2.5 rounded-3 border text-xs font-semibold bg-slate-50/50 hover:bg-slate-50 transition-colors w-100 block flex items-start gap-3">
+                                                    <img src="https://img.youtube.com/vi/{{ video.video_id }}/0.jpg" alt="" class="rounded border shadow-sm object-cover" style="width: 70px; height: 48px;">
+                                                    <div class="min-w-0 flex-1">
+                                                        <div class="truncate text-slate-800 font-bold leading-snug">{{ video.title }}</div>
+                                                        <span class="text-[8px] font-mono text-slate-400 mt-1 block">YouTube Video</span>
+                                                    </div>
+                                                </button>
+                                            {% endif %}
+                                        {% empty %}
+                                            <div class="text-center text-slate-400 py-6 border border-dashed rounded-3">
+                                                <i class="fab fa-youtube text-2xl mb-1 opacity-40"></i>
+                                                <div class="text-[9px] font-mono uppercase tracking-widest">No recordings found</div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        {% else %}
+            <!-- No game selected block -->
+            <div class="card rounded-4 border-0 shadow-sm p-12 text-center text-slate-400">
+                <i class="mdi mdi-gamepad-round text-5xl text-purple-400/20 mb-3 animate-bounce"></i>
+                <h3 class="font-size-18 text-slate-800 font-bold uppercase tracking-widest mb-2">Relaxation Protocol Suspended</h3>
+                <p class="text-xs text-slate-500 font-mono max-w-md mx-auto mb-4">Select a game from your left library catalog to launch its launcher engine, view patch guides, and embed YouTube videos.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ADD GAME MODAL DIALOG -->
+<div class="modal fade" id="addGameModal" tabindex="-1" aria-labelledby="addGameModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-2xl">
+            <div class="modal-header border-bottom border-slate-100 p-4 bg-slate-50">
+                <h5 class="modal-title font-size-14 font-bold uppercase tracking-widest text-slate-800" id="addGameModalLabel">Add Game to Arcade Library</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="none" data-bs-target="#addGameModal" data-bs-toggle="modal" onclick="jQuery('#addGameModal').modal('hide');" aria-label="Close"></button>
+            </div>
+            <form action="{% url 'relax_add_game' %}" method="POST" onsubmit="window.launchOverlay(this, 'SCOUTING STEAM DATABASE...');">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <p class="text-[11px] text-slate-500 font-mono mb-4 leading-relaxed">Provide the Steam App ID to automatically pull the game's title cover art and animated wallpapers directly from the Steam server system.</p>
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-[10px] uppercase font-mono tracking-widest font-bold">Steam App ID (Optional)</label>
+                        <input type="text" name="steam_app_id" class="form-control rounded-xl font-mono text-xs" placeholder="e.g. 730 for CS:GO, 1091500 for Cyberpunk">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-[10px] uppercase font-mono tracking-widest font-bold">Game Name</label>
+                        <input type="text" name="name" class="form-control rounded-xl text-xs" placeholder="Custom game name (auto-filled if App ID matches)">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-[10px] uppercase font-mono tracking-widest font-bold">Local Path to Executable / Protocol URI (Optional)</label>
+                        <div class="input-group">
+                            <input type="text" id="game_local_path" name="local_path" class="form-control rounded-start-xl font-mono text-xs" placeholder="e.g. C:\Games\game.exe or xbox:Genshin">
+                            <button type="button" class="btn btn-outline-primary rounded-end-xl px-3 text-xs" onclick="openFileBrowser()">Browse</button>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label text-[10px] uppercase font-mono tracking-widest font-bold">Hours Played</label>
+                            <input type="number" step="0.1" name="hours_played" class="form-control rounded-xl font-mono text-xs" value="0.0">
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label text-[10px] uppercase font-mono tracking-widest font-bold">Cover Image URL</label>
+                            <input type="url" name="cover_image_url" class="form-control rounded-xl text-xs" placeholder="https://example.com/cover.jpg">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-[10px] uppercase font-mono tracking-widest font-bold">Animated Background URL</label>
+                        <input type="url" name="animated_bg_url" class="form-control rounded-xl text-xs" placeholder="https://example.com/live_wallpaper.gif">
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-slate-100 p-4">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4 font-bold font-mono text-xs uppercase" onclick="jQuery('#addGameModal').modal('hide');">Cancel</button>
+                    <button type="submit" class="btn btn-outline-primary rounded-pill px-4 font-bold font-mono text-xs uppercase tracking-wider">Add Game</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- FILE BROWSER MODAL -->
+<div class="modal fade" id="fileBrowserModal" tabindex="-1" aria-labelledby="fileBrowserModalLabel" aria-hidden="true" style="z-index: 1060;">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-2xl">
+            <div class="modal-header border-bottom border-slate-100 p-4 bg-slate-50">
+                <h5 class="modal-title font-size-14 font-bold uppercase tracking-widest text-slate-800" id="fileBrowserModalLabel">
+                    <i class="mdi mdi-folder-open text-primary mr-2"></i> Server Directory Browser
+                </h5>
+                <button type="button" class="btn-close" onclick="closeFileBrowser()" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                    <div class="text-xs font-mono font-bold bg-slate-100 p-2 rounded w-100 text-truncate" id="browser_current_path">
+                        C:\
+                    </div>
+                </div>
+                <div class="mb-3 d-flex align-items-center gap-2 flex-wrap" id="browser_drives_container">
+                </div>
+                
+                <div class="border border-slate-200 rounded-3 overflow-hidden">
+                    <div class="d-flex bg-slate-50 border-bottom p-2 font-size-10 font-bold uppercase font-mono tracking-wider">
+                        <div class="flex-grow-1">Name</div>
+                        <div style="width: 100px; text-align: right;">Action</div>
+                    </div>
+                    <div id="browser_items_container" class="overflow-y-auto" style="max-height: 350px;">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top border-slate-100 p-4">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-4 font-bold font-mono text-xs uppercase" onclick="closeFileBrowser()">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_javascript %}
+<script>
+    // Guide Reader switcher logic
+    window.viewGuide = function(guideId) {
+        document.querySelectorAll('.guide-content-panel').forEach(panel => {
+            panel.classList.add('hidden');
+        });
+        const activePanel = document.getElementById(`guide-panel-${guideId}`);
+        if(activePanel) {
+            activePanel.classList.remove('hidden');
+        }
+        const placeholder = document.getElementById('guide-reader-placeholder');
+        if(placeholder) {
+            placeholder.classList.add('hidden');
+        }
+        document.querySelectorAll('[id^="guide-btn-"]').forEach(btn => {
+            btn.classList.remove('border-purple-500', 'bg-purple-500/5');
+        });
+        const activeBtn = document.getElementById(`guide-btn-${guideId}`);
+        if(activeBtn) {
+            activeBtn.classList.add('border-purple-500', 'bg-purple-500/5');
+        }
+    };
+
+    // YouTube Embed Player logic
+    window.playVideo = function(videoId) {
+        const placeholder = document.getElementById('video-player-placeholder');
+        const container = document.getElementById('video-player-container');
+        const iframe = document.getElementById('youtube-iframe');
+
+        if(placeholder) placeholder.classList.add('hidden');
+        if(container) container.classList.remove('hidden');
+
+        iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+    };
+
+    // Directory Browser JavaScript Logic
+    let browserCurrentPath = "";
+
+    window.openFileBrowser = function() {
+        jQuery('#fileBrowserModal').modal('show');
+        loadDirectory("");
+    };
+
+    window.closeFileBrowser = function() {
+        jQuery('#fileBrowserModal').modal('hide');
+    };
+
+    function loadDirectory(path) {
+        let url = "{% url 'relax_browse_dir' %}";
+        if (path) {
+            url += "?path=" + encodeURIComponent(path);
+        }
+        
+        const itemsContainer = document.getElementById('browser_items_container');
+        itemsContainer.innerHTML = '<div class="text-center p-4"><div class="spinner-border spinner-border-sm text-primary" role="status"></div><span class="ms-2 font-mono text-xs">Reading filesystem...</span></div>';
+        
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    itemsContainer.innerHTML = `<div class="alert alert-danger m-2 text-xs font-mono">${data.error}</div>`;
+                    return;
+                }
+                
+                browserCurrentPath = data.current_path;
+                document.getElementById('browser_current_path').textContent = data.current_path;
+                
+                const drivesContainer = document.getElementById('browser_drives_container');
+                drivesContainer.innerHTML = '';
+                if (data.drives && data.drives.length > 0) {
+                    drivesContainer.innerHTML = '<span class="text-xs font-mono text-muted mr-1">Drives:</span>';
+                    data.drives.forEach(drive => {
+                        const btn = document.createElement('button');
+                        btn.type = "button";
+                        btn.className = "btn btn-xs btn-outline-secondary font-mono py-0.5 px-2 text-[10px]";
+                        btn.textContent = drive;
+                        btn.onclick = () => loadDirectory(drive);
+                        drivesContainer.appendChild(btn);
+                    });
+                }
+                
+                itemsContainer.innerHTML = '';
+                
+                if (data.parent_path) {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = "d-flex align-items-center p-2 border-bottom hover:bg-slate-50 cursor-pointer";
+                    itemDiv.innerHTML = `
+                        <div class="flex-grow-1 text-xs font-mono text-primary font-bold" onclick="loadDirectory('${escapeJsPath(data.parent_path)}')">
+                            <i class="mdi mdi-arrow-left-bold-circle mr-2"></i> .. [Parent Directory]
+                        </div>
+                        <div style="width: 100px; text-align: right;"></div>
+                    `;
+                    itemsContainer.appendChild(itemDiv);
+                }
+                
+                if (data.items.length === 0) {
+                    const emptyDiv = document.createElement('div');
+                    emptyDiv.className = "text-center p-4 text-xs font-mono text-muted";
+                    emptyDiv.textContent = "Directory is empty";
+                    itemsContainer.appendChild(emptyDiv);
+                    return;
+                }
+                
+                data.items.forEach(item => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = "d-flex align-items-center p-2 border-bottom hover:bg-slate-50";
+                    
+                    const icon = item.is_dir ? '<i class="mdi mdi-folder text-warning mr-2"></i>' : '<i class="mdi mdi-file-outline text-muted mr-2"></i>';
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = "text-xs font-mono " + (item.is_dir ? "font-bold cursor-pointer text-slate-800" : "text-slate-600");
+                    nameSpan.innerHTML = icon + item.name;
+                    
+                    if (item.is_dir) {
+                        nameSpan.onclick = () => loadDirectory(item.path);
+                    }
+                    
+                    const actionDiv = document.createElement('div');
+                    actionDiv.style.width = "100px";
+                    actionDiv.style.textAlign = "right";
+                    
+                    const selectBtn = document.createElement('button');
+                    selectBtn.type = "button";
+                    selectBtn.className = "btn btn-xs btn-outline-primary py-0.5 px-2 text-[10px]";
+                    selectBtn.textContent = "Select";
+                    selectBtn.onclick = () => {
+                        document.getElementById('game_local_path').value = item.path;
+                        const gameNameInput = document.getElementsByName('name')[0];
+                        if (gameNameInput && !gameNameInput.value) {
+                            let baseName = item.name;
+                            if (!item.is_dir && baseName.toLowerCase().endsWith('.exe')) {
+                                baseName = baseName.substring(0, baseName.length - 4);
+                            }
+                            gameNameInput.value = baseName;
+                        }
+                        closeFileBrowser();
+                    };
+                    
+                    actionDiv.appendChild(selectBtn);
+                    
+                    const flexGrowDiv = document.createElement('div');
+                    flexGrowDiv.className = "flex-grow-1 text-truncate";
+                    flexGrowDiv.appendChild(nameSpan);
+                    
+                    itemDiv.appendChild(flexGrowDiv);
+                    itemDiv.appendChild(actionDiv);
+                    itemsContainer.appendChild(itemDiv);
+                });
+            })
+            .catch(err => {
+                itemsContainer.innerHTML = `<div class="alert alert-danger m-2 text-xs font-mono">Failed to load directory: ${err}</div>`;
+            });
+    }
+
+    function escapeJsPath(path) {
+        return path.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    }
+
+    // Steam Playtime Sync Logic
+    window.syncSteamPlaytimes = function() {
+        const usernameInput = document.getElementById('steam_username_sync');
+        if (!usernameInput) return;
+        const username = usernameInput.value.trim();
+        if (!username) {
+            alert('Please enter a Steam Username or 17-digit ID64.');
+            return;
+        }
+        
+        const btn = document.querySelector('button[onclick="syncSteamPlaytimes()"]');
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Syncing...';
+        
+        fetch(`/relax/game/sync-steam/?username=${encodeURIComponent(username)}`)
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.textContent = originalText;
+                if (data.status === 'success') {
+                    alert(data.message);
+                    window.location.reload();
+                } else {
+                    alert('Sync failed: ' + data.message);
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.textContent = originalText;
+                alert('Error syncing playtimes: ' + err);
+            });
+    };
+</script>
+{% endblock %}
