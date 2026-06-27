@@ -110,36 +110,180 @@
             0%, 100% { opacity: 1; transform: scale(1); }
             50%       { opacity: 0.4; transform: scale(0.8); }
         }
-        #global-lockscreen-overlay { display: none; }
+        /* Custom lockscreen page style overrides to match login page exactly */
+        #global-lockscreen-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            background-color: #181926;
+            font-family: 'JetBrains Mono', monospace;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
         #global-lockscreen-overlay.ls-visible {
-            display: flex;
+            display: flex !important;
+            align-items: center;
+            justify-content: flex-end;
             animation: lockIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
         #global-lockscreen-overlay.ls-hiding {
             animation: lockOut 0.35s cubic-bezier(0.4, 0, 1, 1) both;
         }
-        .ls-panel { animation: floatUp 0.55s 0.15s cubic-bezier(0.22, 1, 0.36, 1) both; }
-        .ls-clock  { animation: floatUp 0.5s 0.05s cubic-bezier(0.22, 1, 0.36, 1) both; }
-        .ls-scan {
-            position: absolute; left: 0; right: 0;
-            height: 120px;
-            background: linear-gradient(to bottom,
-                transparent 0%,
-                rgba(125, 196, 228, 0.04) 40%,
-                rgba(125, 196, 228, 0.08) 50%,
-                rgba(125, 196, 228, 0.04) 60%,
-                transparent 100%);
-            animation: scanDown 6s linear infinite;
+        
+        .ls-bg-img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.6;
+            z-index: 0;
+        }
+        
+        .ls-gradient-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(24, 25, 38, 0.5) 50%, #181926 100%);
+            z-index: 1;
             pointer-events: none;
         }
-        .ls-input-caret {
-            display: inline-block;
-            width: 2px; height: 1.1em;
-            background: rgb(125 196 228);
-            border-radius: 1px;
-            animation: pulseDot 0.9s ease-in-out infinite;
-            vertical-align: middle;
-            margin-left: 4px;
+        
+        .ls-gradient-overlay-vertical {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, #181926 0%, transparent 40%, transparent 60%, #181926 100%);
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        .ls-left-text {
+            position: absolute;
+            left: 4rem;
+            bottom: 4rem;
+            z-index: 2;
+            max-width: 480px;
+        }
+        
+        .ls-left-text h1 {
+            color: #ffffff;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        
+        .ls-left-text p {
+            color: #cad3f5;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+        
+        .ls-card-container {
+            position: relative;
+            z-index: 10;
+            margin-right: 8rem;
+            width: 440px;
+            padding: 0 1.5rem;
+        }
+        
+        .ls-glass-panel {
+            background: rgba(30, 32, 48, 0.45);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(138, 173, 244, 0.18);
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.65);
+            border-radius: 24px;
+            padding: 2.5rem;
+            color: #cad3f5;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .ls-logo-box {
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: 12px;
+            background: rgba(125, 196, 228, 0.1);
+            border: 1px solid rgba(125, 196, 228, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #7dc4e4;
+            font-weight: 700;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+        
+        .ls-avatar-box {
+            width: 4rem;
+            height: 4rem;
+            border-radius: 16px;
+            background: rgba(24, 25, 38, 0.8);
+            border: 1px solid rgba(125, 196, 228, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+        
+        .ls-input-glass {
+            width: 100%;
+            background: rgba(24, 25, 38, 0.6);
+            border: 1px solid rgba(138, 173, 244, 0.2);
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            color: #ffffff;
+            font-family: monospace;
+            text-align: center;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+        .ls-input-glass:focus {
+            border-color: #7dc4e4;
+        }
+        
+        .ls-btn-unlock {
+            width: 100%;
+            background: transparent;
+            color: #7dc4e4;
+            border: 1px solid rgba(125, 196, 228, 0.4);
+            border-radius: 12px;
+            padding: 0.75rem 1.25rem;
+            font-family: monospace;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .ls-btn-unlock:hover {
+            background: rgba(125, 196, 228, 0.1);
+            border-color: #7dc4e4;
+        }
+        
+        @media (max-width: 992px) {
+            #global-lockscreen-overlay.ls-visible {
+                justify-content: center;
+            }
+            .ls-left-text {
+                display: none;
+            }
+            .ls-card-container {
+                margin-right: 0;
+                width: 100%;
+                max-width: 420px;
+            }
         }
 
         /* Collapse sidebar fixes for custom elements */
@@ -155,15 +299,7 @@
             display: none !important;
         }
 
-        /* Lockscreen 2 Styles */
-        #global-lockscreen-overlay { display: none; }
-        #global-lockscreen-overlay.ls-visible {
-            display: block !important;
-            position: fixed;
-            inset: 0;
-            z-index: 10000;
-            overflow-y: auto;
-        }
+
     </style>
     
     {% block extra_head %}{% endblock %}
@@ -480,60 +616,71 @@
     </div>
 
     <!-- Seamless Lockscreen Overlay -->
+    <!-- Seamless Lockscreen Overlay -->
     <div id="global-lockscreen-overlay">
-        <!-- Begin page -->
-        <div class="accountbg" style="background: url('{% static 'veltrix/images/bg.jpg' %}') no-repeat center center; background-size: cover; position: absolute; inset: 0; z-index: 1;"></div>
+        <!-- Full Screen Background Image -->
+        <img src="{% static 'img/login_art.jpg' %}" alt="Algorithmic Trading Background" class="ls-bg-img">
+        
+        <!-- Gradient Overlay to ensure text readability -->
+        <div class="ls-gradient-overlay"></div>
+        <div class="ls-gradient-overlay-vertical"></div>
 
-        <div class="wrapper-page account-page-full" style="position: relative; z-index: 2;">
-            <div class="card shadow-none">
-                <div class="card-block">
-                    <div class="account-box">
-                        <div class="card-box shadow-none p-4">
-                            <div class="p-2">
-                                <div class="text-center mt-4">
-                                    <h4 class="text-primary font-bold uppercase tracking-[0.2em] font-mono mb-0">QuantTrader</h4>
-                                    <p class="text-[9px] text-muted tracking-[0.3em] uppercase mt-1">Node Security</p>
-                                </div>
+        <!-- Floating Text on the left side -->
+        <div class="ls-left-text">
+            <h1>Institutional Grade <br><span style="color: #7dc4e4;">Neural Execution</span></h1>
+            <p>Securing dynamic alpha through proprietary deep reinforcement learning protocols across volatile asset classes.</p>
+        </div>
 
-                                <h4 class="font-size-18 mt-5 text-center font-mono" id="lock-clock-2" style="font-size: 2.2rem; font-weight: 800; letter-spacing: -0.04em;">00:00</h4>
-                                <p class="text-muted text-center text-xs font-mono tracking-wider uppercase mb-4" id="lock-date-2">LOADING...</p>
-
-                                <form class="mt-4" id="unlock-form" method="POST" action="{% url 'lockscreen_api' %}">
-                                    {% csrf_token %}
-
-                                    <div class="pt-3 text-center mb-4">
-                                        <div class="w-16 h-16 rounded-circle img-thumbnail avatar-lg mx-auto flex items-center justify-center bg-slate-900 border border-slate-700">
-                                            <i class="fas fa-user-astronaut text-primary" style="font-size: 1.8rem;"></i>
-                                        </div>
-                                        <h6 class="font-size-14 mt-3 font-mono text-muted uppercase tracking-widest" id="pin-prompt">Locked</h6>
-                                    </div>
-
-                                    <div class="mb-3">
-                                        <label for="pin-input" class="form-label font-mono text-[9px] uppercase tracking-wider text-muted">Passcode</label>
-                                        <input type="password" class="form-control text-center font-mono" id="pin-input" name="password" placeholder="••••••••" autocomplete="off" required style="font-size: 1.1rem; letter-spacing: 0.3em; background-color: var(--bs-body-bg);">
-                                    </div>
-
-                                    <div class="row">
-                                        <div class="col-12 text-end">
-                                            <button class="btn btn-outline-primary w-100 waves-effect waves-light font-mono text-xs uppercase tracking-widest py-2" type="submit">
-                                                <i class="fas fa-unlock-alt me-1.5 opacity-60"></i>Unlock
-                                            </button>
-                                        </div>
-                                    </div>
-                                </form>
-
-                                <div class="mt-5 pt-4 text-center">
-                                    <form method="POST" action="{% url 'logout' %}" class="inline">
-                                        {% csrf_token %}
-                                        <p class="font-mono text-xs mb-0 text-muted">Not you? <button type="submit" class="btn btn-link p-0 text-decoration-none fw-medium text-danger align-baseline font-mono text-xs uppercase tracking-wider">Sign Out</button></p>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
+        <!-- Lockscreen Panel -->
+        <div class="ls-card-container">
+            <div class="ls-glass-panel">
+                <!-- Logo Header -->
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 2rem;">
+                    <div class="ls-logo-box">
+                        <span style="position: relative; z-index: 10;">Q</span>
                     </div>
+                    <h2 style="font-size: 1.15rem; font-weight: 700; letter-spacing: -0.02em; text-transform: uppercase; margin: 0; color: #ffffff; text-align: center;">QuantTrader</h2>
+                    <p style="font-size: 8px; color: #8aadf4; letter-spacing: 0.3em; text-transform: uppercase; margin-top: 4px; font-weight: 700; text-align: center;">Node Security</p>
+                </div>
+
+                <div style="text-align: center; margin-bottom: 1.5rem;">
+                    <h4 id="lock-clock-2" style="font-size: 2.2rem; font-weight: 800; letter-spacing: -0.04em; color: #ffffff; margin: 0;">00:00</h4>
+                    <p id="lock-date-2" style="font-size: 9px; color: rgba(202, 211, 245, 0.6); letter-spacing: 0.1em; text-transform: uppercase; margin: 4px 0 0 0;">LOADING...</p>
+                </div>
+
+                <form id="unlock-form" method="POST" action="{% url 'lockscreen_api' %}">
+                    {% csrf_token %}
+
+                    <div style="padding-top: 0.5rem; text-align: center; margin-bottom: 1.5rem;">
+                        <div class="ls-avatar-box">
+                            <i class="fas fa-user-shield text-[#7dc4e4]" style="font-size: 1.8rem;"></i>
+                        </div>
+                        <h6 id="pin-prompt" style="font-size: 10px; margin-top: 10px; color: rgba(202, 211, 245, 0.6); text-transform: uppercase; letter-spacing: 0.15em; font-weight: 400;">Locked</h6>
+                    </div>
+
+                    <div style="margin-bottom: 1.5rem;">
+                        <label for="pin-input" style="display: block; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(202, 211, 245, 0.6); margin-bottom: 6px;">Passcode</label>
+                        <input type="password" class="ls-input-glass" id="pin-input" name="password" placeholder="••••••••" autocomplete="off" required style="font-size: 1.1rem; letter-spacing: 0.3em;">
+                    </div>
+
+                    <div>
+                        <button class="ls-btn-unlock" type="submit">
+                            <i class="fas fa-unlock-alt"></i> Unlock Node
+                        </button>
+                    </div>
+                </form>
+
+                <div style="margin-top: 1.5rem; padding-top: 1rem; text-align: center; border-top: 1px solid rgba(138, 173, 244, 0.12);">
+                    <form method="POST" action="{% url 'logout' %}" class="inline">
+                        {% csrf_token %}
+                        <p style="font-size: 10px; color: rgba(202, 211, 245, 0.5); margin: 0;">
+                            Not you? <button type="submit" style="background: transparent; border: 0; padding: 0; color: #ed8796; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; margin-left: 4px;">Sign Out</button>
+                        </p>
+                    </form>
                 </div>
             </div>
         </div>
+    </div>
     </div>
 
     <!-- Global Evolution Promotion Toast -->

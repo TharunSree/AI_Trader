@@ -592,6 +592,8 @@ def _build_dashboard_context():
     try:
         from django.core.cache import cache
         import threading
+        from django.conf import settings
+        from pathlib import Path
         
         last_fetch = cache.get('git_last_fetch_time', 0)
         import time
