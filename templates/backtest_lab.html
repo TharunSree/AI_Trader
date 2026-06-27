@@ -26,7 +26,7 @@
             {% csrf_token %}
             <div>
                 <label for="model_file" class="block text-[10px] uppercase tracking-widest text-slate-500 mb-2">Model Tensor</label>
-                <select name="model_file" id="model_file" class="w-full bg-slate-900 border border-slate-800 rounded px-4 py-2 text-white focus:outline-none focus:border-brand-500 transition-all appearance-none font-mono text-sm" required>
+                <select name="model_file" id="model_file" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded px-4 py-2 text-slate-800 dark:text-white focus:outline-none focus:border-brand-500 transition-all appearance-none font-mono text-sm" required>
                     {% for model in model_files %}
                     <option value="{{ model.value }}">{{ model.label }}</option>
                     {% endfor %}
@@ -36,11 +36,11 @@
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label for="start_date" class="block text-[10px] uppercase tracking-widest text-slate-500 mb-2">Start Date</label>
-                    <input type="date" id="start_date" name="start_date" class="w-full bg-slate-900 border border-slate-800 rounded px-4 py-2 text-white focus:outline-none focus:border-brand-500 transition-all font-mono text-sm" required>
+                    <input type="date" id="start_date" name="start_date" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded px-4 py-2 text-slate-800 dark:text-white focus:outline-none focus:border-brand-500 transition-all font-mono text-sm" required>
                 </div>
                 <div>
                     <label for="end_date" class="block text-[10px] uppercase tracking-widest text-slate-500 mb-2">End Date</label>
-                    <input type="date" id="end_date" name="end_date" class="w-full bg-slate-900 border border-slate-800 rounded px-4 py-2 text-white focus:outline-none focus:border-brand-500 transition-all font-mono text-sm" required>
+                    <input type="date" id="end_date" name="end_date" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded px-4 py-2 text-slate-800 dark:text-white focus:outline-none focus:border-brand-500 transition-all font-mono text-sm" required>
                 </div>
             </div>
 
@@ -67,21 +67,21 @@
             </div>
 
             <div class="grid grid-cols-3 gap-4 mb-6">
-                <div class="bg-slate-900/50 border border-slate-800 rounded p-4">
+                <div class="bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded p-4">
                     <div class="text-[9px] uppercase tracking-widest text-slate-500 mb-1">Sharpe</div>
-                    <div class="text-sm font-mono font-bold text-white">{{ latest_job.results.sharpe_ratio|default:"-" }}</div>
+                    <div class="text-sm font-mono font-bold text-slate-800 dark:text-white">{{ latest_job.results.sharpe_ratio|default:"-" }}</div>
                 </div>
-                <div class="bg-slate-900/50 border border-slate-800 rounded p-4">
+                <div class="bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded p-4">
                     <div class="text-[9px] uppercase tracking-widest text-slate-500 mb-1">Return</div>
-                    <div class="text-sm font-mono font-bold text-white">{{ latest_job.results.total_return_pct|default:"-" }}%</div>
+                    <div class="text-sm font-mono font-bold text-slate-800 dark:text-white">{{ latest_job.results.total_return_pct|default:"-" }}%</div>
                 </div>
-                <div class="bg-slate-900/50 border border-slate-800 rounded p-4">
+                <div class="bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded p-4">
                     <div class="text-[9px] uppercase tracking-widest text-slate-500 mb-1">Trades</div>
-                    <div class="text-sm font-mono font-bold text-white">{{ latest_job.results.total_trades|default:"-" }}</div>
+                    <div class="text-sm font-mono font-bold text-slate-800 dark:text-white">{{ latest_job.results.total_trades|default:"-" }}</div>
                 </div>
             </div>
 
-            <a href="{% url 'evaluation_report' latest_job.id %}" class="mt-auto inline-flex items-center gap-2 px-4 py-2 rounded border border-slate-800 text-[10px] font-mono uppercase tracking-widest hover:bg-slate-800 transition-all w-fit">
+            <a href="{% url 'evaluation_report' latest_job.id %}" class="mt-auto inline-flex items-center gap-2 px-4 py-2 rounded border border-slate-200 dark:border-slate-800 text-[10px] font-mono uppercase tracking-widest text-slate-700 dark:text-slate-350 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all w-fit">
                 Open Detailed Report
             </a>
             {% else %}
@@ -96,11 +96,11 @@
 
 <!-- Evaluation Jobs Table -->
 <div class="glass rounded p-6 relative overflow-hidden">
-    <h4 class="text-[10px] uppercase tracking-widest font-bold text-white mb-6">Evaluation Ledger</h4>
+    <h4 class="text-[10px] uppercase tracking-widest font-bold text-slate-800 dark:text-white mb-6">Evaluation Ledger</h4>
     <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
             <thead>
-                <tr class="border-b border-slate-800 text-[10px] uppercase tracking-widest text-slate-500 font-mono">
+                <tr class="border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase tracking-widest text-slate-500 font-mono">
                     <th class="py-3 px-4 font-normal">Job ID</th>
                     <th class="py-3 px-4 font-normal">Model</th>
                     <th class="py-3 px-4 font-normal">Status</th>
@@ -111,25 +111,25 @@
             </thead>
             <tbody>
                 {% for job in evaluation_jobs %}
-                <tr class="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors cursor-pointer" onclick="toggleEvalTerminal({{ job.id }})">
-                    <td class="py-3 px-4 text-slate-400 font-mono text-xs">#E{{ job.id }}</td>
-                    <td class="py-3 px-4 text-slate-300 text-xs font-mono max-w-[200px] truncate">{{ job.model_file }}</td>
+                <tr class="border-b border-slate-200 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer" onclick="toggleEvalTerminal({{ job.id }})">
+                    <td class="py-3 px-4 text-slate-500 dark:text-slate-400 font-mono text-xs">#E{{ job.id }}</td>
+                    <td class="py-3 px-4 text-slate-700 dark:text-slate-300 text-xs font-mono max-w-[200px] truncate">{{ job.model_file }}</td>
                     <td id="eval-status-{{ job.id }}" class="py-3 px-4">
                         <span class="px-2 py-0.5 rounded text-[9px] font-bold tracking-widest {% if job.status == 'COMPLETED' %}bg-green-500/20 text-green-400 border border-green-500/30{% elif job.status == 'RUNNING' %}bg-blue-500/20 text-blue-400 border border-blue-500/30 animate-pulse{% else %}bg-red-500/20 text-red-400 border border-red-500/30{% endif %}">
                             {{ job.status }}
                         </span>
                     </td>
-                    <td id="eval-sharpe-{{ job.id }}" class="py-3 px-4 text-right text-slate-300 font-mono text-xs">
+                    <td id="eval-sharpe-{{ job.id }}" class="py-3 px-4 text-right text-slate-700 dark:text-slate-300 font-mono text-xs">
                         {{ job.results.sharpe_ratio|default:"-" }}
                     </td>
-                    <td id="eval-return-{{ job.id }}" class="py-3 px-4 text-right text-slate-300 font-mono text-xs">
+                    <td id="eval-return-{{ job.id }}" class="py-3 px-4 text-right text-slate-700 dark:text-slate-300 font-mono text-xs">
                         {{ job.results.total_return_pct|default:"-" }}%
                     </td>
                     <td class="py-3 px-4 text-right">
                         {% if job.status == 'COMPLETED' %}
                         <a href="{% url 'evaluation_report' job.id %}" class="text-[9px] font-mono px-3 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded border border-slate-700 transition-all uppercase tracking-widest" onclick="event.stopPropagation()">Report</a>
                         {% else %}
-                        <span class="text-[9px] font-mono text-slate-600 uppercase">In Progress</span>
+                        <span class="text-[9px] font-mono text-slate-600 dark:text-slate-450 uppercase">In Progress</span>
                         {% endif %}
                     </td>
                 </tr>

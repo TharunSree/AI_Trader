@@ -4897,29 +4897,48 @@ def relax_browse_dir(request):
 
 
 class SimpleHTMLScraper(HTMLParser):
-    def __init__(self):
+    def __init__(self, target_tag='body'):
         super().__init__()
         self.text_list = []
-        self.in_body = False
-        self.ignore_tags = {'script', 'style', 'nav', 'footer', 'header', 'iframe', 'noscript'}
+        self.target_tag = target_tag
+        self.in_target = False
+        self.ignore_tags = {'script', 'style', 'nav', 'footer', 'header', 'iframe', 'noscript', 'aside'}
+        self.void_elements = {'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'}
         self.current_tag = None
         self.depth_ignore = 0
+        self.target_depth = 0
 
     def handle_starttag(self, tag, attrs):
-        if tag == 'body':
-            self.in_body = True
         if tag in self.ignore_tags:
             self.depth_ignore += 1
         self.current_tag = tag
 
+        if tag in self.void_elements:
+            return
+
+        if tag == self.target_tag:
+            if not self.in_target:
+                self.in_target = True
+                self.target_depth = 1
+            else:
+                self.target_depth += 1
+        elif self.in_target:
+            self.target_depth += 1
+
     def handle_endtag(self, tag):
-        if tag == 'body':
-            self.in_body = False
         if tag in self.ignore_tags:
             self.depth_ignore = max(0, self.depth_ignore - 1)
 
+        if tag in self.void_elements:
+            return
+
+        if self.in_target:
+            self.target_depth -= 1
+            if self.target_depth <= 0:
+                self.in_target = False
+
     def handle_data(self, data):
-        if self.in_body and self.depth_ignore == 0:
+        if self.in_target and self.depth_ignore == 0:
             text = data.strip()
             if text:
                 if self.current_tag in {'h1', 'h2', 'h3', 'h4'}:
@@ -4941,7 +4960,19 @@ def scrape_guide_content(url):
             title_match = re.search(r'<title>(.*?)</title>', html_content, re.IGNORECASE)
             title = title_match.group(1).strip() if title_match else "Scraped Guide"
             
-            parser = SimpleHTMLScraper()
+            # Remove title suffix if present
+            for suffix in [" - Gamestegy", " - Steam Community", " - Wiki"]:
+                if title.endswith(suffix):
+                    title = title[:-len(suffix)]
+            
+            # Determine target container
+            target = 'body'
+            if '<article' in html_content.lower():
+                target = 'article'
+            elif '<main' in html_content.lower():
+                target = 'main'
+                
+            parser = SimpleHTMLScraper(target_tag=target)
             parser.feed(html_content)
             
             content = "\n".join(parser.text_list)
@@ -5193,11 +5224,23 @@ def relax_launch_game(request, game_id):
     try:
         import platform
         if game.steam_app_id:
-            steam_url = f"steam://rungameid/{game.steam_app_id}"
             if platform.system() == 'Windows':
-                os.startfile(steam_url)
+                launched = False
+                try:
+                    import winreg
+                    key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam")
+                    steam_exe, _ = winreg.QueryValueEx(key, "SteamExe")
+                    if steam_exe and os.path.exists(steam_exe):
+                        subprocess.Popen([steam_exe, "-applaunch", str(game.steam_app_id)])
+                        launched = True
+                except Exception:
+                    pass
+                
+                if not launched:
+                    os.startfile(f"steam://rungameid/{game.steam_app_id}")
                 messages.success(request, f"Launching '{game.name}' via Steam on host...")
             else:
+                steam_url = f"steam://rungameid/{game.steam_app_id}"
                 subprocess.Popen(['xdg-open', steam_url] if platform.system() == 'Linux' else ['open', steam_url])
                 messages.success(request, f"Launching '{game.name}' via Steam on host...")
         elif game.local_path:
@@ -5247,42 +5290,121 @@ def relax_sync_steam_playtimes(request):
     else:
         url = f"https://steamcommunity.com/id/{username}/games/?xml=1"
         
+    is_full_list = True
     try:
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
         with urllib.request.urlopen(req, timeout=10) as response:
             xml_data = response.read()
             
-        root = ET.fromstring(xml_data)
+        import re
+        import html
+        xml_str = xml_data.decode('utf-8', errors='ignore')
+
+        if '<gamesList' not in xml_str and '<games' not in xml_str:
+            # Fallback to main profile XML which Steam does not redirect/block
+            is_full_list = False
+            if username.isdigit() and len(username) == 17:
+                fallback_url = f"https://steamcommunity.com/profiles/{username}/?xml=1"
+            else:
+                fallback_url = f"https://steamcommunity.com/id/{username}/?xml=1"
+                
+            try:
+                fallback_req = urllib.request.Request(fallback_url, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(fallback_req, timeout=10) as fallback_res:
+                    fallback_xml_data = fallback_res.read()
+                xml_str = fallback_xml_data.decode('utf-8', errors='ignore')
+                
+                if '<profile>' not in xml_str:
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': 'Failed to sync: Your Steam profile or game playtimes are private. Please set your Steam "Game details" to "Public" in your Profile Privacy Settings.'
+                    }, status=400)
+            except Exception as fe:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': f'Steam blocked full games list sync, and profile fallback failed: {str(fe)}'
+                }, status=400)
+
+        # Clean HTML entities and unescaped ampersands so ElementTree doesn't crash
+        def replace_entity(match):
+            entity = match.group(0)
+            name = match.group(1)
+            if name in ('amp', 'lt', 'gt', 'quot', 'apos'):
+                return entity
+            unescaped = html.unescape(entity)
+            return unescaped.replace('&', '&amp;')
+
+        xml_str = re.sub(r'&([a-zA-Z0-9#]+);', replace_entity, xml_str)
+        xml_str = re.sub(r'&(?!(amp|lt|gt|quot|apos);)', '&amp;', xml_str)
+
+        root = ET.fromstring(xml_str.encode('utf-8'))
         
         error_node = root.find('error')
         if error_node is not None:
             return JsonResponse({'status': 'error', 'message': error_node.text}, status=400)
             
         updated_count = 0
-        games_list = root.findall('.//game')
         
-        for g_node in games_list:
-            appid_node = g_node.find('appID')
-            hours_node = g_node.find('hoursOnRecord')
-            
-            if appid_node is not None:
-                appid = appid_node.text.strip()
-                hours = 0.0
-                if hours_node is not None and hours_node.text:
-                    try:
-                        hours = float(hours_node.text.replace(',', '').strip())
-                    except ValueError:
-                        pass
+        if is_full_list:
+            games_list = root.findall('.//game')
+            for g_node in games_list:
+                appid_node = g_node.find('appID')
+                hours_node = g_node.find('hoursOnRecord')
                 
-                matching_games = Game.objects.filter(steam_app_id=appid, is_active=True)
-                for game in matching_games:
-                    game.hours_played = hours
-                    game.save()
-                    updated_count += 1
+                if appid_node is not None:
+                    appid = appid_node.text.strip()
+                    hours = 0.0
+                    if hours_node is not None and hours_node.text:
+                        try:
+                            hours = float(hours_node.text.replace(',', '').strip())
+                        except ValueError:
+                            pass
                     
+                    matching_games = Game.objects.filter(steam_app_id=appid, is_active=True)
+                    for game in matching_games:
+                        game.hours_played = hours
+                        game.save()
+                        updated_count += 1
+        else:
+            # Parse mostPlayedGames from profile XML
+            games_list = root.findall('.//mostPlayedGame')
+            for g_node in games_list:
+                stats_node = g_node.find('statsName')
+                hours_node = g_node.find('hoursOnRecord')
+                if hours_node is None:
+                    hours_node = g_node.find('hoursPlayed')
+                
+                appid = None
+                if stats_node is not None and stats_node.text:
+                    appid = stats_node.text.strip()
+                else:
+                    link_node = g_node.find('gameLink')
+                    if link_node is not None and link_node.text:
+                        m = re.search(r'/app/(\d+)', link_node.text)
+                        if m:
+                            appid = m.group(1)
+                            
+                if appid:
+                    hours = 0.0
+                    if hours_node is not None and hours_node.text:
+                        try:
+                            hours = float(hours_node.text.replace(',', '').strip())
+                        except ValueError:
+                            pass
+                            
+                    matching_games = Game.objects.filter(steam_app_id=appid, is_active=True)
+                    for game in matching_games:
+                        game.hours_played = hours
+                        game.save()
+                        updated_count += 1
+                        
+        msg = f'Successfully synced playtimes for {updated_count} game(s) from Steam.'
+        if not is_full_list:
+            msg = f'Synced playtimes for {updated_count} recently played game(s) from your Steam profile (full list was blocked by Steam).'
+            
         return JsonResponse({
             'status': 'success',
-            'message': f'Successfully synced playtimes for {updated_count} game(s) from Steam.',
+            'message': msg,
             'updated_count': updated_count
         })
     except Exception as e:

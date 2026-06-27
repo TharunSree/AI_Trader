@@ -49,16 +49,32 @@
         z-index: -1;
         background-size: cover;
         background-position: center;
-        opacity: 0.08;
+        opacity: 0.20;
         filter: blur(15px);
         pointer-events: none;
         transition: background-image 0.5s ease;
+    }
+    .glass-card {
+        background: #ffffff !important;
+        border: 1px solid rgba(0, 0, 0, 0.06) !important;
+        box-shadow: 0 4px 18px 0 rgba(0, 0, 0, 0.03) !important;
+        color: #334155 !important;
+        transition: all 0.3s ease;
+    }
+    .dark .glass-card {
+        background: #222434 !important;
+        border: 1px solid rgba(255, 255, 255, 0.04) !important;
+        box-shadow: 0 4px 18px 0 rgba(0, 0, 0, 0.15) !important;
+        color: #cbd5e1 !important;
     }
     .video-grid-item {
         border-radius: 12px;
         overflow: hidden;
         border: 1px solid rgba(0, 0, 0, 0.08);
         transition: all 0.2s ease;
+    }
+    .dark .video-grid-item {
+        border-color: rgba(255, 255, 255, 0.08);
     }
     .video-grid-item:hover {
         border-color: rgba(59, 130, 246, 0.4);
@@ -77,16 +93,25 @@
         border-left: 3px solid #9333ea;
         padding-left: 8px;
     }
+    .dark .markdown-body h3 {
+        color: #f1f5f9;
+    }
     .markdown-body p {
         font-size: 12px;
         margin-bottom: 12px;
-        color: #64748b;
+        color: #475569;
+    }
+    .dark .markdown-body p {
+        color: #94a3b8;
     }
     .markdown-body li {
         font-size: 12px;
         margin-left: 20px;
         list-style-type: disc;
-        color: #64748b;
+        color: #475569;
+    }
+    .dark .markdown-body li {
+        color: #94a3b8;
     }
     @keyframes gradientBG {
         0% { background-position: 0% 50%; }
@@ -101,15 +126,15 @@
 {% if selected_game %}
     {% if selected_game.animated_bg_url %}
         {% if ".mp4" in selected_game.animated_bg_url or ".webm" in selected_game.animated_bg_url or "movies/" in selected_game.animated_bg_url %}
-            <video class="active-bg-overlay" autoplay loop muted playsinline style="object-fit: cover; width: 100%; height: 100%; position: fixed; inset: 0; z-index: -1; opacity: 0.12; pointer-events: none;">
+            <video class="active-bg-overlay" autoplay loop muted playsinline style="object-fit: cover; width: 100%; height: 100%; position: fixed; inset: 0; z-index: -1; opacity: 0.22; filter: blur(15px); pointer-events: none;">
                 <source src="{% if 'http://' in selected_game.animated_bg_url or 'https://' in selected_game.animated_bg_url %}{{ selected_game.animated_bg_url }}{% else %}{% url 'serve_local_file' %}?path={{ selected_game.animated_bg_url }}{% endif %}" type="{% if '.webm' in selected_game.animated_bg_url %}video/webm{% else %}video/mp4{% endif %}">
             </video>
         {% else %}
-            <div class="active-bg-overlay" style="background-image: url('{% if 'http://' in selected_game.animated_bg_url or 'https://' in selected_game.animated_bg_url %}{{ selected_game.animated_bg_url }}{% else %}{% url 'serve_local_file' %}?path={{ selected_game.animated_bg_url }}{% endif %}'); opacity: 0.15;"></div>
+            <div class="active-bg-overlay" style="background-image: url('{% if 'http://' in selected_game.animated_bg_url or 'https://' in selected_game.animated_bg_url %}{{ selected_game.animated_bg_url }}{% else %}{% url 'serve_local_file' %}?path={{ selected_game.animated_bg_url }}{% endif %}'); opacity: 0.25; filter: blur(15px);"></div>
         {% endif %}
     {% else %}
         <!-- CSS Animated fallback gradient background -->
-        <div class="active-bg-overlay default-animated-bg" style="position: fixed; inset: 0; z-index: -1; opacity: 0.1; pointer-events: none; background: linear-gradient(125deg, #1e1b4b, #311042, #0f172a); background-size: 400% 400%; animation: gradientBG 15s ease infinite;"></div>
+        <div class="active-bg-overlay default-animated-bg" style="position: fixed; inset: 0; z-index: -1; opacity: 0.20; pointer-events: none; background: linear-gradient(125deg, #1e1b4b, #311042, #0f172a); background-size: 400% 400%; animation: gradientBG 15s ease infinite;"></div>
     {% endif %}
 {% endif %}
 
@@ -151,12 +176,22 @@
                     </div>
                 </a>
             {% empty %}
-                <div class="bg-white border rounded-4 p-8 text-center text-slate-400">
+                <div class="glass-card rounded-4 p-8 text-center text-slate-400">
                     <i class="fas fa-gamepad text-3xl mb-2 opacity-30"></i>
                     <p class="font-mono text-xs uppercase tracking-widest">Library is empty</p>
                     <p class="font-mono text-[9px] mt-1">Add a game using the launcher tool above to configure your arcade cabin.</p>
                 </div>
             {% endfor %}
+        </div>
+
+        <!-- Steam Playtime Sync panel in Game Mode -->
+        <div class="card rounded-4 shadow-sm mt-4 p-3 glass-card">
+            <h5 class="text-[10px] uppercase font-mono tracking-widest font-bold text-slate-400 mb-2">Sync Steam Playtimes</h5>
+            <div class="d-flex gap-2">
+                <input type="text" id="steam_username_sync" class="form-control font-mono text-xs rounded-xl" placeholder="Steam ID/Custom URL" value="{{ request.session.steam_username|default:'' }}">
+                <button class="btn btn-sm btn-outline-primary rounded-xl px-3 font-bold font-mono text-xs" type="button" onclick="syncSteamPlaytimes()">Sync</button>
+            </div>
+            <div class="text-[9px] text-slate-400 font-mono mt-2">Requires public profile.</div>
         </div>
     </div>
 
@@ -164,12 +199,12 @@
     <div class="col-lg-8 col-xl-9">
         {% if selected_game %}
             <!-- Header Panel -->
-            <div class="card rounded-4 border-0 shadow-sm p-4 mb-4">
+            <div class="card rounded-4 shadow-sm p-4 mb-4 glass-card">
                 <div class="row align-items-center">
                     <div class="col-md-8 d-flex align-items-center gap-4">
                         <img src="{% if 'http://' in selected_game.cover_image_url or 'https://' in selected_game.cover_image_url %}{{ selected_game.cover_image_url }}{% else %}{% url 'serve_local_file' %}?path={{ selected_game.cover_image_url }}{% endif %}" alt="" class="rounded-3 shadow" style="width: 80px; height: 110px; object-fit: cover;">
                         <div>
-                            <h2 class="font-size-22 text-slate-800 font-bold mb-1">{{ selected_game.name }}</h2>
+                            <h2 class="font-size-22 text-slate-800 dark:text-slate-100 font-bold mb-1">{{ selected_game.name }}</h2>
                             <div class="flex items-center gap-2 flex-wrap">
                                 <span class="badge bg-purple-500/10 text-purple-600 border border-purple-200 rounded-pill px-2.5 py-1 text-[10px] font-bold">
                                     <i class="mdi mdi-clock-outline mr-1"></i>{{ selected_game.hours_played }} Hours Logged
@@ -184,9 +219,14 @@
                     </div>
                     <div class="col-md-4 text-md-end mt-3 mt-md-0 d-flex gap-2 justify-content-md-end align-items-center">
                         {% if selected_game.steam_app_id or selected_game.local_path %}
-                            <a href="{% url 'relax_launch_game' selected_game.id %}" class="btn btn-outline-primary rounded-pill px-4 py-2 font-bold font-mono text-xs uppercase tracking-widest">
-                                <i class="fas fa-play mr-1"></i> {% if selected_game.steam_app_id %}Boot Steam{% else %}Boot Local{% endif %}
-                            </a>
+                            <div class="d-flex gap-2">
+                                <button id="btn-launch-client" onclick="launchGame('{{ selected_game.id }}', '{{ selected_game.steam_app_id|default:'' }}', '{{ selected_game.local_path|default:'' }}', false)" class="btn btn-outline-primary rounded-pill px-3 py-2 font-bold font-mono text-xs uppercase tracking-widest d-none">
+                                    <i class="fas fa-desktop mr-1"></i> Boot Client
+                                </button>
+                                <button id="btn-launch-host" onclick="launchGame('{{ selected_game.id }}', '{{ selected_game.steam_app_id|default:'' }}', '{{ selected_game.local_path|default:'' }}', true)" class="btn btn-outline-primary rounded-pill px-3 py-2 font-bold font-mono text-xs uppercase tracking-widest">
+                                    <i class="fas fa-play mr-1"></i> {% if selected_game.steam_app_id %}Boot Steam{% else %}Boot Game{% endif %}
+                                </button>
+                            </div>
                         {% endif %}
 
                         <button type="button" class="btn btn-outline-warning rounded-circle p-2 flex items-center justify-center w-9 h-9" title="Edit Game" onclick="openEditGameModal()">
@@ -204,9 +244,9 @@
             </div>
 
             <!-- Tab Navigation (Guides / Videos) -->
-            <div class="card rounded-4 border-0 shadow-sm overflow-hidden">
+            <div class="card rounded-4 shadow-sm overflow-hidden glass-card">
                 <!-- Navigation tabs header -->
-                <div class="px-4 pt-3 border-b border-slate-100 bg-slate-50/50">
+                <div class="px-4 pt-3 border-b border-slate-100 dark:border-slate-800/60 bg-transparent">
                     <ul class="nav nav-tabs nav-tabs-custom nav-justified border-0" role="tablist">
                         <li class="nav-item" role="presentation">
                             <a class="nav-link active font-bold text-xs uppercase tracking-wider py-2.5" data-bs-toggle="tab" href="#guides-tab" role="tab">
@@ -426,20 +466,25 @@
                         </div>
                     </div>
 
-                    <div class="row">
-                        <div class="col-6 mb-3">
-                            <label class="form-label text-[10px] uppercase font-mono tracking-widest font-bold">Hours Played</label>
-                            <input type="number" step="0.1" name="hours_played" class="form-control rounded-xl font-mono text-xs" value="0.0">
-                        </div>
-                        <div class="col-6 mb-3">
-                            <label class="form-label text-[10px] uppercase font-mono tracking-widest font-bold">Cover Image URL</label>
-                            <input type="url" name="cover_image_url" class="form-control rounded-xl text-xs" placeholder="https://example.com/cover.jpg">
+                    <div class="mb-3">
+                        <label class="form-label text-[10px] uppercase font-mono tracking-widest font-bold">Hours Played</label>
+                        <input type="number" step="0.1" name="hours_played" class="form-control rounded-xl font-mono text-xs" value="0.0">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-[10px] uppercase font-mono tracking-widest font-bold">Cover Image URL / Local Path (Optional)</label>
+                        <div class="input-group">
+                            <input type="text" id="add_cover_image_url" name="cover_image_url" class="form-control rounded-start-xl text-xs" placeholder="https://example.com/cover.jpg or C:\games\artwork\cover.jpg">
+                            <button type="button" class="btn btn-outline-primary rounded-end-xl px-3 text-xs" onclick="openFileBrowser('add_cover_image_url')">Browse</button>
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-[10px] uppercase font-mono tracking-widest font-bold">Animated Background URL</label>
-                        <input type="url" name="animated_bg_url" class="form-control rounded-xl text-xs" placeholder="https://example.com/live_wallpaper.gif">
+                        <label class="form-label text-[10px] uppercase font-mono tracking-widest font-bold">Animated Background URL / Local Video Path (Optional)</label>
+                        <div class="input-group">
+                            <input type="text" id="add_animated_bg_url" name="animated_bg_url" class="form-control rounded-start-xl text-xs" placeholder="https://example.com/wallpaper.gif or C:\games\artwork\bg.mp4">
+                            <button type="button" class="btn btn-outline-primary rounded-end-xl px-3 text-xs" onclick="openFileBrowser('add_animated_bg_url')">Browse</button>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer border-top border-slate-100 p-4">
@@ -489,20 +534,25 @@
                         </div>
                     </div>
 
-                    <div class="row">
-                        <div class="col-6 mb-3">
-                            <label class="form-label text-[10px] uppercase font-mono tracking-widest font-bold">Hours Played</label>
-                            <input type="number" step="0.1" name="hours_played" class="form-control rounded-xl font-mono text-xs" value="{{ selected_game.hours_played }}">
-                        </div>
-                        <div class="col-6 mb-3">
-                            <label class="form-label text-[10px] uppercase font-mono tracking-widest font-bold">Cover Image URL</label>
-                            <input type="url" name="cover_image_url" class="form-control rounded-xl text-xs" value="{{ selected_game.cover_image_url|default:'' }}">
+                    <div class="mb-3">
+                        <label class="form-label text-[10px] uppercase font-mono tracking-widest font-bold">Hours Played</label>
+                        <input type="number" step="0.1" name="hours_played" class="form-control rounded-xl font-mono text-xs" value="{{ selected_game.hours_played }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-[10px] uppercase font-mono tracking-widest font-bold">Cover Image URL / Local Path (Optional)</label>
+                        <div class="input-group">
+                            <input type="text" id="edit_cover_image_url" name="cover_image_url" class="form-control rounded-start-xl text-xs" value="{{ selected_game.cover_image_url|default:'' }}">
+                            <button type="button" class="btn btn-outline-primary rounded-end-xl px-3 text-xs" onclick="openFileBrowser('edit_cover_image_url')">Browse</button>
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-[10px] uppercase font-mono tracking-widest font-bold">Animated Background URL</label>
-                        <input type="url" name="animated_bg_url" class="form-control rounded-xl text-xs" value="{{ selected_game.animated_bg_url|default:'' }}">
+                        <label class="form-label text-[10px] uppercase font-mono tracking-widest font-bold">Animated Background URL / Local Video Path (Optional)</label>
+                        <div class="input-group">
+                            <input type="text" id="edit_animated_bg_url" name="animated_bg_url" class="form-control rounded-start-xl text-xs" value="{{ selected_game.animated_bg_url|default:'' }}">
+                            <button type="button" class="btn btn-outline-primary rounded-end-xl px-3 text-xs" onclick="openFileBrowser('edit_animated_bg_url')">Browse</button>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer border-top border-slate-100 p-4">
@@ -554,6 +604,43 @@
 
 {% block extra_javascript %}
 <script>
+    // Advanced Local vs Host Launching logic for Multi-System setups
+    window.launchGame = function(gameId, steamAppId, localPath, isHostAction) {
+        const isLocalServer = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+        
+        if (isHostAction || isLocalServer) {
+            // Launch on the server host machine
+            window.location.href = `/relax/game/launch/${gameId}/`;
+        } else {
+            // Launch on the client machine
+            if (steamAppId) {
+                window.location.href = `steam://rungameid/${steamAppId}`;
+            } else if (localPath && localPath.includes(':') && !localPath.includes('\\\\') && !localPath.includes('/')) {
+                window.location.href = localPath;
+            } else {
+                // Fallback to server launch if it's a raw file path
+                window.location.href = `/relax/game/launch/${gameId}/`;
+            }
+        }
+    };
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const isLocalServer = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+        const clientBtn = document.getElementById('btn-launch-client');
+        const hostBtn = document.getElementById('btn-launch-host');
+        if (clientBtn && hostBtn) {
+            if (!isLocalServer) {
+                clientBtn.classList.remove('d-none');
+                clientBtn.classList.remove('btn-outline-primary');
+                clientBtn.classList.add('btn-primary');
+                
+                hostBtn.classList.remove('btn-outline-primary');
+                hostBtn.classList.add('btn-outline-secondary');
+                hostBtn.innerHTML = '<i class="fas fa-server mr-1"></i> Boot on Host';
+            }
+        }
+    });
+
     // Guide Reader switcher logic
     window.viewGuide = function(guideId) {
         document.querySelectorAll('.guide-content-panel').forEach(panel => {

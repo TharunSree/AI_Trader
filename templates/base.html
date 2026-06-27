@@ -59,6 +59,11 @@
             font-family: 'JetBrains Mono', monospace !important;
         }
 
+        /* Fix Tailwind and Bootstrap .collapse conflict */
+        .collapse:not(tr) {
+            visibility: visible !important;
+        }
+
         /* Mode Switch Pill style (Veltrix-compatible) */
         .mode-switch-pill {
             background-color: transparent;
@@ -165,6 +170,12 @@
 </head>
 
 <body data-sidebar="dark">
+    <script>
+        // Restore sidebar state immediately on page parse to avoid pop-in/flicker
+        if (localStorage.getItem('sidebar-collapsed') === 'true') {
+            document.body.classList.add('vertical-collpsed');
+        }
+    </script>
 
     <!-- Begin page -->
     <div id="layout-wrapper">
@@ -273,7 +284,11 @@
                             {% for g in games %}
                                 <li>
                                     <a href="?game_id={{ g.id }}" class="waves-effect {% if selected_game.id == g.id %}active{% endif %}">
-                                        <i class="mdi mdi-gamepad-variant text-purple-500"></i>
+                                        {% if g.cover_image_url %}
+                                            <img src="{% if 'http://' in g.cover_image_url or 'https://' in g.cover_image_url %}{{ g.cover_image_url }}{% else %}{% url 'serve_local_file' %}?path={{ g.cover_image_url }}{% endif %}" class="rounded-1 me-2 align-middle shadow-sm" style="width: 16px; height: 22px; object-fit: cover; border: 1px solid rgba(128,128,128,0.15); margin-top: -3px; display: inline-block;">
+                                        {% else %}
+                                            <i class="mdi mdi-gamepad-variant text-purple-500"></i>
+                                        {% endif %}
                                         <span class="{% if selected_game.id == g.id %}font-bold text-purple-700{% endif %}">{{ g.name }}</span>
                                     </a>
                                 </li>
@@ -287,15 +302,7 @@
                                 </button>
                             </li>
                             
-                            <!-- Steam Playtime Sync panel in sidebar -->
-                            <li class="mt-4 px-3 border-top border-slate-200 dark:border-slate-800 pt-3">
-                                <label class="form-label text-[9px] uppercase font-mono tracking-widest font-bold text-slate-400">Sync Steam Playtimes</label>
-                                <div class="input-group input-group-sm mb-1">
-                                    <input type="text" id="steam_username_sync" class="form-control font-mono text-[10px]" placeholder="Steam ID/Custom URL" value="{{ request.session.steam_username|default:'' }}">
-                                    <button class="btn btn-sm btn-outline-primary py-0.5 px-2 text-[10px]" type="button" onclick="syncSteamPlaytimes()">Sync</button>
-                                </div>
-                                <div class="text-[8px] text-muted font-mono">Requires public profile.</div>
-                            </li>
+
                         {% else %}
                             <li class="menu-title">Main Control</li>
                             <li>
@@ -769,6 +776,17 @@
                 localStorage.setItem('color-theme', 'dark');
             }
         });
+
+        // Save Sidebar Collapsed State on Toggle click
+        var verticalMenuBtn = document.getElementById('vertical-menu-btn');
+        if (verticalMenuBtn) {
+            verticalMenuBtn.addEventListener('click', function() {
+                setTimeout(function() {
+                    var isCollapsed = document.body.classList.contains('vertical-collpsed');
+                    localStorage.setItem('sidebar-collapsed', isCollapsed ? 'true' : 'false');
+                }, 100);
+            });
+        }
 
         // Check system updates badge
         const updateBadge = document.getElementById('update-badge');

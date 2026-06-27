@@ -6,6 +6,150 @@
 
 {% block extra_head %}
 <style>
+    .neural-cortex-page,
+    .neural-cortex-page * {
+        box-sizing: border-box;
+    }
+
+    .neural-cortex-page .grid { display: grid; }
+    .neural-cortex-page .flex { display: flex; }
+    .neural-cortex-page .inline { display: inline; }
+    .neural-cortex-page .hidden { display: none !important; }
+    .neural-cortex-page .flex-col { flex-direction: column; }
+    .neural-cortex-page .flex-wrap { flex-wrap: wrap; }
+    .neural-cortex-page .flex-1 { flex: 1 1 0%; }
+    .neural-cortex-page .flex-grow-1 { flex-grow: 1; }
+    .neural-cortex-page .items-center { align-items: center; }
+    .neural-cortex-page .items-start { align-items: flex-start; }
+    .neural-cortex-page .justify-between { justify-content: space-between; }
+    .neural-cortex-page .justify-center { justify-content: center; }
+    .neural-cortex-page .gap-1\.5 { gap: .375rem; }
+    .neural-cortex-page .gap-2 { gap: .5rem; }
+    .neural-cortex-page .gap-3 { gap: .75rem; }
+    .neural-cortex-page .gap-4 { gap: 1rem; }
+    .neural-cortex-page .gap-6 { gap: 1.5rem; }
+    .neural-cortex-page .space-y-1\.5 > * + * { margin-top: .375rem; }
+    .neural-cortex-page .space-y-2\.5 > * + * { margin-top: .625rem; }
+    .neural-cortex-page .space-y-3 > * + * { margin-top: .75rem; }
+    .neural-cortex-page .space-y-4 > * + * { margin-top: 1rem; }
+    .neural-cortex-page .space-y-6 > * + * { margin-top: 1.5rem; }
+    .neural-cortex-page .grid-cols-1 { grid-template-columns: minmax(0, 1fr); }
+    .neural-cortex-page .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .neural-cortex-page .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .neural-cortex-page .w-full { width: 100%; }
+    .neural-cortex-page .w-3 { width: .75rem; }
+    .neural-cortex-page .h-3 { height: .75rem; }
+    .neural-cortex-page .w-16 { width: 4rem; }
+    .neural-cortex-page .w-32 { width: 8rem; }
+    .neural-cortex-page .h-2 { height: .5rem; }
+    .neural-cortex-page .h-\[120px\] { height: 120px; }
+    .neural-cortex-page .h-\[400px\] { height: 400px; }
+    .neural-cortex-page .h-\[600px\] { height: 600px; }
+    .neural-cortex-page .min-w-\[1000px\] { min-width: 1000px; }
+    .neural-cortex-page .min-h-\[220px\] { min-height: 220px; }
+    .neural-cortex-page .max-h-\[50px\] { max-height: 50px; }
+    .neural-cortex-page .max-h-\[350px\] { max-height: 350px; }
+    .neural-cortex-page .max-h-60 { max-height: 15rem; }
+    .neural-cortex-page .overflow-hidden { overflow: hidden; }
+    .neural-cortex-page .overflow-x-auto { overflow-x: auto; }
+    .neural-cortex-page .overflow-y-auto { overflow-y: auto; }
+    .neural-cortex-page .relative { position: relative; }
+    .neural-cortex-page .absolute { position: absolute; }
+    .neural-cortex-page .top-0 { top: 0; }
+    .neural-cortex-page .right-2 { right: .5rem; }
+    .neural-cortex-page .left-2 { left: .5rem; }
+    .neural-cortex-page .bottom-1 { bottom: .25rem; }
+    .neural-cortex-page .left-1\/2 { left: 50%; }
+    .neural-cortex-page .transform { transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)); }
+    .neural-cortex-page .-translate-x-1\/2 { --tw-translate-x: -50%; }
+    .neural-cortex-page .rounded { border-radius: .25rem; }
+    .neural-cortex-page .rounded-lg { border-radius: .5rem; }
+    .neural-cortex-page .rounded-xl { border-radius: .75rem; }
+    .neural-cortex-page .rounded-full { border-radius: 9999px; }
+    .neural-cortex-page .p-2 { padding: .5rem; }
+    .neural-cortex-page .p-2\.5 { padding: .625rem; }
+    .neural-cortex-page .p-3 { padding: .75rem; }
+    .neural-cortex-page .p-4 { padding: 1rem; }
+    .neural-cortex-page .p-5 { padding: 1.25rem; }
+    .neural-cortex-page .px-2 { padding-left: .5rem; padding-right: .5rem; }
+    .neural-cortex-page .px-3 { padding-left: .75rem; padding-right: .75rem; }
+    .neural-cortex-page .px-4 { padding-left: 1rem; padding-right: 1rem; }
+    .neural-cortex-page .py-1 { padding-top: .25rem; padding-bottom: .25rem; }
+    .neural-cortex-page .py-1\.5 { padding-top: .375rem; padding-bottom: .375rem; }
+    .neural-cortex-page .py-2 { padding-top: .5rem; padding-bottom: .5rem; }
+    .neural-cortex-page .pt-2 { padding-top: .5rem; }
+    .neural-cortex-page .pt-2\.5 { padding-top: .625rem; }
+    .neural-cortex-page .pt-3 { padding-top: .75rem; }
+    .neural-cortex-page .pb-2 { padding-bottom: .5rem; }
+    .neural-cortex-page .pb-3 { padding-bottom: .75rem; }
+    .neural-cortex-page .mt-1 { margin-top: .25rem; }
+    .neural-cortex-page .mt-2 { margin-top: .5rem; }
+    .neural-cortex-page .mt-3\.5 { margin-top: .875rem; }
+    .neural-cortex-page .mt-4 { margin-top: 1rem; }
+    .neural-cortex-page .mb-0 { margin-bottom: 0; }
+    .neural-cortex-page .mb-1 { margin-bottom: .25rem; }
+    .neural-cortex-page .mb-1\.5 { margin-bottom: .375rem; }
+    .neural-cortex-page .mb-3 { margin-bottom: .75rem; }
+    .neural-cortex-page .mb-4 { margin-bottom: 1rem; }
+    .neural-cortex-page .m-0 { margin: 0; }
+    .neural-cortex-page .text-center { text-align: center; }
+    .neural-cortex-page .text-xs { font-size: .75rem; }
+    .neural-cortex-page .text-sm { font-size: .875rem; }
+    .neural-cortex-page .text-\[8px\] { font-size: 8px; }
+    .neural-cortex-page .text-\[9px\] { font-size: 9px; }
+    .neural-cortex-page .text-\[10px\] { font-size: 10px; }
+    .neural-cortex-page .text-\[11px\] { font-size: 11px; }
+    .neural-cortex-page .leading-normal { line-height: 1.5; }
+    .neural-cortex-page .leading-relaxed { line-height: 1.625; }
+    .neural-cortex-page .uppercase { text-transform: uppercase; }
+    .neural-cortex-page .tracking-wide { letter-spacing: .025em; }
+    .neural-cortex-page .tracking-wider { letter-spacing: .05em; }
+    .neural-cortex-page .tracking-widest { letter-spacing: .1em; }
+    .neural-cortex-page .font-bold { font-weight: 700; }
+    .neural-cortex-page .outline-none { outline: 2px solid transparent; outline-offset: 2px; }
+    .neural-cortex-page .cursor-pointer { cursor: pointer; }
+
+    @media (min-width: 640px) {
+        .neural-cortex-page .sm\:flex-row { flex-direction: row; }
+        .neural-cortex-page .sm\:align-items-center { align-items: center; }
+    }
+
+    @media (min-width: 768px) {
+        .neural-cortex-page .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+
+    @media (min-width: 992px) {
+        .neural-cortex-page .lg\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+        .neural-cortex-page .lg\:col-span-2 { grid-column: span 2 / span 2; }
+        .neural-cortex-page .lg\:col-span-3 { grid-column: span 3 / span 3; }
+    }
+
+    @media (min-width: 1200px) {
+        .neural-cortex-page .xl\:grid-cols-3 { grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr); }
+        .neural-cortex-page .xl\:col-span-2 { grid-column: span 1 / span 1; }
+    }
+
+    .neural-cortex-page .card {
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .neural-cortex-page #neural-svg,
+    .neural-cortex-page #dist-canvas {
+        display: block;
+    }
+
+    .neural-cortex-page .cortex-guide-grid > div,
+    .neural-cortex-page #detail-reason,
+    .neural-cortex-page #layer-explanation {
+        overflow-wrap: anywhere;
+    }
+
+    .neural-cortex-page .cortex-guide-grid p {
+        margin-bottom: 0;
+        line-height: 1.65;
+    }
+
     /* Modern neon-glass styling */
     .glass-panel {
         background: rgba(30, 41, 59, 0.4);
@@ -102,7 +246,7 @@
 {% endblock extra_head %}
 
 {% block page_content %}
-<div class="space-y-6">
+<div class="neural-cortex-page space-y-6">
     
     <!-- Top Header & Custom Bot Selector -->
     <div class="card">
@@ -202,12 +346,13 @@
             <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-rose-500"></div> Critic Output (PnL Estimate)</div>
         </div>
     </div>
+    </div>
 
     <!-- Main Grid Layout -->
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <div class="row">
         
         <!-- Left + Center: Weight Inspector (2 Columns) -->
-        <div class="xl:col-span-2 space-y-6">
+        <div class="col-xl-8 space-y-6">
             
             <!-- 2. Weight Heatmap Matrix & Interactive Controller -->
             <div class="card mb-4">
@@ -241,23 +386,24 @@
                     </div>
 
                 <!-- Main Weight Panel: Heatmap/Distribution (left) + Weight details (right) -->
-                <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                <div class="row">
                     
                     <!-- Heatmap Grid or Curve Distribution -->
-                    <div class="lg:col-span-3 space-y-4">
+                    <div class="col-lg-7 mb-4 mb-lg-0 space-y-4">
+                        <!-- Stats Header Row -->
                         <!-- Stats Header Row -->
                         <div class="grid grid-cols-3 gap-2 bg-slate-100 dark:bg-slate-950/80 p-3 rounded-lg border border-slate-200 dark:border-slate-900 font-mono text-[10px] text-slate-600 dark:text-slate-400">
-                            <div>Shape: <span class="text-slate-200" id="stat-shape">-</span></div>
-                            <div>Mean Diff: <span class="text-cyan-400" id="stat-diff">-</span></div>
-                            <div>Mean Abs: <span class="text-slate-200" id="stat-mean">-</span></div>
+                            <div>Shape: <span class="text-slate-800 dark:text-slate-200" id="stat-shape">-</span></div>
+                            <div>Mean Diff: <span class="text-cyan-600 dark:text-cyan-400" id="stat-diff">-</span></div>
+                            <div>Mean Abs: <span class="text-slate-800 dark:text-slate-200" id="stat-mean">-</span></div>
                         </div>
 
                         <!-- View Selector Tabs -->
-                        <div class="flex border-b border-slate-900 text-[10px] font-mono">
-                            <button type="button" id="tab-btn-analytics" onclick="setWeightViewMode('analytics')" class="px-4 py-2 border-b-2 border-cyan-500 text-cyan-400 font-bold transition-all focus:outline-none cursor-pointer">
+                        <div class="flex border-b border-slate-200 dark:border-slate-900 text-[10px] font-mono">
+                            <button type="button" id="tab-btn-analytics" onclick="setWeightViewMode('analytics')" class="px-4 py-2 border-b-2 border-cyan-500 text-cyan-600 dark:text-cyan-400 font-bold transition-all focus:outline-none cursor-pointer">
                                 <i class="fas fa-chart-line mr-1"></i> Analytics & Distribution
                             </button>
-                            <button type="button" id="tab-btn-heatmap" onclick="setWeightViewMode('heatmap')" class="px-4 py-2 text-slate-400 hover:text-slate-200 transition-all focus:outline-none cursor-pointer">
+                            <button type="button" id="tab-btn-heatmap" onclick="setWeightViewMode('heatmap')" class="px-4 py-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-all focus:outline-none cursor-pointer">
                                 <i class="fas fa-th mr-1"></i> Matrix Heatmap Grid
                             </button>
                         </div>
@@ -281,14 +427,14 @@
                                 </div>
                                 
                                 <!-- Leaderboard list -->
-                                <div class="grid grid-cols-2 gap-4 pt-2 border-t border-slate-900 text-[10px] font-mono">
+                                <div class="grid grid-cols-2 gap-4 pt-2 border-t border-slate-200 dark:border-slate-900 text-[10px] font-mono">
                                     <div>
-                                        <div class="text-rose-400 font-bold mb-1 uppercase tracking-wide">Top 3 Strongest Bullish (+)</div>
+                                        <div class="text-rose-600 dark:text-rose-400 font-bold mb-1 uppercase tracking-wide">Top 3 Strongest Bullish (+)</div>
                                         <div class="text-[8px] text-slate-500 mb-1.5 leading-normal">pathways triggering BUY/LONG decisions most heavily</div>
                                         <div id="top-pos-synapses" class="space-y-1.5"></div>
                                     </div>
                                     <div>
-                                        <div class="text-blue-400 font-bold mb-1 uppercase tracking-wide">Top 3 Strongest Bearish (-)</div>
+                                        <div class="text-blue-600 dark:text-blue-400 font-bold mb-1 uppercase tracking-wide">Top 3 Strongest Bearish (-)</div>
                                         <div class="text-[8px] text-slate-500 mb-1.5 leading-normal">pathways triggering SELL/SHORT decisions most heavily</div>
                                         <div id="top-neg-synapses" class="space-y-1.5"></div>
                                     </div>
@@ -305,7 +451,7 @@
 
                         <!-- Target Synapse Selector Card -->
                         <div id="large-layer-search" class="bg-slate-55 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-200 dark:border-slate-800/80 font-mono text-[10px] space-y-3">
-                            <div class="text-[11px] font-bold text-slate-300 uppercase flex items-center gap-1.5">
+                            <div class="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase flex items-center gap-1.5">
                                 <i class="fas fa-crosshairs text-cyan-400"></i> Target Coordinate Finder
                             </div>
                             <p class="text-slate-400 leading-normal">
@@ -330,34 +476,34 @@
 
                         <!-- 🎓 Compact Synaptic Weight Guide -->
                         <div class="bg-slate-55 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-200 dark:border-slate-800/80 font-mono text-[9px] text-slate-600 dark:text-slate-400 space-y-2.5">
-                            <div class="text-[10px] font-bold text-slate-200 uppercase flex items-center gap-1.5">
+                            <div class="text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase flex items-center gap-1.5">
                                 <i class="fas fa-info-circle text-cyan-400"></i> Synaptic Weight Quick Guide
                             </div>
                             <div class="grid grid-cols-2 gap-3 leading-normal">
                                 <div>
-                                    <span class="text-slate-350 font-bold uppercase">Color coding:</span>
-                                    <br/>• <span class="text-rose-400 font-bold">Rose (+)</span>: Bullish trigger (Favor BUY)
-                                    <br/>• <span class="text-blue-400 font-bold">Blue (-)</span>: Bearish trigger (Favor SELL)
+                                    <span class="text-slate-600 dark:text-slate-400 font-bold uppercase">Color coding:</span>
+                                    <br/>• <span class="text-rose-600 dark:text-rose-400 font-bold">Rose (+)</span>: Bullish trigger (Favor BUY)
+                                    <br/>• <span class="text-blue-600 dark:text-blue-400 font-bold">Blue (-)</span>: Bearish trigger (Favor SELL)
                                     <br/>• <span class="text-slate-500">Dark (0)</span>: Inactive connection
                                 </div>
                                 <div>
-                                    <span class="text-slate-350 font-bold uppercase">Coordinates Shape:</span>
+                                    <span class="text-slate-600 dark:text-slate-400 font-bold uppercase">Coordinates Shape:</span>
                                     <br/>• <strong>Row</strong>: Destination Neuron
                                     <br/>• <strong>Column</strong>: Source Input/Neuron
                                     <br/>• <strong>Delta</strong>: Adaptive online change
                                 </div>
                             </div>
-                            <div class="border-t border-slate-800/50 pt-2 text-[8px] text-slate-550 leading-normal">
+                            <div class="border-t border-slate-200 dark:border-slate-800/50 pt-2 text-[8px] text-slate-500 dark:text-slate-550 leading-normal">
                                 To adjust manually: Enter ROW/COL indices, click <strong>Find & Load Weight</strong>, input a new value with a reason, and confirm.
                             </div>
                         </div>
                     </div>
 
                     <!-- Selected weight inspector card + Layer explanations -->
-                    <div class="lg:col-span-2 d-flex flex-column justify-content-between">
+                    <div class="col-lg-5 d-flex flex-column justify-content-between">
                         <div class="card border border-secondary-subtle rounded-3 p-3 flex-grow-1 d-flex flex-column justify-content-between gap-3">
                             <div>
-                                <h4 class="card-title font-mono tracking-widest uppercase mb-0 pb-2 border-b border-slate-800 d-flex justify-content-between align-items-center">
+                                <h4 class="card-title font-mono tracking-widest uppercase mb-0 pb-2 border-b border-slate-200 dark:border-slate-800 d-flex justify-content-between align-items-center">
                                     <span>Weight Detail Inspector</span>
                                     <span class="badge bg-dark text-slate-400 font-mono" id="selected-index">No cell selected</span>
                                 </h4>
@@ -365,26 +511,26 @@
                                 <div class="mt-3.5 space-y-3 font-mono text-xs">
                                     <!-- High-Density Weight Comparison Box -->
                                     <div class="grid grid-cols-3 gap-2">
-                                        <div class="bg-slate-900/60 p-2 rounded border border-slate-800 text-center">
+                                        <div class="bg-slate-50 dark:bg-slate-900/60 p-2 rounded border border-slate-200 dark:border-slate-800 text-center">
                                             <div class="text-[8px] text-slate-500 mb-0.5 uppercase">Previous</div>
-                                            <div class="text-xs text-slate-400 font-bold" id="detail-prev">-</div>
+                                            <div class="text-xs text-slate-650 dark:text-slate-400 font-bold" id="detail-prev">-</div>
                                         </div>
-                                        <div class="bg-slate-900/60 p-2 rounded border border-slate-800 text-center ring-1 ring-cyan-500/20">
-                                            <div class="text-[8px] text-cyan-400 mb-0.5 uppercase">Current</div>
-                                            <div class="text-xs text-cyan-400 font-bold" id="detail-curr">-</div>
+                                        <div class="bg-slate-50 dark:bg-slate-900/60 p-2 rounded border border-slate-200 dark:border-slate-800 text-center ring-1 ring-cyan-500/20">
+                                            <div class="text-[8px] text-cyan-600 dark:text-cyan-400 mb-0.5 uppercase">Current</div>
+                                            <div class="text-xs text-cyan-600 dark:text-cyan-400 font-bold" id="detail-curr">-</div>
                                         </div>
-                                        <div class="bg-slate-900/60 p-2 rounded border border-slate-800 text-center">
-                                            <div class="text-[8px] text-slate-550 mb-0.5 uppercase">Delta</div>
-                                            <div class="text-xs font-bold" id="detail-delta">-</div>
+                                        <div class="bg-slate-50 dark:bg-slate-900/60 p-2 rounded border border-slate-200 dark:border-slate-800 text-center">
+                                            <div class="text-[8px] text-slate-500 dark:text-slate-550 mb-0.5 uppercase">Delta</div>
+                                            <div class="text-xs text-slate-750 dark:text-slate-200 font-bold" id="detail-delta">-</div>
                                         </div>
                                     </div>
 
                                     <!-- Reason for last weight modification -->
                                     <div class="bg-slate-100 dark:bg-slate-950/80 p-2.5 rounded border border-slate-200 dark:border-slate-900">
-                                        <div class="text-[8px] text-slate-400 font-bold uppercase mb-0.5 flex items-center gap-1.5">
-                                            <i class="fas fa-comment-alt text-cyan-400"></i> Modification Reason
+                                        <div class="text-[8px] text-slate-500 dark:text-slate-400 font-bold uppercase mb-0.5 flex items-center gap-1.5">
+                                            <i class="fas fa-comment-alt text-cyan-600 dark:text-cyan-400"></i> Modification Reason
                                         </div>
-                                        <p class="text-[9px] text-slate-300 leading-normal custom-scroll max-h-[50px] overflow-y-auto" id="detail-reason">
+                                        <p class="text-[9px] text-slate-650 dark:text-slate-300 leading-normal custom-scroll max-h-[50px] overflow-y-auto" id="detail-reason">
                                             Select a weight cell to inspect its specific reinforcement adjustment explanation.
                                         </p>
                                     </div>
@@ -413,9 +559,10 @@
             </div>
             
         </div>
+        </div>
 
         <!-- Right Side: Stats Panel & Live Logs (1 Column) -->
-        <div class="space-y-6">
+        <div class="col-xl-4 space-y-6">
             
             <!-- 1. Stats Dashboard -->
             <div class="card mb-4">
@@ -428,41 +575,41 @@
                             <div class="relative w-16 h-16 flex items-center justify-center">
                                 <!-- Circular SVG -->
                                 <svg class="absolute inset-0 w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                                    <path class="text-slate-800" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                    <path class="text-slate-200 dark:text-slate-800" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                                     <path id="win-rate-ring" class="text-cyan-500 transition-all duration-1000" stroke-dasharray="0, 100" stroke-width="3" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                                 </svg>
-                                <span class="text-xs font-mono font-bold text-slate-200" id="stat-win-rate">0.0%</span>
+                                <span class="text-xs font-mono font-bold text-slate-800 dark:text-slate-200" id="stat-win-rate">0.0%</span>
                             </div>
                             <span class="text-[9px] font-mono text-slate-400 mt-2 uppercase">Win Rate</span>
                         </div>
-
+ 
                         <!-- Avg Reward -->
                         <div class="bg-slate-100/50 dark:bg-slate-950/40 p-4 rounded-xl border border-slate-200 dark:border-slate-900 flex flex-col items-center justify-center text-center font-mono">
-                            <span class="text-sm font-bold text-emerald-400" id="stat-avg-reward">+0.0000</span>
+                            <span class="text-sm font-bold text-emerald-600 dark:text-emerald-400" id="stat-avg-reward">+0.0000</span>
                             <span class="text-[9px] text-slate-400 mt-2 uppercase">Avg PnL Reward</span>
-                            <div class="w-full mt-2 h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-900">
+                            <div class="w-full mt-2 h-1.5 bg-slate-200 dark:bg-slate-950 rounded-full overflow-hidden border border-slate-300 dark:border-slate-900">
                                 <div id="reward-bar" class="h-full bg-emerald-500" style="width: 0%"></div>
                             </div>
                         </div>
                     </div>
-
+ 
                     <!-- Linear stats checklist -->
                     <div class="space-y-3 font-mono text-xs">
-                        <div class="flex justify-between items-center border-b border-slate-900 pb-2">
+                        <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-900 pb-2">
                             <span class="text-slate-400">Total Steps Run:</span>
-                            <span class="text-slate-200 font-bold" id="stat-steps">0</span>
+                            <span class="text-slate-800 dark:text-slate-200 font-bold" id="stat-steps">0</span>
                         </div>
-                        <div class="flex justify-between items-center border-b border-slate-900 pb-2">
+                        <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-900 pb-2">
                             <span class="text-slate-400">Wins / Losses:</span>
-                            <span class="text-slate-200"><span class="text-emerald-400 font-bold" id="stat-wins">0</span> / <span class="text-red-400 font-bold" id="stat-losses">0</span></span>
+                            <span class="text-slate-800 dark:text-slate-200"><span class="text-emerald-600 dark:text-emerald-400 font-bold" id="stat-wins">0</span> / <span class="text-rose-600 dark:text-rose-400 font-bold" id="stat-losses">0</span></span>
                         </div>
-                        <div class="flex justify-between items-center border-b border-slate-900 pb-2">
+                        <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-900 pb-2">
                             <span class="text-slate-400">System CPU:</span>
-                            <span class="text-slate-200 font-bold" id="stat-cpu">0.0%</span>
+                            <span class="text-slate-800 dark:text-slate-200 font-bold" id="stat-cpu">0.0%</span>
                         </div>
-                        <div class="flex justify-between items-center border-b border-slate-900 pb-2">
+                        <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-900 pb-2">
                             <span class="text-slate-400">System RAM:</span>
-                            <span class="text-slate-200 font-bold" id="stat-mem">0.0%</span>
+                            <span class="text-slate-800 dark:text-slate-200 font-bold" id="stat-mem">0.0%</span>
                         </div>
                     </div>
                 </div>
@@ -496,7 +643,7 @@
                 <i class="fas fa-graduation-cap text-cyan-400 mr-2"></i> PPO Learning & Weights Guide
             </h2>
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 font-mono text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+            <div class="cortex-guide-grid grid grid-cols-1 md:grid-cols-3 gap-6 font-mono text-xs leading-relaxed text-slate-600 dark:text-slate-400">
                 <div class="bg-slate-100/50 dark:bg-slate-950/40 p-5 rounded-xl border border-slate-200 dark:border-slate-900/60">
                     <h4 class="text-slate-800 dark:text-slate-200 font-bold mb-3 uppercase flex items-center gap-2"><div class="w-1.5 h-1.5 bg-cyan-500 rounded-full"></div> 1. Neural Inputs (Sensory Core)</h4>
                     <p>
@@ -524,31 +671,31 @@
 <div id="edit-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm">
     <div class="card w-full max-w-md mx-4 shadow-2xl p-3 relative">
         <div class="card-body">
-            <h3 class="card-title font-mono tracking-widest uppercase pb-3 border-b border-slate-800 mb-4 d-flex align-items-center gap-2">
-                <i class="fas fa-sliders-h text-cyan-400"></i> Edit Neural Parameter
+            <h3 class="card-title font-mono tracking-widest uppercase pb-3 border-b border-slate-200 dark:border-slate-800 mb-4 d-flex align-items-center gap-2">
+                <i class="fas fa-sliders-h text-cyan-500 dark:text-cyan-400"></i> Edit Neural Parameter
             </h3>
 
             <!-- Form fields -->
             <div class="space-y-4 font-mono text-xs">
                 <div>
                     <label class="text-slate-400 block mb-1">Parameter Key</label>
-                    <input type="text" id="modal-layer-name" readonly class="w-full bg-slate-900 border border-slate-800 text-slate-300 px-3 py-2 rounded outline-none" />
+                    <input type="text" id="modal-layer-name" readonly class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 px-3 py-2 rounded outline-none" />
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="text-slate-400 block mb-1">Current Weight</label>
-                        <input type="text" id="modal-curr-val" readonly class="w-full bg-slate-900 border border-slate-800 text-slate-500 px-3 py-2 rounded outline-none" />
+                        <input type="text" id="modal-curr-val" readonly class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-550 px-3 py-2 rounded outline-none" />
                     </div>
                     <div>
-                        <label class="text-cyan-400 block mb-1">New Value</label>
-                        <input type="number" step="0.0001" id="modal-new-val" class="w-full bg-slate-955 border border-slate-800 focus:border-cyan-500 text-cyan-400 px-3 py-2 rounded outline-none" />
+                        <label class="text-cyan-600 dark:text-cyan-400 block mb-1">New Value</label>
+                        <input type="number" step="0.0001" id="modal-new-val" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-cyan-500 text-cyan-600 dark:text-cyan-400 px-3 py-2 rounded outline-none" />
                     </div>
                 </div>
 
                 <div>
                     <label class="text-slate-400 block mb-1">Reason for Weight Change <span class="text-red-500">*</span></label>
-                    <textarea id="modal-reason" placeholder="e.g. Fine-tuning first layer bias to balance long bias action variance..." rows="3" required class="w-full bg-slate-955 border border-slate-800 focus:border-cyan-500 text-slate-200 px-3 py-2 rounded outline-none resize-none"></textarea>
+                    <textarea id="modal-reason" placeholder="e.g. Fine-tuning first layer bias to balance long bias action variance..." rows="3" required class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-cyan-500 text-slate-800 dark:text-slate-200 px-3 py-2 rounded outline-none resize-none"></textarea>
                 </div>
                 
                 <div id="modal-warning" class="hidden p-3 bg-rose-500/10 border border-rose-500/30 rounded text-[10px] text-rose-400 leading-normal">

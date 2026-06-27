@@ -3,8 +3,110 @@
 
 {% block page_title %}Neural Decision Flow Analyzer - AI Trader{% endblock %}
 
-{% block extra_css %}
+{% block extra_head %}
 <style>
+    .decision-flow-page,
+    .decision-flow-page * {
+        box-sizing: border-box;
+    }
+
+    .decision-flow-page .grid { display: grid; }
+    .decision-flow-page .flex { display: flex; }
+    .decision-flow-page .flex-col { flex-direction: column; }
+    .decision-flow-page .flex-wrap { flex-wrap: wrap; }
+    .decision-flow-page .items-start { align-items: flex-start; }
+    .decision-flow-page .items-center { align-items: center; }
+    .decision-flow-page .justify-between { justify-content: space-between; }
+    .decision-flow-page .justify-center { justify-content: center; }
+    .decision-flow-page .gap-1\.5 { gap: .375rem; }
+    .decision-flow-page .gap-2 { gap: .5rem; }
+    .decision-flow-page .gap-3 { gap: .75rem; }
+    .decision-flow-page .gap-4 { gap: 1rem; }
+    .decision-flow-page .gap-6 { gap: 1.5rem; }
+    .decision-flow-page .space-y-1 > * + * { margin-top: .25rem; }
+    .decision-flow-page .space-y-2\.5 > * + * { margin-top: .625rem; }
+    .decision-flow-page .space-y-3 > * + * { margin-top: .75rem; }
+    .decision-flow-page .space-y-4 > * + * { margin-top: 1rem; }
+    .decision-flow-page .space-y-6 > * + * { margin-top: 1.5rem; }
+    .decision-flow-page .grid-cols-1 { grid-template-columns: minmax(0, 1fr); }
+    .decision-flow-page .w-full { width: 100%; }
+    .decision-flow-page .h-full { height: 100%; }
+    .decision-flow-page .min-w-\[240px\] { min-width: 240px; }
+    .decision-flow-page .min-w-\[700px\] { min-width: 700px; }
+    .decision-flow-page .min-h-\[460px\] { min-height: 460px; }
+    .decision-flow-page .min-h-\[560px\] { min-height: 560px; }
+    .decision-flow-page .max-h-\[220px\] { max-height: 220px; }
+    .decision-flow-page .overflow-x-auto { overflow-x: auto; }
+    .decision-flow-page .overflow-y-auto { overflow-y: auto; }
+    .decision-flow-page .select-none { user-select: none; }
+    .decision-flow-page .border-collapse { border-collapse: collapse; }
+    .decision-flow-page .text-left { text-align: left; }
+    .decision-flow-page .text-right { text-align: right; }
+    .decision-flow-page .leading-relaxed { line-height: 1.625; }
+    .decision-flow-page .leading-normal { line-height: 1.5; }
+    .decision-flow-page .uppercase { text-transform: uppercase; }
+    .decision-flow-page .tracking-wider { letter-spacing: .05em; }
+    .decision-flow-page .tracking-widest { letter-spacing: .1em; }
+    .decision-flow-page .font-bold { font-weight: 700; }
+    .decision-flow-page .rounded-full { border-radius: 9999px; }
+    .decision-flow-page .rounded { border-radius: .25rem; }
+    .decision-flow-page .relative { position: relative; }
+    .decision-flow-page .w-1\.5 { width: .375rem; }
+    .decision-flow-page .h-1\.5 { height: .375rem; }
+    .decision-flow-page .w-2 { width: .5rem; }
+    .decision-flow-page .h-2 { height: .5rem; }
+    .decision-flow-page .w-2\.5 { width: .625rem; }
+    .decision-flow-page .h-2\.5 { height: .625rem; }
+    .decision-flow-page .p-3 { padding: 1rem; }
+    .decision-flow-page .px-2\.5 { padding-left: .625rem; padding-right: .625rem; }
+    .decision-flow-page .py-1 { padding-top: .25rem; padding-bottom: .25rem; }
+    .decision-flow-page .py-1\.5 { padding-top: .375rem; padding-bottom: .375rem; }
+    .decision-flow-page .py-2\.5 { padding-top: .625rem; padding-bottom: .625rem; }
+    .decision-flow-page .pb-3 { padding-bottom: 1rem; }
+    .decision-flow-page .pt-3 { padding-top: 1rem; }
+    .decision-flow-page .my-3 { margin-top: 1rem; margin-bottom: 1rem; }
+    .decision-flow-page .mt-1 { margin-top: .25rem; }
+    .decision-flow-page .mb-0 { margin-bottom: 0; }
+
+    @media (min-width: 768px) {
+        .decision-flow-page .md\:flex-row { flex-direction: row; }
+        .decision-flow-page .md\:items-center { align-items: center; }
+    }
+
+    @media (min-width: 992px) {
+        .decision-flow-page .lg\:grid-cols-3 { grid-template-columns: minmax(0, 2fr) minmax(290px, 1fr); }
+        .decision-flow-page .lg\:col-span-2 { grid-column: span 1 / span 1; }
+    }
+
+    .decision-flow-page .flow-shell {
+        align-items: stretch;
+    }
+
+    .decision-flow-page .decision-main-grid {
+        width: 100%;
+        align-items: start;
+    }
+
+    .decision-flow-page .decision-side-panel {
+        min-width: 0;
+    }
+
+    .decision-flow-page .card {
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .decision-flow-page #decision-canvas {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .decision-flow-page #narrative-log,
+    .decision-flow-page #tips-container,
+    .decision-flow-page table {
+        overflow-wrap: anywhere;
+    }
     
     /* Neon range slider styling */
     input[type="range"] {
@@ -72,13 +174,13 @@
         filter: drop-shadow(0 0 10px rgba(6, 182, 212, 0.85));
     }
 </style>
-{% endblock extra_css %}
+{% endblock extra_head %}
 
 {% block page_content %}
 {% csrf_token %}
-<div class="space-y-6">
+<div class="decision-flow-page space-y-6">
     <!-- Top Action bar with bot selection -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div class="flow-shell flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
             <h1 class="text-xl font-mono font-bold text-slate-100 uppercase tracking-wider flex items-center gap-2">
                 <i class="fas fa-microchip text-cyan-400"></i> Neural Decision Flow Analyzer
@@ -128,9 +230,10 @@
                 </a>
             </div>
         </div>
+    </div>
 
     <!-- Main Content Layout -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="decision-main-grid grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         <!-- Left Side: Visualizer Canvas (Col-span 2) -->
         <div class="lg:col-span-2 flex flex-col gap-4">
@@ -161,7 +264,7 @@
         </div>
 
         <!-- Right Side: Sandbox Controls & Translators -->
-        <div class="space-y-6">
+        <div class="decision-side-panel space-y-6">
             
             <!-- Sandbox Sliders Panel -->
             <div class="card mb-4">
