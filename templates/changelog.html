@@ -16,7 +16,7 @@
             </div>
             <div class="flex items-center gap-2 font-mono text-[10px] font-bold">
                 <span class="px-2.5 py-1 rounded bg-brand-500/10 text-brand-500 border border-brand-500/20">Current: {{ current_version }}</span>
-                <span class="text-slate-500 font-normal">Updated June 10, 2026</span>
+                <span class="text-slate-500 font-normal">Updated {{ last_updated_date }}</span>
             </div>
         </div>
         
@@ -41,6 +41,12 @@
                 grid-template-columns: 2.1fr 0.9fr;
             }
         }
+        /* Define missing brand utilities to fix empty/transparent elements */
+        .bg-brand-500 { background-color: #3b82f6 !important; }
+        .text-brand-500 { color: #3b82f6 !important; }
+        .border-brand-500\/20 { border-color: rgba(59, 130, 246, 0.2) !important; }
+        .bg-brand-500\/10 { background-color: rgba(59, 130, 246, 0.1) !important; }
+        .hover\:border-brand-500\/40:hover { border-color: rgba(59, 130, 246, 0.4) !important; }
     </style>
     <!-- 2-column Grid Layout: Left Timeline, Right Release Legend -->
     <div class="changelog-layout-grid">

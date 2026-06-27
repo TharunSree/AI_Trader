@@ -968,14 +968,20 @@ def system_updates_view(request):
     _record_page_activity()
     context = _build_dashboard_context()
     
-    # Read current version from VERSION file
+    # Get recent historical commits to show on the page
+    historical_commits = _get_git_changelog()
+    
+    # Read current version from latest historical git release, fallback to VERSION file
     from pathlib import Path
     from django.conf import settings
     import re
-    version_file = Path(settings.BASE_DIR) / 'VERSION'
     current_version = '1.0.0'
-    if version_file.exists():
-        current_version = version_file.read_text(encoding='utf-8').strip()
+    if historical_commits and historical_commits[0].get('version'):
+        current_version = historical_commits[0]['version'].replace('v', '')
+    else:
+        version_file = Path(settings.BASE_DIR) / 'VERSION'
+        if version_file.exists():
+            current_version = version_file.read_text(encoding='utf-8').strip()
         
     # Get remote version details
     remote_version = current_version
@@ -996,9 +1002,6 @@ def system_updates_view(request):
     background_services = _get_background_services_status()
     watcher_logs = _get_update_watcher_logs()
     
-    # Get recent historical commits to show on the page
-    historical_commits = _get_git_changelog()[:5]
-    
     context.update({
         'current_version': current_version,
         'remote_version': remote_version,
@@ -1006,7 +1009,7 @@ def system_updates_view(request):
         'impacted_files_count': len(impacted_files),
         'background_services': background_services,
         'watcher_logs': watcher_logs,
-        'historical_commits': historical_commits,
+        'historical_commits': historical_commits[:5],
     })
     
     return render(request, 'updates.html', context)
@@ -1354,12 +1357,17 @@ def changelog_view(request):
     context = _build_dashboard_context()
     release_groups = _get_git_changelog()
     
-    # Read current version from VERSION file
-    version_file = Path(settings.BASE_DIR) / 'VERSION'
-    if version_file.exists():
-        context['current_version'] = 'v' + version_file.read_text(encoding='utf-8').strip()
+    # Read current version and last updated date dynamically from release groups, fallback to VERSION file
+    if release_groups:
+        context['current_version'] = release_groups[0]['version']
+        context['last_updated_date'] = release_groups[0]['date']
     else:
-        context['current_version'] = 'v2.0.0'
+        version_file = Path(settings.BASE_DIR) / 'VERSION'
+        if version_file.exists():
+            context['current_version'] = 'v' + version_file.read_text(encoding='utf-8').strip()
+        else:
+            context['current_version'] = 'v2.0.0'
+        context['last_updated_date'] = 'June 10, 2026'
     
     # Identify the highest major version present
     max_major = 1
