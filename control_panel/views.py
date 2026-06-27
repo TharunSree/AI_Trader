@@ -5119,7 +5119,7 @@ def relax_search_artwork(request):
         with urllib.request.urlopen(req, timeout=5) as response:
             data = json.loads(response.read().decode('utf-8'))
             
-        if data.get('success') and data.get('items'):
+        if 'items' in data and data['items']:
             results = []
             for item in data['items']:
                 appid = item['id']

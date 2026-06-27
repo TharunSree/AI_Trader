@@ -1341,18 +1341,18 @@
 
         topPos.forEach(s => {
             const btn = document.createElement("button");
-            btn.className = "w-full text-left bg-slate-900/60 hover:bg-slate-800 border border-slate-800/80 p-1.5 rounded flex justify-between items-center transition-colors cursor-pointer";
+            btn.className = "w-full text-left bg-rose-500/10 dark:bg-rose-950/30 hover:bg-rose-500/20 dark:hover:bg-rose-900/40 border border-rose-500/20 dark:border-rose-900/40 p-1.5 rounded flex justify-between items-center transition-colors cursor-pointer text-rose-900 dark:text-rose-200";
             const indexStr = s.col !== null ? `${s.row}, ${s.col}` : `${s.row}`;
-            btn.innerHTML = `<span>Coord [${indexStr}]</span><span class="text-rose-400 font-bold">${s.val.toFixed(4)}</span>`;
+            btn.innerHTML = `<span>Coord [${indexStr}]</span><span class="text-rose-600 dark:text-rose-400 font-bold">${s.val.toFixed(4)}</span>`;
             btn.onclick = () => selectWeightCell(s.row, s.col, s.val, s.prevVal);
             posList.appendChild(btn);
         });
 
         topNeg.forEach(s => {
             const btn = document.createElement("button");
-            btn.className = "w-full text-left bg-slate-900/60 hover:bg-slate-800 border border-slate-800/80 p-1.5 rounded flex justify-between items-center transition-colors cursor-pointer";
+            btn.className = "w-full text-left bg-blue-500/10 dark:bg-blue-950/30 hover:bg-blue-500/20 dark:hover:bg-blue-900/40 border border-blue-500/20 dark:border-blue-900/40 p-1.5 rounded flex justify-between items-center transition-colors cursor-pointer text-blue-900 dark:text-blue-200";
             const indexStr = s.col !== null ? `${s.row}, ${s.col}` : `${s.row}`;
-            btn.innerHTML = `<span>Coord [${indexStr}]</span><span class="text-blue-400 font-bold">${s.val.toFixed(4)}</span>`;
+            btn.innerHTML = `<span>Coord [${indexStr}]</span><span class="text-blue-600 dark:text-blue-400 font-bold">${s.val.toFixed(4)}</span>`;
             btn.onclick = () => selectWeightCell(s.row, s.col, s.val, s.prevVal);
             negList.appendChild(btn);
         });
