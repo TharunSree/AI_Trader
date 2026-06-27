@@ -137,13 +137,34 @@
         background: #22d3ee;
     }
     
-    /* Highlight nodes hover scale */
+    /* Highlight nodes hover scale & violent wiggle */
+    @keyframes wiggle-violently {
+        0% { transform: translate(0, 0) rotate(0deg); }
+        20% { transform: translate(-3px, 2px) rotate(-4deg); }
+        40% { transform: translate(3px, -2px) rotate(4deg); }
+        60% { transform: translate(-3px, -1px) rotate(-3deg); }
+        80% { transform: translate(2px, 2px) rotate(3deg); }
+        100% { transform: translate(0, 0) rotate(0deg); }
+    }
     .neuron {
-        transition: transform 0.2s ease, filter 0.2s ease;
+        transform-box: fill-box;
+        transform-origin: center;
+        transition: filter 0.2s ease;
     }
     .neuron:hover {
-        transform: scale(1.08);
-        filter: brightness(1.2);
+        animation: wiggle-violently 0.08s linear infinite;
+        filter: brightness(1.3) drop-shadow(0 0 8px rgba(6, 182, 212, 0.8));
+        cursor: pointer;
+    }
+    
+    /* Flow propagation line animation */
+    @keyframes flow-propagation {
+        to {
+            stroke-dashoffset: -20;
+        }
+    }
+    .propagating-wire {
+        animation: flow-propagation 0.6s linear infinite;
     }
     
     /* Custom scrollbar */
@@ -402,6 +423,20 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Pagination controls -->
+        <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-t border-slate-850 font-mono text-[10px]">
+            <div class="text-slate-500">Total: <span class="text-slate-300 font-bold" id="past-trades-count">0</span> records</div>
+            <div class="d-flex align-items-center gap-3">
+                <button type="button" id="past-trades-prev" class="btn btn-xs btn-outline-info font-mono text-[9px] py-1 px-2.5 rounded" onclick="changePastTradesPage(-1)">
+                    <i class="fas fa-chevron-left me-1"></i> Prev
+                </button>
+                <span class="text-slate-450" id="past-trades-page-indicator">Page 1 of 1</span>
+                <button type="button" id="past-trades-next" class="btn btn-xs btn-outline-info font-mono text-[9px] py-1 px-2.5 rounded" onclick="changePastTradesPage(1)">
+                    Next <i class="fas fa-chevron-right ms-1"></i>
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock page_content %}
@@ -463,6 +498,9 @@
                 document.getElementById("flow-stat-cpu").textContent = `${(Math.sin(Date.now() / 5000) * 1.5 + 4).toFixed(1)}%`;
                 document.getElementById("flow-stat-mem").textContent = `38.2%`;
             });
+
+        // Auto-refresh current page of execution history
+        loadPastTrades(currentPastTradesPage);
     }
 
     function toggleDropdown(id) {
@@ -716,15 +754,20 @@
         paths.forEach(path => {
             const originalStroke = path.getAttribute("stroke-width");
             const originalOpacity = path.getAttribute("opacity") || "0.2";
+            const originalDash = path.getAttribute("stroke-dasharray") || "none";
             
             path.setAttribute("stroke", color);
             path.setAttribute("stroke-width", "4");
             path.setAttribute("opacity", "0.95");
-            path.style.filter = `drop-shadow(0 0 4px ${color})`;
+            path.setAttribute("stroke-dasharray", "8, 6");
+            path.classList.add("propagating-wire");
+            path.style.filter = `drop-shadow(0 0 6px ${color})`;
             
             setTimeout(() => {
                 path.setAttribute("stroke-width", originalStroke);
                 path.setAttribute("opacity", originalOpacity);
+                path.setAttribute("stroke-dasharray", originalDash);
+                path.classList.remove("propagating-wire");
                 path.style.filter = "none";
             }, 600);
         });
@@ -780,7 +823,7 @@
             allTexts.forEach(t => t.setAttribute("fill", "#64748b"));
         }
 
-        const delayStep = animate ? 250 : 0;
+        const delayStep = animate ? 600 : 0;
 
         // 1. Set input node glows (Layer 0) - Immediate
         setTimeout(() => {
@@ -829,17 +872,34 @@
         }, delayStep * 3);
     }
 
-    function loadPastTrades() {
+    let currentPastTradesPage = 1;
+    let totalPastTradesPages = 1;
+
+    function loadPastTrades(page = 1) {
+        currentPastTradesPage = page;
         const body = document.getElementById("past-trades-body");
-        fetch(`/api/neural/past-decisions/?trader_id=${currentTraderId}`)
+        fetch(`/api/neural/past-decisions/?trader_id=${currentTraderId}&page=${page}`)
             .then(res => res.json())
             .then(data => {
+                const prevBtn = document.getElementById("past-trades-prev");
+                const nextBtn = document.getElementById("past-trades-next");
+                const pageIndicator = document.getElementById("past-trades-page-indicator");
+                const countEl = document.getElementById("past-trades-count");
+
+                totalPastTradesPages = data.total_pages || 1;
+                
+                if (pageIndicator) pageIndicator.textContent = `Page ${data.current_page} of ${totalPastTradesPages}`;
+                if (countEl) countEl.textContent = data.total_count || 0;
+                
+                if (prevBtn) prevBtn.disabled = (data.current_page <= 1);
+                if (nextBtn) nextBtn.disabled = (data.current_page >= totalPastTradesPages);
+
                 if (!data.trades || data.trades.length === 0) {
                     body.innerHTML = `
                         <tr>
                             <td colspan="5" class="py-6 text-center text-slate-500">
                                 <i class="fas fa-history text-lg mb-2 block"></i>
-                                No trade execution logs recorded yet for this bot.
+                                No trade execution logs recorded yet for this page.
                             </td>
                         </tr>
                     `;
@@ -882,6 +942,13 @@
                 console.error("Error loading past trades:", err);
                 body.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-rose-400">Failed to load trade log records</td></tr>`;
             });
+    }
+
+    function changePastTradesPage(dir) {
+        const targetPage = currentPastTradesPage + dir;
+        if (targetPage >= 1 && targetPage <= totalPastTradesPages) {
+            loadPastTrades(targetPage);
+        }
     }
 
     function recordCurrentSandboxState(isSilent = false) {

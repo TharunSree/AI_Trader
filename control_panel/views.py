@@ -4443,13 +4443,32 @@ def past_decisions_api(request):
         trader = PaperTrader.objects.filter(status='RUNNING').first() or PaperTrader.objects.first()
 
     if not trader:
-        return JsonResponse({'trades': []})
+        return JsonResponse({'trades': [], 'total_pages': 1, 'current_page': 1, 'total_count': 0})
+
+    try:
+        page = int(request.GET.get('page', 1))
+    except ValueError:
+        page = 1
+    page_size = 20
 
     from .models import OnlineLearningLog
-    logs = OnlineLearningLog.objects.filter(
+    logs_query = OnlineLearningLog.objects.filter(
         trader=trader, 
         event_type__in=['ENTRY', 'EXIT', 'DECISION']
-    ).order_by('-timestamp')[:20]
+    ).order_by('-timestamp')
+
+    import math
+    total_count = logs_query.count()
+    total_pages = max(1, math.ceil(total_count / page_size))
+    
+    if page < 1:
+        page = 1
+    elif page > total_pages:
+        page = total_pages
+
+    start_idx = (page - 1) * page_size
+    end_idx = start_idx + page_size
+    logs = logs_query[start_idx:end_idx]
 
     trades_list = []
     import re
@@ -4491,7 +4510,12 @@ def past_decisions_api(request):
             'spread': spread
         })
 
-    return JsonResponse({'trades': trades_list})
+    return JsonResponse({
+        'trades': trades_list,
+        'total_pages': total_pages,
+        'current_page': page,
+        'total_count': total_count
+    })
 
 
 @login_required
