@@ -4444,31 +4444,44 @@ def simulate_decision_api(request):
         val_val = float(np.tanh(sum(critic_h2) / 5.0) * 0.15)
 
     # Human-readable decision narrative
-    price_trend_desc = "strongly bullish" if price_trend > 0.4 else ("strongly bearish" if price_trend < -0.4 else ("moderately bullish" if price_trend > 0.1 else ("moderately bearish" if price_trend < -0.1 else "neutral")))
-    sentiment_desc = "positive / greedy" if sentiment > 0.3 else ("negative / fearful" if sentiment < -0.3 else "neutral / calm")
-    volatility_desc = "high volatility risk" if volatility > 0.6 else "stable, low-risk volatility"
-    spread_desc = "wide spread/thin liquidity" if spread > 0.6 else "tight spread/deep liquidity"
+    price_trend_desc = "strongly bullish (upward momentum)" if price_trend > 0.4 else ("strongly bearish (downward momentum)" if price_trend < -0.4 else ("moderately bullish" if price_trend > 0.1 else ("moderately bearish" if price_trend < -0.1 else "neutral / rangebound")))
+    sentiment_desc = "extreme greed / high social optimism" if sentiment > 0.5 else ("moderate greed / optimistic" if sentiment > 0.15 else ("extreme fear / high social panic" if sentiment < -0.5 else ("moderate fear / pessimistic" if sentiment < -0.15 else "neutral / balanced")))
+    volatility_desc = "hyper-volatile (elevated tail risk)" if volatility > 0.7 else ("moderate volatility" if volatility > 0.3 else "exceptionally stable / low volatility")
+    spread_desc = "illiquid (wide bid-ask spread)" if spread > 0.6 else "highly liquid (tight bid-ask spread)"
 
     narrative = [
-        f"State Analysis: Price Trend is {price_trend_desc} ({price_trend:+.2f}) with {sentiment_desc} sentiment ({sentiment:+.2f}). Market shows {volatility_desc} ({volatility:.2f}) and {spread_desc} ({spread:.2f}).",
-        f"Feature Detection (Layer 1): Input signals successfully pass to hidden pattern detectors. Node HA1.1 activations output {actor_h1[0]:+.2f}, while Critic Node HC1.3 registers {critic_h1[2]:+.2f} risk.",
-        f"High-Level Conception (Layer 2): Layer 1 nodes map to Layer 2. Hidden Node HA2.1 fires at {actor_h2[0]:+.2f}, synthesizing positive trend and bullish sentiment patterns.",
-        f"Actor output layer: Output node (ACT) Tanh activation is {act_val:+.2f}, indicating a recommendation weight of {abs(act_val)*100:.1f}% towards a {'BUY' if act_val >= 0 else 'SELL'} action.",
-        f"Critic valuation output: Output node (VAL) predicts future net return expectation at {val_val:+.4f} PnL units."
+        f"1. Sensory Core: Price Trend is {price_trend_desc} ({price_trend:+.2f}) aligned with a {sentiment_desc} sentiment bias ({sentiment:+.2f}). Market context logs {volatility_desc} ({volatility:.2f}) and a {spread_desc} ({spread:.2f}) liquidity profile.",
+        f"2. Sensory-to-Feature Mapping (Layer 1): Input vectors propagate to the hidden layer detectors. Actor feature nodes (HA1) fire at an average intensity of {sum(map(abs, actor_h1))/6:.2f}, while Critic risk nodes (HC1) register a baseline activation of {sum(map(abs, critic_h1))/5:.2f}.",
+        f"3. High-Level Conception (Layer 2): Feature detections consolidate. Hidden Node HA2.1 (bullish filter) fires at {actor_h2[0]:+.2f}, while Node HC2.3 (downside volatility filter) registers {critic_h2[2]:+.2f}.",
+        f"4. Actor Execution Vector: The output node (ACT) recommendation resolves to {act_val:+.2f}, signaling a conviction index of {abs(act_val)*100:.1f}% towards a {'BUY (Long Entry)' if act_val >= 0.15 else ('SELL (Short Entry)' if act_val <= -0.15 else 'HOLD (Neutral/No Action)')} strategy.",
+        f"5. Critic Valuation Verdict: The output node (VAL) estimates expected future net return at {val_val:+.4f} normalized PnL units, signifying a {'highly favorable' if val_val > 0.05 else ('unfavorable/negative' if val_val < -0.05 else 'flat/neutral')} expectancy."
     ]
 
     # Actionable trading tips
     tips = []
-    if volatility > 0.65:
-        tips.append("⚠️ Volatility is elevated: Price action swings may trigger stop-losses. We recommend lowering position sizing or pausing the bot during extreme macro news.")
-    if abs(sentiment) > 0.5 and abs(price_trend) < 0.15:
-        tips.append("ℹ️ Sideways sentiment dominance: The trade direction is driven by social sentiment while charts are flat. Verify that underlying news is not fake/manipulative.")
-    if abs(act_val) < 0.15:
-        tips.append("🔒 Flat sideways regime: Neural outputs are close to zero. The model recommends holding or minimizing new entries to avoid transaction fee drag.")
-    elif act_val >= 0.15:
-        tips.append("📈 Bullish stance: The model favors long/buy positions. Ensure your stop-loss configurations are active.")
-    else:
-        tips.append("📉 Bearish stance: The model favors short/sell positions. Ensure you have active risk guardrails.")
+    if volatility > 0.7:
+        tips.append("⚠️ Tail-Risk Alert: Volatility is hyper-elevated. Sudden price sweeps can trigger stop-losses prematurely. We recommend reducing position sizing by 50% or transitioning the bot to passive mode.")
+    if spread > 0.6:
+        tips.append("⚠️ High Slippage Risk: Bid-ask spread is wide. Market orders will suffer heavy execution drag. We recommend utilizing strict Limit Orders instead of Market Orders.")
+    if price_trend < -0.3 and sentiment > 0.35:
+        tips.append("📈 Bullish Divergence: Price action is in a downward trend ({price_trend:+.2f}) but crowd sentiment shows positive greed ({sentiment:+.2f}). This often indicates a retail buying trap or a potential double-bottom trend reversal. Monitor order books closely.")
+    if price_trend > 0.3 and sentiment < -0.35:
+        tips.append("📉 Bearish Divergence: Price is trending upward ({price_trend:+.2f}) but crowd sentiment is negative/fearful ({sentiment:+.2f}). Watch for trend exhaustion, potential retail short squeezes, or overhead resistance levels.")
+    if spread > 0.75 and volatility > 0.7:
+        tips.append("🛑 Liquidity Trap: High spread and high volatility detected simultaneously. Slippage will be severe and execution will lag. Stand aside and pause active trading until market conditions stabilize.")
+    if val_val > 0.05 and act_val > 0.3:
+        tips.append("🚀 High Conviction Long: Critic valuation exhibits positive expectancy ({val_val:+.4f}) alongside a strong bullish actor recommendation. High probability long setup.")
+    if val_val < -0.05 and act_val < -0.3:
+        tips.append("💥 High Conviction Short: Critic valuation predicts negative returns ({val_val:+.4f}) alongside a strong bearish actor recommendation. High probability short setup.")
+    
+    # Fallback default tip if list is empty
+    if not tips:
+        if abs(act_val) < 0.15:
+            tips.append("🔒 Rangebound Regime: Model outputs are close to zero. The model recommends holding cash, avoiding over-trading, and keeping fee drag to a minimum.")
+        elif act_val >= 0.15:
+            tips.append("📈 Bullish Stance: The model favors buy setups. Ensure your stop-loss configurations and profit targets are active.")
+        else:
+            tips.append("📉 Bearish Stance: The model favors sell setups. Ensure short risk guardrails and margin buffers are active.")
 
     return JsonResponse({
         'price_trend': price_trend,
@@ -4501,7 +4514,7 @@ def past_decisions_api(request):
         page = int(request.GET.get('page', 1))
     except ValueError:
         page = 1
-    page_size = 20
+    page_size = 5
 
     from .models import OnlineLearningLog
     logs_query = OnlineLearningLog.objects.filter(

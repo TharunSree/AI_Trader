@@ -414,6 +414,7 @@
                         <th class="py-2.5">Event</th>
                         <th class="py-2.5">Symbol</th>
                         <th class="py-2.5">Market Reason log</th>
+                        <th class="py-2.5 text-right">Action</th>
                     </tr>
                 </thead>
                 <tbody id="past-trades-body" class="divide-y divide-slate-900 text-slate-355">
@@ -972,7 +973,7 @@
                 if (!data.trades || data.trades.length === 0) {
                     body.innerHTML = `
                         <tr>
-                            <td colspan="4" class="py-12 text-center text-slate-500">
+                            <td colspan="5" class="py-12 text-center text-slate-500">
                                 <i class="fas fa-history text-lg mb-2 block"></i>
                                 No trade execution logs recorded yet for this page.
                             </td>
@@ -1003,6 +1004,11 @@
                             </td>
                             <td class="py-3 text-slate-200 font-bold">${trade.symbol}</td>
                             <td class="py-3 text-slate-400 max-w-sm truncate" title="${trade.reason}">${trade.reason}</td>
+                            <td class="py-3 text-right">
+                                <button type="button" class="bg-transparent hover:bg-cyan-500/10 text-cyan-400 hover:text-cyan-300 border border-cyan-500/40 hover:border-cyan-500 font-mono text-[9px] uppercase tracking-wider px-2 py-0.5 rounded cursor-pointer transition-all">
+                                    Select
+                                </button>
+                            </td>
                         </tr>
                     `;
                 });
@@ -1010,7 +1016,7 @@
             })
             .catch(err => {
                 console.error("Error loading past trades:", err);
-                body.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-rose-400">Failed to load trade log records</td></tr>`;
+                body.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-rose-400">Failed to load trade log records</td></tr>`;
             });
     }
 
