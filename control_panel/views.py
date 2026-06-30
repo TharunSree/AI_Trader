@@ -5435,36 +5435,64 @@ def relax_launch_game(request, game_id):
     
     # 1. Check if remote Windows Gaming Rig is configured (if Django runs on Linux)
     settings = SystemSettings.load()
-    if settings.gaming_rig_ip and settings.gaming_rig_ssh_username:
+    if settings.gaming_rig_ip:
         rig_host = settings.gaming_rig_ip
-        rig_user = settings.gaming_rig_ssh_username
-        rig_pass = settings.gaming_rig_ssh_password
         
+        # Try HTTP launcher daemon first (highly recommended, port 5555)
+        import urllib.request
+        import urllib.parse
+        
+        params = {}
         if game.steam_app_id:
-            remote_cmd = f"cmd.exe /c start steam://rungameid/{game.steam_app_id}"
+            params['appid'] = game.steam_app_id
         elif game.local_path:
-            remote_cmd = f"cmd.exe /c start \"\" \"{game.local_path}\""
-        else:
-            messages.error(request, "No launch path or Steam ID specified.")
-            return redirect(f"/relax/?game_id={game.id}")
+            params['path'] = game.local_path
             
-        import shutil
-        sshpass_bin = shutil.which("sshpass")
-        ssh_args = ["ssh", "-o", "ConnectTimeout=4", "-o", "StrictHostKeyChecking=no", f"{rig_user}@{rig_host}", remote_cmd]
-        
-        if rig_pass and sshpass_bin:
-            cmd_to_run = [sshpass_bin, "-p", rig_pass] + ssh_args
-        else:
-            cmd_to_run = ssh_args
+        if params:
+            encoded_params = urllib.parse.urlencode(params)
+            daemon_url = f"http://{rig_host}:5555/launch?{encoded_params}"
             
-        try:
-            logger.info(f"Triggering remote launch on Windows rig {rig_host} via SSH...")
-            subprocess.Popen(cmd_to_run, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            messages.success(request, f"Sent remote launch command for '{game.name}' to Windows rig {rig_host} via SSH!")
-            return redirect(f"/relax/?game_id={game.id}")
-        except Exception as ssh_ex:
-            logger.error(f"Failed to run SSH launch command: {ssh_ex}")
-            messages.warning(request, f"Remote SSH launch trigger failed: {str(ssh_ex)}. Attempting local launch fallback...")
+            try:
+                logger.info(f"Connecting to Steam Launcher Daemon at {daemon_url}...")
+                req = urllib.request.Request(daemon_url)
+                with urllib.request.urlopen(req, timeout=3) as daemon_res:
+                    res_data = json.loads(daemon_res.read().decode('utf-8'))
+                    if res_data.get('status') == 'success':
+                        messages.success(request, f"Sent remote launch command for '{game.name}' to Windows rig {rig_host} via Launcher Daemon!")
+                        return redirect(f"/relax/?game_id={game.id}")
+            except Exception as daemon_ex:
+                logger.warning(f"Launcher Daemon connection failed: {daemon_ex}. Trying SSH fallback...")
+
+        # Fallback to SSH method if daemon is offline/unreachable and SSH credentials exist
+        if settings.gaming_rig_ssh_username:
+            rig_user = settings.gaming_rig_ssh_username
+            rig_pass = settings.gaming_rig_ssh_password
+            
+            if game.steam_app_id:
+                remote_cmd = f"cmd.exe /c start steam://rungameid/{game.steam_app_id}"
+            elif game.local_path:
+                remote_cmd = f"cmd.exe /c start \"\" \"{game.local_path}\""
+            else:
+                messages.error(request, "No launch path or Steam ID specified.")
+                return redirect(f"/relax/?game_id={game.id}")
+                
+            import shutil
+            sshpass_bin = shutil.which("sshpass")
+            ssh_args = ["ssh", "-o", "ConnectTimeout=4", "-o", "StrictHostKeyChecking=no", f"{rig_user}@{rig_host}", remote_cmd]
+            
+            if rig_pass and sshpass_bin:
+                cmd_to_run = [sshpass_bin, "-p", rig_pass] + ssh_args
+            else:
+                cmd_to_run = ssh_args
+                
+            try:
+                logger.info(f"Triggering remote launch on Windows rig {rig_host} via SSH...")
+                subprocess.Popen(cmd_to_run, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                messages.success(request, f"Sent remote launch command for '{game.name}' to Windows rig {rig_host} via SSH!")
+                return redirect(f"/relax/?game_id={game.id}")
+            except Exception as ssh_ex:
+                logger.error(f"Failed to run SSH launch command: {ssh_ex}")
+                messages.warning(request, f"Remote SSH launch trigger failed: {str(ssh_ex)}. Attempting local launch fallback...")
 
     # 2. Local launch fallback
     try:
