@@ -7,26 +7,31 @@
 
 {% block extra_head %}
 <style>
-    /* Arcade Neon theme overrides for relax mode */
+    /* Arcade theme overrides to match Veltrix dashboard style */
     .game-card {
-        border-radius: 20px !important;
+        border-radius: 16px !important;
         overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, 0.06) !important;
-        background-color: rgba(15, 15, 25, 0.6) !important;
-        box-shadow: 0 4px 18px rgba(0,0,0,0.2) !important;
+        border: 1px solid #e9ecef !important;
+        background-color: #ffffff !important;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05) !important;
         transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     }
-    .game-card:hover {
-        transform: translateY(-6px) scale(1.02);
-        box-shadow: 0 0 20px rgba(168, 85, 247, 0.3), 0 12px 40px rgba(0,0,0,0.5) !important;
-        border-color: rgba(168, 85, 247, 0.6) !important;
+    .dark .game-card {
+        border-color: #32394e !important;
+        background-color: #2a3042 !important;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important;
     }
-    .game-card.active-game {
-        border-color: rgba(168, 85, 247, 0.8) !important;
-        box-shadow: 0 0 15px rgba(168, 85, 247, 0.3) !important;
+    .game-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(91,115,232,0.15) !important;
+        border-color: #5b73e8 !important;
+    }
+    .dark .game-card:hover {
+        box-shadow: 0 8px 16px rgba(0,0,0,0.4) !important;
+        border-color: #5b73e8 !important;
     }
     .game-cover-container {
-        height: 180px;
+        height: 200px;
         position: relative;
         background-size: cover;
         background-position: center;
@@ -34,7 +39,7 @@
     .game-cover-overlay {
         position: absolute;
         inset: 0;
-        background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 60%);
+        background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 60%);
         display: flex;
         align-items: end;
         padding: 15px;
@@ -47,65 +52,73 @@
         padding: 4px 10px;
         border-radius: 50px;
     }
-    .active-bg-overlay {
-        position: fixed;
-        inset: 0;
-        z-index: -1;
-        background-size: cover;
-        background-position: center;
-        opacity: 0.25;
-        filter: blur(20px);
-        pointer-events: none;
-        transition: background-image 0.5s ease;
-    }
     .glass-card {
-        background: rgba(15, 15, 25, 0.6) !important;
-        backdrop-filter: blur(16px) saturate(180%);
-        -webkit-backdrop-filter: blur(16px) saturate(180%);
-        border: 1px solid rgba(255, 255, 255, 0.06) !important;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
-        color: #cbd5e1 !important;
+        background: #ffffff !important;
+        border: 1px solid #e9ecef !important;
+        color: #495057 !important;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05) !important;
         transition: all 0.3s ease;
+    }
+    .dark .glass-card {
+        background: #2a3042 !important;
+        border: 1px solid #32394e !important;
+        color: #a6b0cf !important;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25) !important;
     }
     .video-grid-item {
         border-radius: 12px;
         overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        border: 1px solid #e9ecef;
         transition: all 0.2s ease;
+    }
+    .dark .video-grid-item {
+        border-color: #32394e;
     }
     .video-grid-item:hover {
-        border-color: rgba(168, 85, 247, 0.6);
-        box-shadow: 0 0 15px rgba(168, 85, 247, 0.3);
+        border-color: #5b73e8;
         transform: scale(1.02);
     }
-    .neon-text {
-        color: #a855f7;
-        text-shadow: 0 0 5px rgba(168, 85, 247, 0.4), 0 0 10px rgba(168, 85, 247, 0.2);
+    
+    /* 3D button switch styling for Text/Web toggle */
+    .toggle-3d-btn {
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid #cbd5e1;
+        border-bottom: 3px solid #cbd5e1;
+        border-radius: 8px;
+        font-size: 9px;
+        font-weight: bold;
+        font-family: monospace;
+        padding: 4px 12px;
+        transition: all 0.1s ease;
+        cursor: pointer;
     }
-    .neon-border {
-        border: 1px solid rgba(168, 85, 247, 0.5) !important;
-        box-shadow: 0 0 8px rgba(168, 85, 247, 0.2), inset 0 0 8px rgba(168, 85, 247, 0.1);
+    .dark .toggle-3d-btn {
+        background: #1e293b;
+        color: #cbd5e1;
+        border: 1px solid #334155;
+        border-bottom: 3px solid #1e293b;
     }
-    .btn-play {
-        background: linear-gradient(135deg, #a855f7, #6366f1) !important;
-        border: none !important;
-        box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
-        transition: all 0.2s ease;
+    .toggle-3d-btn.active {
+        background: #5b73e8 !important;
+        color: #ffffff !important;
+        border-color: #3f51b5 !important;
+        border-bottom: 1px solid #3f51b5 !important;
+        transform: translateY(2px);
     }
-    .btn-play:hover {
-        box-shadow: 0 0 25px rgba(168, 85, 247, 0.7);
-        transform: scale(1.05);
-    }
+    
     .nav-tabs .nav-link {
-        color: #94a3b8 !important;
+        color: #74788d !important;
         border: none !important;
+        border-bottom: 2px solid transparent !important;
     }
     .nav-tabs .nav-link.active {
         background: transparent !important;
-        border-bottom: 2px solid #a855f7 !important;
-        color: #a855f7 !important;
-        text-shadow: 0 0 5px rgba(168, 85, 247, 0.4);
+        border-bottom: 2px solid #5b73e8 !important;
+        color: #5b73e8 !important;
+        font-weight: bold;
     }
+    
     /* Simple markdown reader styling */
     .markdown-body {
         font-family: 'Quicksand', sans-serif;
@@ -115,137 +128,69 @@
         font-size: 14px;
         font-weight: 700;
         margin-top: 20px;
-        color: #f1f5f9;
-        border-left: 3px solid #a855f7;
+        color: #495057;
+        border-left: 3px solid #5b73e8;
         padding-left: 8px;
+    }
+    .dark .markdown-body h3 {
+        color: #f1f5f9;
     }
     .markdown-body p {
         font-size: 12px;
         margin-bottom: 12px;
+        color: #74788d;
+    }
+    .dark .markdown-body p {
         color: #cbd5e1;
     }
     .markdown-body li {
         font-size: 12px;
         margin-left: 20px;
         list-style-type: disc;
-        color: #cbd5e1;
+        color: #74788d;
     }
-    @keyframes gradientBG {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
+    .dark .markdown-body li {
+        color: #cbd5e1;
     }
 </style>
 {% endblock %}
 
 {% block page_content %}
-<!-- Fullpage animated blur overlay from selected game -->
-{% if selected_game %}
-    {% if selected_game.animated_bg_url %}
-        {% if ".mp4" in selected_game.animated_bg_url or ".webm" in selected_game.animated_bg_url or "movies/" in selected_game.animated_bg_url %}
-            <video class="active-bg-overlay" autoplay loop muted playsinline style="object-fit: cover; width: 100%; height: 100%; position: fixed; inset: 0; z-index: -1; opacity: 0.22; filter: blur(15px); pointer-events: none;">
-                <source src="{% if 'http://' in selected_game.animated_bg_url or 'https://' in selected_game.animated_bg_url %}{{ selected_game.animated_bg_url }}{% else %}{% url 'serve_local_file' %}?path={{ selected_game.animated_bg_url }}{% endif %}" type="{% if '.webm' in selected_game.animated_bg_url %}video/webm{% else %}video/mp4{% endif %}">
-            </video>
-        {% else %}
-            <div class="active-bg-overlay" style="background-image: url('{% if 'http://' in selected_game.animated_bg_url or 'https://' in selected_game.animated_bg_url %}{{ selected_game.animated_bg_url }}{% else %}{% url 'serve_local_file' %}?path={{ selected_game.animated_bg_url }}{% endif %}'); opacity: 0.25; filter: blur(15px);"></div>
-        {% endif %}
-    {% else %}
-        <!-- CSS Animated fallback gradient background -->
-        <div class="active-bg-overlay default-animated-bg" style="position: fixed; inset: 0; z-index: -1; opacity: 0.20; pointer-events: none; background: linear-gradient(125deg, #1e1b4b, #311042, #0f172a); background-size: 400% 400%; animation: gradientBG 15s ease infinite;"></div>
-    {% endif %}
-{% endif %}
-
 <div class="row">
-    <!-- Top Action Headers -->
-    <div class="col-12 mb-4 d-flex justify-content-between align-items-center">
-        <div>
-            <h2 class="font-size-20 text-slate-800 font-bold uppercase tracking-widest flex items-center gap-2 mb-1">
-                <i class="mdi mdi-gamepad-round text-purple-600 animate-pulse"></i> Arcade Cabin
-            </h2>
-            <p class="text-xs text-slate-500 font-mono">Launch games, track stats, extract webpage manuals, and view gameplay recordings.</p>
-        </div>
-        <button type="button" class="btn btn-outline-primary rounded-pill px-4 py-2 font-bold font-mono text-xs uppercase tracking-wider" data-bs-toggle="modal" data-bs-target="#addGameModal">
-            <i class="fas fa-plus mr-1"></i> Add Game
-        </button>
-    </div>
-
-    <!-- MAIN GRID LAYOUT -->
-    <div class="col-lg-4 col-xl-3">
-        <!-- Game Library list column -->
-        <h4 class="font-size-11 uppercase tracking-widest text-slate-400 font-bold font-mono mb-3">My Library</h4>
-        <div class="d-flex flex-column gap-3 overflow-y-auto max-h-[70vh] pr-2">
-            {% for game in games %}
-                <a href="?game_id={{ game.id }}" class="text-decoration-none">
-                    <div class="card mb-0 game-card {% if selected_game.id == game.id %}active-game{% endif %}">
-                        <div class="game-cover-container" style="background-image: url('{% if 'http://' in game.cover_image_url or 'https://' in game.cover_image_url %}{{ game.cover_image_url }}{% else %}{% url 'serve_local_file' %}?path={{ game.cover_image_url }}{% endif %}');">
-                            <div class="game-cover-overlay">
-                                <div class="w-100 flex justify-between items-end">
-                                    <div class="min-w-0 pr-2">
-                                        <h3 class="text-white text-xs font-bold truncate mb-0">{{ game.name }}</h3>
-                                        <span class="text-[9px] font-mono text-slate-300">Playtime: {{ game.hours_played }} hrs</span>
-                                    </div>
-                                    <span class="game-badge {% if game.steam_app_id %}bg-blue-500/20 text-blue-300{% else %}bg-purple-500/20 text-purple-300{% endif %} border border-white/10">
-                                        {% if game.steam_app_id %}Steam{% else %}Local{% endif %}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </a>
-            {% empty %}
-                <div class="glass-card rounded-4 p-8 text-center text-slate-400">
-                    <i class="fas fa-gamepad text-3xl mb-2 opacity-30"></i>
-                    <p class="font-mono text-xs uppercase tracking-widest">Library is empty</p>
-                    <p class="font-mono text-[9px] mt-1">Add a game using the launcher tool above to configure your arcade cabin.</p>
-                </div>
-            {% endfor %}
+    {% if selected_game %}
+        <!-- DETAILED VIEW (FULL PAGE) -->
+        <div class="col-12 mb-3">
+            <a href="{% url 'relax_view' %}" class="text-decoration-none text-slate-500 dark:text-slate-400 hover:text-primary transition-colors font-mono text-xs d-flex align-items-center gap-1">
+                <i class="fas fa-arrow-left"></i> Back to Library
+            </a>
         </div>
 
-        <!-- Steam Playtime Sync panel in Game Mode -->
-        <div class="card rounded-4 shadow-sm mt-4 p-3 glass-card">
-            <h5 class="text-[10px] uppercase font-mono tracking-widest font-bold text-slate-400 mb-2">Sync Steam Playtimes</h5>
-            <div class="d-flex gap-2">
-                <input type="text" id="steam_username_sync" class="form-control font-mono text-xs rounded-xl" placeholder="Steam ID/Custom URL" value="{{ request.session.steam_username|default:'' }}">
-                <button class="btn btn-sm btn-outline-primary rounded-xl px-3 font-bold font-mono text-xs" type="button" onclick="syncSteamPlaytimes()">Sync</button>
-            </div>
-            <div class="text-[9px] text-slate-400 font-mono mt-2">Requires public profile.</div>
-        </div>
-    </div>
-
-    <!-- Selected game detail panel -->
-    <div class="col-lg-8 col-xl-9">
-        {% if selected_game %}
+        <div class="col-12">
             <!-- Header Panel (Hero Banner) -->
-            <div class="position-relative rounded-2xl overflow-hidden mb-4 glass-card" style="height: 320px; border: 1px solid rgba(255,255,255,0.06);">
+            <div class="position-relative rounded-4 overflow-hidden mb-4 glass-card" style="height: 320px; border: 1px solid rgba(255,255,255,0.06); border-radius: 24px !important;">
                 {% if selected_game.animated_bg_url %}
                     {% if ".mp4" in selected_game.animated_bg_url or ".webm" in selected_game.animated_bg_url or "movies/" in selected_game.animated_bg_url %}
-                        <video class="w-100 h-100" autoplay loop muted playsinline style="object-fit: cover; filter: brightness(0.45);">
+                        <video class="w-100 h-100" autoplay loop muted playsinline style="object-fit: cover; filter: brightness(0.55);">
                             <source src="{% if 'http://' in selected_game.animated_bg_url or 'https://' in selected_game.animated_bg_url %}{{ selected_game.animated_bg_url }}{% else %}{% url 'serve_local_file' %}?path={{ selected_game.animated_bg_url }}{% endif %}" type="{% if '.webm' in selected_game.animated_bg_url %}video/webm{% else %}video/mp4{% endif %}">
                         </video>
                     {% else %}
-                        <img src="{% if 'http://' in selected_game.animated_bg_url or 'https://' in selected_game.animated_bg_url %}{{ selected_game.animated_bg_url }}{% else %}{% url 'serve_local_file' %}?path={{ selected_game.animated_bg_url }}{% endif %}" class="w-100 h-100" style="object-fit: cover; filter: brightness(0.45);">
+                        <img src="{% if 'http://' in selected_game.animated_bg_url or 'https://' in selected_game.animated_bg_url %}{{ selected_game.animated_bg_url }}{% else %}{% url 'serve_local_file' %}?path={{ selected_game.animated_bg_url }}{% endif %}" class="w-100 h-100" style="object-fit: cover; filter: brightness(0.55);">
                     {% endif %}
                 {% elif selected_game.cover_image_url %}
                     <img src="{% if 'http://' in selected_game.cover_image_url or 'https://' in selected_game.cover_image_url %}{{ selected_game.cover_image_url }}{% else %}{% url 'serve_local_file' %}?path={{ selected_game.cover_image_url }}{% endif %}" class="w-100 h-100" style="object-fit: cover; filter: brightness(0.35);">
                 {% else %}
                     <div class="w-100 h-100" style="background: linear-gradient(135deg, #0f0a1e 0%, #1a0a2e 100%);"></div>
                 {% endif %}
-                <div class="position-absolute" style="inset: 0; background: linear-gradient(to top, rgba(10,10,15,0.95) 0%, rgba(10,10,15,0.2) 50%, transparent 100%); pointer-events: none;"></div>
+                <div class="position-absolute" style="inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.1) 60%, transparent 100%); pointer-events: none;"></div>
                 
                 <!-- Inner content alignment -->
                 <div class="position-absolute d-flex flex-column justify-content-end" style="inset: 0; padding: 2rem; pointer-events: auto;">
-                    <h2 class="text-white font-mono tracking-widest uppercase mb-2" style="font-size: 1.8rem; text-shadow: 0 0 10px rgba(168,85,247,0.5);">{{ selected_game.name }}</h2>
+                    <h2 class="text-white font-mono tracking-widest uppercase mb-2" style="font-size: 1.8rem; text-shadow: 0 2px 4px rgba(0,0,0,0.4);">{{ selected_game.name }}</h2>
                     <div class="d-flex align-items-center gap-3 flex-wrap mb-3">
-                        <span class="badge neon-border font-mono py-1.5 px-3" style="color: #a855f7;"><i class="fas fa-clock me-1"></i> {{ selected_game.hours_played|floatformat:1 }} hrs</span>
+                        <span class="badge font-mono py-1.5 px-3 bg-black/40 border border-white/10 text-white"><i class="fas fa-clock me-1"></i> {{ selected_game.hours_played|floatformat:1 }} hrs</span>
                         {% if selected_game.steam_app_id %}
-                            <span class="badge neon-border font-mono py-1.5 px-3" style="color: #22d3ee;"><i class="fab fa-steam me-1"></i> Steam</span>
+                            <span class="badge font-mono py-1.5 px-3 bg-blue-500/20 border border-blue-500/30 text-blue-200"><i class="fab fa-steam me-1"></i> Steam</span>
                         {% endif %}
-                        <!-- Playtime tier badge -->
-                        {% if selected_game.hours_played >= 500 %}<span class="badge font-mono py-1.5 px-3" style="background: rgba(234,179,8,0.15); border: 1px solid rgba(234,179,8,0.4); color: #eab308;">👑 Legend</span>
-                        {% elif selected_game.hours_played >= 100 %}<span class="badge font-mono py-1.5 px-3" style="background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.4); color: #a855f7;">🏆 Veteran</span>
-                        {% elif selected_game.hours_played >= 50 %}<span class="badge font-mono py-1.5 px-3" style="background: rgba(34,211,238,0.15); border: 1px solid rgba(34,211,238,0.4); color: #22d3ee;">⚔️ Seasoned</span>
-                        {% elif selected_game.hours_played >= 10 %}<span class="badge font-mono py-1.5 px-3" style="background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.4); color: #10b981;">🎖 Rookie</span>
-                        {% else %}<span class="badge font-mono py-1.5 px-3" style="background: rgba(100,116,139,0.15); border: 1px solid rgba(100,116,139,0.4); color: #94a3b8;">🆕 New</span>{% endif %}
                     </div>
                     
                     <div class="d-flex gap-2 flex-wrap items-center">
@@ -273,18 +218,18 @@
             </div>
 
             <!-- Tab Navigation (Guides / Videos) -->
-            <div class="card rounded-4 shadow-sm overflow-hidden glass-card">
+            <div class="card rounded-4 shadow-sm overflow-hidden glass-card" style="border-radius: 24px !important;">
                 <!-- Navigation tabs header -->
                 <div class="px-4 pt-3 border-b border-slate-100 dark:border-slate-800/60 bg-transparent">
                     <ul class="nav nav-tabs nav-tabs-custom nav-justified border-0" role="tablist">
                         <li class="nav-item" role="presentation">
                             <a class="nav-link active font-bold text-xs uppercase tracking-wider py-2.5" data-bs-toggle="tab" href="#guides-tab" role="tab">
-                                <i class="mdi mdi-book-open-page-variant mr-1"></i> 📖 Intel Dossier
+                                Intel Dossier
                             </a>
                         </li>
                         <li class="nav-item" role="presentation">
                             <a class="nav-link font-bold text-xs uppercase tracking-wider py-2.5" data-bs-toggle="tab" href="#videos-tab" role="tab">
-                                <i class="mdi mdi-youtube mr-1"></i> 🎬 Replay Theater
+                                Replay Theater
                             </a>
                         </li>
                     </ul>
@@ -335,8 +280,8 @@
                                     <div class="d-flex flex-column gap-2 overflow-y-auto max-h-[40vh] pr-1">
                                         {% for guide in selected_game.guides.all %}
                                             <div class="d-flex items-center gap-2 mb-2 w-100" id="guide-item-row-{{ guide.id }}">
-                                                <button onclick="viewGuide({{ guide.id }})" class="btn text-start p-2.5 rounded-3 border text-xs font-medium bg-slate-50/50 hover:bg-slate-50 transition-colors flex-grow truncate" id="guide-btn-{{ guide.id }}" style="min-width: 0;">
-                                                    <i class="far fa-file-alt text-purple-500 mr-2"></i>{{ guide.title }}
+                                                <button onclick="viewGuide({{ guide.id }})" class="btn text-start p-2.5 rounded-3 border text-xs font-medium bg-slate-50/50 hover:bg-slate-100 transition-colors flex-grow truncate dark:bg-slate-800/40 dark:hover:bg-slate-800 w-100" id="guide-btn-{{ guide.id }}" style="min-width: 0;">
+                                                    <i class="far fa-file-alt text-primary mr-2"></i>{{ guide.title }}
                                                 </button>
                                                 <form action="{% url 'relax_delete_guide' guide.id %}" method="POST" onsubmit="return confirm('Delete this guide?');" class="mb-0 flex-shrink-0">
                                                     {% csrf_token %}
@@ -367,11 +312,11 @@
                                                 <h3 class="font-size-16 text-slate-800 dark:text-slate-100 font-bold mb-0">{{ guide.title }}</h3>
                                                 <div class="d-flex items-center gap-3">
                                                     {% if guide.source_url %}
-                                                        <div class="btn-group btn-group-sm rounded-pill overflow-hidden border border-slate-700/50 p-0.5 bg-slate-900" role="group">
-                                                            <button type="button" class="btn btn-xs px-2.5 py-1 text-[9px] font-mono font-bold text-white uppercase bg-purple-600 rounded-pill" id="view-text-btn-{{ guide.id }}" onclick="setGuideViewMode({{ guide.id }}, 'text')">Text</button>
-                                                            <button type="button" class="btn btn-xs px-2.5 py-1 text-[9px] font-mono font-bold text-slate-400 uppercase" id="view-iframe-btn-{{ guide.id }}" onclick="setGuideViewMode({{ guide.id }}, 'iframe')">Web</button>
+                                                        <div class="d-flex gap-1">
+                                                            <button type="button" class="toggle-3d-btn active" id="view-text-btn-{{ guide.id }}" onclick="setGuideViewMode({{ guide.id }}, 'text')">TEXT</button>
+                                                            <button type="button" class="toggle-3d-btn" id="view-iframe-btn-{{ guide.id }}" onclick="setGuideViewMode({{ guide.id }}, 'iframe')">WEB</button>
                                                         </div>
-                                                        <a href="{{ guide.source_url }}" target="_blank" class="text-[10px] text-purple-400 font-mono font-bold text-decoration-none">
+                                                        <a href="{{ guide.source_url }}" target="_blank" class="text-[10px] text-primary font-mono font-bold text-decoration-none">
                                                             <i class="fas fa-external-link-alt mr-1"></i>Source &rarr;
                                                         </a>
                                                     {% endif %}
@@ -386,10 +331,10 @@
                                             {% if guide.source_url %}
                                             <!-- Web Iframe Mode -->
                                             <div class="hidden" id="guide-iframe-content-{{ guide.id }}">
-                                                <iframe src="{{ guide.source_url }}" class="w-100 rounded border border-slate-800" style="height: 60vh; background-color: white;" sandbox="allow-same-origin allow-scripts allow-popups"></iframe>
+                                                <iframe src="{{ guide.source_url }}" class="w-100 rounded border border-slate-200 dark:border-slate-850" style="height: 60vh; background-color: white;" sandbox="allow-same-origin allow-scripts allow-popups"></iframe>
                                                 <div class="text-[10px] text-slate-500 font-mono mt-2 text-center">
                                                     If page fails to load, the site may prevent embedding. 
-                                                    <a href="{{ guide.source_url }}" target="_blank" class="text-purple-400 font-bold">Open directly in new tab &rarr;</a>
+                                                    <a href="{{ guide.source_url }}" target="_blank" class="text-primary font-bold">Open directly in new tab &rarr;</a>
                                                 </div>
                                             </div>
                                             {% endif %}
@@ -404,12 +349,12 @@
                             <div class="row">
                                 <!-- Videos list / Embedded Player -->
                                 <div class="col-md-8 pr-md-4">
-                                    <div id="video-player-placeholder" class="bg-black rounded-4 flex items-center justify-center flex-col text-slate-400 py-24 relative overflow-hidden" style="min-height: 380px;">
-                                        <i class="mdi mdi-youtube-play text-5xl text-rose-500 mb-2"></i>
+                                    <div id="video-player-placeholder" class="bg-light dark:bg-slate-900 rounded-4 flex items-center justify-center flex-col text-slate-400 py-24 relative overflow-hidden" style="min-height: 380px; border-radius: 16px !important;">
+                                        <i class="mdi mdi-youtube-play text-5xl text-danger mb-2"></i>
                                         <p class="font-mono text-xs uppercase tracking-widest">Choose a Video</p>
                                         <p class="font-mono text-[9px] mt-1">Select one of your gameplay videos from the sidebar to start watching.</p>
                                     </div>
-                                    <div id="video-player-container" class="hidden relative rounded-4 overflow-hidden shadow-lg border" style="padding-top: 56.25%;">
+                                    <div id="video-player-container" class="hidden relative rounded-4 overflow-hidden shadow-lg border" style="padding-top: 56.25%; border-radius: 16px !important;">
                                         <iframe id="youtube-iframe" class="absolute inset-0 w-100 h-100 border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                                     </div>
                                 </div>
@@ -448,10 +393,10 @@
                                     <div class="d-flex flex-column gap-2.5 overflow-y-auto max-h-[40vh] pr-1">
                                         {% for video in selected_game.videos.all %}
                                             {% if video.video_id %}
-                                                <button onclick="playVideo('{{ video.video_id }}')" class="btn text-start p-2.5 rounded-3 border text-xs font-semibold bg-slate-50/50 hover:bg-slate-50 transition-colors w-100 block flex items-start gap-3">
+                                                <button onclick="playVideo('{{ video.video_id }}')" class="btn text-start p-2.5 rounded-3 border text-xs font-semibold bg-slate-50/50 hover:bg-slate-100 transition-colors w-100 block flex items-start gap-3 dark:bg-slate-800/40 dark:hover:bg-slate-800">
                                                     <img src="https://img.youtube.com/vi/{{ video.video_id }}/0.jpg" alt="" class="rounded border shadow-sm object-cover" style="width: 70px; height: 48px;">
                                                     <div class="min-w-0 flex-1">
-                                                        <div class="truncate text-slate-800 font-bold leading-snug">{{ video.title }}</div>
+                                                        <div class="truncate text-slate-800 dark:text-slate-200 font-bold leading-snug">{{ video.title }}</div>
                                                         <span class="text-[8px] font-mono text-slate-400 mt-1 block">YouTube Video</span>
                                                     </div>
                                                 </button>
@@ -470,16 +415,65 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-        {% else %}
-            <!-- No game selected block -->
-            <div class="card rounded-4 border-0 shadow-sm p-12 text-center text-slate-400">
-                <i class="mdi mdi-gamepad-round text-5xl text-purple-400/20 mb-3 animate-bounce"></i>
-                <h3 class="font-size-18 text-slate-800 font-bold uppercase tracking-widest mb-2">Relaxation Protocol Suspended</h3>
-                <p class="text-xs text-slate-500 font-mono max-w-md mx-auto mb-4">Select a game from your left library catalog to launch its launcher engine, view patch guides, and embed YouTube videos.</p>
+    {% else %}
+        <!-- LIBRARY VIEW (FULL PAGE GRID) -->
+        <div class="col-12 mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h2 class="font-size-20 text-slate-800 dark:text-slate-100 font-bold uppercase tracking-widest mb-1">
+                    Arcade Cabin
+                </h2>
+                <p class="text-xs text-slate-500 font-mono">Launch games, track stats, extract webpage manuals, and view gameplay recordings.</p>
             </div>
-        {% endif %}
-    </div>
+            <div class="d-flex items-center gap-3 flex-wrap">
+                <!-- Steam Playtime Sync compact -->
+                <div class="d-flex gap-2 align-items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-pill shadow-sm">
+                    <span class="text-[9px] uppercase font-mono tracking-widest font-bold text-slate-400">Steam Sync:</span>
+                    <input type="text" id="steam_username_sync" class="form-control form-control-sm font-mono text-[10px] rounded-pill border-0 p-0 bg-transparent" style="width: 120px; outline: none; box-shadow: none; height: auto;" placeholder="ID/Custom URL" value="{{ request.session.steam_username|default:'' }}">
+                    <button class="btn btn-xs btn-outline-primary rounded-pill px-2.5 font-bold font-mono text-[9px] uppercase" type="button" onclick="syncSteamPlaytimes()">Sync</button>
+                </div>
+                <button type="button" class="btn btn-outline-primary rounded-pill px-4 py-2 font-bold font-mono text-xs uppercase tracking-wider" data-bs-toggle="modal" data-bs-target="#addGameModal">
+                    <i class="fas fa-plus mr-1"></i> Add Game
+                </button>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <h4 class="font-size-11 uppercase tracking-widest text-slate-400 font-bold font-mono mb-4">My Library</h4>
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">
+                {% for game in games %}
+                    <div class="col">
+                        <a href="?game_id={{ game.id }}" class="text-decoration-none">
+                            <div class="card mb-0 h-100 game-card">
+                                <div class="game-cover-container" style="background-image: url('{% if 'http://' in game.cover_image_url or 'https://' in game.cover_image_url %}{{ game.cover_image_url }}{% else %}{% url 'serve_local_file' %}?path={{ game.cover_image_url }}{% endif %}');">
+                                    <div class="game-cover-overlay">
+                                        <div class="w-100 flex justify-between items-end">
+                                            <div class="min-w-0 pr-2">
+                                                <h3 class="text-white text-xs font-bold truncate mb-0">{{ game.name }}</h3>
+                                                <span class="text-[9px] font-mono text-slate-300">Playtime: {{ game.hours_played }} hrs</span>
+                                            </div>
+                                            <span class="game-badge {% if game.steam_app_id %}bg-blue-500/20 text-blue-300{% else %}bg-purple-500/20 text-purple-300{% endif %} border border-white/10">
+                                                {% if game.steam_app_id %}Steam{% else %}Local{% endif %}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                {% empty %}
+                    <div class="col-12">
+                        <div class="glass-card rounded-4 p-8 text-center text-slate-400 w-100" style="border-radius: 20px !important;">
+                            <i class="fas fa-gamepad text-3xl mb-2 opacity-30"></i>
+                            <p class="font-mono text-xs uppercase tracking-widest">Library is empty</p>
+                            <p class="font-mono text-[9px] mt-1">Add a game using the launcher tool above to configure your arcade cabin.</p>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
 </div>
 
 <!-- ADD GAME MODAL DIALOG -->
@@ -730,25 +724,13 @@
         const iframeContent = document.getElementById(`guide-iframe-content-${guideId}`);
         
         if (mode === 'text') {
-            if(textBtn) {
-                textBtn.classList.add('bg-purple-600', 'text-white');
-                textBtn.classList.remove('text-slate-400');
-            }
-            if(iframeBtn) {
-                iframeBtn.classList.remove('bg-purple-600', 'text-white');
-                iframeBtn.classList.add('text-slate-400');
-            }
+            if(textBtn) textBtn.classList.add('active');
+            if(iframeBtn) iframeBtn.classList.remove('active');
             if(textContent) textContent.classList.remove('hidden');
             if(iframeContent) iframeContent.classList.add('hidden');
         } else {
-            if(iframeBtn) {
-                iframeBtn.classList.add('bg-purple-600', 'text-white');
-                iframeBtn.classList.remove('text-slate-400');
-            }
-            if(textBtn) {
-                textBtn.classList.remove('bg-purple-600', 'text-white');
-                textBtn.classList.add('text-slate-400');
-            }
+            if(iframeBtn) iframeBtn.classList.add('active');
+            if(textBtn) textBtn.classList.remove('active');
             if(iframeContent) iframeContent.classList.remove('hidden');
             if(textContent) textContent.classList.add('hidden');
         }
