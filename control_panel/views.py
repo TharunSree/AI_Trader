@@ -1892,6 +1892,12 @@ def settings_view(request):
             settings.openai_api_key = request.POST.get('openai_api_key', '')
             settings.anthropic_api_key = request.POST.get('anthropic_api_key', '')
 
+        # Remote gaming rig launch settings
+        if 'gaming_rig_ip' in request.POST:
+            settings.gaming_rig_ip = request.POST.get('gaming_rig_ip', '').strip()
+            settings.gaming_rig_ssh_username = request.POST.get('gaming_rig_ssh_username', '').strip()
+            settings.gaming_rig_ssh_password = request.POST.get('gaming_rig_ssh_password', '').strip()
+
         # Save non-sensitive settings to the database
         # Only update display_currency if the field was in the form submission
         if 'display_currency' in request.POST and request.POST.get('display_currency'):
@@ -5400,6 +5406,41 @@ def relax_add_video(request):
 @login_required
 def relax_launch_game(request, game_id):
     game = get_object_or_404(Game, id=game_id)
+    
+    # 1. Check if remote Windows Gaming Rig is configured (if Django runs on Linux)
+    settings = SystemSettings.load()
+    if settings.gaming_rig_ip and settings.gaming_rig_ssh_username:
+        rig_host = settings.gaming_rig_ip
+        rig_user = settings.gaming_rig_ssh_username
+        rig_pass = settings.gaming_rig_ssh_password
+        
+        if game.steam_app_id:
+            remote_cmd = f"cmd.exe /c start steam://rungameid/{game.steam_app_id}"
+        elif game.local_path:
+            remote_cmd = f"cmd.exe /c start \"\" \"{game.local_path}\""
+        else:
+            messages.error(request, "No launch path or Steam ID specified.")
+            return redirect(f"/relax/?game_id={game.id}")
+            
+        import shutil
+        sshpass_bin = shutil.which("sshpass")
+        ssh_args = ["ssh", "-o", "ConnectTimeout=4", "-o", "StrictHostKeyChecking=no", f"{rig_user}@{rig_host}", remote_cmd]
+        
+        if rig_pass and sshpass_bin:
+            cmd_to_run = [sshpass_bin, "-p", rig_pass] + ssh_args
+        else:
+            cmd_to_run = ssh_args
+            
+        try:
+            logger.info(f"Triggering remote launch on Windows rig {rig_host} via SSH...")
+            subprocess.Popen(cmd_to_run, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            messages.success(request, f"Sent remote launch command for '{game.name}' to Windows rig {rig_host} via SSH!")
+            return redirect(f"/relax/?game_id={game.id}")
+        except Exception as ssh_ex:
+            logger.error(f"Failed to run SSH launch command: {ssh_ex}")
+            messages.warning(request, f"Remote SSH launch trigger failed: {str(ssh_ex)}. Attempting local launch fallback...")
+
+    # 2. Local launch fallback
     try:
         import platform
         if game.steam_app_id:

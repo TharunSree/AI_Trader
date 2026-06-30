@@ -189,6 +189,11 @@ class SystemSettings(models.Model):
     openai_api_key = models.CharField(max_length=255, blank=True, default='')
     anthropic_api_key = models.CharField(max_length=255, blank=True, default='')
 
+    # Remote Gaming Rig (Windows Host) Launch Settings
+    gaming_rig_ip = models.CharField(max_length=255, blank=True, default='', help_text="Local IP or hostname of the Windows gaming machine")
+    gaming_rig_ssh_username = models.CharField(max_length=255, blank=True, default='', help_text="Windows user account name for SSH connection")
+    gaming_rig_ssh_password = models.CharField(max_length=255, blank=True, default='', help_text="Windows user password or SSH key path")
+
     def save(self, *args, **kwargs):
         self.pk = 1
         super(SystemSettings, self).save(*args, **kwargs)

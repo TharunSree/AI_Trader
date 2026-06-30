@@ -88,6 +88,42 @@
             </div>
         </form>
       </div>
+
+      <!-- Remote Gaming Rig -->
+      <div class="bg-white dark:bg-slate-900/60 dark:backdrop-blur-md border border-slate-200 dark:border-slate-800/80 shadow-lg rounded-2xl p-6 transition-all duration-300 hover:border-brand-500/20 mt-6" style="border-radius: 24px !important;">
+        <h3 class="text-xs uppercase tracking-[0.15em] font-bold text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-2.5 mb-5 flex items-center gap-2">
+            <i class="fas fa-desktop text-brand-500"></i> Remote Gaming Rig (Windows Host)
+        </h3>
+        <p class="text-xs text-slate-500 dark:text-slate-400 font-mono mb-5 leading-relaxed">Configure the IP, Windows SSH username, and password of the system where Steam/games are installed. Django will use these settings to trigger launches remotely.</p>
+        
+        <form method="POST" action="">
+            {% csrf_token %}
+            <div class="flex flex-col gap-4">
+                <!-- IP Address / Hostname -->
+                <div>
+                    <label class="block text-[10px] uppercase tracking-widest text-slate-500 font-mono mb-1.5">Rig Host IP / Hostname</label>
+                    <input type="text" name="gaming_rig_ip" value="{{ settings.gaming_rig_ip|default:'' }}" placeholder="e.g. 192.168.1.50" class="w-full bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2.5 text-xs font-mono outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20 transition-all">
+                </div>
+
+                <!-- Windows Username -->
+                <div>
+                    <label class="block text-[10px] uppercase tracking-widest text-slate-500 font-mono mb-1.5">Windows SSH Username</label>
+                    <input type="text" name="gaming_rig_ssh_username" value="{{ settings.gaming_rig_ssh_username|default:'' }}" placeholder="e.g. Tarun" class="w-full bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2.5 text-xs font-mono outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20 transition-all">
+                </div>
+
+                <!-- Windows SSH Password -->
+                <div>
+                    <label class="block text-[10px] uppercase tracking-widest text-slate-500 font-mono mb-1.5">Windows SSH Password (Optional)</label>
+                    <div class="relative">
+                        <input type="password" name="gaming_rig_ssh_password" id="gaming-rig-pass-input" value="{{ settings.gaming_rig_ssh_password|default:'' }}" placeholder="Windows login password" class="w-full bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2.5 text-xs font-mono outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20 transition-all pr-10">
+                        <button type="button" onclick="var i=document.getElementById('gaming-rig-pass-input');i.type=i.type==='password'?'text':'password';" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><i class="fas fa-eye text-xs"></i></button>
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full px-4 py-3 bg-brand-50 hover:bg-brand-100 dark:bg-brand-500/10 dark:hover:bg-brand-500/20 border border-brand-200 dark:border-brand-500/30 text-brand-600 dark:text-brand-400 font-mono text-xs font-bold uppercase tracking-widest rounded-xl transition-all mt-2">Save Rig Settings</button>
+            </div>
+        </form>
+      </div>
   </div>
 
   <!-- Right Column: Notification Protocols, Broker Environments, Sync, Security -->
