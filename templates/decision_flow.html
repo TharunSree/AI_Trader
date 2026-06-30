@@ -254,7 +254,7 @@
         
         <!-- Left Side: Visualizer Canvas (Col-span 2) -->
         <div class="lg:col-span-2 flex flex-col gap-4">
-            <div class="card mb-4 flex flex-col justify-between min-h-[560px]">
+            <div id="neural-visualizer-card" class="card mb-4 flex flex-col justify-between min-h-[560px]">
                 <div class="card-body p-4 d-flex flex-column justify-content-between h-100">
                     <div class="d-flex justify-content-between align-items-center mb-3 border-b border-slate-850 pb-3">
                         <h4 class="card-title font-mono tracking-widest uppercase mb-0 d-flex align-items-center gap-2">
@@ -766,6 +766,7 @@
         const idPrefix = `path-${fromLayer}-${toLayer}`;
         const paths = document.querySelectorAll(`[id^="${idPrefix}"]`);
         paths.forEach(path => {
+            const originalColor = path.getAttribute("stroke");
             const originalStroke = path.getAttribute("stroke-width");
             const originalOpacity = path.getAttribute("opacity") || "0.2";
             const originalDash = path.getAttribute("stroke-dasharray") || "none";
@@ -778,6 +779,7 @@
             path.style.filter = `drop-shadow(0 0 6px ${color})`;
             
             setTimeout(() => {
+                path.setAttribute("stroke", originalColor);
                 path.setAttribute("stroke-width", originalStroke);
                 path.setAttribute("opacity", originalOpacity);
                 path.setAttribute("stroke-dasharray", originalDash);
@@ -935,13 +937,13 @@
             selectedTradeData.spread
         );
         
-        // Smoothly scroll to visualizer canvas
-        const canvas = document.getElementById("decision-canvas");
-        if (canvas) {
-            console.log("Scrolling to decision-canvas");
-            canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Smoothly scroll to visualizer card container
+        const card = document.getElementById("neural-visualizer-card");
+        if (card) {
+            console.log("Scrolling to neural-visualizer-card");
+            card.scrollIntoView({ behavior: 'smooth', block: 'start' });
         } else {
-            console.warn("decision-canvas element not found");
+            console.warn("neural-visualizer-card element not found");
         }
     };
 
@@ -1005,7 +1007,7 @@
                             <td class="py-3 text-slate-200 font-bold">${trade.symbol}</td>
                             <td class="py-3 text-slate-400 max-w-sm truncate" title="${trade.reason}">${trade.reason}</td>
                             <td class="py-3 text-right">
-                                <button type="button" class="bg-transparent hover:bg-cyan-500/10 text-cyan-400 hover:text-cyan-300 border border-cyan-500/40 hover:border-cyan-500 font-mono text-[9px] uppercase tracking-wider px-2 py-0.5 rounded cursor-pointer transition-all">
+                                <button type="button" onclick="event.stopPropagation(); selectTradeRow(this.closest('tr'), ${trade.price_trend}, ${trade.sentiment}, ${trade.volatility}, ${trade.spread})" class="bg-transparent hover:bg-cyan-500/10 text-cyan-400 hover:text-cyan-300 border border-cyan-500/40 hover:border-cyan-500 font-mono text-[9px] uppercase tracking-wider px-2 py-0.5 rounded cursor-pointer transition-all">
                                     Select
                                 </button>
                             </td>
