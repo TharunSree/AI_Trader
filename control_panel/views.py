@@ -6148,9 +6148,11 @@ def relax_watchlist_view(request):
             'recent_news': recent_news
         })
 
+    settings = SystemSettings.load()
     context = {
         'watchlist': watchlist_data,
         'budget_games': budget_games,
+        'settings': settings,
     }
     return render(request, 'relax_watchlist.html', context)
 
@@ -6201,7 +6203,13 @@ def relax_delete_watchlist_game(request, game_id):
 def relax_add_budget_game(request):
     name = request.POST.get('name', '').strip()
     steam_app_id = request.POST.get('steam_app_id', '').strip() or None
-    target_budget = float(request.POST.get('target_budget', 0.0) or 0.0)
+    
+    settings = SystemSettings.load()
+    target_budget_str = request.POST.get('target_budget', '').strip()
+    if target_budget_str:
+        target_budget = float(target_budget_str)
+    else:
+        target_budget = settings.global_wishlist_budget
     
     check_steam = 'check_steam' in request.POST
     check_epic = 'check_epic' in request.POST
@@ -6226,6 +6234,23 @@ def relax_add_budget_game(request):
                 pass
         threading.Thread(target=run_scout, daemon=True).start()
         messages.success(request, f"Added '{name}' to your budget watchlist. Scouting game discounts in the background...")
+    return redirect('relax_watchlist')
+
+
+@login_required
+@require_POST
+def relax_update_global_budget(request):
+    settings = SystemSettings.load()
+    global_budget = float(request.POST.get('global_wishlist_budget', 1000.0) or 1000.0)
+    settings.global_wishlist_budget = global_budget
+    settings.save()
+    
+    if 'update_existing' in request.POST:
+        BudgetWatchlistGame.objects.all().update(target_budget=global_budget)
+        messages.success(request, f"Updated global default budget to ₹{global_budget:.2f} and updated all existing items!")
+    else:
+        messages.success(request, f"Updated global default target budget to ₹{global_budget:.2f} for future games.")
+        
     return redirect('relax_watchlist')
 
 

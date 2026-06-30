@@ -119,9 +119,22 @@ class Command(BaseCommand):
             game.last_checked_at = timezone.now()
             game.save()
 
+    def get_usd_to_inr_rate(self):
+        try:
+            req = urllib.request.Request("https://open.er-api.com/v6/latest/USD", headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=5) as res:
+                data = json.loads(res.read().decode('utf-8'))
+            rate = data.get('rates', {}).get('INR', 83.5)
+            self.stdout.write(f"Fetched live USD to INR exchange rate: {rate}")
+            return float(rate)
+        except Exception as e:
+            self.stderr.write(f"Failed to fetch exchange rate, using fallback 83.5: {e}")
+            return 83.5
+
     def check_discount_sales(self):
         self.stdout.write("Verifying budget discount prices...")
         watchlist = BudgetWatchlistGame.objects.all()
+        usd_to_inr = self.get_usd_to_inr_rate()
         
         # Store ID mapping of CheapShark
         # Store 1 = Steam, Store 25 = Epic Games, Store 27 = Xbox Store
@@ -153,33 +166,34 @@ class Command(BaseCommand):
                     details_data = json.loads(d_res.read().decode('utf-8'))
                 
                 deals = details_data.get('deals', [])
-                lowest_price = None
+                lowest_price_usd = None
                 lowest_store = None
 
                 for deal in deals:
                     store_id = deal.get('storeID')
-                    price = float(deal.get('price', 999.0))
+                    price_usd = float(deal.get('price', 999.0))
                     
                     # Apply platform filter preferences
                     if store_id == "1" and not item.check_steam: continue
                     if store_id == "25" and not item.check_epic: continue
                     if store_id == "27" and not item.check_xbox: continue
 
-                    if lowest_price is None or price < lowest_price:
-                        lowest_price = price
+                    if lowest_price_usd is None or price_usd < lowest_price_usd:
+                        lowest_price_usd = price_usd
                         lowest_store = store_map.get(store_id, f"Store #{store_id}")
 
                 item.last_checked_at = timezone.now()
 
-                if lowest_price is not None:
-                    item.current_price = lowest_price
+                if lowest_price_usd is not None:
+                    lowest_price_inr = lowest_price_usd * usd_to_inr
+                    item.current_price = lowest_price_inr
                     item.lowest_platform = lowest_store
                     
-                    # Notify check
-                    if lowest_price <= item.target_budget:
+                    # Notify check in INR
+                    if lowest_price_inr <= item.target_budget:
                         if not item.notified_under_budget:
                             subject = f"💸 DEAL ALERT: {item.name} is on sale!"
-                            body = f"Good news! {item.name} has dropped below your budget limit of ${item.target_budget:.2f}:\n\nCurrent Price: ${lowest_price:.2f}\nStore: {lowest_store}\n\nGet it before the sale ends!"
+                            body = f"Good news! {item.name} has dropped below your budget limit of INR {item.target_budget:.2f}:\n\nCurrent Price: INR {lowest_price_inr:.2f} (approx ${lowest_price_usd:.2f})\nStore: {lowest_store}\n\nGet it before the sale ends!"
                             self.send_email_notification(subject, body)
                             item.notified_under_budget = True
                     else:

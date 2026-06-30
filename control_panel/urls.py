@@ -123,6 +123,7 @@ urlpatterns = [
     path('relax/watchlist/delete-upcoming/<int:game_id>/', views.relax_delete_watchlist_game, name='relax_delete_watchlist_game'),
     path('relax/watchlist/add-budget/', views.relax_add_budget_game, name='relax_add_budget_game'),
     path('relax/watchlist/delete-budget/<int:game_id>/', views.relax_delete_budget_game, name='relax_delete_budget_game'),
+    path('relax/watchlist/update-global-budget/', views.relax_update_global_budget, name='relax_update_global_budget'),
     path('relax/immersion/', views.relax_immersion_view, name='relax_immersion'),
     path('relax/api/process-heartbeat/', views.relax_api_process_heartbeat, name='relax_api_process_heartbeat'),
     path('relax/api/immersion-status/', views.relax_api_immersion_status, name='relax_api_immersion_status'),

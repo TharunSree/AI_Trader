@@ -195,6 +195,7 @@ class SystemSettings(models.Model):
     gaming_rig_ssh_password = models.CharField(max_length=255, blank=True, default='', help_text="Windows user password or SSH key path")
     steam_username = models.CharField(max_length=255, blank=True, default='', help_text="Steam ID64 or custom profile URL name for auto-syncing library playtimes")
     steam_api_key = models.CharField(max_length=255, blank=True, default='', help_text="Steam Web API Key for reliable full library sync")
+    global_wishlist_budget = models.FloatField(default=1000.0, help_text="Default target budget in INR for discount watchlist games")
 
     def save(self, *args, **kwargs):
         self.pk = 1
@@ -471,11 +472,11 @@ class WatchlistGame(models.Model):
 class BudgetWatchlistGame(models.Model):
     name = models.CharField(max_length=150)
     steam_app_id = models.CharField(max_length=50, blank=True, null=True)
-    target_budget = models.FloatField(default=30.0)
+    target_budget = models.FloatField(default=1000.0, help_text="Target budget in INR (Rupees)")
     check_steam = models.BooleanField(default=True)
     check_epic = models.BooleanField(default=True)
     check_xbox = models.BooleanField(default=True)
-    current_price = models.FloatField(blank=True, null=True)
+    current_price = models.FloatField(blank=True, null=True, help_text="Current lowest price in INR (Rupees)")
     lowest_platform = models.CharField(max_length=50, blank=True, null=True)
     last_checked_at = models.DateTimeField(blank=True, null=True)
     notified_under_budget = models.BooleanField(default=False)
