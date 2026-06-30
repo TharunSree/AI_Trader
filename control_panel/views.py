@@ -4877,9 +4877,6 @@ import re
 import os
 import subprocess
 from html.parser import HTMLParser
-from django.contrib import messages
-from .models import Game, GameGuide, GameVideo
-
 def fetch_steam_details(app_id):
     try:
         url = f"https://store.steampowered.com/api/appdetails?appids={app_id}"
@@ -4905,16 +4902,59 @@ def fetch_steam_details(app_id):
                 if not bg:
                     bg = game_data.get('background') or (game_data.get('screenshots', [{}])[0].get('path_full') if game_data.get('screenshots') else None)
                 
-                return name, cover, bg
+                if name:
+                    return name, cover, bg
     except Exception as e:
-        logger.error(f"Steam details fetch failed for AppID {app_id}: {e}")
+        logger.warning(f"Steam appdetails API failed for AppID {app_id}: {e}")
+        
+    # Fallback to direct storefront HTML scraping (highly reliable for unreleased/unindexed games)
+    try:
+        store_url = f"https://store.steampowered.com/app/{app_id}/"
+        store_req = urllib.request.Request(store_url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+        with urllib.request.urlopen(store_req, timeout=8) as store_res:
+            store_html = store_res.read().decode('utf-8', errors='ignore')
+            
+        import re
+        title_m = re.search(r'id="appHubAppName"[^>]*>([^<]+)</div>', store_html)
+        title = title_m.group(1).strip() if title_m else None
+        
+        if title:
+            cover_m = re.search(r'class="game_header_image_full"[^>]*src="([^"]+)"', store_html)
+            cover = cover_m.group(1).strip() if cover_m else f"https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/{app_id}/header.jpg"
+            
+            # Scrape movie/microtrailer background video
+            bg = None
+            m = re.search(r'data-microtrailer-webm-source="([^"]+)"', store_html)
+            if m:
+                bg = m.group(1).replace('http://', 'https://').strip()
+            if not bg:
+                m = re.search(r'data-microtrailer-mp4-source="([^"]+)"', store_html)
+                if m:
+                    bg = m.group(1).replace('http://', 'https://').strip()
+            if not bg:
+                m = re.search(r'data-webm-source="([^"]+)"', store_html)
+                if m:
+                    bg = m.group(1).replace('http://', 'https://').strip()
+            if not bg:
+                m = re.search(r'data-mp4-source="([^"]+)"', store_html)
+                if m:
+                    bg = m.group(1).replace('http://', 'https://').strip()
+                    
+            if not bg:
+                bg = f"https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/{app_id}/library_hero.jpg"
+                
+            return title, cover, bg
+    except Exception as scrape_err:
+        logger.error(f"Steam storefront HTML details scrape failed for AppID {app_id}: {scrape_err}")
+        
     return None, None, None
 
 
 def search_steam_game_id(query):
+    import urllib.parse
+    import re
+    quoted_query = urllib.parse.quote(query)
     try:
-        import urllib.parse
-        quoted_query = urllib.parse.quote(query)
         url = f"https://store.steampowered.com/api/storesearch/?term={quoted_query}&l=english&cc=US"
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
         with urllib.request.urlopen(req, timeout=6) as response:
@@ -4922,7 +4962,20 @@ def search_steam_game_id(query):
             if 'items' in data and data['items']:
                 return data['items'][0].get('id')
     except Exception as e:
-        logger.error(f"Steam store search failed for query '{query}': {e}")
+        logger.warning(f"Steam store search API failed for query '{query}': {e}")
+        
+    # Fallback to suggesting autocompletion endpoint
+    try:
+        suggest_url = f"https://store.steampowered.com/search/suggest?term={quoted_query}&f=games"
+        suggest_req = urllib.request.Request(suggest_url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+        with urllib.request.urlopen(suggest_req, timeout=5) as suggest_res:
+            suggest_html = suggest_res.read().decode('utf-8', errors='ignore')
+        
+        m = re.search(r'href="https://store.steampowered.com/app/(\d+)/', suggest_html)
+        if m:
+            return int(m.group(1))
+    except Exception as suggest_err:
+        logger.error(f"Steam suggest ID search failed for query '{query}': {suggest_err}")
     return None
 
 
@@ -5199,18 +5252,20 @@ def relax_search_artwork(request):
     import urllib.request
     import urllib.parse
     import json
+    import re
     term = request.GET.get('term', '').strip()
     if not term:
         return JsonResponse({'status': 'error', 'message': 'Search term is required.'}, status=400)
     
+    results = []
     try:
+        # Try storesearch API first
         url = f"https://store.steampowered.com/api/storesearch/?term={urllib.parse.quote(term)}&l=english&cc=US"
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
         with urllib.request.urlopen(req, timeout=5) as response:
             data = json.loads(response.read().decode('utf-8'))
             
         if 'items' in data and data['items']:
-            results = []
             for item in data['items']:
                 appid = item['id']
                 results.append({
@@ -5220,12 +5275,31 @@ def relax_search_artwork(request):
                     'hero_url': f"https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/{appid}/library_hero.jpg",
                     'header_url': f"https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/{appid}/header.jpg",
                 })
-            return JsonResponse({'status': 'success', 'results': results})
-        else:
-            return JsonResponse({'status': 'success', 'results': []})
     except Exception as e:
-        logger.error(f"Artwork search failed: {e}")
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+        logger.warning(f"Artwork search API failed: {e}")
+        
+    # Try suggest autocompletion endpoint if storesearch is empty or failed
+    if not results:
+        try:
+            suggest_url = f"https://store.steampowered.com/search/suggest?term={urllib.parse.quote(term)}&f=games"
+            suggest_req = urllib.request.Request(suggest_url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+            with urllib.request.urlopen(suggest_req, timeout=5) as suggest_res:
+                suggest_html = suggest_res.read().decode('utf-8', errors='ignore')
+            
+            matches = re.findall(r'href="https://store.steampowered.com/app/(\d+)/([^/"]*)/?[^"]*".*?<div class="match_name">([^<]+)</div>', suggest_html, re.DOTALL)
+            for appid, slug, name in matches:
+                name_clean = name.strip()
+                results.append({
+                    'appid': appid,
+                    'name': name_clean,
+                    'cover_url': f"https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/{appid}/library_600x900_2x.jpg",
+                    'hero_url': f"https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/{appid}/library_hero.jpg",
+                    'header_url': f"https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/{appid}/header.jpg",
+                })
+        except Exception as suggest_err:
+            logger.error(f"Artwork search suggest API fallback failed: {suggest_err}")
+            
+    return JsonResponse({'status': 'success', 'results': results})
 
 
 
