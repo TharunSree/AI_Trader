@@ -5167,11 +5167,14 @@ def relax_view(request):
             t.daemon = True
             t.start()
     
+    steam_username_session = request.session.get('steam_username', '')
+    
     context = {
         'games': games,
         'selected_game': selected_game,
         'page_title': 'Relax Lounge',
         'settings': settings,
+        'steam_username_session': steam_username_session,
     }
     return render(request, 'relax.html', context)
 
