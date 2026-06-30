@@ -4,7 +4,7 @@ import json
 import subprocess
 import sys
 
-SERVER_URL = "http://localhost:8000"  # Update this with your server host IP
+SERVER_URL = "http://192.168.29.165:8000"  # Update this with your server host IP
 
 def get_running_processes():
     try:

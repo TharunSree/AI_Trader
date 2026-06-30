@@ -5243,6 +5243,7 @@ def relax_analytics_view(request):
 
     context = {
         'page_title': 'Arcade Analytics',
+        'games': games,
         'settings': settings,
         'steam_username_session': steam_username_session,
         'fav_game': fav_game,
