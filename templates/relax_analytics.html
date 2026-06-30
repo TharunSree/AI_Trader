@@ -7,13 +7,18 @@
 {% block extra_head %}
 <style>
     .glass-card {
-        background: rgba(15, 15, 25, 0.65) !important;
-        backdrop-filter: blur(16px) saturate(180%);
-        -webkit-backdrop-filter: blur(16px) saturate(180%);
-        border: 1px solid rgba(255, 255, 255, 0.06) !important;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+        background: #ffffff !important;
+        border: 1px solid #e9ecef !important;
+        color: #495057 !important;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05) !important;
         border-radius: 20px !important;
         transition: all 0.3s ease;
+    }
+    .dark .glass-card {
+        background: #2a3042 !important;
+        border: 1px solid #32394e !important;
+        color: #a6b0cf !important;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25) !important;
     }
     .neon-text {
         color: #a855f7;
@@ -30,7 +35,6 @@
     }
     .game-leader-card:hover {
         transform: translateY(-4px);
-        box-shadow: 0 10px 25px rgba(168, 85, 247, 0.2) !important;
     }
 </style>
 {% endblock %}
@@ -60,34 +64,34 @@
 
     <!-- Telemetry Cards -->
     <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card glass-card h-100 p-3">
+        <div class="card bg-info text-white h-100 p-3 shadow-lg border-0" style="border-radius: 20px;">
             <div class="d-flex align-items-center justify-content-between">
                 <div>
-                    <h6 class="text-slate-400 font-mono text-[10px] uppercase tracking-widest mb-1">Today's Session</h6>
+                    <h6 class="text-white/70 font-mono text-[10px] uppercase tracking-widest mb-1">Today's Session</h6>
                     <h3 class="text-white font-bold mb-0">{{ playtime_today }} hrs</h3>
                 </div>
-                <div class="avatar-sm bg-primary/20 rounded-circle d-flex align-items-center justify-content-center p-3 border border-primary/30">
-                    <i class="fas fa-clock text-primary text-lg"></i>
+                <div class="avatar-sm bg-white/20 rounded-circle d-flex align-items-center justify-content-center p-3">
+                    <i class="fas fa-clock text-white text-lg"></i>
                 </div>
             </div>
-            <div class="mt-3 text-[10px] font-mono text-slate-400">
+            <div class="mt-3 text-[10px] font-mono text-white/60">
                 Active monitor tracking playtime logs
             </div>
         </div>
     </div>
 
     <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card glass-card h-100 p-3">
+        <div class="card bg-primary text-white h-100 p-3 shadow-lg border-0" style="border-radius: 20px;">
             <div class="d-flex align-items-center justify-content-between">
                 <div>
-                    <h6 class="text-slate-400 font-mono text-[10px] uppercase tracking-widest mb-1">Monthly Playtime</h6>
+                    <h6 class="text-white/70 font-mono text-[10px] uppercase tracking-widest mb-1">Monthly Playtime</h6>
                     <h3 class="text-white font-bold mb-0">{{ playtime_month }} hrs</h3>
                 </div>
-                <div class="avatar-sm bg-info/20 rounded-circle d-flex align-items-center justify-content-center p-3 border border-info/30">
-                    <i class="fas fa-calendar-alt text-info text-lg"></i>
+                <div class="avatar-sm bg-white/20 rounded-circle d-flex align-items-center justify-content-center p-3">
+                    <i class="fas fa-calendar-alt text-white text-lg"></i>
                 </div>
             </div>
-            <div class="mt-3 text-[10px] font-mono text-slate-400">
+            <div class="mt-3 text-[10px] font-mono text-white/60">
                 Aggregated monthly calendar session total
             </div>
         </div>
@@ -95,13 +99,13 @@
 
     {% if most_played %}
     <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card glass-card h-100 p-3 game-leader-card cursor-pointer" onclick="location.href='{% url 'relax_game_detail_analytics' most_played.id %}'">
+        <div class="card h-100 p-3 game-leader-card cursor-pointer border-0 text-white" style="background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%); border-radius: 20px;" onclick="location.href='{% url 'relax_game_detail_analytics' most_played.id %}'">
             <div class="d-flex align-items-center gap-3">
                 <img src="{% if 'http://' in most_played.cover_image_url or 'https://' in most_played.cover_image_url %}{{ most_played.cover_image_url }}{% else %}{% url 'serve_local_file' %}?path={{ most_played.cover_image_url }}{% endif %}" class="rounded-3" style="width: 50px; height: 65px; object-fit: cover;">
                 <div class="min-w-0 flex-1">
-                    <h6 class="text-slate-400 font-mono text-[10px] uppercase tracking-widest mb-0.5">Most Played</h6>
+                    <h6 class="text-white/70 font-mono text-[10px] uppercase tracking-widest mb-0.5">Most Played</h6>
                     <h4 class="text-white font-bold text-xs truncate mb-1">{{ most_played.name }}</h4>
-                    <span class="badge neon-border-cyan text-cyan-400 font-mono text-[9px] py-0.5 px-2">{{ most_played.hours_played|floatformat:1 }} hrs</span>
+                    <span class="badge bg-white/20 text-white font-mono text-[9px] py-0.5 px-2">{{ most_played.hours_played|floatformat:1 }} hrs</span>
                 </div>
             </div>
         </div>
@@ -110,13 +114,13 @@
 
     {% if fav_game %}
     <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card glass-card h-100 p-3 game-leader-card cursor-pointer" onclick="location.href='{% url 'relax_game_detail_analytics' fav_game.id %}'">
+        <div class="card h-100 p-3 game-leader-card cursor-pointer border-0 text-white" style="background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%); border-radius: 20px;" onclick="location.href='{% url 'relax_game_detail_analytics' fav_game.id %}'">
             <div class="d-flex align-items-center gap-3">
                 <img src="{% if 'http://' in fav_game.cover_image_url or 'https://' in fav_game.cover_image_url %}{{ fav_game.cover_image_url }}{% else %}{% url 'serve_local_file' %}?path={{ fav_game.cover_image_url }}{% endif %}" class="rounded-3" style="width: 50px; height: 65px; object-fit: cover;">
                 <div class="min-w-0 flex-1">
-                    <h6 class="text-slate-400 font-mono text-[10px] uppercase tracking-widest mb-0.5">Favorite Cabin</h6>
+                    <h6 class="text-white/70 font-mono text-[10px] uppercase tracking-widest mb-0.5">Favorite Cabin</h6>
                     <h4 class="text-white font-bold text-xs truncate mb-1">{{ fav_game.name }}</h4>
-                    <span class="badge neon-border text-purple-400 font-mono text-[9px] py-0.5 px-2">{{ fav_game.hours_played|floatformat:1 }} hrs</span>
+                    <span class="badge bg-white/20 text-white font-mono text-[9px] py-0.5 px-2">{{ fav_game.hours_played|floatformat:1 }} hrs</span>
                 </div>
             </div>
         </div>
@@ -126,7 +130,7 @@
     <!-- Full-Width Playtime Chart -->
     <div class="col-12 mb-4">
         <div class="card glass-card p-4">
-            <h4 class="font-size-13 font-mono uppercase tracking-widest text-slate-200 mb-4">
+            <h4 class="font-size-13 font-mono uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-4">
                 <i class="fas fa-chart-line text-primary me-2"></i> Weekly Playtime Volume
             </h4>
             <div style="height: 350px; position: relative;">
@@ -138,17 +142,17 @@
     <!-- Leaders List -->
     <div class="col-lg-6 mb-4">
         <div class="card glass-card p-4 h-100">
-            <h4 class="font-size-13 font-mono uppercase tracking-widest text-slate-200 mb-3">
+            <h4 class="font-size-13 font-mono uppercase tracking-widest text-slate-700 dark:text-slate-250 mb-3">
                 <i class="fas fa-fire text-amber-500 me-2"></i> Hot Today
             </h4>
             <div class="d-flex flex-column gap-3 mt-3">
                 {% for entry in top_today %}
-                    <div class="d-flex justify-content-between align-items-center border-b border-slate-800 pb-2">
-                        <span class="text-white text-xs font-bold font-mono">{{ forloop.counter }}. {{ entry.name }}</span>
+                    <div class="d-flex justify-content-between align-items-center border-b border-slate-100 dark:border-slate-800 pb-2">
+                        <span class="text-slate-850 dark:text-white text-xs font-bold font-mono">{{ forloop.counter }}. {{ entry.name }}</span>
                         <span class="text-primary font-mono font-bold text-xs">{{ entry.hours }} hours</span>
                     </div>
                 {% empty %}
-                    <div class="text-slate-500 font-mono text-xs py-4 text-center">No playtime logged today yet.</div>
+                    <div class="text-slate-400 dark:text-slate-500 font-mono text-xs py-4 text-center">No playtime logged today yet.</div>
                 {% endfor %}
             </div>
         </div>
@@ -156,17 +160,17 @@
 
     <div class="col-lg-6 mb-4">
         <div class="card glass-card p-4 h-100">
-            <h4 class="font-size-13 font-mono uppercase tracking-widest text-slate-200 mb-3">
+            <h4 class="font-size-13 font-mono uppercase tracking-widest text-slate-700 dark:text-slate-250 mb-3">
                 <i class="fas fa-award text-purple-500 me-2"></i> Top This Month
             </h4>
             <div class="d-flex flex-column gap-3 mt-3">
                 {% for entry in top_month %}
-                    <div class="d-flex justify-content-between align-items-center border-b border-slate-800 pb-2">
-                        <span class="text-white text-xs font-bold font-mono">{{ forloop.counter }}. {{ entry.name }}</span>
+                    <div class="d-flex justify-content-between align-items-center border-b border-slate-100 dark:border-slate-800 pb-2">
+                        <span class="text-slate-850 dark:text-white text-xs font-bold font-mono">{{ forloop.counter }}. {{ entry.name }}</span>
                         <span class="text-purple-400 font-mono font-bold text-xs">{{ entry.hours }} hours</span>
                     </div>
                 {% empty %}
-                    <div class="text-slate-500 font-mono text-xs py-4 text-center">No playtime logged this month yet.</div>
+                    <div class="text-slate-400 dark:text-slate-500 font-mono text-xs py-4 text-center">No playtime logged this month yet.</div>
                 {% endfor %}
             </div>
         </div>
@@ -181,6 +185,10 @@
         
         const dates = {{ chart_dates|safe }};
         const hours = {{ chart_hours|safe }};
+
+        const isDark = document.body.classList.contains('dark') || document.documentElement.classList.contains('dark') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        const tickColor = isDark ? '#94a3b8' : '#495057';
+        const gridColor = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)';
 
         const gradient = ctx.createLinearGradient(0, 0, 0, 300);
         gradient.addColorStop(0, 'rgba(168, 85, 247, 0.45)');
@@ -212,12 +220,12 @@
                 },
                 scales: {
                     x: {
-                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                        ticks: { color: '#94a3b8', font: { family: 'monospace', size: 10 } }
+                        grid: { color: gridColor },
+                        ticks: { color: tickColor, font: { family: 'monospace', size: 10 } }
                     },
                     y: {
-                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                        ticks: { color: '#94a3b8', font: { family: 'monospace', size: 10 } }
+                        grid: { color: gridColor },
+                        ticks: { color: tickColor, font: { family: 'monospace', size: 10 } }
                     }
                 }
             }

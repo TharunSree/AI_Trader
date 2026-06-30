@@ -5180,11 +5180,16 @@ def relax_view(request):
             t.daemon = True
             t.start()
     
+    tracked_hours = 0.0
+    if selected_game:
+        tracked_hours = max(0.0, selected_game.hours_played - selected_game.playtime_offset)
+
     steam_username_session = request.session.get('steam_username', '')
     
     context = {
         'games': games,
         'selected_game': selected_game,
+        'tracked_hours': tracked_hours,
         'page_title': 'Relax Lounge',
         'settings': settings,
         'steam_username_session': steam_username_session,
@@ -5199,6 +5204,7 @@ def relax_add_game(request):
     steam_app_id = request.POST.get('steam_app_id', '').strip() or None
     local_path = request.POST.get('local_path', '').strip() or None
     hours_played = float(request.POST.get('hours_played', 0.0) or 0.0)
+    playtime_offset = float(request.POST.get('playtime_offset', 0.0) or 0.0)
     cover_image_url = request.POST.get('cover_image_url', '').strip() or None
     animated_bg_url = request.POST.get('animated_bg_url', '').strip() or None
 
@@ -5225,11 +5231,15 @@ def relax_add_game(request):
     if not cover_image_url:
         cover_image_url = "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?q=80&w=350&auto=format&fit=crop"
 
+    # Total hours played includes prior platform offset hours
+    total_hours = hours_played + playtime_offset
+
     game = Game.objects.create(
         name=name,
         steam_app_id=steam_app_id,
         local_path=local_path,
-        hours_played=hours_played,
+        hours_played=total_hours,
+        playtime_offset=playtime_offset,
         cover_image_url=cover_image_url,
         animated_bg_url=animated_bg_url
     )
@@ -5255,6 +5265,7 @@ def relax_edit_game(request, game_id):
     steam_app_id = request.POST.get('steam_app_id', '').strip() or None
     local_path = request.POST.get('local_path', '').strip() or None
     hours_played = float(request.POST.get('hours_played', 0.0) or 0.0)
+    playtime_offset = float(request.POST.get('playtime_offset', 0.0) or 0.0)
     cover_image_url = request.POST.get('cover_image_url', '').strip() or None
     animated_bg_url = request.POST.get('animated_bg_url', '').strip() or None
 
@@ -5265,10 +5276,25 @@ def relax_edit_game(request, game_id):
     if not cover_image_url:
         cover_image_url = "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?q=80&w=350&auto=format&fit=crop"
 
+    # Calculate tracked playtime base
+    tracked_hours = game.hours_played - game.playtime_offset
+    if tracked_hours < 0:
+        tracked_hours = 0
+
     game.name = name
     game.steam_app_id = steam_app_id
     game.local_path = local_path
-    game.hours_played = hours_played
+    
+    # Save playtime offset
+    game.playtime_offset = playtime_offset
+    
+    # Recalculate total hours
+    if hours_played != game.hours_played:
+        # If user directly modified total hours, treat it as the new tracked hours base
+        game.hours_played = hours_played + playtime_offset
+    else:
+        game.hours_played = tracked_hours + playtime_offset
+
     game.cover_image_url = cover_image_url
     game.animated_bg_url = animated_bg_url
     game.save()
@@ -6248,9 +6274,22 @@ def relax_api_stop_session(request):
 
 
 @login_required
-@require_POST
 def relax_api_process_heartbeat(request):
     import json
+    import os
+    if request.method == 'GET':
+        non_steam_games = Game.objects.filter(Q(steam_app_id__isnull=True) | Q(steam_app_id=''), is_active=True)
+        executables = []
+        for g in non_steam_games:
+            if g.local_path:
+                exe = os.path.basename(g.local_path).lower()
+                if exe.endswith('.exe'):
+                    executables.append(exe)
+            clean_name = g.name.replace(' ', '').lower() + '.exe'
+            executables.append(clean_name)
+        executables = list(set(executables))
+        return JsonResponse({'monitored_executables': executables})
+
     data = json.loads(request.body)
     process_name = data.get('active_process', '').strip()
     path = data.get('path', '').strip()

@@ -7,12 +7,17 @@
 {% block extra_head %}
 <style>
     .glass-card {
-        background: rgba(15, 15, 25, 0.65) !important;
-        backdrop-filter: blur(16px) saturate(180%);
-        -webkit-backdrop-filter: blur(16px) saturate(180%);
-        border: 1px solid rgba(255, 255, 255, 0.06) !important;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+        background: #ffffff !important;
+        border: 1px solid #e9ecef !important;
+        color: #495057 !important;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05) !important;
         border-radius: 20px !important;
+    }
+    .dark .glass-card {
+        background: #2a3042 !important;
+        border: 1px solid #32394e !important;
+        color: #a6b0cf !important;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25) !important;
     }
     .neon-text {
         color: #a855f7;
@@ -28,7 +33,7 @@
 {% endblock %}
 
 {% block page_content %}
-<div class="row">
+<div class="row align-items-start">
     <!-- Top sub-navigation -->
     <div class="col-12 mb-4">
         <ul class="nav nav-pills gap-2 bg-transparent p-1">
@@ -52,9 +57,9 @@
 
     <!-- UPCOMING GAMES WATCHLIST -->
     <div class="col-lg-6 mb-4">
-        <div class="card glass-card p-4 h-100">
+        <div class="card glass-card p-4">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h4 class="font-size-13 font-mono uppercase tracking-widest text-slate-200 mb-0">
+                <h4 class="font-size-13 font-mono uppercase tracking-widest text-slate-700 dark:text-slate-250 mb-0">
                     <i class="fas fa-calendar-alt text-primary me-2"></i> Upcoming Game Watch
                 </h4>
                 <button class="btn btn-xs btn-outline-primary rounded-pill font-mono font-bold text-[9px] px-3 uppercase" data-bs-toggle="collapse" data-bs-target="#addUpcomingCollapse">
@@ -64,78 +69,95 @@
 
             <!-- Add Upcoming Game Collapse -->
             <div class="collapse mb-4" id="addUpcomingCollapse">
-                <form action="{% url 'relax_add_watchlist_game' %}" method="POST" class="p-3 bg-slate-900/40 rounded-3 border border-slate-800">
+                <form action="{% url 'relax_add_watchlist_game' %}" method="POST" class="p-3 bg-slate-50 dark:bg-slate-900/40 rounded-3 border border-slate-200 dark:border-slate-800">
                     {% csrf_token %}
                     <div class="mb-3">
-                        <label class="form-label font-mono text-[10px] text-slate-400 uppercase">Game Name</label>
-                        <input type="text" name="name" class="form-control form-control-sm bg-slate-950/60 border-slate-800 text-white font-mono text-xs" required placeholder="e.g. Silver Palace">
+                        <label class="form-label font-mono text-[10px] text-slate-500 dark:text-slate-400 uppercase">Game Name</label>
+                        <input type="text" name="name" class="form-control form-control-sm bg-white dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-850 dark:text-white font-mono text-xs" required placeholder="e.g. Silver Palace">
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label font-mono text-[10px] text-slate-400 uppercase">Expected Release Date</label>
-                            <input type="date" name="expected_release_date" class="form-control form-control-sm bg-slate-950/60 border-slate-800 text-white font-mono text-xs">
+                            <label class="form-label font-mono text-[10px] text-slate-500 dark:text-slate-400 uppercase">Expected Release Date</label>
+                            <input type="date" name="expected_release_date" class="form-control form-control-sm bg-white dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-850 dark:text-white font-mono text-xs">
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label font-mono text-[10px] text-slate-400 uppercase">Business Model</label>
-                            <select name="business_model" class="form-select form-select-sm bg-slate-950/60 border-slate-800 text-white font-mono text-xs">
+                            <label class="form-label font-mono text-[10px] text-slate-500 dark:text-slate-400 uppercase">Business Model</label>
+                            <select name="business_model" class="form-select form-select-sm bg-white dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-850 dark:text-white font-mono text-xs">
                                 <option value="UNKNOWN">Unknown</option>
-                                <option value="F2P">Free to Play</option>
-                                <option value="P2P">Pay to Play</option>
+                                <option value="F2P">Free to Play (F2P)</option>
+                                <option value="P2P">Pay to Play (P2P)</option>
                             </select>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label font-mono text-[10px] text-slate-400 uppercase">Price Estimate ($)</label>
-                            <input type="text" name="price_estimate" class="form-control form-control-sm bg-slate-950/60 border-slate-800 text-white font-mono text-xs" placeholder="e.g. $59.99">
+                            <label class="form-label font-mono text-[10px] text-slate-500 dark:text-slate-400 uppercase">Price Estimate ($)</label>
+                            <input type="number" step="0.01" name="price_estimate" class="form-control form-control-sm bg-white dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-850 dark:text-white font-mono text-xs" placeholder="e.g. 59.99">
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label font-mono text-[10px] text-slate-400 uppercase">Official Website</label>
-                            <input type="url" name="official_website" class="form-control form-control-sm bg-slate-950/60 border-slate-800 text-white font-mono text-xs" placeholder="https://...">
+                            <label class="form-label font-mono text-[10px] text-slate-500 dark:text-slate-400 uppercase">Official Website</label>
+                            <input type="url" name="official_website" class="form-control form-control-sm bg-white dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-850 dark:text-white font-mono text-xs" placeholder="https://...">
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label font-mono text-[10px] text-slate-400 uppercase">System Requirements</label>
-                        <textarea name="system_requirements" class="form-control form-control-sm bg-slate-950/60 border-slate-800 text-white font-mono text-xs" rows="2" placeholder="e.g. RTX 3060, 16GB RAM"></textarea>
+                        <label class="form-label font-mono text-[10px] text-slate-500 dark:text-slate-400 uppercase">System Requirements</label>
+                        <textarea name="system_requirements" class="form-control form-control-sm bg-white dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-850 dark:text-white font-mono text-xs" rows="2" placeholder="e.g. RTX 3060, 16GB RAM"></textarea>
                     </div>
-                    <button type="submit" class="btn btn-sm btn-primary font-mono font-bold text-xs rounded-pill w-100">Save Watchlist Game</button>
+                    <button type="submit" class="btn btn-sm btn-primary rounded-pill font-mono font-bold text-[10px] w-100 uppercase py-2">Save Watchlist Game</button>
                 </form>
             </div>
 
-            <!-- List of Upcoming games -->
+            <!-- List Items -->
             <div class="d-flex flex-column gap-3">
-                {% for item in upcoming_games %}
-                    <div class="p-3 bg-slate-950/30 rounded-3 border border-slate-900/60 d-flex flex-column gap-2 position-relative">
-                        <div class="d-flex justify-content-between align-items-start pr-4">
+                {% for item in watchlist %}
+                    <div class="p-3 bg-slate-50 dark:bg-slate-900/30 rounded-3 border border-slate-200 dark:border-slate-800 position-relative">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
                             <div>
-                                <h5 class="text-white text-xs font-bold font-mono mb-1">{{ item.game.name }}</h5>
-                                <span class="badge neon-border-cyan text-cyan-400 font-mono text-[9px] py-0.5 px-2">
-                                    {{ item.game.get_business_model_display }}
-                                </span>
+                                <h5 class="text-slate-850 dark:text-white font-bold text-sm mb-1">{{ item.game.name }}</h5>
+                                <div class="d-flex gap-2 flex-wrap align-items-center">
+                                    <span class="badge bg-primary/10 text-primary font-mono text-[9px] py-1 px-2">{{ item.game.get_business_model_display }}</span>
+                                    {% if item.game.expected_release_date %}
+                                        <span class="badge bg-info/10 text-info font-mono text-[9px] py-1 px-2"><i class="fas fa-calendar-alt me-1"></i> {{ item.game.expected_release_date }}</span>
+                                    {% endif %}
+                                    {% if item.game.price_estimate %}
+                                        <span class="badge bg-success/10 text-success font-mono text-[9px] py-1 px-2">${{ item.game.price_estimate }}</span>
+                                    {% endif %}
+                                </div>
                             </div>
-                            <span class="text-primary font-bold font-mono text-xs">{{ item.countdown }}</span>
-                        </div>
-                        
-                        <div class="text-[10px] font-mono text-slate-400 leading-normal mt-1 border-t border-slate-900/40 pt-2">
-                            <div><strong>Release Date:</strong> {{ item.game.expected_release_date|default:"TBA" }}</div>
-                            <div><strong>Target Price:</strong> {{ item.game.price_estimate|default:"TBA" }}</div>
-                            <div class="mt-1"><strong>Specs:</strong> {{ item.game.system_requirements|default:"Not announced yet" }}</div>
+                            {% if item.countdown_days is not None %}
+                                <div class="text-right">
+                                    <span class="font-mono font-bold text-xs {% if item.countdown_days <= 10 %}text-danger{% else %}text-slate-700 dark:text-slate-300{% endif %}">
+                                        {{ item.countdown_days }} days left
+                                    </span>
+                                </div>
+                            {% endif %}
                         </div>
 
+                        {% if item.game.system_requirements %}
+                            <div class="text-[10px] font-mono text-slate-500 dark:text-slate-400 mt-2">
+                                <strong class="text-slate-600 dark:text-slate-300">System Specs:</strong> {{ item.game.system_requirements }}
+                            </div>
+                        {% endif %}
+                        {% if item.game.official_website %}
+                            <div class="text-[10px] font-mono mt-1">
+                                <strong class="text-slate-600 dark:text-slate-300">Official Site:</strong> <a href="{{ item.game.official_website }}" target="_blank" class="text-primary hover:underline text-[9px]">{{ item.game.official_website }}</a>
+                            </div>
+                        {% endif %}
+
                         <!-- Recent News -->
-                        <div class="mt-2 bg-slate-950/50 p-2 rounded border border-slate-900/80">
-                            <span class="text-[8px] uppercase tracking-wider font-mono text-slate-500 font-bold block mb-1">Recent Intelligence</span>
+                        <div class="mt-2 bg-slate-100 dark:bg-slate-950/50 p-2 rounded border border-slate-200 dark:border-slate-900/80">
+                            <span class="text-[8px] uppercase tracking-wider font-mono text-slate-450 dark:text-slate-500 font-bold block mb-1">Recent Intelligence</span>
                             {% for news in item.recent_news %}
-                                <div class="text-[9px] font-mono text-slate-400 border-l border-primary/40 pl-2 mb-1">{{ news }}</div>
+                                <div class="text-[9px] font-mono text-slate-500 dark:text-slate-400 border-l border-primary/40 pl-2 mb-1">{{ news }}</div>
                             {% endfor %}
                         </div>
 
                         <a href="{% url 'relax_delete_watchlist_game' item.game.id %}" class="position-absolute" style="top: 15px; right: 15px;" onclick="return confirm('Remove game?');">
-                            <i class="fas fa-times text-slate-500 hover:text-danger text-xs transition-colors"></i>
+                            <i class="fas fa-times text-slate-450 hover:text-danger text-xs transition-colors"></i>
                         </a>
                     </div>
                 {% empty %}
-                    <div class="text-slate-500 font-mono text-xs py-8 text-center">No upcoming watchlist games added.</div>
+                    <div class="text-slate-400 dark:text-slate-500 font-mono text-xs py-8 text-center">No upcoming watchlist games added.</div>
                 {% endfor %}
             </div>
         </div>
@@ -143,9 +165,9 @@
 
     <!-- SALES BUDGET WATCHLIST -->
     <div class="col-lg-6 mb-4">
-        <div class="card glass-card p-4 h-100">
+        <div class="card glass-card p-4">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h4 class="font-size-13 font-mono uppercase tracking-widest text-slate-200 mb-0">
+                <h4 class="font-size-13 font-mono uppercase tracking-widest text-slate-700 dark:text-slate-250 mb-0">
                     <i class="fas fa-tags text-primary me-2"></i> Discount Budget Watch
                 </h4>
                 <button class="btn btn-xs btn-outline-primary rounded-pill font-mono font-bold text-[9px] px-3 uppercase" data-bs-toggle="collapse" data-bs-target="#addBudgetCollapse">
@@ -155,24 +177,24 @@
 
             <!-- Add Budget Collapse -->
             <div class="collapse mb-4" id="addBudgetCollapse">
-                <form action="{% url 'relax_add_budget_game' %}" method="POST" class="p-3 bg-slate-900/40 rounded-3 border border-slate-800">
+                <form action="{% url 'relax_add_budget_game' %}" method="POST" class="p-3 bg-slate-50 dark:bg-slate-900/40 rounded-3 border border-slate-200 dark:border-slate-800">
                     {% csrf_token %}
                     <div class="mb-3">
-                        <label class="form-label font-mono text-[10px] text-slate-400 uppercase">Game Name</label>
-                        <input type="text" name="name" class="form-control form-control-sm bg-slate-950/60 border-slate-800 text-white font-mono text-xs" required placeholder="e.g. Elden Ring">
+                        <label class="form-label font-mono text-[10px] text-slate-500 dark:text-slate-400 uppercase">Game Name</label>
+                        <input type="text" name="name" class="form-control form-control-sm bg-white dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-850 dark:text-white font-mono text-xs" required placeholder="e.g. Elden Ring">
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label font-mono text-[10px] text-slate-400 uppercase">Steam App ID (Optional)</label>
-                            <input type="text" name="steam_app_id" class="form-control form-control-sm bg-slate-950/60 border-slate-800 text-white font-mono text-xs" placeholder="e.g. 1245620">
+                            <label class="form-label font-mono text-[10px] text-slate-500 dark:text-slate-400 uppercase">Steam App ID (Optional)</label>
+                            <input type="text" name="steam_app_id" class="form-control form-control-sm bg-white dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-850 dark:text-white font-mono text-xs" placeholder="e.g. 1245620">
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label font-mono text-[10px] text-slate-400 uppercase">Target Budget ($)</label>
-                            <input type="number" step="0.01" name="target_budget" class="form-control form-control-sm bg-slate-950/60 border-slate-800 text-white font-mono text-xs" required placeholder="30.00">
+                            <label class="form-label font-mono text-[10px] text-slate-500 dark:text-slate-400 uppercase">Target Budget ($)</label>
+                            <input type="number" step="0.01" name="target_budget" class="form-control form-control-sm bg-white dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-850 dark:text-white font-mono text-xs" required placeholder="30.00">
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label font-mono text-[10px] text-slate-400 uppercase block mb-1">Check Sales Platforms</label>
+                        <label class="form-label font-mono text-[10px] text-slate-500 dark:text-slate-400 uppercase block mb-1">Check Sales Platforms</label>
                         <div class="d-flex gap-3">
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" name="check_steam" id="platSteam" checked>

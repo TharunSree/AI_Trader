@@ -39,41 +39,50 @@ def get_running_executables():
         pass
     return executables
 
+monitored_executables = set()
+last_fetched_time = 0
+
+def fetch_monitored_list():
+    global monitored_executables, last_fetched_time
+    if time.time() - last_fetched_time < 30:
+        return
+    try:
+        url = f"{DJANGO_SERVER_URL}/relax/api/process-heartbeat/"
+        req = urllib.request.Request(url, method='GET')
+        with urllib.request.urlopen(req, timeout=3) as res:
+            data = json.loads(res.read().decode('utf-8'))
+            monitored_executables = set(data.get('monitored_executables', []))
+            last_fetched_time = time.time()
+    except Exception:
+        pass
+
 # Thread to periodically report active game heartbeats to Django
 def heartbeat_worker():
     print("Arcade Lounge heartbeat monitor thread started...")
-    last_reported_active = False
     
     while True:
         try:
+            # 1. Pull latest non-Steam game list from Django
+            fetch_monitored_list()
+            
+            # If no non-Steam games exist, sleep and skip scanning to save RAM/CPU!
+            if not monitored_executables:
+                time.sleep(3)
+                continue
+                
             active_title = get_active_window_title()
             executables = get_running_executables()
-            
-            # Common game launcher and engine process list to auto-detect
-            game_indicators = [".exe", "game", "unity", "unreal", "steam", "genshin", "wuwa", "wuthering", "wuwa"]
             
             active_process = ""
             active_path = ""
             is_running = False
             
-            # 1. Simple heuristic: If active window is a game and process is in running tasks
+            # Match against the non-Steam monitored list
             for exe in executables:
-                # Basic check for game processes
-                if any(ind in exe for ind in ["wuwa", "genshin", "elden", "cyberpunk", "starrail", "honkai"]):
+                if exe in monitored_executables:
                     active_process = exe
                     is_running = True
                     break
-            
-            # 2. Check if active window title matches typical game names
-            if not is_running and active_title:
-                title_lower = active_title.lower()
-                if any(kw in title_lower for kw in ["wuthering waves", "genshin impact", "elden ring", "cyberpunk"]):
-                    # Find matching process
-                    for exe in executables:
-                        if any(kw in exe for kw in ["wuwa", "genshin", "elden", "cyberpunk"]):
-                            active_process = exe
-                            is_running = True
-                            break
             
             # If we found an active game, report it
             if is_running:
@@ -83,7 +92,6 @@ def heartbeat_worker():
                     "window_title": active_title,
                     "is_running": True
                 }
-                last_reported_active = True
             else:
                 # Report inactive
                 payload = {
@@ -92,7 +100,6 @@ def heartbeat_worker():
                     "window_title": "",
                     "is_running": False
                 }
-                last_reported_active = False
 
             # Send heartbeat POST to Django
             url = f"{DJANGO_SERVER_URL}/relax/api/process-heartbeat/"
@@ -105,7 +112,7 @@ def heartbeat_worker():
                 res.read()
                 
         except Exception as e:
-            # Silence exceptions during network disconnects
+            # Silence network disconnect exceptions
             pass
             
         time.sleep(3)
