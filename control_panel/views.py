@@ -1900,6 +1900,9 @@ def settings_view(request):
             
         if 'steam_username' in request.POST:
             settings.steam_username = request.POST.get('steam_username', '').strip()
+            
+        if 'steam_api_key' in request.POST:
+            settings.steam_api_key = request.POST.get('steam_api_key', '').strip()
 
         # Save non-sensitive settings to the database
         # Only update display_currency if the field was in the form submission
@@ -5168,6 +5171,7 @@ def relax_view(request):
         'games': games,
         'selected_game': selected_game,
         'page_title': 'Relax Lounge',
+        'settings': settings,
     }
     return render(request, 'relax.html', context)
 
@@ -5547,7 +5551,7 @@ def sync_steam_playtimes_helper(username):
     import json
     import re
     import html
-    from .models import Game
+    from .models import Game, SystemSettings
     
     # Parse full URLs
     if 'steamcommunity.com/' in username.lower():
@@ -5558,6 +5562,79 @@ def sync_steam_playtimes_helper(username):
             username = username.split('/id/')[-1].split('/')[0].strip()
             
     updated_count = 0
+    
+    # 0. Try Official Steam Web API first if key is configured
+    settings = SystemSettings.load()
+    api_key = settings.steam_api_key
+    if api_key:
+        steamid = None
+        if username.isdigit() and len(username) == 17:
+            steamid = username
+        else:
+            # Resolve custom URL vanity name to ID64
+            try:
+                vanity_url = f"https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/?key={api_key}&vanityurl={username}"
+                v_req = urllib.request.Request(vanity_url, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(v_req, timeout=5) as v_res:
+                    vanity_data = json.loads(v_res.read().decode('utf-8'))
+                    if vanity_data.get('response', {}).get('success') == 1:
+                        steamid = vanity_data['response']['steamid']
+            except Exception as e:
+                logger.warning(f"ResolveVanityURL failed for {username}: {e}")
+                
+        # Fallback resolve via XML profile metadata
+        if not steamid:
+            try:
+                profile_url = f"https://steamcommunity.com/id/{username}/?xml=1"
+                p_req = urllib.request.Request(profile_url, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(p_req, timeout=5) as p_res:
+                    xml_str = p_res.read().decode('utf-8', errors='ignore')
+                    m = re.search(r'<steamID64>(\d+)</steamID64>', xml_str)
+                    if m:
+                        steamid = m.group(1)
+            except Exception:
+                pass
+                
+        if steamid:
+            try:
+                # Query GetOwnedGames Web API (unblocked full library sync)
+                api_url = f"https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key={api_key}&steamid={steamid}&include_appinfo=1&include_played_free_games=1&format=json"
+                req = urllib.request.Request(api_url, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(req, timeout=8) as res:
+                    owned_data = json.loads(res.read().decode('utf-8'))
+                    
+                games_list = owned_data.get('response', {}).get('games', [])
+                for g in games_list:
+                    appid = str(g.get('appid', ''))
+                    name = g.get('name', '').strip()
+                    playtime_minutes = g.get('playtime_forever', 0)
+                    hours = round(playtime_minutes / 60.0, 1)
+                    
+                    if not appid or not name:
+                        continue
+                        
+                    matching_games = Game.objects.filter(steam_app_id=appid, is_active=True)
+                    if matching_games.exists():
+                        for game in matching_games:
+                            game.hours_played = hours
+                            game.save()
+                            updated_count += 1
+                    else:
+                        if hours >= 1.0:
+                            cover_image = f"https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/{appid}/library_600x900_2x.jpg"
+                            hero_image = f"https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/{appid}/library_hero.jpg"
+                            Game.objects.create(
+                                name=name,
+                                steam_app_id=appid,
+                                hours_played=hours,
+                                cover_image_url=cover_image,
+                                animated_bg_url=hero_image,
+                                is_active=True
+                            )
+                            updated_count += 1
+                return updated_count, True # successfully processed full list via Web API
+            except Exception as api_err:
+                logger.error(f"Steam Web API sync failed for user {username}: {api_err}. Falling back to scraping...")
     
     # 1. Try HTML scraping first (highly reliable for full public libraries, bypasses XML limits)
     html_url = f"https://steamcommunity.com/profiles/{username}/games/?tab=all" if (username.isdigit() and len(username) == 17) else f"https://steamcommunity.com/id/{username}/games/?tab=all"

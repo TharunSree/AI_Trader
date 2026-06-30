@@ -194,6 +194,7 @@ class SystemSettings(models.Model):
     gaming_rig_ssh_username = models.CharField(max_length=255, blank=True, default='', help_text="Windows user account name for SSH connection")
     gaming_rig_ssh_password = models.CharField(max_length=255, blank=True, default='', help_text="Windows user password or SSH key path")
     steam_username = models.CharField(max_length=255, blank=True, default='', help_text="Steam ID64 or custom profile URL name for auto-syncing library playtimes")
+    steam_api_key = models.CharField(max_length=255, blank=True, default='', help_text="Steam Web API Key for reliable full library sync")
 
     def save(self, *args, **kwargs):
         self.pk = 1

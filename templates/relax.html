@@ -449,7 +449,7 @@
                 <!-- Steam Playtime Sync compact -->
                 <div class="d-flex gap-2 align-items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-pill shadow-sm">
                     <span class="text-[9px] uppercase font-mono tracking-widest font-bold text-slate-400">Steam Sync:</span>
-                    <input type="text" id="steam_username_sync" class="form-control form-control-sm font-mono text-[10px] rounded-pill border-0 p-0 bg-transparent" style="width: 120px; outline: none; box-shadow: none; height: auto;" placeholder="ID/Custom URL" value="{{ request.session.steam_username|default:'' }}">
+                    <input type="text" id="steam_username_sync" class="form-control form-control-sm font-mono text-[10px] rounded-pill border-0 p-0 bg-transparent" style="width: 120px; outline: none; box-shadow: none; height: auto;" placeholder="ID/Custom URL" value="{{ settings.steam_username|default:request.session.steam_username|default:'' }}">
                     <button class="btn btn-xs btn-outline-primary rounded-pill px-2.5 font-bold font-mono text-[9px] uppercase" type="button" onclick="syncSteamPlaytimes()">Sync</button>
                 </div>
                 <button type="button" class="btn btn-outline-primary rounded-pill px-4 py-2 font-bold font-mono text-xs uppercase tracking-wider" data-bs-toggle="modal" data-bs-target="#addGameModal">

@@ -126,6 +126,16 @@
                     <input type="text" name="steam_username" value="{{ settings.steam_username|default:'' }}" placeholder="e.g. 76561198000000000 or custom_slug" class="w-full bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2.5 text-xs font-mono outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20 transition-all">
                 </div>
 
+                <!-- Steam Web API Key -->
+                <div>
+                    <label class="block text-[10px] uppercase tracking-widest text-slate-500 font-mono mb-1.5">Steam Web API Key (Optional but Recommended for Full Sync)</label>
+                    <div class="relative">
+                        <input type="password" name="steam_api_key" id="steam-api-key-input" value="{{ settings.steam_api_key|default:'' }}" placeholder="Get from steamcommunity.com/dev/apikey" class="w-full bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2.5 text-xs font-mono outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20 transition-all pr-10">
+                        <button type="button" onclick="var i=document.getElementById('steam-api-key-input');i.type=i.type==='password'?'text':'password';" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"><i class="fas fa-eye text-xs"></i></button>
+                    </div>
+                    <p class="text-[9px] font-mono text-slate-400 mt-1.5">If Steam blocks direct scraping, providing an API key resolves all blocks and fetches your entire library of games instantly.</p>
+                </div>
+
                 <button type="submit" class="w-full px-4 py-3 bg-brand-50 hover:bg-brand-100 dark:bg-brand-500/10 dark:hover:bg-brand-500/20 border border-brand-200 dark:border-brand-500/30 text-brand-600 dark:text-brand-400 font-mono text-xs font-bold uppercase tracking-widest rounded-xl transition-all mt-2">Save Rig Settings</button>
             </div>
         </form>
