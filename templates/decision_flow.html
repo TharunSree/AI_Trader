@@ -891,6 +891,8 @@
     let selectedTradeData = null;
 
     window.selectTradeRow = function(rowElement, priceTrend, sentiment, volatility, spread) {
+        console.log("selectTradeRow triggered with args:", priceTrend, sentiment, volatility, spread);
+        
         // Remove highlight from all other rows
         document.querySelectorAll('.past-trade-row').forEach(row => {
             row.classList.remove('bg-cyan-500/10', 'text-cyan-300', 'font-bold', 'border-cyan-500/40');
@@ -899,8 +901,19 @@
         // Highlight clicked row
         rowElement.classList.add('bg-cyan-500/10', 'text-cyan-300', 'font-bold', 'border-cyan-500/40');
         
-        // Store selected parameters
-        selectedTradeData = { priceTrend, sentiment, volatility, spread };
+        // Parse arguments with clean fallbacks for null/undefined/NaN
+        const pt = parseFloat(priceTrend);
+        const se = parseFloat(sentiment);
+        const vo = parseFloat(volatility);
+        const sp = parseFloat(spread);
+
+        selectedTradeData = {
+            priceTrend: isNaN(pt) ? 0.0 : pt,
+            sentiment: isNaN(se) ? 0.0 : se,
+            volatility: isNaN(vo) ? 0.2 : vo,
+            spread: isNaN(sp) ? 0.1 : sp
+        };
+        console.log("Selected trade data resolved to:", selectedTradeData);
         
         // Show replay button at top
         const btn = document.getElementById('btn-replay-selected');
@@ -910,6 +923,7 @@
     };
 
     window.replaySelectedTrade = function() {
+        console.log("replaySelectedTrade triggered. Data:", selectedTradeData);
         if (!selectedTradeData) return;
         
         // Load the values into the simulator sliders
@@ -923,7 +937,10 @@
         // Smoothly scroll to visualizer canvas
         const canvas = document.getElementById("decision-canvas");
         if (canvas) {
+            console.log("Scrolling to decision-canvas");
             canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+            console.warn("decision-canvas element not found");
         }
     };
 
