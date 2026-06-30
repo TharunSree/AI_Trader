@@ -5169,48 +5169,15 @@ def relax_view(request):
     
     steam_username_session = request.session.get('steam_username', '')
     
-    # Dashboard stats
-    from django.utils import timezone
-    from django.db.models import Sum
-    from datetime import timedelta
-    from .models import DailyPlaytimeLog
-    
-    today_date = timezone.now().date()
-    start_of_month = today_date.replace(day=1)
-    
-    # Favorite game
-    fav_game = games.filter(is_favorite=True).first()
-    if not fav_game:
-        fav_game = games.order_by('-hours_played').first()
-        
-    # Most played game
-    most_played = games.order_by('-hours_played').first()
-    
-    # Playtimes today and this month
-    playtime_today = DailyPlaytimeLog.objects.filter(date=today_date, game__is_active=True).aggregate(total=Sum('hours_played'))['total'] or 0.0
-    playtime_this_month = DailyPlaytimeLog.objects.filter(date__gte=start_of_month, game__is_active=True).aggregate(total=Sum('hours_played'))['total'] or 0.0
-    
-    # Top 3 games today
-    top_today_logs = DailyPlaytimeLog.objects.filter(date=today_date, game__is_active=True).order_by('-hours_played')[:3]
-    top_today = [{'name': log.game.name, 'hours': round(log.hours_played, 1), 'cover': log.game.cover_image_url} for log in top_today_logs]
-    
-    # Top 3 games this month
-    top_month_logs = DailyPlaytimeLog.objects.filter(date__gte=start_of_month, game__is_active=True).values('game__name', 'game__cover_image_url').annotate(total_hours=Sum('hours_played')).order_by('-total_hours')[:3]
-    top_month = [{'name': item['game__name'], 'hours': round(item['total_hours'], 1), 'cover': item['game__cover_image_url']} for item in top_month_logs]
-    
-    # Chart data (last 7 days)
-    chart_dates = []
-    chart_hours = []
-    for i in range(6, -1, -1):
-        d = today_date - timedelta(days=i)
-        day_total = DailyPlaytimeLog.objects.filter(date=d, game__is_active=True).aggregate(total=Sum('hours_played'))['total'] or 0.0
-        chart_dates.append(d.strftime('%a'))
-        chart_hours.append(round(day_total, 1))
-
     # Per-game chart data (last 7 days for the selected game)
     game_chart_dates = []
     game_chart_hours = []
     if selected_game:
+        from django.utils import timezone
+        from django.db.models import Sum
+        from datetime import timedelta
+        from .models import DailyPlaytimeLog
+        today_date = timezone.now().date()
         for i in range(6, -1, -1):
             d = today_date - timedelta(days=i)
             day_total = DailyPlaytimeLog.objects.filter(date=d, game=selected_game).aggregate(total=Sum('hours_played'))['total'] or 0.0
@@ -5224,7 +5191,60 @@ def relax_view(request):
         'settings': settings,
         'steam_username_session': steam_username_session,
         
-        # Dashboard parameters
+        # Per-game parameters
+        'game_chart_dates': game_chart_dates,
+        'game_chart_hours': game_chart_hours,
+    }
+    return render(request, 'relax.html', context)
+
+
+@login_required
+def relax_analytics_view(request):
+    games = Game.objects.filter(is_active=True)
+    settings = SystemSettings.load()
+    steam_username_session = request.session.get('steam_username', '')
+
+    from django.utils import timezone
+    from django.db.models import Sum
+    from datetime import timedelta
+    from .models import DailyPlaytimeLog
+
+    today_date = timezone.now().date()
+    start_of_month = today_date.replace(day=1)
+
+    # Favorite game
+    fav_game = games.filter(is_favorite=True).first()
+    if not fav_game:
+        fav_game = games.order_by('-hours_played').first()
+
+    # Most played game
+    most_played = games.order_by('-hours_played').first()
+
+    # Playtimes today and this month
+    playtime_today = DailyPlaytimeLog.objects.filter(date=today_date, game__is_active=True).aggregate(total=Sum('hours_played'))['total'] or 0.0
+    playtime_this_month = DailyPlaytimeLog.objects.filter(date__gte=start_of_month, game__is_active=True).aggregate(total=Sum('hours_played'))['total'] or 0.0
+
+    # Top 3 games today
+    top_today_logs = DailyPlaytimeLog.objects.filter(date=today_date, game__is_active=True).order_by('-hours_played')[:3]
+    top_today = [{'name': log.game.name, 'hours': round(log.hours_played, 1), 'cover': log.game.cover_image_url} for log in top_today_logs]
+
+    # Top 3 games this month
+    top_month_logs = DailyPlaytimeLog.objects.filter(date__gte=start_of_month, game__is_active=True).values('game__name', 'game__cover_image_url').annotate(total_hours=Sum('hours_played')).order_by('-total_hours')[:3]
+    top_month = [{'name': item['game__name'], 'hours': round(item['total_hours'], 1), 'cover': item['game__cover_image_url']} for item in top_month_logs]
+
+    # Chart data (last 7 days)
+    chart_dates = []
+    chart_hours = []
+    for i in range(6, -1, -1):
+        d = today_date - timedelta(days=i)
+        day_total = DailyPlaytimeLog.objects.filter(date=d, game__is_active=True).aggregate(total=Sum('hours_played'))['total'] or 0.0
+        chart_dates.append(d.strftime('%a'))
+        chart_hours.append(round(day_total, 1))
+
+    context = {
+        'page_title': 'Arcade Analytics',
+        'settings': settings,
+        'steam_username_session': steam_username_session,
         'fav_game': fav_game,
         'most_played': most_played,
         'playtime_today': round(playtime_today, 1),
@@ -5233,12 +5253,9 @@ def relax_view(request):
         'top_month': top_month,
         'chart_dates': chart_dates,
         'chart_hours': chart_hours,
-        
-        # Per-game parameters
-        'game_chart_dates': game_chart_dates,
-        'game_chart_hours': game_chart_hours,
     }
-    return render(request, 'relax.html', context)
+    return render(request, 'relax_analytics.html', context)
+
 
 
 @login_required

@@ -473,114 +473,23 @@
             </div>
         </div>
 
-        <!-- GAMING ANALYTICS DASHBOARD -->
-        <div class="col-12 mb-4">
-            <div class="row g-4">
-                <!-- Widget 1: Highlights (Favorite & Most Played) -->
-                <div class="col-md-3">
-                    <div class="card mb-0 glass-card h-100 p-3 d-flex flex-column justify-content-between position-relative overflow-hidden" style="border-radius: 20px !important; border-left: 4px solid #f1c40f !important; min-height: 125px;">
-                        <div>
-                            <div class="text-[9px] uppercase tracking-widest font-mono text-slate-400 font-bold mb-2">Favorite Game</div>
-                            {% if fav_game %}
-                                <div class="d-flex align-items-center gap-2">
-                                    <img src="{{ fav_game.cover_image_url }}" alt="" class="rounded shadow-sm" style="width: 28px; height: 38px; object-fit: cover;">
-                                    <div class="min-w-0">
-                                        <div class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate" title="{{ fav_game.name }}" style="max-width: 140px;">{{ fav_game.name }}</div>
-                                        <span class="text-[9px] font-mono text-slate-400 mt-0.5 block"><i class="fas fa-clock me-1"></i> {{ fav_game.hours_played|floatformat:1 }} hrs</span>
-                                    </div>
-                                </div>
-                            {% else %}
-                                <div class="text-xs text-slate-400 font-mono">No favorites set</div>
-                            {% endif %}
-                        </div>
-                        <div class="mt-2 border-t border-slate-100 dark:border-slate-800/60 pt-2">
-                            <div class="text-[8px] uppercase tracking-widest font-mono text-slate-400 font-semibold mb-0.5">Most Played</div>
-                            {% if most_played %}
-                                <div class="text-[10px] font-bold text-slate-700 dark:text-slate-200 truncate" style="max-width: 180px;">{{ most_played.name }} ({{ most_played.hours_played|floatformat:1 }} hrs)</div>
-                            {% else %}
-                                <div class="text-xs text-slate-400 font-mono">-</div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Widget 2: Playtime Stats (Today / This Month) -->
-                <div class="col-md-3">
-                    <div class="card mb-0 glass-card h-100 p-3 d-flex flex-column justify-content-between position-relative overflow-hidden" style="border-radius: 20px !important; border-left: 4px solid #3498db !important; min-height: 125px;">
-                        <div>
-                            <div class="text-[9px] uppercase tracking-widest font-mono text-slate-400 font-bold mb-1">Gaming Today</div>
-                            <div class="d-flex align-items-baseline gap-1 mt-1">
-                                <span class="text-xl font-bold font-mono text-slate-800 dark:text-slate-100" style="text-shadow: 0 0 10px rgba(52,152,219,0.15);">{{ playtime_today }}</span>
-                                <span class="text-[10px] font-mono text-slate-400">hours</span>
-                            </div>
-                        </div>
-                        <div class="mt-2 border-t border-slate-100 dark:border-slate-800/60 pt-2">
-                            <div class="text-[8px] uppercase tracking-widest font-mono text-slate-400 font-semibold mb-0.5">This Month</div>
-                            <div class="d-flex align-items-baseline gap-1">
-                                <span class="text-sm font-bold font-mono text-slate-700 dark:text-slate-200">{{ playtime_this_month }}</span>
-                                <span class="text-[9px] font-mono text-slate-400">hours total</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Widget 3: Leaderboard (Top Played Today/Month) -->
-                <div class="col-md-3">
-                    <div class="card mb-0 glass-card h-100 p-3 d-flex flex-column justify-content-between" style="border-radius: 20px !important; border-left: 4px solid #2ecc71 !important; min-height: 125px;">
-                        <div class="h-100 d-flex flex-column justify-content-between">
-                            <div>
-                                <div class="text-[9px] uppercase tracking-widest font-mono text-slate-400 font-bold mb-1.5">Today's Top 3</div>
-                                <div class="d-flex flex-column gap-1">
-                                    {% for item in top_today %}
-                                        <div class="d-flex align-items-center justify-content-between gap-2 text-[10px]">
-                                            <div class="d-flex align-items-center gap-1 min-w-0">
-                                                <span class="text-[9px] font-mono text-slate-400">{{ forloop.counter }}.</span>
-                                                <span class="font-semibold text-slate-700 dark:text-slate-200 truncate" title="{{ item.name }}" style="max-width: 110px;">{{ item.name }}</span>
-                                            </div>
-                                            <span class="font-mono text-[9px] font-bold text-success">+{{ item.hours }}h</span>
-                                        </div>
-                                    {% empty %}
-                                        <div class="text-[9px] text-slate-400 font-mono py-0.5">No playtime today</div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                            <div class="border-t border-slate-100 dark:border-slate-800/60 pt-1.5 mt-1.5">
-                                <div class="text-[8px] uppercase tracking-widest font-mono text-slate-400 font-semibold mb-1">Monthly Top 3</div>
-                                <div class="d-flex flex-column gap-0.5">
-                                    {% for item in top_month %}
-                                        <div class="d-flex align-items-center justify-content-between gap-2 text-[9px]">
-                                            <div class="truncate text-slate-600 dark:text-slate-300" style="max-width: 130px;">{{ forloop.counter }}. {{ item.name }}</div>
-                                            <span class="font-mono font-semibold">{{ item.hours }}h</span>
-                                        </div>
-                                    {% empty %}
-                                        <div class="text-[8px] text-slate-400 font-mono">-</div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Widget 4: Playtime Distribution Chart -->
-                <div class="col-md-3">
-                    <div class="card mb-0 glass-card h-100 p-2.5 d-flex flex-column justify-content-center" style="border-radius: 20px !important; border-left: 4px solid #9b59b6 !important; min-height: 125px;">
-                        <div class="text-[9px] uppercase tracking-widest font-mono text-slate-400 font-bold mb-1 text-center">Daily Activity (7d)</div>
-                        <div style="height: 90px; position: relative; width: 100%;">
-                            <canvas id="playtimeDistributionChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- LIBRARY VIEW (FULL PAGE GRID) -->
+    {% else %}
+        <!-- TAB SELECTOR BAR -->
         <div class="col-12 mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
-            <div>
-                <h2 class="font-size-20 text-slate-800 dark:text-slate-100 font-bold uppercase tracking-widest mb-1">
+            <div class="d-flex align-items-center gap-3">
+                <h2 class="font-size-20 text-slate-800 dark:text-slate-100 font-bold uppercase tracking-widest mb-0">
                     Arcade Cabin
                 </h2>
-                <p class="text-xs text-slate-500 font-mono">Launch games, track stats, extract webpage manuals, and view gameplay recordings.</p>
+                <div class="nav nav-pills bg-slate-100 dark:bg-slate-900/60 p-1.5 rounded-pill" style="border: 1px solid rgba(128,128,128,0.08);">
+                    <a class="btn btn-sm rounded-pill font-mono px-3.5 py-1 text-[11px] font-bold uppercase active" href="{% url 'relax_view' %}">
+                        🕹️ Library
+                    </a>
+                    <a class="btn btn-sm rounded-pill font-mono px-3.5 py-1 text-[11px] font-bold uppercase text-slate-500" href="{% url 'relax_analytics' %}">
+                        📊 Analytics
+                    </a>
+                </div>
             </div>
+            
             <div class="d-flex items-center gap-3 flex-wrap">
                 <!-- Steam Playtime Sync compact -->
                 <div class="d-flex gap-2 align-items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-pill shadow-sm">
@@ -1303,84 +1212,7 @@
         });
     };
 
-    // Main Library/Analytics tab switcher
-    window.switchMainTab = function(tabName) {
-        const btnLib = document.getElementById('main-tab-btn-library');
-        const btnAnal = document.getElementById('main-tab-btn-analytics');
-        const contentLib = document.getElementById('main-tab-content-library');
-        const contentAnal = document.getElementById('main-tab-content-analytics');
-        
-        if (!btnLib || !btnAnal) return;
-        
-        if (tabName === 'library') {
-            btnLib.classList.add('active');
-            btnLib.classList.remove('text-slate-500');
-            btnAnal.classList.remove('active');
-            btnAnal.classList.add('text-slate-500');
-            
-            if (contentLib) contentLib.classList.remove('d-none');
-            if (contentAnal) contentAnal.classList.add('d-none');
-        } else {
-            btnLib.classList.remove('active');
-            btnLib.classList.add('text-slate-500');
-            btnAnal.classList.add('active');
-            btnAnal.classList.remove('text-slate-500');
-            
-            if (contentLib) contentLib.classList.add('d-none');
-            if (contentAnal) contentAnal.classList.remove('d-none');
-        }
-    };
-
-    // Render daily playtime chart
     document.addEventListener('DOMContentLoaded', function() {
-        const ctx = document.getElementById('playtimeDistributionChart');
-        if (ctx) {
-            const labels = {{ chart_dates|safe|default:"[]" }};
-            const dataValues = {{ chart_hours|safe|default:"[]" }};
-            
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Hours Played',
-                        data: dataValues,
-                        backgroundColor: 'rgba(155, 89, 182, 0.4)',
-                        borderColor: 'rgba(155, 89, 182, 0.8)',
-                        borderWidth: 1.5,
-                        borderRadius: 4,
-                        barPercentage: 0.65
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return context.parsed.y + ' hrs';
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: { color: 'rgba(128,128,128,0.08)' },
-                            ticks: { font: { size: 7, family: 'monospace' } }
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: { font: { size: 7.5, family: 'monospace' } }
-                        }
-                    }
-                }
-            });
-        }
-
-        // Render per-game playtime chart
         const gameCtx = document.getElementById('gamePlaytimeDistributionChart');
         if (gameCtx) {
             const gameLabels = {{ game_chart_dates|safe|default:"[]" }};
