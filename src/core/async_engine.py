@@ -608,6 +608,36 @@ class AITradingEngine:
                 notional_value=notional_value,
                 sentiment_score=sentiment_score
             )
+            # Belt-and-suspenders: also write to OnlineLearningLog so Decision Flow
+            # always has data even if OnlineLearner callbacks fail silently
+            try:
+                from control_panel.models import OnlineLearningLog
+                event_type = 'ENTRY' if side.upper() == 'BUY' else 'EXIT'
+                details = {
+                    'price': float(price),
+                    'quantity': float(qty),
+                    'notional_value': float(notional_value),
+                    'sentiment': float(sentiment_score),
+                    'source': 'log_trade_fallback',
+                }
+                reason = f"{event_type} via trade log: {side.upper()} {qty:.6f} {self.symbol} @ ${price:,.2f}"
+                # Only create if a recent duplicate doesn't exist (avoid double-logging
+                # when OnlineLearner also creates the same event within 5 seconds)
+                from django.utils import timezone as tz
+                from datetime import timedelta
+                recent_cutoff = tz.now() - timedelta(seconds=5)
+                exists = OnlineLearningLog.objects.filter(
+                    trader=trader, event_type=event_type, symbol=self.symbol,
+                    timestamp__gte=recent_cutoff
+                ).exists()
+                if not exists:
+                    OnlineLearningLog.objects.create(
+                        trader=trader, event_type=event_type,
+                        symbol=self.symbol, details=details, reason=reason
+                    )
+            except Exception as e:
+                logger.warning(f"[DECISION FLOW] Fallback OnlineLearningLog write failed: {e}")
+
 
     async def run(self):
         self.running = True

@@ -1566,17 +1566,13 @@
                     document.getElementById("stat-cycle-progress").textContent = `${cycleProgress}/8 completed`;
                     document.getElementById("cycle-progress-bar").style.width = `${(cycleProgress / 8) * 100}%`;
                 }
-                if (data.telemetry) {
+                if (data.telemetry && data.telemetry.cpu_percent !== undefined) {
                     const tel = data.telemetry;
-                    if (tel.cpu_percent !== undefined) {
-                        document.getElementById("stat-cpu").textContent = `${tel.cpu_percent.toFixed(1)}%`;
-                    }
-                    if (tel.system_used_percent !== undefined) {
-                        document.getElementById("stat-mem").textContent = `${tel.system_used_percent.toFixed(1)}%`;
-                    }
+                    document.getElementById("stat-cpu").textContent = `${tel.cpu_percent.toFixed(1)}%`;
+                    document.getElementById("stat-mem").textContent = `${tel.system_used_percent.toFixed(1)}%`;
                 } else {
-                    document.getElementById("stat-cpu").textContent = `${(Math.sin(Date.now() / 5000) * 1.5 + 4.5).toFixed(1)}%`;
-                    document.getElementById("stat-mem").textContent = `38.2%`;
+                    document.getElementById("stat-cpu").textContent = `OFFLINE`;
+                    document.getElementById("stat-mem").textContent = `OFFLINE`;
                 }
 
                 const feed = document.getElementById("learning-feed");

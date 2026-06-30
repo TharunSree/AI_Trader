@@ -480,19 +480,18 @@
         fetch(`/api/neural/learning-log/?trader_id=${currentTraderId}`)
             .then(res => res.json())
             .then(data => {
-                if (data.telemetry) {
+                if (data.telemetry && data.telemetry.cpu_percent !== undefined) {
                     const tel = data.telemetry;
                     document.getElementById("flow-stat-cpu").textContent = `${tel.cpu_percent.toFixed(1)}%`;
                     document.getElementById("flow-stat-mem").textContent = `${tel.system_used_percent.toFixed(1)}%`;
                 } else {
-                    document.getElementById("flow-stat-cpu").textContent = `${(Math.sin(Date.now() / 5000) * 1.5 + 4.5).toFixed(1)}%`;
-                    document.getElementById("flow-stat-mem").textContent = `38.2%`;
+                    document.getElementById("flow-stat-cpu").textContent = `OFFLINE`;
+                    document.getElementById("flow-stat-mem").textContent = `OFFLINE`;
                 }
             })
             .catch(() => {
-                // Fallback mock
-                document.getElementById("flow-stat-cpu").textContent = `${(Math.sin(Date.now() / 5000) * 1.5 + 4).toFixed(1)}%`;
-                document.getElementById("flow-stat-mem").textContent = `38.2%`;
+                document.getElementById("flow-stat-cpu").textContent = `OFFLINE`;
+                document.getElementById("flow-stat-mem").textContent = `OFFLINE`;
             });
 
         // Auto-refresh current page of execution history

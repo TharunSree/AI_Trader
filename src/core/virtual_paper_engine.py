@@ -158,7 +158,8 @@ class VirtualPaperEngine:
         self._tickers = None
         
         # Online Learning — variants also learn from their virtual trades
-        self.learner = OnlineLearner(self.agent, buffer_size=256, update_every=8)
+        trader_id = self.variant.parent_trader_id if (self.variant and self.variant.parent_trader_id) else None
+        self.learner = OnlineLearner(self.agent, buffer_size=256, update_every=8, trader_id=trader_id)
         
         logger.info(
             f"[EVOLUTION] Virtual Engine booted for Variant #{variant_id} "

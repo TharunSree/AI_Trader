@@ -7,19 +7,23 @@
 
 {% block extra_head %}
 <style>
-    /* Arcade Neon Pastel theme overrides for relax mode */
+    /* Arcade Neon theme overrides for relax mode */
     .game-card {
         border-radius: 20px !important;
         overflow: hidden;
-        border: 1px solid rgba(0, 0, 0, 0.08) !important;
-        background-color: #ffffff !important;
-        box-shadow: 0 4px 18px rgba(0,0,0,0.02) !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        background-color: rgba(15, 15, 25, 0.6) !important;
+        box-shadow: 0 4px 18px rgba(0,0,0,0.2) !important;
         transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     }
     .game-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 24px rgba(147, 51, 234, 0.08) !important;
-        border-color: rgba(147, 51, 234, 0.3) !important;
+        transform: translateY(-6px) scale(1.02);
+        box-shadow: 0 0 20px rgba(168, 85, 247, 0.3), 0 12px 40px rgba(0,0,0,0.5) !important;
+        border-color: rgba(168, 85, 247, 0.6) !important;
+    }
+    .game-card.active-game {
+        border-color: rgba(168, 85, 247, 0.8) !important;
+        box-shadow: 0 0 15px rgba(168, 85, 247, 0.3) !important;
     }
     .game-cover-container {
         height: 180px;
@@ -30,7 +34,7 @@
     .game-cover-overlay {
         position: absolute;
         inset: 0;
-        background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%);
+        background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 60%);
         display: flex;
         align-items: end;
         padding: 15px;
@@ -49,36 +53,58 @@
         z-index: -1;
         background-size: cover;
         background-position: center;
-        opacity: 0.20;
-        filter: blur(15px);
+        opacity: 0.25;
+        filter: blur(20px);
         pointer-events: none;
         transition: background-image 0.5s ease;
     }
     .glass-card {
-        background: #ffffff !important;
-        border: 1px solid rgba(0, 0, 0, 0.06) !important;
-        box-shadow: 0 4px 18px 0 rgba(0, 0, 0, 0.03) !important;
-        color: #334155 !important;
-        transition: all 0.3s ease;
-    }
-    .dark .glass-card {
-        background: #222434 !important;
-        border: 1px solid rgba(255, 255, 255, 0.04) !important;
-        box-shadow: 0 4px 18px 0 rgba(0, 0, 0, 0.15) !important;
+        background: rgba(15, 15, 25, 0.6) !important;
+        backdrop-filter: blur(16px) saturate(180%);
+        -webkit-backdrop-filter: blur(16px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
         color: #cbd5e1 !important;
+        transition: all 0.3s ease;
     }
     .video-grid-item {
         border-radius: 12px;
         overflow: hidden;
-        border: 1px solid rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.08);
         transition: all 0.2s ease;
     }
-    .dark .video-grid-item {
-        border-color: rgba(255, 255, 255, 0.08);
-    }
     .video-grid-item:hover {
-        border-color: rgba(59, 130, 246, 0.4);
+        border-color: rgba(168, 85, 247, 0.6);
+        box-shadow: 0 0 15px rgba(168, 85, 247, 0.3);
         transform: scale(1.02);
+    }
+    .neon-text {
+        color: #a855f7;
+        text-shadow: 0 0 5px rgba(168, 85, 247, 0.4), 0 0 10px rgba(168, 85, 247, 0.2);
+    }
+    .neon-border {
+        border: 1px solid rgba(168, 85, 247, 0.5) !important;
+        box-shadow: 0 0 8px rgba(168, 85, 247, 0.2), inset 0 0 8px rgba(168, 85, 247, 0.1);
+    }
+    .btn-play {
+        background: linear-gradient(135deg, #a855f7, #6366f1) !important;
+        border: none !important;
+        box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
+        transition: all 0.2s ease;
+    }
+    .btn-play:hover {
+        box-shadow: 0 0 25px rgba(168, 85, 247, 0.7);
+        transform: scale(1.05);
+    }
+    .nav-tabs .nav-link {
+        color: #94a3b8 !important;
+        border: none !important;
+    }
+    .nav-tabs .nav-link.active {
+        background: transparent !important;
+        border-bottom: 2px solid #a855f7 !important;
+        color: #a855f7 !important;
+        text-shadow: 0 0 5px rgba(168, 85, 247, 0.4);
     }
     /* Simple markdown reader styling */
     .markdown-body {
@@ -89,29 +115,20 @@
         font-size: 14px;
         font-weight: 700;
         margin-top: 20px;
-        color: #1e293b;
-        border-left: 3px solid #9333ea;
-        padding-left: 8px;
-    }
-    .dark .markdown-body h3 {
         color: #f1f5f9;
+        border-left: 3px solid #a855f7;
+        padding-left: 8px;
     }
     .markdown-body p {
         font-size: 12px;
         margin-bottom: 12px;
-        color: #475569;
-    }
-    .dark .markdown-body p {
-        color: #94a3b8;
+        color: #cbd5e1;
     }
     .markdown-body li {
         font-size: 12px;
         margin-left: 20px;
         list-style-type: disc;
-        color: #475569;
-    }
-    .dark .markdown-body li {
-        color: #94a3b8;
+        color: #cbd5e1;
     }
     @keyframes gradientBG {
         0% { background-position: 0% 50%; }
@@ -159,7 +176,7 @@
         <div class="d-flex flex-column gap-3 overflow-y-auto max-h-[70vh] pr-2">
             {% for game in games %}
                 <a href="?game_id={{ game.id }}" class="text-decoration-none">
-                    <div class="card mb-0 game-card {% if selected_game.id == game.id %}border-purple-500 border-2{% endif %}">
+                    <div class="card mb-0 game-card {% if selected_game.id == game.id %}active-game{% endif %}">
                         <div class="game-cover-container" style="background-image: url('{% if 'http://' in game.cover_image_url or 'https://' in game.cover_image_url %}{{ game.cover_image_url }}{% else %}{% url 'serve_local_file' %}?path={{ game.cover_image_url }}{% endif %}');">
                             <div class="game-cover-overlay">
                                 <div class="w-100 flex justify-between items-end">
@@ -198,44 +215,56 @@
     <!-- Selected game detail panel -->
     <div class="col-lg-8 col-xl-9">
         {% if selected_game %}
-            <!-- Header Panel -->
-            <div class="card rounded-4 shadow-sm p-4 mb-4 glass-card">
-                <div class="row align-items-center">
-                    <div class="col-md-8 d-flex align-items-center gap-4">
-                        <img src="{% if 'http://' in selected_game.cover_image_url or 'https://' in selected_game.cover_image_url %}{{ selected_game.cover_image_url }}{% else %}{% url 'serve_local_file' %}?path={{ selected_game.cover_image_url }}{% endif %}" alt="" class="rounded-3 shadow" style="width: 80px; height: 110px; object-fit: cover;">
-                        <div>
-                            <h2 class="font-size-22 text-slate-800 dark:text-slate-100 font-bold mb-1">{{ selected_game.name }}</h2>
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <span class="badge bg-purple-500/10 text-purple-600 border border-purple-200 rounded-pill px-2.5 py-1 text-[10px] font-bold">
-                                    <i class="mdi mdi-clock-outline mr-1"></i>{{ selected_game.hours_played }} Hours Logged
-                                </span>
-                                {% if selected_game.steam_app_id %}
-                                    <span class="badge bg-blue-500/10 text-blue-600 border border-blue-200 rounded-pill px-2.5 py-1 text-[10px] font-bold">
-                                        Steam ID: {{ selected_game.steam_app_id }}
-                                    </span>
-                                {% endif %}
-                            </div>
-                        </div>
+            <!-- Header Panel (Hero Banner) -->
+            <div class="position-relative rounded-2xl overflow-hidden mb-4 glass-card" style="height: 320px; border: 1px solid rgba(255,255,255,0.06);">
+                {% if selected_game.animated_bg_url %}
+                    {% if ".mp4" in selected_game.animated_bg_url or ".webm" in selected_game.animated_bg_url or "movies/" in selected_game.animated_bg_url %}
+                        <video class="w-100 h-100" autoplay loop muted playsinline style="object-fit: cover; filter: brightness(0.45);">
+                            <source src="{% if 'http://' in selected_game.animated_bg_url or 'https://' in selected_game.animated_bg_url %}{{ selected_game.animated_bg_url }}{% else %}{% url 'serve_local_file' %}?path={{ selected_game.animated_bg_url }}{% endif %}" type="{% if '.webm' in selected_game.animated_bg_url %}video/webm{% else %}video/mp4{% endif %}">
+                        </video>
+                    {% else %}
+                        <img src="{% if 'http://' in selected_game.animated_bg_url or 'https://' in selected_game.animated_bg_url %}{{ selected_game.animated_bg_url }}{% else %}{% url 'serve_local_file' %}?path={{ selected_game.animated_bg_url }}{% endif %}" class="w-100 h-100" style="object-fit: cover; filter: brightness(0.45);">
+                    {% endif %}
+                {% elif selected_game.cover_image_url %}
+                    <img src="{% if 'http://' in selected_game.cover_image_url or 'https://' in selected_game.cover_image_url %}{{ selected_game.cover_image_url }}{% else %}{% url 'serve_local_file' %}?path={{ selected_game.cover_image_url }}{% endif %}" class="w-100 h-100" style="object-fit: cover; filter: brightness(0.35);">
+                {% else %}
+                    <div class="w-100 h-100" style="background: linear-gradient(135deg, #0f0a1e 0%, #1a0a2e 100%);"></div>
+                {% endif %}
+                <div class="position-absolute" style="inset: 0; background: linear-gradient(to top, rgba(10,10,15,0.95) 0%, rgba(10,10,15,0.2) 50%, transparent 100%); pointer-events: none;"></div>
+                
+                <!-- Inner content alignment -->
+                <div class="position-absolute d-flex flex-column justify-content-end" style="inset: 0; padding: 2rem; pointer-events: auto;">
+                    <h2 class="text-white font-mono tracking-widest uppercase mb-2" style="font-size: 1.8rem; text-shadow: 0 0 10px rgba(168,85,247,0.5);">{{ selected_game.name }}</h2>
+                    <div class="d-flex align-items-center gap-3 flex-wrap mb-3">
+                        <span class="badge neon-border font-mono py-1.5 px-3" style="color: #a855f7;"><i class="fas fa-clock me-1"></i> {{ selected_game.hours_played|floatformat:1 }} hrs</span>
+                        {% if selected_game.steam_app_id %}
+                            <span class="badge neon-border font-mono py-1.5 px-3" style="color: #22d3ee;"><i class="fab fa-steam me-1"></i> Steam</span>
+                        {% endif %}
+                        <!-- Playtime tier badge -->
+                        {% if selected_game.hours_played >= 500 %}<span class="badge font-mono py-1.5 px-3" style="background: rgba(234,179,8,0.15); border: 1px solid rgba(234,179,8,0.4); color: #eab308;">👑 Legend</span>
+                        {% elif selected_game.hours_played >= 100 %}<span class="badge font-mono py-1.5 px-3" style="background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.4); color: #a855f7;">🏆 Veteran</span>
+                        {% elif selected_game.hours_played >= 50 %}<span class="badge font-mono py-1.5 px-3" style="background: rgba(34,211,238,0.15); border: 1px solid rgba(34,211,238,0.4); color: #22d3ee;">⚔️ Seasoned</span>
+                        {% elif selected_game.hours_played >= 10 %}<span class="badge font-mono py-1.5 px-3" style="background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.4); color: #10b981;">🎖 Rookie</span>
+                        {% else %}<span class="badge font-mono py-1.5 px-3" style="background: rgba(100,116,139,0.15); border: 1px solid rgba(100,116,139,0.4); color: #94a3b8;">🆕 New</span>{% endif %}
                     </div>
-                    <div class="col-md-4 text-md-end mt-3 mt-md-0 d-flex gap-2 justify-content-md-end align-items-center">
+                    
+                    <div class="d-flex gap-2 flex-wrap items-center">
                         {% if selected_game.steam_app_id or selected_game.local_path %}
-                            <div class="d-flex gap-2">
-                                <button id="btn-launch-client" onclick="launchGame('{{ selected_game.id }}', '{{ selected_game.steam_app_id|default:'' }}', '{{ selected_game.local_path|default:'' }}', false)" class="btn btn-outline-primary rounded-pill px-3 py-2 font-bold font-mono text-xs uppercase tracking-widest d-none">
-                                    <i class="fas fa-desktop mr-1"></i> Boot Client
-                                </button>
-                                <button id="btn-launch-host" onclick="launchGame('{{ selected_game.id }}', '{{ selected_game.steam_app_id|default:'' }}', '{{ selected_game.local_path|default:'' }}', true)" class="btn btn-outline-primary rounded-pill px-3 py-2 font-bold font-mono text-xs uppercase tracking-widest">
-                                    <i class="fas fa-play mr-1"></i> {% if selected_game.steam_app_id %}Boot Steam{% else %}Boot Game{% endif %}
-                                </button>
-                            </div>
+                            <button id="btn-launch-client" onclick="launchGame('{{ selected_game.id }}', '{{ selected_game.steam_app_id|default:'' }}', '{{ selected_game.local_path|default:'' }}', false)" class="btn btn-sm btn-outline-info rounded-pill px-3.5 py-1.5 font-bold font-mono text-[10px] uppercase tracking-widest d-none">
+                                <i class="fas fa-desktop mr-1"></i> Boot Client
+                            </button>
+                            <button id="btn-launch-host" onclick="launchGame('{{ selected_game.id }}', '{{ selected_game.steam_app_id|default:'' }}', '{{ selected_game.local_path|default:'' }}', true)" class="btn btn-play btn-sm text-white font-mono px-4 py-1.5 uppercase tracking-widest">
+                                <i class="fas fa-play mr-1"></i> {% if selected_game.steam_app_id %}Boot Steam{% else %}Boot Game{% endif %}
+                            </button>
                         {% endif %}
 
-                        <button type="button" class="btn btn-outline-warning rounded-circle p-2 flex items-center justify-center w-9 h-9" title="Edit Game" onclick="openEditGameModal()">
+                        <button type="button" class="btn btn-outline-warning rounded-circle p-2 flex items-center justify-center w-8 h-8" title="Edit Game" onclick="openEditGameModal()">
                             <i class="fas fa-edit text-xs"></i>
                         </button>
 
                         <form action="{% url 'relax_delete_game' selected_game.id %}" method="POST" onsubmit="return confirm('Remove this game from library?');" class="mb-0">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-outline-danger rounded-circle p-2 flex items-center justify-center w-9 h-9" title="Delete Game">
+                            <button type="submit" class="btn btn-outline-danger rounded-circle p-2 flex items-center justify-center w-8 h-8" title="Delete Game">
                                 <i class="fas fa-trash-alt text-xs"></i>
                             </button>
                         </form>
@@ -250,12 +279,12 @@
                     <ul class="nav nav-tabs nav-tabs-custom nav-justified border-0" role="tablist">
                         <li class="nav-item" role="presentation">
                             <a class="nav-link active font-bold text-xs uppercase tracking-wider py-2.5" data-bs-toggle="tab" href="#guides-tab" role="tab">
-                                <i class="mdi mdi-book-open-page-variant mr-1"></i> Manuals & Web Guides
+                                <i class="mdi mdi-book-open-page-variant mr-1"></i> 📖 Intel Dossier
                             </a>
                         </li>
                         <li class="nav-item" role="presentation">
                             <a class="nav-link font-bold text-xs uppercase tracking-wider py-2.5" data-bs-toggle="tab" href="#videos-tab" role="tab">
-                                <i class="mdi mdi-youtube mr-1"></i> Video Recordings
+                                <i class="mdi mdi-youtube mr-1"></i> 🎬 Replay Theater
                             </a>
                         </li>
                     </ul>
@@ -278,7 +307,7 @@
 
                                     <!-- Add Guide Collapse Form -->
                                     <div class="collapse mb-3" id="addGuideCollapse">
-                                        <div class="p-3 bg-slate-50 rounded-3 border">
+                                        <div class="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-3 border">
                                             <form action="{% url 'relax_add_guide' %}" method="POST" onsubmit="window.launchOverlay(this, 'EXTRACTING GUIDE CONTENT...');">
                                                 {% csrf_token %}
                                                 <input type="hidden" name="game_id" value="{{ selected_game.id }}">
@@ -305,11 +334,19 @@
                                     <!-- Scraped guides catalog -->
                                     <div class="d-flex flex-column gap-2 overflow-y-auto max-h-[40vh] pr-1">
                                         {% for guide in selected_game.guides.all %}
-                                            <button onclick="viewGuide({{ guide.id }})" class="btn text-start p-2.5 rounded-3 border text-xs font-medium bg-slate-50/50 hover:bg-slate-50 transition-colors w-100 block truncate" id="guide-btn-{{ guide.id }}">
-                                                <i class="far fa-file-alt text-purple-500 mr-2"></i>{{ guide.title }}
-                                            </button>
+                                            <div class="d-flex items-center gap-2 mb-2 w-100" id="guide-item-row-{{ guide.id }}">
+                                                <button onclick="viewGuide({{ guide.id }})" class="btn text-start p-2.5 rounded-3 border text-xs font-medium bg-slate-50/50 hover:bg-slate-50 transition-colors flex-grow truncate" id="guide-btn-{{ guide.id }}" style="min-width: 0;">
+                                                    <i class="far fa-file-alt text-purple-500 mr-2"></i>{{ guide.title }}
+                                                </button>
+                                                <form action="{% url 'relax_delete_guide' guide.id %}" method="POST" onsubmit="return confirm('Delete this guide?');" class="mb-0 flex-shrink-0">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-3 p-2 flex items-center justify-center w-8 h-8" title="Delete Guide">
+                                                        <i class="fas fa-trash text-xs"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
                                         {% empty %}
-                                            <div class="text-center text-slate-400 py-6 border border-dashed rounded-3">
+                                            <div class="text-center text-slate-400 py-6 border border-dashed rounded-3 w-100">
                                                 <i class="far fa-folder-open text-xl mb-1 opacity-40"></i>
                                                 <div class="text-[9px] font-mono uppercase tracking-widest">No manuals found</div>
                                             </div>
@@ -326,17 +363,36 @@
                                     </div>
                                     {% for guide in selected_game.guides.all %}
                                         <div class="guide-content-panel hidden" id="guide-panel-{{ guide.id }}">
-                                            <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-100">
-                                                <h3 class="font-size-16 text-slate-800 font-bold mb-0">{{ guide.title }}</h3>
-                                                {% if guide.source_url %}
-                                                    <a href="{{ guide.source_url }}" target="_blank" class="text-[10px] text-brand-500 font-mono font-bold text-decoration-none">
-                                                        <i class="fas fa-external-link-alt mr-1"></i>Open Original Source &rarr;
-                                                    </a>
-                                                {% endif %}
+                                            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-b border-slate-100 dark:border-slate-800">
+                                                <h3 class="font-size-16 text-slate-800 dark:text-slate-100 font-bold mb-0">{{ guide.title }}</h3>
+                                                <div class="d-flex items-center gap-3">
+                                                    {% if guide.source_url %}
+                                                        <div class="btn-group btn-group-sm rounded-pill overflow-hidden border border-slate-700/50 p-0.5 bg-slate-900" role="group">
+                                                            <button type="button" class="btn btn-xs px-2.5 py-1 text-[9px] font-mono font-bold text-white uppercase bg-purple-600 rounded-pill" id="view-text-btn-{{ guide.id }}" onclick="setGuideViewMode({{ guide.id }}, 'text')">Text</button>
+                                                            <button type="button" class="btn btn-xs px-2.5 py-1 text-[9px] font-mono font-bold text-slate-400 uppercase" id="view-iframe-btn-{{ guide.id }}" onclick="setGuideViewMode({{ guide.id }}, 'iframe')">Web</button>
+                                                        </div>
+                                                        <a href="{{ guide.source_url }}" target="_blank" class="text-[10px] text-purple-400 font-mono font-bold text-decoration-none">
+                                                            <i class="fas fa-external-link-alt mr-1"></i>Source &rarr;
+                                                        </a>
+                                                    {% endif %}
+                                                </div>
                                             </div>
-                                            <div class="markdown-body font-mono max-h-[50vh] overflow-y-auto pr-2">
+                                            
+                                            <!-- Extracted Text Mode -->
+                                            <div class="markdown-body font-mono max-h-[50vh] overflow-y-auto pr-2" id="guide-text-content-{{ guide.id }}">
                                                 {{ guide.content_markdown|linebreaks }}
                                             </div>
+
+                                            {% if guide.source_url %}
+                                            <!-- Web Iframe Mode -->
+                                            <div class="hidden" id="guide-iframe-content-{{ guide.id }}">
+                                                <iframe src="{{ guide.source_url }}" class="w-100 rounded border border-slate-800" style="height: 60vh; background-color: white;" sandbox="allow-same-origin allow-scripts allow-popups"></iframe>
+                                                <div class="text-[10px] text-slate-500 font-mono mt-2 text-center">
+                                                    If page fails to load, the site may prevent embedding. 
+                                                    <a href="{{ guide.source_url }}" target="_blank" class="text-purple-400 font-bold">Open directly in new tab &rarr;</a>
+                                                </div>
+                                            </div>
+                                            {% endif %}
                                         </div>
                                     {% endfor %}
                                 </div>
@@ -636,7 +692,8 @@
                 
                 hostBtn.classList.remove('btn-outline-primary');
                 hostBtn.classList.add('btn-outline-secondary');
-                hostBtn.innerHTML = '<i class="fas fa-server mr-1"></i> Boot on Host';
+                hostBtn.innerHTML = '<i class="fas fa-server mr-1"></i> 🖥️ Launch on Server';
+                hostBtn.setAttribute('title', 'Starts this game on the remote server hosting the Django application.');
             }
         }
     });
@@ -649,6 +706,8 @@
         const activePanel = document.getElementById(`guide-panel-${guideId}`);
         if(activePanel) {
             activePanel.classList.remove('hidden');
+            // reset view mode to text on selection
+            setGuideViewMode(guideId, 'text');
         }
         const placeholder = document.getElementById('guide-reader-placeholder');
         if(placeholder) {
@@ -660,6 +719,38 @@
         const activeBtn = document.getElementById(`guide-btn-${guideId}`);
         if(activeBtn) {
             activeBtn.classList.add('border-purple-500', 'bg-purple-500/5');
+        }
+    };
+
+    // Guide view mode toggle (Text vs Web iframe)
+    window.setGuideViewMode = function(guideId, mode) {
+        const textBtn = document.getElementById(`view-text-btn-${guideId}`);
+        const iframeBtn = document.getElementById(`view-iframe-btn-${guideId}`);
+        const textContent = document.getElementById(`guide-text-content-${guideId}`);
+        const iframeContent = document.getElementById(`guide-iframe-content-${guideId}`);
+        
+        if (mode === 'text') {
+            if(textBtn) {
+                textBtn.classList.add('bg-purple-600', 'text-white');
+                textBtn.classList.remove('text-slate-400');
+            }
+            if(iframeBtn) {
+                iframeBtn.classList.remove('bg-purple-600', 'text-white');
+                iframeBtn.classList.add('text-slate-400');
+            }
+            if(textContent) textContent.classList.remove('hidden');
+            if(iframeContent) iframeContent.classList.add('hidden');
+        } else {
+            if(iframeBtn) {
+                iframeBtn.classList.add('bg-purple-600', 'text-white');
+                iframeBtn.classList.remove('text-slate-400');
+            }
+            if(textBtn) {
+                textBtn.classList.remove('bg-purple-600', 'text-white');
+                textBtn.classList.add('text-slate-400');
+            }
+            if(iframeContent) iframeContent.classList.remove('hidden');
+            if(textContent) textContent.classList.add('hidden');
         }
     };
 

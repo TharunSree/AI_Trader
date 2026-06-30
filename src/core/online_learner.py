@@ -92,7 +92,7 @@ class OnlineLearner:
                     reason=reason
                 )
             except Exception as e:
-                logger.debug(f"[ONLINE LEARNING] Could not save event to DB: {e}")
+                logger.warning(f"[ONLINE LEARNING] Could not save event to DB: {e}")
 
     # ------------------------------------------------------------------
     # Observation & Trade Recording
@@ -138,7 +138,7 @@ class OnlineLearner:
                     old_ids = list(old_decisions.values_list('id', flat=True))
                     OnlineLearningLog.objects.filter(id__in=old_ids).delete()
             except Exception as db_err:
-                logger.debug(f"[ONLINE LEARNING] Failed to write DECISION event log to DB: {db_err}")
+                logger.warning(f"[ONLINE LEARNING] Failed to write DECISION event log to DB: {db_err}")
 
         except Exception as e:
             logger.debug(f"[ONLINE LEARNING] Observation cache error for {symbol}: {e}")

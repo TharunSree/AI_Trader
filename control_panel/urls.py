@@ -111,6 +111,7 @@ urlpatterns = [
     path('relax/game/edit/<int:game_id>/', views.relax_edit_game, name='relax_edit_game'),
     path('relax/game/delete/<int:game_id>/', views.relax_delete_game, name='relax_delete_game'),
     path('relax/guide/add/', views.relax_add_guide, name='relax_add_guide'),
+    path('relax/guide/delete/<int:guide_id>/', views.relax_delete_guide, name='relax_delete_guide'),
     path('relax/video/add/', views.relax_add_video, name='relax_add_video'),
     path('relax/game/launch/<int:game_id>/', views.relax_launch_game, name='relax_launch_game'),
     path('relax/game/search-artwork/', views.relax_search_artwork, name='relax_search_artwork'),

@@ -4127,11 +4127,41 @@ def neural_learning_log_api(request):
     win_rate = (win_count / max(1, completed_trades)) * 100 if completed_trades > 0 else 0.0
     avg_reward = sum(exit_rewards) / max(1, completed_trades) if completed_trades > 0 else 0.0
     
+    # Fallback to TradeLog stats if no OnlineLearningLog exits exist
+    if completed_trades == 0:
+        from .models import TradeLog
+        all_trades = list(TradeLog.objects.filter(trader=trader).order_by('timestamp'))
+        completed_trades = sum(1 for t in all_trades if t.action == 'SELL')
+        buy_prices = {}
+        win_count = 0
+        loss_count = 0
+        total_pnl_pct = 0.0
+        for t in all_trades:
+            if t.action == 'BUY':
+                if t.symbol not in buy_prices:
+                    buy_prices[t.symbol] = []
+                buy_prices[t.symbol].append(float(t.price))
+            elif t.action == 'SELL':
+                if t.symbol in buy_prices and len(buy_prices[t.symbol]) > 0:
+                    bp = buy_prices[t.symbol].pop(0)
+                    pnl_pct = ((float(t.price) - bp) / bp) * 100 if bp > 0 else 0.0
+                    total_pnl_pct += pnl_pct
+                    if pnl_pct > 0:
+                        win_count += 1
+                    else:
+                        loss_count += 1
+                else:
+                    loss_count += 1
+        win_rate = (win_count / max(1, completed_trades)) * 100 if completed_trades > 0 else 0.0
+        avg_reward = (total_pnl_pct / 100.0) / max(1, completed_trades) if completed_trades > 0 else 0.0
+        
     total_updates = OnlineLearningLog.objects.filter(trader=trader, event_type='UPDATE').count()
     
     # Calculate reward trend (last 20 exits)
     recent_exits = list(exits.order_by('timestamp')[:20])
     reward_trend = [float(e.details.get('reward', 0)) for e in recent_exits]
+    if len(reward_trend) == 0 and completed_trades > 0:
+        reward_trend = [avg_reward] * min(5, completed_trades)
     
     stats = {
         'completed_trades': completed_trades,
@@ -4469,6 +4499,14 @@ def past_decisions_api(request):
 
     import math
     total_count = logs_query.count()
+    use_tradelog_fallback = False
+    
+    if total_count == 0:
+        from .models import TradeLog
+        tradelogs_query = TradeLog.objects.filter(trader=trader).order_by('-timestamp')
+        total_count = tradelogs_query.count()
+        use_tradelog_fallback = True
+
     total_pages = max(1, math.ceil(total_count / page_size))
     
     if page < 1:
@@ -4478,47 +4516,65 @@ def past_decisions_api(request):
 
     start_idx = (page - 1) * page_size
     end_idx = start_idx + page_size
-    logs = logs_query[start_idx:end_idx]
 
     trades_list = []
     import re
-    for log in logs:
-        # Default inputs to populate
-        price_trend = 0.0
-        sentiment = 0.0
-        volatility = 0.2
-        spread = 0.1
-        
-        # 1. Try to extract directly from details JSON if available (especially for DECISION logs)
-        if isinstance(log.details, dict) and 'price_trend' in log.details:
-            price_trend = float(log.details.get('price_trend', 0.0))
-            sentiment = float(log.details.get('sentiment', 0.0))
-            volatility = float(log.details.get('volatility', 0.2))
-            spread = float(log.details.get('spread', 0.1))
-        else:
-            try:
-                # Extract inputs from reasons (for legacy ENTRY/EXIT logs)
-                sent_m = re.search(r'Sentiment:\s*([+-]?\d*\.?\d+)', log.reason, re.IGNORECASE)
-                trend_m = re.search(r'Price Trend is\s*([+-]?\d*\.?\d+)', log.reason, re.IGNORECASE)
-                vol_m = re.search(r'Volatility is\s*([+-]?\d*\.?\d+)', log.reason, re.IGNORECASE)
-                
-                if sent_m: sentiment = float(sent_m.group(1))
-                if trend_m: price_trend = float(trend_m.group(1))
-                if vol_m: volatility = float(vol_m.group(1))
-            except Exception:
-                pass
+    
+    if use_tradelog_fallback:
+        from .models import TradeLog
+        logs = TradeLog.objects.filter(trader=trader).order_by('-timestamp')[start_idx:end_idx]
+        for log in logs:
+            event_type = 'ENTRY' if log.action == 'BUY' else 'EXIT'
+            trades_list.append({
+                'id': log.id,
+                'event_type': event_type,
+                'symbol': log.symbol,
+                'timestamp': log.timestamp.isoformat(),
+                'reason': f"Execution fallback: {log.action} {log.quantity:.6f} {log.symbol} @ ${log.price:,.2f}",
+                'price_trend': 0.0,
+                'sentiment': float(log.sentiment_score or 0.0),
+                'volatility': 0.2,
+                'spread': 0.1
+            })
+    else:
+        logs = logs_query[start_idx:end_idx]
+        for log in logs:
+            # Default inputs to populate
+            price_trend = 0.0
+            sentiment = 0.0
+            volatility = 0.2
+            spread = 0.1
+            
+            # 1. Try to extract directly from details JSON if available (especially for DECISION logs)
+            if isinstance(log.details, dict) and 'price_trend' in log.details:
+                price_trend = float(log.details.get('price_trend', 0.0))
+                sentiment = float(log.details.get('sentiment', 0.0))
+                volatility = float(log.details.get('volatility', 0.2))
+                spread = float(log.details.get('spread', 0.1))
+            else:
+                try:
+                    # Extract inputs from reasons (for legacy ENTRY/EXIT logs)
+                    sent_m = re.search(r'Sentiment:\s*([+-]?\d*\.?\d+)', log.reason, re.IGNORECASE)
+                    trend_m = re.search(r'Price Trend is\s*([+-]?\d*\.?\d+)', log.reason, re.IGNORECASE)
+                    vol_m = re.search(r'Volatility is\s*([+-]?\d*\.?\d+)', log.reason, re.IGNORECASE)
+                    
+                    if sent_m: sentiment = float(sent_m.group(1))
+                    if trend_m: price_trend = float(trend_m.group(1))
+                    if vol_m: volatility = float(vol_m.group(1))
+                except Exception:
+                    pass
 
-        trades_list.append({
-            'id': log.id,
-            'event_type': log.event_type,
-            'symbol': log.symbol,
-            'timestamp': log.timestamp.isoformat(),
-            'reason': log.reason,
-            'price_trend': price_trend,
-            'sentiment': sentiment,
-            'volatility': volatility,
-            'spread': spread
-        })
+            trades_list.append({
+                'id': log.id,
+                'event_type': log.event_type,
+                'symbol': log.symbol,
+                'timestamp': log.timestamp.isoformat(),
+                'reason': log.reason,
+                'price_trend': price_trend,
+                'sentiment': sentiment,
+                'volatility': volatility,
+                'spread': spread
+            })
 
     return JsonResponse({
         'trades': trades_list,
@@ -5225,6 +5281,18 @@ def relax_add_guide(request):
     )
     messages.success(request, f"New guide added for {game.name}!")
     return redirect(f"/relax/?game_id={game.id}")
+
+
+@login_required
+@require_POST
+def relax_delete_guide(request, guide_id):
+    from .models import GameGuide
+    guide = get_object_or_404(GameGuide, id=guide_id)
+    game_id = guide.game_id
+    game_name = guide.game.name
+    guide.delete()
+    messages.success(request, f"Guide successfully removed from {game_name}.")
+    return redirect(f"/relax/?game_id={game_id}")
 
 
 @login_required
