@@ -5497,6 +5497,10 @@ def relax_launch_game(request, game_id):
     # 2. Local launch fallback
     try:
         import platform
+        if platform.system() != 'Windows':
+            messages.error(request, "Remote launch failed: No gaming rig IP address is configured in Settings. Go to the Settings page and enter your rig's IP (e.g. 192.168.29.254).")
+            return redirect(f"/relax/?game_id={game.id}")
+            
         if game.steam_app_id:
             if platform.system() == 'Windows':
                 launched = False
