@@ -193,15 +193,15 @@
                         {% endif %}
                         <!-- Playtime tier badge -->
                         {% if selected_game.hours_played >= 500 %}
-                            <span class="badge font-mono py-1.5 px-3 bg-warning/20 border border-warning/30 text-warning" title="Legend tier: 500+ hours of runtime">👑 Legend</span>
+                            <span class="badge font-mono py-1.5 px-3 bg-warning/20 border border-warning/30 text-warning" title="Legend tier: 500+ hours of runtime"><i class="fas fa-crown text-warning me-1"></i> Legend</span>
                         {% elif selected_game.hours_played >= 100 %}
-                            <span class="badge font-mono py-1.5 px-3 bg-purple-500/20 border border-purple-500/30 text-purple-200" title="Veteran tier: 100+ hours of runtime">🏆 Veteran</span>
+                            <span class="badge font-mono py-1.5 px-3 bg-purple-500/20 border border-purple-500/30 text-purple-200" title="Veteran tier: 100+ hours of runtime"><i class="fas fa-trophy text-purple-400 me-1"></i> Veteran</span>
                         {% elif selected_game.hours_played >= 50 %}
-                            <span class="badge font-mono py-1.5 px-3 bg-info/20 border border-info/30 text-info" title="Seasoned tier: 50+ hours of runtime">⚔️ Seasoned</span>
+                            <span class="badge font-mono py-1.5 px-3 bg-info/20 border border-info/30 text-info" title="Seasoned tier: 50+ hours of runtime"><i class="fas fa-shield-alt text-cyan-400 me-1"></i> Seasoned</span>
                         {% elif selected_game.hours_played >= 10 %}
-                            <span class="badge font-mono py-1.5 px-3 bg-success/20 border border-success/30 text-success" title="Rookie tier: 10+ hours of runtime">🎖 Rookie</span>
+                            <span class="badge font-mono py-1.5 px-3 bg-success/20 border border-success/30 text-success" title="Rookie tier: 10+ hours of runtime"><i class="fas fa-medal text-success me-1"></i> Rookie</span>
                         {% else %}
-                            <span class="badge font-mono py-1.5 px-3 bg-secondary/20 border border-secondary/30 text-secondary" title="New tier: <10 hours of runtime">🆕 New</span>
+                            <span class="badge font-mono py-1.5 px-3 bg-secondary/20 border border-secondary/30 text-secondary" title="New tier: <10 hours of runtime"><i class="fas fa-star text-secondary me-1"></i> New</span>
                         {% endif %}
                     </div>
                     
@@ -469,15 +469,15 @@
                                     <!-- Badge Overlay -->
                                     <div class="position-absolute" style="top: 10px; left: 10px; z-index: 10;">
                                         {% if game.hours_played >= 500 %}
-                                            <span class="badge bg-warning text-dark font-mono text-[8px] py-1 px-2 rounded-pill border border-warning/30" title="Legend: 500+ hours of runtime">👑 Legend</span>
+                                            <span class="badge bg-warning/20 text-warning font-mono text-[8px] py-1 px-2 rounded-pill border border-warning/30" title="Legend: 500+ hours of runtime"><i class="fas fa-crown text-warning me-1"></i> Legend</span>
                                         {% elif game.hours_played >= 100 %}
-                                            <span class="badge bg-purple-600 text-white font-mono text-[8px] py-1 px-2 rounded-pill border border-purple-500/30" title="Veteran: 100+ hours of runtime">🏆 Veteran</span>
+                                            <span class="badge bg-purple-900/40 text-purple-200 font-mono text-[8px] py-1 px-2 rounded-pill border border-purple-500/30" title="Veteran: 100+ hours of runtime"><i class="fas fa-trophy text-purple-400 me-1"></i> Veteran</span>
                                         {% elif game.hours_played >= 50 %}
-                                            <span class="badge bg-info text-dark font-mono text-[8px] py-1 px-2 rounded-pill border border-info/30" title="Seasoned: 50+ hours of runtime">⚔️ Seasoned</span>
+                                            <span class="badge bg-info/20 text-info font-mono text-[8px] py-1 px-2 rounded-pill border border-info/30" title="Seasoned: 50+ hours of runtime"><i class="fas fa-shield-alt text-cyan-400 me-1"></i> Seasoned</span>
                                         {% elif game.hours_played >= 10 %}
-                                            <span class="badge bg-success text-white font-mono text-[8px] py-1 px-2 rounded-pill border border-success/30" title="Rookie: 10+ hours of runtime">🎖 Rookie</span>
+                                            <span class="badge bg-success/20 text-success font-mono text-[8px] py-1 px-2 rounded-pill border border-success/30" title="Rookie: 10+ hours of runtime"><i class="fas fa-medal text-success me-1"></i> Rookie</span>
                                         {% else %}
-                                            <span class="badge bg-secondary text-white font-mono text-[8px] py-1 px-2 rounded-pill border border-secondary/30" title="New: <10 hours of runtime">🆕 New</span>
+                                            <span class="badge bg-secondary/20 text-secondary font-mono text-[8px] py-1 px-2 rounded-pill border border-secondary/30" title="New: <10 hours of runtime"><i class="fas fa-star text-secondary me-1"></i> New</span>
                                         {% endif %}
                                     </div>
                                     <div class="game-cover-overlay">

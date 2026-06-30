@@ -1667,6 +1667,14 @@
                         badgeClass = "bg-cyan-950 border-cyan-800 text-cyan-400";
                         textClass = "text-cyan-300 font-medium";
                         icon = "fa-sync-alt";
+                    } else if (log.event_type === "DECISION") {
+                        badgeClass = "bg-blue-950/85 border-blue-700/60 text-blue-400";
+                        textClass = "text-slate-200 font-medium";
+                        icon = "fa-brain";
+                    } else if (log.event_type === "REWARD") {
+                        badgeClass = "bg-emerald-950 border-emerald-800 text-emerald-450";
+                        textClass = "text-emerald-350 font-medium";
+                        icon = "fa-trophy";
                     } else if (log.event_type === "MANUAL") {
                         badgeClass = "bg-purple-950 border-purple-800 text-purple-400";
                         textClass = "text-purple-300";

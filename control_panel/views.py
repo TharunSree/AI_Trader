@@ -1897,6 +1897,9 @@ def settings_view(request):
             settings.gaming_rig_ip = request.POST.get('gaming_rig_ip', '').strip()
             settings.gaming_rig_ssh_username = request.POST.get('gaming_rig_ssh_username', '').strip()
             settings.gaming_rig_ssh_password = request.POST.get('gaming_rig_ssh_password', '').strip()
+            
+        if 'steam_username' in request.POST:
+            settings.steam_username = request.POST.get('steam_username', '').strip()
 
         # Save non-sensitive settings to the database
         # Only update display_currency if the field was in the form submission
@@ -5141,6 +5144,25 @@ def relax_view(request):
     game_id = request.GET.get('game_id')
     if game_id:
         selected_game = get_object_or_404(Game, id=game_id)
+        
+    # Throttled background Steam Sync (once every 3 hours)
+    settings = SystemSettings.load()
+    steam_username = settings.steam_username or request.session.get('steam_username')
+    if steam_username:
+        from django.core.cache import cache
+        cache_key = f"auto_steam_sync_{steam_username}"
+        if not cache.get(cache_key):
+            cache.set(cache_key, "running", 10800) # Lock for 3 hours
+            import threading
+            def run_sync():
+                try:
+                    logger.info(f"Auto Steam sync triggered in background for {steam_username}...")
+                    sync_steam_playtimes_helper(steam_username)
+                except Exception as ex:
+                    logger.error(f"Auto Steam sync thread failed: {ex}")
+            t = threading.Thread(target=run_sync)
+            t.daemon = True
+            t.start()
     
     context = {
         'games': games,
@@ -5519,19 +5541,13 @@ def relax_launch_game(request, game_id):
     return redirect(f"/relax/?game_id={game.id}")
 
 
-@login_required
-def relax_sync_steam_playtimes(request):
+def sync_steam_playtimes_helper(username):
     import xml.etree.ElementTree as ET
     import urllib.request
     import json
     import re
     import html
-    
-    username = request.GET.get('username', '').strip()
-    if not username:
-        return JsonResponse({'status': 'error', 'message': 'Steam username or ID64 is required.'}, status=400)
-        
-    request.session['steam_username'] = username
+    from .models import Game
     
     # Parse full URLs
     if 'steamcommunity.com/' in username.lower():
@@ -5541,6 +5557,8 @@ def relax_sync_steam_playtimes(request):
         elif '/id/' in username.lower():
             username = username.split('/id/')[-1].split('/')[0].strip()
             
+    updated_count = 0
+    
     # 1. Try HTML scraping first (highly reliable for full public libraries, bypasses XML limits)
     html_url = f"https://steamcommunity.com/profiles/{username}/games/?tab=all" if (username.isdigit() and len(username) == 17) else f"https://steamcommunity.com/id/{username}/games/?tab=all"
     try:
@@ -5551,9 +5569,9 @@ def relax_sync_steam_playtimes(request):
         m = re.search(r'var\s+rgGames\s*=\s*(\[.*?\])\s*;', html_data, re.DOTALL)
         if m:
             games_data = json.loads(m.group(1))
-            updated_count = 0
             for g in games_data:
                 appid = str(g.get('appid', ''))
+                name = g.get('name', '').strip()
                 hours = 0.0
                 hours_val = g.get('hours_forever')
                 if hours_val:
@@ -5562,22 +5580,34 @@ def relax_sync_steam_playtimes(request):
                     except ValueError:
                         pass
                 
+                if not appid or not name:
+                    continue
+                    
                 matching_games = Game.objects.filter(steam_app_id=appid, is_active=True)
-                for game in matching_games:
-                    game.hours_played = hours
-                    game.save()
-                    updated_count += 1
-            
-            return JsonResponse({
-                'status': 'success',
-                'message': f'Successfully synced playtimes for {updated_count} game(s) from Steam.',
-                'updated_count': updated_count
-            })
+                if matching_games.exists():
+                    for game in matching_games:
+                        game.hours_played = hours
+                        game.save()
+                        updated_count += 1
+                else:
+                    # Auto-import new games if they have playtime!
+                    if hours >= 1.0:
+                        cover_image = f"https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/{appid}/library_600x900_2x.jpg"
+                        hero_image = f"https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/{appid}/library_hero.jpg"
+                        
+                        Game.objects.create(
+                            name=name,
+                            steam_app_id=appid,
+                            hours_played=hours,
+                            cover_image_url=cover_image,
+                            animated_bg_url=hero_image,
+                            is_active=True
+                        )
+                        updated_count += 1
+            return updated_count, True # successfully processed full list
     except Exception as html_err:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.warning(f"Steam HTML sync fallback failed: {html_err}")
-
+        logger.warning(f"Steam HTML sync fallback failed for user {username}: {html_err}")
+        
     # 2. XML Fallback flow
     if username.isdigit() and len(username) == 17:
         url = f"https://steamcommunity.com/profiles/{username}/games/?xml=1"
@@ -5590,12 +5620,9 @@ def relax_sync_steam_playtimes(request):
         with urllib.request.urlopen(req, timeout=10) as response:
             xml_data = response.read()
             
-        import re
-        import html
         xml_str = xml_data.decode('utf-8', errors='ignore')
-
         if '<gamesList' not in xml_str and '<games' not in xml_str:
-            # Fallback to main profile XML which Steam does not redirect/block
+            # Fallback to main profile XML
             is_full_list = False
             if username.isdigit() and len(username) == 17:
                 fallback_url = f"https://steamcommunity.com/profiles/{username}/?xml=1"
@@ -5607,68 +5634,78 @@ def relax_sync_steam_playtimes(request):
                 with urllib.request.urlopen(fallback_req, timeout=10) as fallback_res:
                     fallback_xml_data = fallback_res.read()
                 xml_str = fallback_xml_data.decode('utf-8', errors='ignore')
-                
                 if '<profile>' not in xml_str:
-                    return JsonResponse({
-                        'status': 'error',
-                        'message': 'Failed to sync: Your Steam profile or game playtimes are private. Please set your Steam "Game details" to "Public" in your Profile Privacy Settings.'
-                    }, status=400)
+                    raise ValueError("Failed to retrieve profile XML data")
             except Exception as fe:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': f'Steam blocked full games list sync, and profile fallback failed: {str(fe)}'
-                }, status=400)
+                raise ValueError(f"Steam blocked full games list sync, and profile fallback failed: {str(fe)}")
 
         # Clean HTML entities and unescaped ampersands so ElementTree doesn't crash
         def replace_entity(match):
             entity = match.group(0)
-            name = match.group(1)
-            if name in ('amp', 'lt', 'gt', 'quot', 'apos'):
+            name_entity = match.group(1)
+            if name_entity in ('amp', 'lt', 'gt', 'quot', 'apos'):
                 return entity
             unescaped = html.unescape(entity)
             return unescaped.replace('&', '&amp;')
-
+ 
         xml_str = re.sub(r'&([a-zA-Z0-9#]+);', replace_entity, xml_str)
         xml_str = re.sub(r'&(?!(amp|lt|gt|quot|apos);)', '&amp;', xml_str)
-
+ 
         root = ET.fromstring(xml_str.encode('utf-8'))
         
         error_node = root.find('error')
         if error_node is not None:
-            return JsonResponse({'status': 'error', 'message': error_node.text}, status=400)
+            raise ValueError(error_node.text)
             
-        updated_count = 0
-        
         if is_full_list:
             games_list = root.findall('.//game')
             for g_node in games_list:
                 appid_node = g_node.find('appID')
+                name_node = g_node.find('name')
                 hours_node = g_node.find('hoursOnRecord')
                 
                 if appid_node is not None:
                     appid = appid_node.text.strip()
+                    name = name_node.text.strip() if name_node is not None and name_node.text else f"Steam Game {appid}"
                     hours = 0.0
                     if hours_node is not None and hours_node.text:
                         try:
                             hours = float(hours_node.text.replace(',', '').strip())
                         except ValueError:
                             pass
-                    
+                            
                     matching_games = Game.objects.filter(steam_app_id=appid, is_active=True)
-                    for game in matching_games:
-                        game.hours_played = hours
-                        game.save()
-                        updated_count += 1
+                    if matching_games.exists():
+                        for game in matching_games:
+                            game.hours_played = hours
+                            game.save()
+                            updated_count += 1
+                    else:
+                        if hours >= 1.0:
+                            cover_image = f"https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/{appid}/library_600x900_2x.jpg"
+                            hero_image = f"https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/{appid}/library_hero.jpg"
+                            Game.objects.create(
+                                name=name,
+                                steam_app_id=appid,
+                                hours_played=hours,
+                                cover_image_url=cover_image,
+                                animated_bg_url=hero_image,
+                                is_active=True
+                            )
+                            updated_count += 1
         else:
             # Parse mostPlayedGames from profile XML
             games_list = root.findall('.//mostPlayedGame')
             for g_node in games_list:
-                stats_node = g_node.find('statsName')
+                name_node = g_node.find('gameName')
                 hours_node = g_node.find('hoursOnRecord')
                 if hours_node is None:
                     hours_node = g_node.find('hoursPlayed')
                 
                 appid = None
+                name = name_node.text.strip() if name_node is not None and name_node.text else "Steam Game"
+                
+                stats_node = g_node.find('statsName')
                 if stats_node is not None and stats_node.text:
                     appid = stats_node.text.strip()
                 else:
@@ -5687,14 +5724,43 @@ def relax_sync_steam_playtimes(request):
                             pass
                             
                     matching_games = Game.objects.filter(steam_app_id=appid, is_active=True)
-                    for game in matching_games:
-                        game.hours_played = hours
-                        game.save()
-                        updated_count += 1
-                        
-        msg = f'Successfully synced playtimes for {updated_count} game(s) from Steam.'
+                    if matching_games.exists():
+                        for game in matching_games:
+                            game.hours_played = hours
+                            game.save()
+                            updated_count += 1
+                    else:
+                        if hours >= 1.0:
+                            cover_image = f"https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/{appid}/library_600x900_2x.jpg"
+                            hero_image = f"https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/{appid}/library_hero.jpg"
+                            Game.objects.create(
+                                name=name,
+                                steam_app_id=appid,
+                                hours_played=hours,
+                                cover_image_url=cover_image,
+                                animated_bg_url=hero_image,
+                                is_active=True
+                            )
+                            updated_count += 1
+        return updated_count, is_full_list
+    except Exception as e:
+        logger.error(f"Steam playtimes XML sync failed for user {username}: {e}", exc_info=True)
+        raise e
+
+
+@login_required
+def relax_sync_steam_playtimes(request):
+    username = request.GET.get('username', '').strip()
+    if not username:
+        return JsonResponse({'status': 'error', 'message': 'Steam username or ID64 is required.'}, status=400)
+        
+    request.session['steam_username'] = username
+    
+    try:
+        updated_count, is_full_list = sync_steam_playtimes_helper(username)
+        msg = f'Successfully synced and updated/imported {updated_count} game(s) from Steam.'
         if not is_full_list:
-            msg = f'Synced playtimes for {updated_count} recently played game(s) from your Steam profile (full list was blocked by Steam).'
+            msg = f'Synced and updated/imported {updated_count} recently played game(s) from your Steam profile (full list was blocked by Steam).'
             
         return JsonResponse({
             'status': 'success',
@@ -5702,7 +5768,6 @@ def relax_sync_steam_playtimes(request):
             'updated_count': updated_count
         })
     except Exception as e:
-        logger.error(f"Steam playtimes sync failed for user {username}: {e}", exc_info=True)
         return JsonResponse({'status': 'error', 'message': f'Failed to sync: {str(e)}'}, status=500)
 
 

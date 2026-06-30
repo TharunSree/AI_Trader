@@ -120,6 +120,12 @@
                     </div>
                 </div>
 
+                <!-- Steam Username for Auto-Sync -->
+                <div>
+                    <label class="block text-[10px] uppercase tracking-widest text-slate-500 font-mono mb-1.5">Default Steam Username / ID64 (for Auto-Sync)</label>
+                    <input type="text" name="steam_username" value="{{ settings.steam_username|default:'' }}" placeholder="e.g. 76561198000000000 or custom_slug" class="w-full bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-xl px-3 py-2.5 text-xs font-mono outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/20 transition-all">
+                </div>
+
                 <button type="submit" class="w-full px-4 py-3 bg-brand-50 hover:bg-brand-100 dark:bg-brand-500/10 dark:hover:bg-brand-500/20 border border-brand-200 dark:border-brand-500/30 text-brand-600 dark:text-brand-400 font-mono text-xs font-bold uppercase tracking-widest rounded-xl transition-all mt-2">Save Rig Settings</button>
             </div>
         </form>
