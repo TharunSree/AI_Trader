@@ -1106,6 +1106,21 @@
         });
     }
 
+    function updateFlowSpeed(isActive) {
+        const animations = document.querySelectorAll(".synapse-animation");
+        animations.forEach(anim => {
+            const origDurStr = anim.getAttribute("data-orig-dur") || "2.0s";
+            const origDur = parseFloat(origDurStr);
+            if (isActive) {
+                // If model is active, flow is faster (55% of original duration)
+                anim.setAttribute("dur", (origDur * 0.55).toFixed(1) + "s");
+            } else {
+                // If model is inactive, flow is slow/ambient (150% of original duration)
+                anim.setAttribute("dur", (origDur * 1.5).toFixed(1) + "s");
+            }
+        });
+    }
+
     function fetchWeights(silent = false) {
         if (!currentTraderId) return;
         
@@ -1609,8 +1624,10 @@
                     const elCpu = document.getElementById("stat-cpu");
                     const elMem = document.getElementById("stat-mem");
                     if (elCpu) elCpu.textContent = `OFFLINE`;
-                    if (elMem) elMem.textContent = `OFFLINE`;
                 }
+                
+                // Connect flow speed to whether active learning logs are flowing
+                updateFlowSpeed(data.logs && data.logs.length > 0);
 
                 const feed = document.getElementById("learning-feed");
                 if (data.logs.length === 0) {
