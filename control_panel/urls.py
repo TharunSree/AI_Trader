@@ -117,6 +117,7 @@ urlpatterns = [
     path('relax/game/search-artwork/', views.relax_search_artwork, name='relax_search_artwork'),
     path('relax/game/detect-path/', views.relax_detect_game_path, name='relax_detect_game_path'),
     path('relax/game/toggle-favorite/<int:game_id>/', views.relax_toggle_favorite, name='relax_toggle_favorite'),
+    path('relax/api/process-heartbeat/', views.relax_api_process_heartbeat, name='relax_api_process_heartbeat'),
 ]
 
 

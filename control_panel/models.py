@@ -393,6 +393,7 @@ class Game(models.Model):
     cover_image_url = models.CharField(max_length=500, blank=True, null=True)
     animated_bg_url = models.CharField(max_length=500, blank=True, null=True)
     is_favorite = models.BooleanField(default=False)
+    playtime_offset = models.FloatField(default=0.0, help_text="Manual playtime offset to add to Steam hours")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

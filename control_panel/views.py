@@ -5207,6 +5207,16 @@ def relax_view(request):
         chart_dates.append(d.strftime('%a'))
         chart_hours.append(round(day_total, 1))
 
+    # Per-game chart data (last 7 days for the selected game)
+    game_chart_dates = []
+    game_chart_hours = []
+    if selected_game:
+        for i in range(6, -1, -1):
+            d = today_date - timedelta(days=i)
+            day_total = DailyPlaytimeLog.objects.filter(date=d, game=selected_game).aggregate(total=Sum('hours_played'))['total'] or 0.0
+            game_chart_dates.append(d.strftime('%a'))
+            game_chart_hours.append(round(day_total, 1))
+
     context = {
         'games': games,
         'selected_game': selected_game,
@@ -5223,6 +5233,10 @@ def relax_view(request):
         'top_month': top_month,
         'chart_dates': chart_dates,
         'chart_hours': chart_hours,
+        
+        # Per-game parameters
+        'game_chart_dates': game_chart_dates,
+        'game_chart_hours': game_chart_hours,
     }
     return render(request, 'relax.html', context)
 
@@ -5279,7 +5293,8 @@ def relax_add_game(request):
         cover_image_url=cover_image_url,
         animated_bg_url=animated_bg_url,
         logo_url=logo_url,
-        is_favorite=is_favorite
+        is_favorite=is_favorite,
+        playtime_offset=hours_played
     )
     
     # Record initial playtime log
@@ -5337,6 +5352,14 @@ def relax_edit_game(request, game_id):
 
     # Record daily playtime difference
     record_playtime_diff(game, hours_played)
+
+    if steam_app_id:
+        last_steam_portion = float(game.hours_played) - float(game.playtime_offset)
+        if last_steam_portion < 0:
+            last_steam_portion = 0.0
+        game.playtime_offset = float(hours_played) - last_steam_portion
+    else:
+        game.playtime_offset = hours_played
 
     game.name = name
     game.steam_app_id = steam_app_id
@@ -5430,6 +5453,42 @@ def relax_toggle_favorite(request, game_id):
     game.is_favorite = not game.is_favorite
     game.save()
     return JsonResponse({'status': 'success', 'is_favorite': game.is_favorite})
+
+
+import django.views.decorators.csrf
+
+@django.views.decorators.csrf.csrf_exempt
+def relax_api_process_heartbeat(request):
+    if request.method == 'POST':
+        import json
+        from django.utils import timezone
+        from .models import DailyPlaytimeLog
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+            game_ids = data.get('game_ids', [])
+            today = timezone.now().date()
+            for gid in game_ids:
+                try:
+                    game = Game.objects.get(id=gid, is_active=True)
+                    # Increment playtime by 1 minute (1/60 hours)
+                    increment = 1.0 / 60.0
+                    game.hours_played = round(float(game.hours_played) + increment, 3)
+                    game.save()
+                    
+                    # Record in daily log
+                    log, created = DailyPlaytimeLog.objects.get_or_create(game=game, date=today)
+                    log.hours_played = round(float(log.hours_played) + increment, 3)
+                    log.save()
+                except Game.DoesNotExist:
+                    pass
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+            
+    # GET: return all active games with a process_name
+    games = Game.objects.filter(is_active=True).exclude(process_name='')
+    game_data = [{'id': g.id, 'process_name': g.process_name.lower().strip()} for g in games]
+    return JsonResponse({'status': 'success', 'games': game_data})
 
 
 @login_required
@@ -5849,8 +5908,9 @@ def sync_steam_playtimes_helper(username):
                     matching_games = Game.objects.filter(steam_app_id=appid, is_active=True)
                     if matching_games.exists():
                         for game in matching_games:
-                            record_playtime_diff(game, hours)
-                            game.hours_played = hours
+                            new_total = float(hours) + float(game.playtime_offset)
+                            record_playtime_diff(game, new_total)
+                            game.hours_played = new_total
                             game.save()
                             updated_count += 1
                     else:
@@ -5897,8 +5957,9 @@ def sync_steam_playtimes_helper(username):
                 matching_games = Game.objects.filter(steam_app_id=appid, is_active=True)
                 if matching_games.exists():
                     for game in matching_games:
-                        record_playtime_diff(game, hours)
-                        game.hours_played = hours
+                        new_total = float(hours) + float(game.playtime_offset)
+                        record_playtime_diff(game, new_total)
+                        game.hours_played = new_total
                         game.save()
                         updated_count += 1
                 else:
@@ -5989,8 +6050,9 @@ def sync_steam_playtimes_helper(username):
                     matching_games = Game.objects.filter(steam_app_id=appid, is_active=True)
                     if matching_games.exists():
                         for game in matching_games:
-                            record_playtime_diff(game, hours)
-                            game.hours_played = hours
+                            new_total = float(hours) + float(game.playtime_offset)
+                            record_playtime_diff(game, new_total)
+                            game.hours_played = new_total
                             game.save()
                             updated_count += 1
                     else:
@@ -6039,8 +6101,9 @@ def sync_steam_playtimes_helper(username):
                     matching_games = Game.objects.filter(steam_app_id=appid, is_active=True)
                     if matching_games.exists():
                         for game in matching_games:
-                            record_playtime_diff(game, hours)
-                            game.hours_played = hours
+                            new_total = float(hours) + float(game.playtime_offset)
+                            record_playtime_diff(game, new_total)
+                            game.hours_played = new_total
                             game.save()
                             updated_count += 1
                     else:
