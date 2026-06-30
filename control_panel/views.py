@@ -5169,94 +5169,14 @@ def relax_view(request):
     
     steam_username_session = request.session.get('steam_username', '')
     
-    # Per-game chart data (last 7 days for the selected game)
-    game_chart_dates = []
-    game_chart_hours = []
-    if selected_game:
-        from django.utils import timezone
-        from django.db.models import Sum
-        from datetime import timedelta
-        from .models import DailyPlaytimeLog
-        today_date = timezone.now().date()
-        for i in range(6, -1, -1):
-            d = today_date - timedelta(days=i)
-            day_total = DailyPlaytimeLog.objects.filter(date=d, game=selected_game).aggregate(total=Sum('hours_played'))['total'] or 0.0
-            game_chart_dates.append(d.strftime('%a'))
-            game_chart_hours.append(round(day_total, 1))
-
     context = {
         'games': games,
         'selected_game': selected_game,
         'page_title': 'Relax Lounge',
         'settings': settings,
         'steam_username_session': steam_username_session,
-        
-        # Per-game parameters
-        'game_chart_dates': game_chart_dates,
-        'game_chart_hours': game_chart_hours,
     }
     return render(request, 'relax.html', context)
-
-
-@login_required
-def relax_analytics_view(request):
-    games = Game.objects.filter(is_active=True)
-    settings = SystemSettings.load()
-    steam_username_session = request.session.get('steam_username', '')
-
-    from django.utils import timezone
-    from django.db.models import Sum
-    from datetime import timedelta
-    from .models import DailyPlaytimeLog
-
-    today_date = timezone.now().date()
-    start_of_month = today_date.replace(day=1)
-
-    # Favorite game
-    fav_game = games.filter(is_favorite=True).first()
-    if not fav_game:
-        fav_game = games.order_by('-hours_played').first()
-
-    # Most played game
-    most_played = games.order_by('-hours_played').first()
-
-    # Playtimes today and this month
-    playtime_today = DailyPlaytimeLog.objects.filter(date=today_date, game__is_active=True).aggregate(total=Sum('hours_played'))['total'] or 0.0
-    playtime_this_month = DailyPlaytimeLog.objects.filter(date__gte=start_of_month, game__is_active=True).aggregate(total=Sum('hours_played'))['total'] or 0.0
-
-    # Top 3 games today
-    top_today_logs = DailyPlaytimeLog.objects.filter(date=today_date, game__is_active=True).order_by('-hours_played')[:3]
-    top_today = [{'name': log.game.name, 'hours': round(log.hours_played, 1), 'cover': log.game.cover_image_url} for log in top_today_logs]
-
-    # Top 3 games this month
-    top_month_logs = DailyPlaytimeLog.objects.filter(date__gte=start_of_month, game__is_active=True).values('game__name', 'game__cover_image_url').annotate(total_hours=Sum('hours_played')).order_by('-total_hours')[:3]
-    top_month = [{'name': item['game__name'], 'hours': round(item['total_hours'], 1), 'cover': item['game__cover_image_url']} for item in top_month_logs]
-
-    # Chart data (last 7 days)
-    chart_dates = []
-    chart_hours = []
-    for i in range(6, -1, -1):
-        d = today_date - timedelta(days=i)
-        day_total = DailyPlaytimeLog.objects.filter(date=d, game__is_active=True).aggregate(total=Sum('hours_played'))['total'] or 0.0
-        chart_dates.append(d.strftime('%a'))
-        chart_hours.append(round(day_total, 1))
-
-    context = {
-        'page_title': 'Arcade Analytics',
-        'games': games,
-        'settings': settings,
-        'steam_username_session': steam_username_session,
-        'fav_game': fav_game,
-        'most_played': most_played,
-        'playtime_today': round(playtime_today, 1),
-        'playtime_this_month': round(playtime_this_month, 1),
-        'top_today': top_today,
-        'top_month': top_month,
-        'chart_dates': chart_dates,
-        'chart_hours': chart_hours,
-    }
-    return render(request, 'relax_analytics.html', context)
-
 
 
 @login_required
@@ -5268,8 +5188,6 @@ def relax_add_game(request):
     hours_played = float(request.POST.get('hours_played', 0.0) or 0.0)
     cover_image_url = request.POST.get('cover_image_url', '').strip() or None
     animated_bg_url = request.POST.get('animated_bg_url', '').strip() or None
-    logo_url = request.POST.get('logo_url', '').strip() or None
-    is_favorite = request.POST.get('is_favorite') == 'true'
 
     # Auto-resolve Steam App ID by name search if empty!
     if not steam_app_id and name:
@@ -5291,15 +5209,6 @@ def relax_add_game(request):
         messages.error(request, "Game name is required.")
         return redirect('relax_view')
 
-    # Auto-resolve assets for non-Steam games or fallback
-    if not logo_url:
-        logo_url = search_wikipedia_logo(name)
-        
-    if not animated_bg_url:
-        yt_id = search_youtube_video_id(name)
-        if yt_id:
-            animated_bg_url = yt_id
-
     if not cover_image_url:
         cover_image_url = "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?q=80&w=350&auto=format&fit=crop"
 
@@ -5309,22 +5218,8 @@ def relax_add_game(request):
         local_path=local_path,
         hours_played=hours_played,
         cover_image_url=cover_image_url,
-        animated_bg_url=animated_bg_url,
-        logo_url=logo_url,
-        is_favorite=is_favorite,
-        playtime_offset=hours_played
+        animated_bg_url=animated_bg_url
     )
-    
-    # Record initial playtime log
-    if hours_played > 0:
-        from django.utils import timezone
-        from .models import DailyPlaytimeLog
-        DailyPlaytimeLog.objects.get_or_create(
-            game=game, 
-            date=timezone.now().date(), 
-            defaults={'hours_played': hours_played}
-        )
-        
     messages.success(request, f"Game '{game.name}' added successfully to your library!")
     return redirect('relax_view')
 
@@ -5349,35 +5244,13 @@ def relax_edit_game(request, game_id):
     hours_played = float(request.POST.get('hours_played', 0.0) or 0.0)
     cover_image_url = request.POST.get('cover_image_url', '').strip() or None
     animated_bg_url = request.POST.get('animated_bg_url', '').strip() or None
-    logo_url = request.POST.get('logo_url', '').strip() or None
-    is_favorite = request.POST.get('is_favorite') == 'true'
 
     if not name:
         messages.error(request, "Game name is required.")
         return redirect('relax_view')
 
-    # Auto-resolve assets if empty
-    if not logo_url:
-        logo_url = search_wikipedia_logo(name)
-        
-    if not animated_bg_url:
-        yt_id = search_youtube_video_id(name)
-        if yt_id:
-            animated_bg_url = yt_id
-
     if not cover_image_url:
         cover_image_url = "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?q=80&w=350&auto=format&fit=crop"
-
-    # Record daily playtime difference
-    record_playtime_diff(game, hours_played)
-
-    if steam_app_id:
-        last_steam_portion = float(game.hours_played) - float(game.playtime_offset)
-        if last_steam_portion < 0:
-            last_steam_portion = 0.0
-        game.playtime_offset = float(hours_played) - last_steam_portion
-    else:
-        game.playtime_offset = hours_played
 
     game.name = name
     game.steam_app_id = steam_app_id
@@ -5385,150 +5258,10 @@ def relax_edit_game(request, game_id):
     game.hours_played = hours_played
     game.cover_image_url = cover_image_url
     game.animated_bg_url = animated_bg_url
-    game.logo_url = logo_url
-    game.is_favorite = is_favorite
     game.save()
 
     messages.success(request, f"Game '{game.name}' updated successfully!")
     return redirect(f'/relax/?game_id={game.id}')
-
-
-def search_youtube_video_id(game_name):
-    import urllib.request
-    import urllib.parse
-    import re
-    query = urllib.parse.quote(f"{game_name} gameplay trailer loop no commentary")
-    url = f"https://www.youtube.com/results?search_query={query}"
-    try:
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
-        with urllib.request.urlopen(req, timeout=5) as res:
-            html = res.read().decode('utf-8', errors='ignore')
-        video_ids = re.findall(r'/watch\?v=([a-zA-Z0-9_-]{11})', html)
-        if video_ids:
-            return list(dict.fromkeys(video_ids))[0]
-    except Exception as e:
-        logger.warning(f"YouTube trailer search failed for {game_name}: {e}")
-    return None
-
-
-def search_wikipedia_logo(game_name):
-    import urllib.request
-    import urllib.parse
-    import json
-    search_params = {
-        'action': 'opensearch',
-        'format': 'json',
-        'search': game_name.strip(),
-        'limit': 1
-    }
-    search_url = f"https://en.wikipedia.org/w/api.php?{urllib.parse.urlencode(search_params)}"
-    try:
-        req = urllib.request.Request(search_url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=5) as res:
-            search_data = json.loads(res.read().decode('utf-8'))
-        
-        titles = search_data[1]
-        if titles:
-            best_title = titles[0]
-            query_params = {
-                'action': 'query',
-                'format': 'json',
-                'prop': 'pageimages',
-                'titles': best_title,
-                'piprop': 'original'
-            }
-            url = f"https://en.wikipedia.org/w/api.php?{urllib.parse.urlencode(query_params)}"
-            req2 = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req2, timeout=5) as res2:
-                data = json.loads(res2.read().decode('utf-8'))
-            pages = data.get('query', {}).get('pages', {})
-            for pid in pages:
-                original = pages[pid].get('original', {})
-                source = original.get('source')
-                if source:
-                    return source
-    except Exception as e:
-        logger.warning(f"Wikipedia logo search failed for {game_name}: {e}")
-    return None
-
-
-def record_playtime_diff(game, new_hours):
-    from django.utils import timezone
-    from .models import DailyPlaytimeLog
-    
-    diff = float(new_hours) - float(game.hours_played)
-    if diff > 0:
-        today = timezone.now().date()
-        log, created = DailyPlaytimeLog.objects.get_or_create(game=game, date=today)
-        log.hours_played = round(float(log.hours_played) + diff, 3)
-        log.save()
-
-
-@login_required
-@require_POST
-def relax_toggle_favorite(request, game_id):
-    game = get_object_or_404(Game, id=game_id)
-    game.is_favorite = not game.is_favorite
-    game.save()
-    return JsonResponse({'status': 'success', 'is_favorite': game.is_favorite})
-
-
-import django.views.decorators.csrf
-
-@django.views.decorators.csrf.csrf_exempt
-def relax_api_process_heartbeat(request):
-    if request.method == 'POST':
-        import json
-        from django.utils import timezone
-        from .models import DailyPlaytimeLog
-        try:
-            data = json.loads(request.body.decode('utf-8'))
-            game_ids = data.get('game_ids', [])
-            today = timezone.now().date()
-            for gid in game_ids:
-                try:
-                    game = Game.objects.get(id=gid, is_active=True)
-                    # Increment playtime by 1 minute (1/60 hours)
-                    increment = 1.0 / 60.0
-                    game.hours_played = round(float(game.hours_played) + increment, 3)
-                    game.save()
-                    
-                    # Record in daily log
-                    log, created = DailyPlaytimeLog.objects.get_or_create(game=game, date=today)
-                    log.hours_played = round(float(log.hours_played) + increment, 3)
-                    log.save()
-                except Game.DoesNotExist:
-                    pass
-            return JsonResponse({'status': 'success'})
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
-            
-    # GET: return all active games with a process_name and check for pending launch triggers
-    from django.core.cache import cache
-    all_active = Game.objects.filter(is_active=True)
-    game_data = []
-    pending_launches = []
-    
-    for g in all_active:
-        if g.process_name:
-            game_data.append({'id': g.id, 'process_name': g.process_name.lower().strip()})
-        
-        # Check if this game was triggered to launch
-        cache_key = f"pending_launch_trigger_{g.id}"
-        if cache.get(cache_key):
-            cache.delete(cache_key)  # consume the event immediately
-            pending_launches.append({
-                'id': g.id,
-                'name': g.name,
-                'steam_app_id': g.steam_app_id or None,
-                'local_path': g.local_path or None
-            })
-            
-    return JsonResponse({
-        'status': 'success',
-        'games': game_data,
-        'pending_launches': pending_launches
-    })
 
 
 @login_required
@@ -5702,11 +5435,6 @@ def relax_add_video(request):
 @login_required
 def relax_launch_game(request, game_id):
     game = get_object_or_404(Game, id=game_id)
-    
-    # Flag this game as pending launch in cache (expires in 60s)
-    # The background client daemon on your Windows rig will catch this and trigger it natively
-    from django.core.cache import cache
-    cache.set(f"pending_launch_trigger_{game.id}", True, 60)
     
     # 1. Check if remote Windows Gaming Rig is configured (if Django runs on Linux)
     settings = SystemSettings.load()
@@ -5953,9 +5681,7 @@ def sync_steam_playtimes_helper(username):
                     matching_games = Game.objects.filter(steam_app_id=appid, is_active=True)
                     if matching_games.exists():
                         for game in matching_games:
-                            new_total = float(hours) + float(game.playtime_offset)
-                            record_playtime_diff(game, new_total)
-                            game.hours_played = new_total
+                            game.hours_played = hours
                             game.save()
                             updated_count += 1
                     else:
@@ -6002,9 +5728,7 @@ def sync_steam_playtimes_helper(username):
                 matching_games = Game.objects.filter(steam_app_id=appid, is_active=True)
                 if matching_games.exists():
                     for game in matching_games:
-                        new_total = float(hours) + float(game.playtime_offset)
-                        record_playtime_diff(game, new_total)
-                        game.hours_played = new_total
+                        game.hours_played = hours
                         game.save()
                         updated_count += 1
                 else:
@@ -6095,9 +5819,7 @@ def sync_steam_playtimes_helper(username):
                     matching_games = Game.objects.filter(steam_app_id=appid, is_active=True)
                     if matching_games.exists():
                         for game in matching_games:
-                            new_total = float(hours) + float(game.playtime_offset)
-                            record_playtime_diff(game, new_total)
-                            game.hours_played = new_total
+                            game.hours_played = hours
                             game.save()
                             updated_count += 1
                     else:
@@ -6146,9 +5868,7 @@ def sync_steam_playtimes_helper(username):
                     matching_games = Game.objects.filter(steam_app_id=appid, is_active=True)
                     if matching_games.exists():
                         for game in matching_games:
-                            new_total = float(hours) + float(game.playtime_offset)
-                            record_playtime_diff(game, new_total)
-                            game.hours_played = new_total
+                            game.hours_played = hours
                             game.save()
                             updated_count += 1
                     else:

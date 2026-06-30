@@ -387,30 +387,14 @@ class Game(models.Model):
     name = models.CharField(max_length=150)
     steam_app_id = models.CharField(max_length=50, blank=True, null=True, help_text="Steam App ID if it is a Steam game")
     local_path = models.CharField(max_length=500, blank=True, null=True, help_text="Path to local executable for non-Steam games")
-    process_name = models.CharField(max_length=255, blank=True, default='', help_text="Windows executable name to track playtime (e.g. ForzaHorizon5.exe)")
-    logo_url = models.CharField(max_length=500, blank=True, null=True, help_text="Transparent logo SVG/PNG URL for overlay")
     hours_played = models.FloatField(default=0.0)
     cover_image_url = models.CharField(max_length=500, blank=True, null=True)
     animated_bg_url = models.CharField(max_length=500, blank=True, null=True)
-    is_favorite = models.BooleanField(default=False)
-    playtime_offset = models.FloatField(default=0.0, help_text="Manual playtime offset to add to Steam hours")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.name
-
-
-class DailyPlaytimeLog(models.Model):
-    game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='daily_logs')
-    date = models.DateField(db_index=True)
-    hours_played = models.FloatField(default=0.0)
-    
-    class Meta:
-        unique_together = ('game', 'date')
-        
-    def __str__(self):
-        return f"{self.game.name} - {self.date}: {self.hours_played} hrs"
 
 
 class GameGuide(models.Model):
