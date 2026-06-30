@@ -5373,6 +5373,11 @@ def relax_launch_game(request, game_id):
 @login_required
 def relax_sync_steam_playtimes(request):
     import xml.etree.ElementTree as ET
+    import urllib.request
+    import json
+    import re
+    import html
+    
     username = request.GET.get('username', '').strip()
     if not username:
         return JsonResponse({'status': 'error', 'message': 'Steam username or ID64 is required.'}, status=400)
@@ -5387,6 +5392,44 @@ def relax_sync_steam_playtimes(request):
         elif '/id/' in username.lower():
             username = username.split('/id/')[-1].split('/')[0].strip()
             
+    # 1. Try HTML scraping first (highly reliable for full public libraries, bypasses XML limits)
+    html_url = f"https://steamcommunity.com/profiles/{username}/games/?tab=all" if (username.isdigit() and len(username) == 17) else f"https://steamcommunity.com/id/{username}/games/?tab=all"
+    try:
+        html_req = urllib.request.Request(html_url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+        with urllib.request.urlopen(html_req, timeout=8) as html_res:
+            html_data = html_res.read().decode('utf-8', errors='ignore')
+            
+        m = re.search(r'var\s+rgGames\s*=\s*(\[.*?\])\s*;', html_data, re.DOTALL)
+        if m:
+            games_data = json.loads(m.group(1))
+            updated_count = 0
+            for g in games_data:
+                appid = str(g.get('appid', ''))
+                hours = 0.0
+                hours_val = g.get('hours_forever')
+                if hours_val:
+                    try:
+                        hours = float(str(hours_val).replace(',', '').strip())
+                    except ValueError:
+                        pass
+                
+                matching_games = Game.objects.filter(steam_app_id=appid, is_active=True)
+                for game in matching_games:
+                    game.hours_played = hours
+                    game.save()
+                    updated_count += 1
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': f'Successfully synced playtimes for {updated_count} game(s) from Steam.',
+                'updated_count': updated_count
+            })
+    except Exception as html_err:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Steam HTML sync fallback failed: {html_err}")
+
+    # 2. XML Fallback flow
     if username.isdigit() and len(username) == 17:
         url = f"https://steamcommunity.com/profiles/{username}/games/?xml=1"
     else:

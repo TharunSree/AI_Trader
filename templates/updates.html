@@ -65,14 +65,19 @@
                     <i class="fas fa-list-ul text-orange-500"></i> Pending commits ({{ commits_behind }} release{{ commits_behind|pluralize }})
                 </h3>
                 
-                <div class="timeline">
+                <div class="relative border-l border-slate-200 dark:border-slate-800 ml-4 pl-6 space-y-6">
                     {% for commit in updates_list %}
-                    <div class="timeline-list {% if forloop.counter|divisibleby:2 %}right{% endif %}">
-                        <div class="cd-timeline-content p-4 {% if not forloop.counter|divisibleby:2 %}float-end text-start{% endif %}">
-                            <div class="date {% if commit.importance == 'CRITICAL' %}bg-danger{% elif commit.importance == 'HIGH' %}bg-warning text-dark{% elif commit.importance == 'MEDIUM' %}bg-primary{% else %}bg-secondary{% endif %}">
-                                {{ commit.date }}
+                    <div class="relative">
+                        <!-- Bullet Dot -->
+                        <span class="absolute -left-[31px] top-1.5 flex h-2.5 w-2.5 items-center justify-center rounded-full {% if commit.importance == 'CRITICAL' %}bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]{% elif commit.importance == 'HIGH' %}bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]{% else %}bg-primary shadow-[0_0_8px_rgba(91,115,232,0.4)]{% endif %}"></span>
+                        
+                        <div class="bg-slate-50 dark:bg-slate-850/30 border border-slate-200/60 dark:border-slate-800/80 rounded-xl p-4 hover:border-slate-300 dark:hover:border-slate-700/60 transition-all">
+                            <div class="flex items-center justify-between flex-wrap gap-2 mb-2">
+                                <h4 class="font-size-14 font-bold text-slate-800 dark:text-slate-100 font-mono mb-0">{{ commit.subject }}</h4>
+                                <span class="text-[9px] font-mono {% if commit.importance == 'CRITICAL' %}bg-rose-500/10 text-rose-500 border border-rose-500/20{% elif commit.importance == 'HIGH' %}bg-amber-500/10 text-amber-500 border border-amber-500/20{% else %}bg-slate-500/10 text-slate-500 border border-slate-500/20{% endif %} px-2 py-0.5 rounded uppercase tracking-wide">
+                                    {{ commit.importance }}
+                                </span>
                             </div>
-                            <h4 class="font-size-14 font-bold text-slate-800 dark:text-slate-100 font-mono mb-2">{{ commit.subject }}</h4>
                             
                             {% if commit.bullet_lines %}
                             <ul class="mb-3 space-y-1 pl-4 list-disc text-xs font-mono text-slate-500 dark:text-slate-400 leading-relaxed">
@@ -82,7 +87,9 @@
                             </ul>
                             {% endif %}
                             
-                            <div class="text-[9px] font-mono text-slate-450/70 uppercase tracking-widest flex items-center gap-1.5">
+                            <div class="text-[9px] font-mono text-slate-450/70 uppercase tracking-widest flex items-center gap-1.5 mt-2">
+                                <i class="far fa-clock text-[8px]"></i> {{ commit.date }}
+                                <span class="text-slate-750 dark:text-slate-800">|</span>
                                 <i class="fas fa-hashtag text-[8px]"></i> SHA: {{ commit.short_hash }}
                             </div>
                         </div>
@@ -127,15 +134,17 @@
                 <h3 class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2 font-mono">
                     <i class="fas fa-history text-slate-500"></i> Recent Historical Deployments
                 </h3>
-                <div class="timeline">
+                <div class="relative border-l border-slate-200 dark:border-slate-800 ml-4 pl-6 space-y-6">
                     {% for commit in historical_commits %}
-                    <div class="timeline-list {% if forloop.counter|divisibleby:2 %}right{% endif %}">
-                        <div class="cd-timeline-content p-4 {% if not forloop.counter|divisibleby:2 %}float-end text-start{% endif %}">
-                            <div class="date bg-secondary">
-                                {{ commit.date }}
-                            </div>
+                    <div class="relative">
+                        <!-- Bullet Dot -->
+                        <span class="absolute -left-[31px] top-1.5 flex h-2 w-2 items-center justify-center rounded-full bg-slate-400 dark:bg-slate-700"></span>
+                        
+                        <div class="bg-slate-50 dark:bg-slate-850/30 border border-slate-200/60 dark:border-slate-800/80 rounded-xl p-4 hover:border-slate-300 dark:hover:border-slate-700/60 transition-all">
                             <h4 class="font-size-14 font-bold text-slate-800 dark:text-slate-100 font-mono mb-2">{{ commit.subject }}</h4>
-                            <div class="text-[9px] font-mono text-slate-450/70 uppercase tracking-widest flex items-center gap-1.5">
+                            <div class="text-[9px] font-mono text-slate-450/70 uppercase tracking-widest flex items-center gap-1.5 mt-2">
+                                <i class="far fa-clock text-[8px]"></i> {{ commit.date }}
+                                <span class="text-slate-750 dark:text-slate-800">|</span>
                                 <i class="fas fa-hashtag text-[8px]"></i> SHA: {{ commit.short_hash }}
                             </div>
                         </div>

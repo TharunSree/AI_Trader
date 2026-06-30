@@ -191,6 +191,18 @@
                         {% if selected_game.steam_app_id %}
                             <span class="badge font-mono py-1.5 px-3 bg-blue-500/20 border border-blue-500/30 text-blue-200"><i class="fab fa-steam me-1"></i> Steam</span>
                         {% endif %}
+                        <!-- Playtime tier badge -->
+                        {% if selected_game.hours_played >= 500 %}
+                            <span class="badge font-mono py-1.5 px-3 bg-warning/20 border border-warning/30 text-warning" title="Legend tier: 500+ hours of runtime">👑 Legend</span>
+                        {% elif selected_game.hours_played >= 100 %}
+                            <span class="badge font-mono py-1.5 px-3 bg-purple-500/20 border border-purple-500/30 text-purple-200" title="Veteran tier: 100+ hours of runtime">🏆 Veteran</span>
+                        {% elif selected_game.hours_played >= 50 %}
+                            <span class="badge font-mono py-1.5 px-3 bg-info/20 border border-info/30 text-info" title="Seasoned tier: 50+ hours of runtime">⚔️ Seasoned</span>
+                        {% elif selected_game.hours_played >= 10 %}
+                            <span class="badge font-mono py-1.5 px-3 bg-success/20 border border-success/30 text-success" title="Rookie tier: 10+ hours of runtime">🎖 Rookie</span>
+                        {% else %}
+                            <span class="badge font-mono py-1.5 px-3 bg-secondary/20 border border-secondary/30 text-secondary" title="New tier: <10 hours of runtime">🆕 New</span>
+                        {% endif %}
                     </div>
                     
                     <div class="d-flex gap-2 flex-wrap items-center">
@@ -240,9 +252,14 @@
                         
                         <!-- TAB 1: GUIDES -->
                         <div class="tab-pane active" id="guides-tab" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2.5 py-1 font-mono text-[9px] uppercase font-bold" onclick="toggleGuidesSidebar()" id="btn-toggle-sidebar">
+                                    <i class="fas fa-columns mr-1"></i> Collapse Sidebar
+                                </button>
+                            </div>
                             <div class="row">
                                 <!-- Guide list sidebar -->
-                                <div class="col-md-4 border-end border-slate-100 pr-4">
+                                <div class="col-md-4 border-end border-slate-100 pr-4 transition-all duration-300" id="guides-sidebar-col">
                                     <div class="d-flex justify-content-between align-items-center mb-3">
                                         <h4 class="font-size-11 uppercase tracking-widest text-slate-400 font-bold font-mono">Dossier Guides</h4>
                                         <button class="btn btn-sm btn-outline-primary rounded-pill font-mono text-[9px] font-bold px-2.5" data-bs-toggle="collapse" data-bs-target="#addGuideCollapse">
@@ -300,7 +317,7 @@
                                 </div>
 
                                 <!-- Guide reader area -->
-                                <div class="col-md-8 pl-md-4 mt-4 mt-md-0">
+                                <div class="col-md-8 pl-md-4 mt-4 mt-md-0 transition-all duration-300" id="guides-reader-col">
                                     <div id="guide-reader-placeholder" class="text-center py-12 text-slate-400">
                                         <i class="mdi mdi-book-open-page-variant text-4xl mb-2 opacity-20"></i>
                                         <p class="font-mono text-xs uppercase tracking-widest">Select a manual</p>
@@ -312,9 +329,11 @@
                                                 <h3 class="font-size-16 text-slate-800 dark:text-slate-100 font-bold mb-0">{{ guide.title }}</h3>
                                                 <div class="d-flex items-center gap-3">
                                                     {% if guide.source_url %}
-                                                        <div class="d-flex gap-1">
-                                                            <button type="button" class="toggle-3d-btn active" id="view-text-btn-{{ guide.id }}" onclick="setGuideViewMode({{ guide.id }}, 'text')">TEXT</button>
-                                                            <button type="button" class="toggle-3d-btn" id="view-iframe-btn-{{ guide.id }}" onclick="setGuideViewMode({{ guide.id }}, 'iframe')">WEB</button>
+                                                        <div class="toggle-pellet bg-light dark:bg-slate-900 border border-slate-200 dark:border-slate-805 rounded-pill p-0.5 d-inline-flex align-items-center" style="cursor: pointer; position: relative; height: 26px; width: 90px; user-select: none;" onclick="toggleGuideViewPellet({{ guide.id }})">
+                                                            <!-- Active background slider -->
+                                                            <div class="pellet-slider position-absolute bg-primary rounded-pill" id="pellet-slider-{{ guide.id }}" style="top: 1.5px; bottom: 1.5px; left: 1.5px; width: 42px; transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);"></div>
+                                                            <div class="w-50 text-center font-mono font-bold text-[8px] z-10 text-white transition-colors duration-250" id="pellet-text-label-{{ guide.id }}">TXT</div>
+                                                            <div class="w-50 text-center font-mono font-bold text-[8px] z-10 text-slate-400 dark:text-slate-500 transition-colors duration-250" id="pellet-web-label-{{ guide.id }}">WEB</div>
                                                         </div>
                                                         <a href="{{ guide.source_url }}" target="_blank" class="text-[10px] text-primary font-mono font-bold text-decoration-none">
                                                             <i class="fas fa-external-link-alt mr-1"></i>Source &rarr;
@@ -447,6 +466,20 @@
                         <a href="?game_id={{ game.id }}" class="text-decoration-none">
                             <div class="card mb-0 h-100 game-card">
                                 <div class="game-cover-container" style="background-image: url('{% if 'http://' in game.cover_image_url or 'https://' in game.cover_image_url %}{{ game.cover_image_url }}{% else %}{% url 'serve_local_file' %}?path={{ game.cover_image_url }}{% endif %}');">
+                                    <!-- Badge Overlay -->
+                                    <div class="position-absolute" style="top: 10px; left: 10px; z-index: 10;">
+                                        {% if game.hours_played >= 500 %}
+                                            <span class="badge bg-warning text-dark font-mono text-[8px] py-1 px-2 rounded-pill border border-warning/30" title="Legend: 500+ hours of runtime">👑 Legend</span>
+                                        {% elif game.hours_played >= 100 %}
+                                            <span class="badge bg-purple-600 text-white font-mono text-[8px] py-1 px-2 rounded-pill border border-purple-500/30" title="Veteran: 100+ hours of runtime">🏆 Veteran</span>
+                                        {% elif game.hours_played >= 50 %}
+                                            <span class="badge bg-info text-dark font-mono text-[8px] py-1 px-2 rounded-pill border border-info/30" title="Seasoned: 50+ hours of runtime">⚔️ Seasoned</span>
+                                        {% elif game.hours_played >= 10 %}
+                                            <span class="badge bg-success text-white font-mono text-[8px] py-1 px-2 rounded-pill border border-success/30" title="Rookie: 10+ hours of runtime">🎖 Rookie</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary text-white font-mono text-[8px] py-1 px-2 rounded-pill border border-secondary/30" title="New: <10 hours of runtime">🆕 New</span>
+                                        {% endif %}
+                                    </div>
                                     <div class="game-cover-overlay">
                                         <div class="w-100 flex justify-between items-end">
                                             <div class="min-w-0 pr-2">
@@ -718,21 +751,62 @@
 
     // Guide view mode toggle (Text vs Web iframe)
     window.setGuideViewMode = function(guideId, mode) {
-        const textBtn = document.getElementById(`view-text-btn-${guideId}`);
-        const iframeBtn = document.getElementById(`view-iframe-btn-${guideId}`);
         const textContent = document.getElementById(`guide-text-content-${guideId}`);
         const iframeContent = document.getElementById(`guide-iframe-content-${guideId}`);
         
         if (mode === 'text') {
-            if(textBtn) textBtn.classList.add('active');
-            if(iframeBtn) iframeBtn.classList.remove('active');
             if(textContent) textContent.classList.remove('hidden');
             if(iframeContent) iframeContent.classList.add('hidden');
         } else {
-            if(iframeBtn) iframeBtn.classList.add('active');
-            if(textBtn) textBtn.classList.remove('active');
             if(iframeContent) iframeContent.classList.remove('hidden');
             if(textContent) textContent.classList.add('hidden');
+        }
+    };
+
+    window.toggleGuideViewPellet = function(guideId) {
+        const textBtn = document.getElementById(`pellet-text-label-${guideId}`);
+        const webBtn = document.getElementById(`pellet-web-label-${guideId}`);
+        const slider = document.getElementById(`pellet-slider-${guideId}`);
+        
+        if (!textBtn || !webBtn) return;
+        
+        const isTextActive = textBtn.classList.contains('text-white');
+        if (isTextActive) {
+            // Switch to Web mode
+            setGuideViewMode(guideId, 'iframe');
+            textBtn.classList.remove('text-white');
+            textBtn.classList.add('text-slate-400', 'dark:text-slate-500');
+            webBtn.classList.remove('text-slate-400', 'dark:text-slate-500');
+            webBtn.classList.add('text-white');
+            if (slider) slider.style.left = '46.5px'; // Slide to Web side
+        } else {
+            // Switch to Text mode
+            setGuideViewMode(guideId, 'text');
+            webBtn.classList.remove('text-white');
+            webBtn.classList.add('text-slate-400', 'dark:text-slate-500');
+            textBtn.classList.remove('text-slate-400', 'dark:text-slate-500');
+            textBtn.classList.add('text-white');
+            if (slider) slider.style.left = '1.5px'; // Slide to Text side
+        }
+    };
+
+    window.toggleGuidesSidebar = function() {
+        const sidebar = document.getElementById('guides-sidebar-col');
+        const reader = document.getElementById('guides-reader-col');
+        const btn = document.getElementById('btn-toggle-sidebar');
+        
+        if (sidebar && reader) {
+            if (sidebar.classList.contains('d-none')) {
+                sidebar.classList.remove('d-none');
+                reader.classList.remove('col-12');
+                reader.classList.add('col-md-8');
+                if (btn) btn.innerHTML = '<i class="fas fa-columns mr-1"></i> Collapse Sidebar';
+            } else {
+                sidebar.classList.add('d-none');
+                reader.classList.remove('col-md-8');
+                reader.classList.add('col-12');
+                if (btn) btn.innerHTML = '<i class="fas fa-columns mr-1"></i> Expand Sidebar';
+            }
         }
     };
 
