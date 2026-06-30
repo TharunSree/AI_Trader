@@ -394,8 +394,13 @@
     <!-- Bottom row: Past Actual Trades Replay -->
     <div class="card mb-4">
         <div class="card-body">
-            <h4 class="card-title font-mono tracking-widest uppercase mb-0 border-b border-slate-850 pb-3 d-flex align-items-center gap-2">
-                <i class="fas fa-history text-cyan-500"></i> Past Execution Analyzer & Replayer
+            <h4 class="card-title font-mono tracking-widest uppercase mb-0 border-b border-slate-850 pb-3 d-flex align-items-center justify-content-between gap-2">
+                <span class="d-flex align-items-center gap-2">
+                    <i class="fas fa-history text-cyan-500"></i> Past Execution Analyzer & Replayer
+                </span>
+                <button type="button" id="btn-replay-selected" onclick="replaySelectedTrade()" class="bg-transparent hover:bg-cyan-500/10 text-cyan-400 hover:text-cyan-300 border border-cyan-500/40 hover:border-cyan-500 font-mono text-[9px] uppercase tracking-wider py-1 px-3 rounded cursor-pointer transition-all d-none">
+                    <i class="fas fa-play me-1"></i> Replay Node Flow
+                </button>
             </h4>
             <p class="text-[11px] font-mono text-slate-400 my-3 leading-normal">
                 Click any past transaction to load its exact historical market state directly into the simulator to see how your neural layers fired during the trade.
@@ -409,7 +414,6 @@
                         <th class="py-2.5">Event</th>
                         <th class="py-2.5">Symbol</th>
                         <th class="py-2.5">Market Reason log</th>
-                        <th class="py-2.5 text-right">Action</th>
                     </tr>
                 </thead>
                 <tbody id="past-trades-body" class="divide-y divide-slate-900 text-slate-355">
@@ -884,9 +888,54 @@
     let currentPastTradesPage = 1;
     let totalPastTradesPages = 1;
 
+    let selectedTradeData = null;
+
+    window.selectTradeRow = function(rowElement, priceTrend, sentiment, volatility, spread) {
+        // Remove highlight from all other rows
+        document.querySelectorAll('.past-trade-row').forEach(row => {
+            row.classList.remove('bg-cyan-500/10', 'text-cyan-300', 'font-bold', 'border-cyan-500/40');
+        });
+        
+        // Highlight clicked row
+        rowElement.classList.add('bg-cyan-500/10', 'text-cyan-300', 'font-bold', 'border-cyan-500/40');
+        
+        // Store selected parameters
+        selectedTradeData = { priceTrend, sentiment, volatility, spread };
+        
+        // Show replay button at top
+        const btn = document.getElementById('btn-replay-selected');
+        if (btn) {
+            btn.classList.remove('d-none');
+        }
+    };
+
+    window.replaySelectedTrade = function() {
+        if (!selectedTradeData) return;
+        
+        // Load the values into the simulator sliders
+        loadHistoricalTrade(
+            selectedTradeData.priceTrend,
+            selectedTradeData.sentiment,
+            selectedTradeData.volatility,
+            selectedTradeData.spread
+        );
+        
+        // Smoothly scroll to visualizer canvas
+        const canvas = document.getElementById("decision-canvas");
+        if (canvas) {
+            canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    };
+
     function loadPastTrades(page = 1) {
         currentPastTradesPage = page;
         const body = document.getElementById("past-trades-body");
+        
+        // Hide replay button on reload/page change
+        const replayBtn = document.getElementById('btn-replay-selected');
+        if (replayBtn) replayBtn.classList.add('d-none');
+        selectedTradeData = null;
+
         fetch(`/api/neural/past-decisions/?trader_id=${currentTraderId}&page=${page}`)
             .then(res => res.json())
             .then(data => {
@@ -906,7 +955,7 @@
                 if (!data.trades || data.trades.length === 0) {
                     body.innerHTML = `
                         <tr>
-                            <td colspan="5" class="py-6 text-center text-slate-500">
+                            <td colspan="4" class="py-12 text-center text-slate-500">
                                 <i class="fas fa-history text-lg mb-2 block"></i>
                                 No trade execution logs recorded yet for this page.
                             </td>
@@ -928,7 +977,7 @@
                     }
 
                     html += `
-                        <tr class="past-trade-row">
+                        <tr class="past-trade-row cursor-pointer hover:bg-slate-900/40 transition-colors" onclick="selectTradeRow(this, ${trade.price_trend}, ${trade.sentiment}, ${trade.volatility}, ${trade.spread})">
                             <td class="py-3 text-slate-450">${timeStr}</td>
                             <td class="py-3">
                                 <span class="px-2 py-0.5 rounded border ${badgeClass} uppercase text-[9px]">
@@ -937,11 +986,6 @@
                             </td>
                             <td class="py-3 text-slate-200 font-bold">${trade.symbol}</td>
                             <td class="py-3 text-slate-400 max-w-sm truncate" title="${trade.reason}">${trade.reason}</td>
-                            <td class="py-3 text-right">
-                                <button onclick="loadHistoricalTrade(${trade.price_trend}, ${trade.sentiment}, ${trade.volatility}, ${trade.spread})" class="bg-transparent hover:bg-cyan-500/10 text-cyan-400 hover:text-cyan-300 border border-cyan-500/40 hover:border-cyan-500 font-mono text-[9px] uppercase tracking-wider px-2.5 py-1 rounded cursor-pointer transition-all">
-                                    <i class="fas fa-play"></i> Replay Node Flow
-                                </button>
-                            </td>
                         </tr>
                     `;
                 });
@@ -949,7 +993,7 @@
             })
             .catch(err => {
                 console.error("Error loading past trades:", err);
-                body.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-rose-400">Failed to load trade log records</td></tr>`;
+                body.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-rose-400">Failed to load trade log records</td></tr>`;
             });
     }
 
