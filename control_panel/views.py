@@ -5407,13 +5407,24 @@ def relax_launch_game(request, game_id):
                     key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam")
                     steam_exe, _ = winreg.QueryValueEx(key, "SteamExe")
                     if steam_exe and os.path.exists(steam_exe):
-                        subprocess.Popen([steam_exe, "-applaunch", str(game.steam_app_id)])
+                        steam_dir = os.path.dirname(steam_exe)
+                        subprocess.Popen([steam_exe, "-applaunch", str(game.steam_app_id)], cwd=steam_dir)
                         launched = True
                 except Exception:
                     pass
                 
                 if not launched:
-                    os.startfile(f"steam://rungameid/{game.steam_app_id}")
+                    try:
+                        subprocess.Popen(["cmd.exe", "/c", "start", f"steam://rungameid/{game.steam_app_id}"], shell=True)
+                        launched = True
+                    except Exception:
+                        pass
+                        
+                if not launched:
+                    try:
+                        os.startfile(f"steam://rungameid/{game.steam_app_id}")
+                    except Exception:
+                        pass
                 messages.success(request, f"Launching '{game.name}' via Steam on host...")
             else:
                 steam_url = f"steam://rungameid/{game.steam_app_id}"
@@ -5423,14 +5434,34 @@ def relax_launch_game(request, game_id):
             is_uri = ':' in game.local_path and not ('\\' in game.local_path or '/' in game.local_path)
             if is_uri or os.path.exists(game.local_path):
                 if platform.system() == 'Windows':
-                    os.startfile(game.local_path)
+                    launched = False
+                    try:
+                        subprocess.Popen(["cmd.exe", "/c", "start", '""', game.local_path], shell=True)
+                        launched = True
+                    except Exception:
+                        pass
+                    if not launched:
+                        try:
+                            os.startfile(game.local_path)
+                        except Exception:
+                            pass
                 else:
                     subprocess.Popen([game.local_path], shell=False)
                 messages.success(request, f"Launching '{game.name}' locally on host...")
             else:
                 if game.local_path.startswith(('xbox:', 'steam:', 'epic:', 'com.epicgames.launcher:')):
                     if platform.system() == 'Windows':
-                        os.startfile(game.local_path)
+                        launched = False
+                        try:
+                            subprocess.Popen(["cmd.exe", "/c", "start", game.local_path], shell=True)
+                            launched = True
+                        except Exception:
+                            pass
+                        if not launched:
+                            try:
+                                os.startfile(game.local_path)
+                            except Exception:
+                                pass
                         messages.success(request, f"Launching '{game.name}' via protocol on host...")
                     else:
                         messages.error(request, f"Protocols are only supported on Windows: {game.local_path}")
