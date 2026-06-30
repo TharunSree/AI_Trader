@@ -585,6 +585,12 @@
                     </div>
 
                     <div class="mb-3">
+                        <label class="form-label text-[10px] uppercase font-mono tracking-widest font-bold">Played Over How Many Years (e.g. 4.0 or 0.5)</label>
+                        <input type="number" step="0.1" name="years_played" class="form-control rounded-xl font-mono text-xs" value="1.0">
+                        <div class="text-[9px] text-slate-500 font-mono mt-1 leading-normal">Used to calculate average playtime density (Hours/Year) so historical games don't bias your top-played list.</div>
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label text-[10px] uppercase font-mono tracking-widest font-bold">Cover Image URL / Local Path (Optional)</label>
                         <div class="input-group">
                             <input type="text" id="add_cover_image_url" name="cover_image_url" class="form-control rounded-start-xl text-xs" placeholder="https://example.com/cover.jpg or C:\games\artwork\cover.jpg">
@@ -660,6 +666,12 @@
                         <label class="form-label text-[10px] uppercase font-mono tracking-widest font-bold">Non-Recorded / Prior Platform Playtime (Offset Hours)</label>
                         <input type="number" step="0.1" name="playtime_offset" class="form-control rounded-xl font-mono text-xs" value="{{ selected_game.playtime_offset|default:'0.0' }}">
                         <div class="text-[9px] text-slate-500 font-mono mt-1 leading-normal">Input your past hours for games like Genshin or WuWa. The daemon and tracker will add active sessions to this offset.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-[10px] uppercase font-mono tracking-widest font-bold">Played Over How Many Years (e.g. 4.0 or 0.5)</label>
+                        <input type="number" step="0.1" name="years_played" class="form-control rounded-xl font-mono text-xs" value="{{ selected_game.years_played|default:'1.0' }}">
+                        <div class="text-[9px] text-slate-500 font-mono mt-1 leading-normal">Used to calculate average playtime density (Hours/Year) so historical games don't bias your top-played list.</div>
                     </div>
 
                     <div class="mb-3">
@@ -1149,5 +1161,17 @@
                 alert('Error syncing playtimes: ' + err);
             });
     };
+
+    // Auto-Immersion Redirection Check
+    setInterval(() => {
+        fetch('/relax/api/immersion-status/')
+            .then(res => res.json())
+            .then(data => {
+                if (data.active) {
+                    window.location.href = "{% url 'relax_immersion' %}";
+                }
+            })
+            .catch(err => {});
+    }, 4000);
 </script>
 {% endblock %}

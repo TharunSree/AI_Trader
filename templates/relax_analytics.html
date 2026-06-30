@@ -103,9 +103,10 @@
             <div class="d-flex align-items-center gap-3">
                 <img src="{% if 'http://' in most_played.cover_image_url or 'https://' in most_played.cover_image_url %}{{ most_played.cover_image_url }}{% else %}{% url 'serve_local_file' %}?path={{ most_played.cover_image_url }}{% endif %}" class="rounded-3" style="width: 50px; height: 65px; object-fit: cover;">
                 <div class="min-w-0 flex-1">
-                    <h6 class="text-white/70 font-mono text-[10px] uppercase tracking-widest mb-0.5">Most Played</h6>
+                    <h6 class="text-white/70 font-mono text-[10px] uppercase tracking-widest mb-0.5">Most Active (Density)</h6>
                     <h4 class="text-white font-bold text-xs truncate mb-1">{{ most_played.name }}</h4>
                     <span class="badge bg-white/20 text-white font-mono text-[9px] py-0.5 px-2">{{ most_played.hours_played|floatformat:1 }} hrs</span>
+                    <span class="badge bg-white/10 text-white/90 font-mono text-[9px] py-0.5 px-2 d-inline-block mt-1">{{ most_played.normalized_hours_per_year|floatformat:1 }} hrs/yr</span>
                 </div>
             </div>
         </div>
@@ -121,6 +122,7 @@
                     <h6 class="text-white/70 font-mono text-[10px] uppercase tracking-widest mb-0.5">Favorite Cabin</h6>
                     <h4 class="text-white font-bold text-xs truncate mb-1">{{ fav_game.name }}</h4>
                     <span class="badge bg-white/20 text-white font-mono text-[9px] py-0.5 px-2">{{ fav_game.hours_played|floatformat:1 }} hrs</span>
+                    <span class="badge bg-white/10 text-white/90 font-mono text-[9px] py-0.5 px-2 d-inline-block mt-1">{{ fav_game.normalized_hours_per_year|floatformat:1 }} hrs/yr</span>
                 </div>
             </div>
         </div>

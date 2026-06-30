@@ -5205,6 +5205,7 @@ def relax_add_game(request):
     local_path = request.POST.get('local_path', '').strip() or None
     hours_played = float(request.POST.get('hours_played', 0.0) or 0.0)
     playtime_offset = float(request.POST.get('playtime_offset', 0.0) or 0.0)
+    years_played = float(request.POST.get('years_played', 1.0) or 1.0)
     cover_image_url = request.POST.get('cover_image_url', '').strip() or None
     animated_bg_url = request.POST.get('animated_bg_url', '').strip() or None
 
@@ -5240,6 +5241,7 @@ def relax_add_game(request):
         local_path=local_path,
         hours_played=total_hours,
         playtime_offset=playtime_offset,
+        years_played=years_played,
         cover_image_url=cover_image_url,
         animated_bg_url=animated_bg_url
     )
@@ -5266,6 +5268,7 @@ def relax_edit_game(request, game_id):
     local_path = request.POST.get('local_path', '').strip() or None
     hours_played = float(request.POST.get('hours_played', 0.0) or 0.0)
     playtime_offset = float(request.POST.get('playtime_offset', 0.0) or 0.0)
+    years_played = float(request.POST.get('years_played', 1.0) or 1.0)
     cover_image_url = request.POST.get('cover_image_url', '').strip() or None
     animated_bg_url = request.POST.get('animated_bg_url', '').strip() or None
 
@@ -5285,8 +5288,9 @@ def relax_edit_game(request, game_id):
     game.steam_app_id = steam_app_id
     game.local_path = local_path
     
-    # Save playtime offset
+    # Save playtime offset and years
     game.playtime_offset = playtime_offset
+    game.years_played = years_played
     
     # Recalculate total hours
     if hours_played != game.hours_played:
@@ -6014,7 +6018,12 @@ from .models import Game, GameBetaInfo, WatchlistGame, BudgetWatchlistGame, Game
 @login_required
 def relax_analytics_view(request):
     games = Game.objects.filter(is_active=True)
-    most_played = games.order_by('-hours_played').first()
+    
+    # Sort games list in memory by normalized density (Hours/Year)
+    games_sorted = list(games)
+    games_sorted.sort(key=lambda x: x.normalized_hours_per_year, reverse=True)
+    
+    most_played = games_sorted[0] if games_sorted else None
     
     # Calculate favorite game: game with manual offset, fallback to most played
     fav_game = games.filter(playtime_offset__gt=0.0).first() or most_played
@@ -6140,7 +6149,7 @@ def relax_watchlist_view(request):
         })
 
     context = {
-        'upcoming_games': watchlist_data,
+        'watchlist': watchlist_data,
         'budget_games': budget_games,
     }
     return render(request, 'relax_watchlist.html', context)
@@ -6165,7 +6174,16 @@ def relax_add_watchlist_game(request):
             system_requirements=sys_req,
             official_website=website if website else None
         )
-        messages.success(request, f"Added '{name}' to your Upcoming Games watchlist.")
+        # Trigger background crawl thread immediately!
+        import threading
+        from django.core.management import call_command
+        def run_scout():
+            try:
+                call_command('run_relax_monitors')
+            except Exception:
+                pass
+        threading.Thread(target=run_scout, daemon=True).start()
+        messages.success(request, f"Added '{name}' to your Upcoming Games watchlist. Scouting release details and news in the background...")
     return redirect('relax_watchlist')
 
 
@@ -6198,7 +6216,16 @@ def relax_add_budget_game(request):
             check_epic=check_epic,
             check_xbox=check_xbox
         )
-        messages.success(request, f"Added '{name}' to your budget discount watchlist.")
+        # Trigger background crawl thread immediately!
+        import threading
+        from django.core.management import call_command
+        def run_scout():
+            try:
+                call_command('run_relax_monitors')
+            except Exception:
+                pass
+        threading.Thread(target=run_scout, daemon=True).start()
+        messages.success(request, f"Added '{name}' to your budget watchlist. Scouting game discounts in the background...")
     return redirect('relax_watchlist')
 
 

@@ -389,10 +389,17 @@ class Game(models.Model):
     local_path = models.CharField(max_length=500, blank=True, null=True, help_text="Path to local executable for non-Steam games")
     hours_played = models.FloatField(default=0.0)
     playtime_offset = models.FloatField(default=0.0, help_text="Manual playtime offset to add to Steam hours")
+    years_played = models.FloatField(default=1.0, help_text="Number of years this game has been played to normalize rankings")
     cover_image_url = models.CharField(max_length=500, blank=True, null=True)
     animated_bg_url = models.CharField(max_length=500, blank=True, null=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def normalized_hours_per_year(self):
+        if self.years_played and self.years_played > 0:
+            return self.hours_played / self.years_played
+        return self.hours_played
 
     def __str__(self):
         return self.name
