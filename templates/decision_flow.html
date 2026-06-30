@@ -552,17 +552,24 @@
         }, 1000);
     }
 
-    function loadHistoricalTrade(priceTrend, sentiment, volatility, spread) {
+    function loadHistoricalTrade(priceTrend, sentiment, volatility, spread, animate = true) {
         document.getElementById("slide-price-trend").value = priceTrend;
         document.getElementById("slide-sentiment").value = sentiment;
         document.getElementById("slide-volatility").value = volatility;
         document.getElementById("slide-spread").value = spread;
-        triggerSandboxUpdate(true); // pass animate = true
+        triggerSandboxUpdate(animate);
         
         // Highlight sandbox badge to indicate replay
         const badge = document.getElementById("sandbox-badge");
-        badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> REPLAY PAST TRADE`;
-        badge.className = "bg-slate-950 border border-slate-850 text-amber-400 text-[9px] font-mono px-2.5 py-1 rounded-full uppercase flex items-center gap-1.5";
+        if (badge) {
+            if (animate) {
+                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> REPLAYING PAST TRADE...`;
+                badge.className = "bg-slate-950 border border-slate-850 text-amber-400 text-[9px] font-mono px-2.5 py-1 rounded-full uppercase flex items-center gap-1.5";
+            } else {
+                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span> Selected Trade State`;
+                badge.className = "bg-slate-950 border border-slate-850 text-cyan-400 text-[9px] font-mono px-2.5 py-1 rounded-full uppercase flex items-center gap-1.5";
+            }
+        }
     }
 
     function triggerSandboxUpdate(animate = false) {
@@ -918,6 +925,15 @@
         };
         console.log("Selected trade data resolved to:", selectedTradeData);
         
+        // Immediately load values and update narrative/tips without animation
+        loadHistoricalTrade(
+            selectedTradeData.priceTrend,
+            selectedTradeData.sentiment,
+            selectedTradeData.volatility,
+            selectedTradeData.spread,
+            false // animate = false
+        );
+
         // Show replay button at top
         const btn = document.getElementById('btn-replay-selected');
         if (btn) {
