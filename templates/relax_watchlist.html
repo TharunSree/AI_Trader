@@ -113,7 +113,11 @@
                     <div class="p-3 rounded-4 position-relative" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%); border: 1px solid rgba(168, 85, 247, 0.25) !important;">
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <div>
-                                <h5 class="text-slate-850 dark:text-white font-bold text-sm mb-1">{{ item.game.name }}</h5>
+                                <h5 class="mb-1">
+                                    <a href="{% url 'relax_watchlist_game_detail' item.game.id %}" class="text-slate-850 dark:text-white font-bold text-sm hover:text-primary transition-colors">
+                                        {{ item.game.name }}
+                                    </a>
+                                </h5>
                                 <div class="d-flex gap-2 flex-wrap align-items-center">
                                     <span class="badge bg-primary/10 text-primary font-mono text-[9px] py-1 px-2">{{ item.game.get_business_model_display }}</span>
                                     {% if item.game.expected_release_date %}

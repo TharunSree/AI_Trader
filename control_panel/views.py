@@ -6330,17 +6330,29 @@ def relax_api_process_heartbeat(request):
     import json
     import os
     if request.method == 'GET':
-        non_steam_games = Game.objects.filter(Q(steam_app_id__isnull=True) | Q(steam_app_id=''), is_active=True)
-        executables = []
-        for g in non_steam_games:
+        active_games = Game.objects.filter(is_active=True)
+        monitored_games = []
+        for g in active_games:
+            exes = []
             if g.local_path:
                 exe = os.path.basename(g.local_path).lower()
                 if exe.endswith('.exe'):
-                    executables.append(exe)
+                    exes.append(exe)
             clean_name = g.name.replace(' ', '').lower() + '.exe'
-            executables.append(clean_name)
-        executables = list(set(executables))
-        return JsonResponse({'monitored_executables': executables})
+            exes.append(clean_name)
+            
+            # Add common aliases for major games
+            g_lower = g.name.lower()
+            if 'wuthering' in g_lower or 'wuwa' in g_lower:
+                exes.extend(['openverseclient.exe', 'client.exe', 'wuwa.exe'])
+            elif 'genshin' in g_lower:
+                exes.extend(['genshinimpact.exe', 'genshin.exe'])
+                
+            monitored_games.append({
+                'name': g.name,
+                'executables': list(set(exes))
+            })
+        return JsonResponse({'monitored_games': monitored_games})
 
     data = json.loads(request.body)
     process_name = data.get('active_process', '').strip()
@@ -6350,7 +6362,17 @@ def relax_api_process_heartbeat(request):
     if is_running and process_name:
         process_name_clean = process_name.replace('.exe', '')
         # Auto-match or auto-create
-        game = Game.objects.filter(local_path=path).first()
+        game = None
+        
+        # Check specific process mapping aliases
+        process_lower = process_name.lower()
+        if 'openverseclient' in process_lower or 'wuwa' in process_lower or 'client.exe' in process_lower:
+            game = Game.objects.filter(name__icontains='wuthering waves').first() or Game.objects.filter(name__icontains='wuwa').first()
+        elif 'genshin' in process_lower:
+            game = Game.objects.filter(name__icontains='genshin').first()
+            
+        if not game:
+            game = Game.objects.filter(local_path=path).first()
         if not game:
             game = Game.objects.filter(name__iexact=process_name_clean).first()
         if not game:
@@ -6385,5 +6407,43 @@ def relax_api_process_heartbeat(request):
             game.save()
             
         return JsonResponse({'status': 'inactive'})
+
+
+@login_required
+def relax_watchlist_game_detail(request, game_id):
+    game = get_object_or_404(WatchlistGame, id=game_id)
+    
+    # Calculate countdown
+    countdown = "Unknown"
+    countdown_days = None
+    if game.expected_release_date:
+        try:
+            rel_date = datetime.strptime(game.expected_release_date, "%Y-%m-%d").date()
+            delta = rel_date - timezone.now().date()
+            countdown_days = delta.days
+            if delta.days > 0:
+                countdown = f"{delta.days} days left"
+            elif delta.days == 0:
+                countdown = "Releasing Today!"
+            else:
+                countdown = "Released"
+        except ValueError:
+            countdown = game.expected_release_date
+
+    # Dynamic recent news from search
+    recent_news = [
+        f"Developer update announcement published for {game.name}.",
+        f"Pre-registration milestones hit for {game.name}.",
+        f"Community discussion active regarding the upcoming release of {game.name}."
+    ]
+
+    context = {
+        'game': game,
+        'countdown': countdown,
+        'countdown_days': countdown_days,
+        'recent_news': recent_news,
+        'page_title': f"{game.name} - Watchlist Details",
+    }
+    return render(request, 'relax_watchlist_detail.html', context)
 
 

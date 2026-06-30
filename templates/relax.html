@@ -235,6 +235,10 @@
                             </button>
                         {% endif %}
 
+                        <a href="{% url 'relax_game_detail_analytics' selected_game.id %}" class="btn btn-outline-info rounded-circle p-2 flex items-center justify-center w-8 h-8" title="Playtime Telemetry & Statistics">
+                            <i class="fas fa-chart-line text-xs"></i>
+                        </a>
+
                         <button type="button" class="btn btn-outline-warning rounded-circle p-2 flex items-center justify-center w-8 h-8" title="Edit Game" onclick="openEditGameModal()">
                             <i class="fas fa-edit text-xs"></i>
                         </button>

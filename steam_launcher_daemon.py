@@ -39,11 +39,11 @@ def get_running_executables():
         pass
     return executables
 
-monitored_executables = set()
+monitored_games = []
 last_fetched_time = 0
 
 def fetch_monitored_list():
-    global monitored_executables, last_fetched_time
+    global monitored_games, last_fetched_time
     if time.time() - last_fetched_time < 30:
         return
     try:
@@ -51,7 +51,7 @@ def fetch_monitored_list():
         req = urllib.request.Request(url, method='GET')
         with urllib.request.urlopen(req, timeout=3) as res:
             data = json.loads(res.read().decode('utf-8'))
-            monitored_executables = set(data.get('monitored_executables', []))
+            monitored_games = data.get('monitored_games', [])
             last_fetched_time = time.time()
     except Exception:
         pass
@@ -60,29 +60,53 @@ def fetch_monitored_list():
 def heartbeat_worker():
     print("Arcade Lounge heartbeat monitor thread started...")
     
+    last_tasklist_run = 0
+    running_executables = set()
+    
     while True:
         try:
-            # 1. Pull latest non-Steam game list from Django
+            # 1. Pull latest game list from Django
             fetch_monitored_list()
             
-            # If no non-Steam games exist, sleep and skip scanning to save RAM/CPU!
-            if not monitored_executables:
+            # If no games exist, sleep and skip scanning to save RAM/CPU!
+            if not monitored_games:
                 time.sleep(3)
                 continue
                 
-            active_title = get_active_window_title()
-            executables = get_running_executables()
+            active_title = get_active_window_title().lower()
             
             active_process = ""
             active_path = ""
             is_running = False
             
-            # Match against the non-Steam monitored list
-            for exe in executables:
-                if exe in monitored_executables:
-                    active_process = exe
-                    is_running = True
+            # Step 1: High-efficiency foreground window title matching (0% RAM/CPU)
+            matched_game = None
+            for game in monitored_games:
+                name_lower = game['name'].lower()
+                # Match title fragments (e.g. "wuthering waves", "genshin impact")
+                if name_lower in active_title or ('wuthering' in name_lower and 'wuthering' in active_title):
+                    matched_game = game
                     break
+                    
+            if matched_game:
+                # Foreground window title matched the game directly!
+                active_process = matched_game['executables'][0] if matched_game['executables'] else (matched_game['name'].lower() + '.exe')
+                is_running = True
+            else:
+                # Step 2: Fallback to scanning running processes, but only once every 12 seconds to save RAM!
+                if time.time() - last_tasklist_run >= 12:
+                    running_executables = get_running_executables()
+                    last_tasklist_run = time.time()
+                
+                # Check if any monitored executable is running in the background/foreground
+                for game in monitored_games:
+                    for exe in game['executables']:
+                        if exe in running_executables:
+                            active_process = exe
+                            is_running = True
+                            break
+                    if is_running:
+                        break
             
             # If we found an active game, report it
             if is_running:
