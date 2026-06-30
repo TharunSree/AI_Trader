@@ -168,24 +168,37 @@
         <div class="col-12">
             <!-- Header Panel (Hero Banner) -->
             <div class="position-relative rounded-4 overflow-hidden mb-4 glass-card" style="height: 320px; border: 1px solid rgba(255,255,255,0.06); border-radius: 24px !important;">
-                {% if selected_game.animated_bg_url %}
+                {% if selected_game.animated_bg_url and selected_game.animated_bg_url|length == 11 %}
+                    <!-- Premium YouTube Loop background player -->
+                    <div class="position-absolute w-100 h-100 overflow-hidden" style="inset: 0; pointer-events: none; z-index: 0;">
+                        <iframe class="w-100 h-100 position-absolute" src="https://www.youtube.com/embed/{{ selected_game.animated_bg_url }}?autoplay=1&mute=1&controls=0&loop=1&playlist={{ selected_game.animated_bg_url }}&showinfo=0&rel=0&iv_load_policy=3&enablejsapi=1" frameborder="0" allow="autoplay; encrypted-media" style="object-fit: cover; transform: scale(1.35); filter: brightness(0.45); width: 100%; height: 100%; top: 0; left: 0;"></iframe>
+                    </div>
+                {% elif selected_game.animated_bg_url %}
                     {% if ".mp4" in selected_game.animated_bg_url or ".webm" in selected_game.animated_bg_url or "movies/" in selected_game.animated_bg_url %}
-                        <video class="w-100 h-100" autoplay loop muted playsinline style="object-fit: cover; filter: brightness(0.55);">
+                        <video class="w-100 h-100" autoplay loop muted playsinline style="object-fit: cover; filter: brightness(0.55); z-index: 0; position: relative;">
                             <source src="{% if 'http://' in selected_game.animated_bg_url or 'https://' in selected_game.animated_bg_url %}{{ selected_game.animated_bg_url }}{% else %}{% url 'serve_local_file' %}?path={{ selected_game.animated_bg_url }}{% endif %}" type="{% if '.webm' in selected_game.animated_bg_url %}video/webm{% else %}video/mp4{% endif %}">
                         </video>
                     {% else %}
-                        <img src="{% if 'http://' in selected_game.animated_bg_url or 'https://' in selected_game.animated_bg_url %}{{ selected_game.animated_bg_url }}{% else %}{% url 'serve_local_file' %}?path={{ selected_game.animated_bg_url }}{% endif %}" class="w-100 h-100" style="object-fit: cover; filter: brightness(0.55);">
+                        <img src="{% if 'http://' in selected_game.animated_bg_url or 'https://' in selected_game.animated_bg_url %}{{ selected_game.animated_bg_url }}{% else %}{% url 'serve_local_file' %}?path={{ selected_game.animated_bg_url }}{% endif %}" class="w-100 h-100" style="object-fit: cover; filter: brightness(0.55); z-index: 0; position: relative;">
                     {% endif %}
                 {% elif selected_game.cover_image_url %}
-                    <img src="{% if 'http://' in selected_game.cover_image_url or 'https://' in selected_game.cover_image_url %}{{ selected_game.cover_image_url }}{% else %}{% url 'serve_local_file' %}?path={{ selected_game.cover_image_url }}{% endif %}" class="w-100 h-100" style="object-fit: cover; filter: brightness(0.35);">
+                    <img src="{% if 'http://' in selected_game.cover_image_url or 'https://' in selected_game.cover_image_url %}{{ selected_game.cover_image_url }}{% else %}{% url 'serve_local_file' %}?path={{ selected_game.cover_image_url }}{% endif %}" class="w-100 h-100" style="object-fit: cover; filter: brightness(0.35); z-index: 0; position: relative;">
                 {% else %}
-                    <div class="w-100 h-100" style="background: linear-gradient(135deg, #0f0a1e 0%, #1a0a2e 100%);"></div>
+                    <div class="w-100 h-100" style="background: linear-gradient(135deg, #0f0a1e 0%, #1a0a2e 100%); z-index: 0; position: relative;"></div>
                 {% endif %}
-                <div class="position-absolute" style="inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.1) 60%, transparent 100%); pointer-events: none;"></div>
+                <div class="position-absolute" style="inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.1) 60%, transparent 100%); pointer-events: none; z-index: 1;"></div>
                 
                 <!-- Inner content alignment -->
-                <div class="position-absolute d-flex flex-column justify-content-end" style="inset: 0; padding: 2rem; pointer-events: auto;">
-                    <h2 class="text-white font-mono tracking-widest uppercase mb-2" style="font-size: 1.8rem; text-shadow: 0 2px 4px rgba(0,0,0,0.4);">{{ selected_game.name }}</h2>
+                <div class="position-absolute d-flex flex-column justify-content-end" style="inset: 0; padding: 2rem; pointer-events: auto; z-index: 2;">
+                    {% if selected_game.logo_url %}
+                        <!-- Floating transparent logo overlay -->
+                        <div class="mb-3 d-flex align-items-center gap-2">
+                            <img src="{{ selected_game.logo_url }}" alt="{{ selected_game.name }}" style="max-height: 70px; max-width: 260px; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.7));">
+                        </div>
+                    {% else %}
+                        <h2 class="text-white font-mono tracking-widest uppercase mb-2" style="font-size: 1.8rem; text-shadow: 0 2px 4px rgba(0,0,0,0.4);">{{ selected_game.name }}</h2>
+                    {% endif %}
+                    
                     <div class="d-flex align-items-center gap-3 flex-wrap mb-3">
                         <span class="badge font-mono py-1.5 px-3 bg-black/40 border border-white/10 text-white"><i class="fas fa-clock me-1"></i> {{ selected_game.hours_played|floatformat:1 }} hrs</span>
                         {% if selected_game.steam_app_id %}
@@ -214,6 +227,11 @@
                                 <i class="fas fa-play mr-1"></i> {% if selected_game.steam_app_id %}Boot Steam{% else %}Boot Game{% endif %}
                             </button>
                         {% endif %}
+
+                        <!-- Real-time Favorite toggle -->
+                        <button type="button" class="btn btn-outline-light rounded-circle p-2 flex items-center justify-center w-8 h-8" id="favorite-btn" title="Toggle Favorite" onclick="toggleFavorite('{{ selected_game.id }}')" style="border-color: rgba(255,255,255,0.2);">
+                            <i class="{% if selected_game.is_favorite %}fas{% else %}far{% endif %} fa-star text-warning text-xs" id="favorite-star-icon"></i>
+                        </button>
 
                         <button type="button" class="btn btn-outline-warning rounded-circle p-2 flex items-center justify-center w-8 h-8" title="Edit Game" onclick="openEditGameModal()">
                             <i class="fas fa-edit text-xs"></i>
@@ -436,7 +454,106 @@
             </div>
         </div>
 
-    {% else %}
+        <!-- GAMING ANALYTICS DASHBOARD -->
+        <div class="col-12 mb-4">
+            <div class="row g-4">
+                <!-- Widget 1: Highlights (Favorite & Most Played) -->
+                <div class="col-md-3">
+                    <div class="card mb-0 glass-card h-100 p-3 d-flex flex-column justify-content-between position-relative overflow-hidden" style="border-radius: 20px !important; border-left: 4px solid #f1c40f !important; min-height: 125px;">
+                        <div>
+                            <div class="text-[9px] uppercase tracking-widest font-mono text-slate-400 font-bold mb-2">Favorite Game</div>
+                            {% if fav_game %}
+                                <div class="d-flex align-items-center gap-2">
+                                    <img src="{{ fav_game.cover_image_url }}" alt="" class="rounded shadow-sm" style="width: 28px; height: 38px; object-fit: cover;">
+                                    <div class="min-w-0">
+                                        <div class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate" title="{{ fav_game.name }}" style="max-width: 140px;">{{ fav_game.name }}</div>
+                                        <span class="text-[9px] font-mono text-slate-400 mt-0.5 block"><i class="fas fa-clock me-1"></i> {{ fav_game.hours_played|floatformat:1 }} hrs</span>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="text-xs text-slate-400 font-mono">No favorites set</div>
+                            {% endif %}
+                        </div>
+                        <div class="mt-2 border-t border-slate-100 dark:border-slate-800/60 pt-2">
+                            <div class="text-[8px] uppercase tracking-widest font-mono text-slate-400 font-semibold mb-0.5">Most Played</div>
+                            {% if most_played %}
+                                <div class="text-[10px] font-bold text-slate-700 dark:text-slate-200 truncate" style="max-width: 180px;">{{ most_played.name }} ({{ most_played.hours_played|floatformat:1 }} hrs)</div>
+                            {% else %}
+                                <div class="text-xs text-slate-400 font-mono">-</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Widget 2: Playtime Stats (Today / This Month) -->
+                <div class="col-md-3">
+                    <div class="card mb-0 glass-card h-100 p-3 d-flex flex-column justify-content-between position-relative overflow-hidden" style="border-radius: 20px !important; border-left: 4px solid #3498db !important; min-height: 125px;">
+                        <div>
+                            <div class="text-[9px] uppercase tracking-widest font-mono text-slate-400 font-bold mb-1">Gaming Today</div>
+                            <div class="d-flex align-items-baseline gap-1 mt-1">
+                                <span class="text-xl font-bold font-mono text-slate-800 dark:text-slate-100" style="text-shadow: 0 0 10px rgba(52,152,219,0.15);">{{ playtime_today }}</span>
+                                <span class="text-[10px] font-mono text-slate-400">hours</span>
+                            </div>
+                        </div>
+                        <div class="mt-2 border-t border-slate-100 dark:border-slate-800/60 pt-2">
+                            <div class="text-[8px] uppercase tracking-widest font-mono text-slate-400 font-semibold mb-0.5">This Month</div>
+                            <div class="d-flex align-items-baseline gap-1">
+                                <span class="text-sm font-bold font-mono text-slate-700 dark:text-slate-200">{{ playtime_this_month }}</span>
+                                <span class="text-[9px] font-mono text-slate-400">hours total</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Widget 3: Leaderboard (Top Played Today/Month) -->
+                <div class="col-md-3">
+                    <div class="card mb-0 glass-card h-100 p-3 d-flex flex-column justify-content-between" style="border-radius: 20px !important; border-left: 4px solid #2ecc71 !important; min-height: 125px;">
+                        <div class="h-100 d-flex flex-column justify-content-between">
+                            <div>
+                                <div class="text-[9px] uppercase tracking-widest font-mono text-slate-400 font-bold mb-1.5">Today's Top 3</div>
+                                <div class="d-flex flex-column gap-1">
+                                    {% for item in top_today %}
+                                        <div class="d-flex align-items-center justify-content-between gap-2 text-[10px]">
+                                            <div class="d-flex align-items-center gap-1 min-w-0">
+                                                <span class="text-[9px] font-mono text-slate-400">{{ forloop.counter }}.</span>
+                                                <span class="font-semibold text-slate-700 dark:text-slate-200 truncate" title="{{ item.name }}" style="max-width: 110px;">{{ item.name }}</span>
+                                            </div>
+                                            <span class="font-mono text-[9px] font-bold text-success">+{{ item.hours }}h</span>
+                                        </div>
+                                    {% empty %}
+                                        <div class="text-[9px] text-slate-400 font-mono py-0.5">No playtime today</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="border-t border-slate-100 dark:border-slate-800/60 pt-1.5 mt-1.5">
+                                <div class="text-[8px] uppercase tracking-widest font-mono text-slate-400 font-semibold mb-1">Monthly Top 3</div>
+                                <div class="d-flex flex-column gap-0.5">
+                                    {% for item in top_month %}
+                                        <div class="d-flex align-items-center justify-content-between gap-2 text-[9px]">
+                                            <div class="truncate text-slate-600 dark:text-slate-300" style="max-width: 130px;">{{ forloop.counter }}. {{ item.name }}</div>
+                                            <span class="font-mono font-semibold">{{ item.hours }}h</span>
+                                        </div>
+                                    {% empty %}
+                                        <div class="text-[8px] text-slate-400 font-mono">-</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Widget 4: Playtime Distribution Chart -->
+                <div class="col-md-3">
+                    <div class="card mb-0 glass-card h-100 p-2.5 d-flex flex-column justify-content-center" style="border-radius: 20px !important; border-left: 4px solid #9b59b6 !important; min-height: 125px;">
+                        <div class="text-[9px] uppercase tracking-widest font-mono text-slate-400 font-bold mb-1 text-center">Daily Activity (7d)</div>
+                        <div style="height: 90px; position: relative; width: 100%;">
+                            <canvas id="playtimeDistributionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- LIBRARY VIEW (FULL PAGE GRID) -->
         <div class="col-12 mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
@@ -573,6 +690,16 @@
                             <button type="button" class="btn btn-outline-primary rounded-end-xl px-3 text-xs" onclick="openFileBrowser('add_animated_bg_url')">Browse</button>
                         </div>
                     </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-[10px] uppercase font-mono tracking-widest font-bold">Transparent Logo PNG/SVG URL (Optional)</label>
+                        <input type="text" name="logo_url" class="form-control rounded-xl font-mono text-xs" placeholder="https://example.com/logo.png (Auto-searched if empty)">
+                    </div>
+
+                    <div class="mb-3 form-check form-switch d-flex align-items-center gap-2">
+                        <input class="form-check-input" type="checkbox" name="is_favorite" value="true" id="add_is_favorite">
+                        <label class="form-check-label text-[10px] uppercase font-mono tracking-widest font-bold mb-0" for="add_is_favorite">Add to Favorites</label>
+                    </div>
                 </div>
                 <div class="modal-footer border-top border-slate-100 p-4">
                     <button type="button" class="btn btn-outline-secondary rounded-pill px-4 font-bold font-mono text-xs uppercase" onclick="jQuery('#addGameModal').modal('hide');">Cancel</button>
@@ -644,6 +771,16 @@
                             <input type="text" id="edit_animated_bg_url" name="animated_bg_url" class="form-control rounded-start-xl text-xs" value="{{ selected_game.animated_bg_url|default:'' }}">
                             <button type="button" class="btn btn-outline-primary rounded-end-xl px-3 text-xs" onclick="openFileBrowser('edit_animated_bg_url')">Browse</button>
                         </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-[10px] uppercase font-mono tracking-widest font-bold">Transparent Logo PNG/SVG URL (Optional)</label>
+                        <input type="text" name="logo_url" class="form-control rounded-xl font-mono text-xs" value="{{ selected_game.logo_url|default:'' }}" placeholder="https://example.com/logo.png">
+                    </div>
+
+                    <div class="mb-3 form-check form-switch d-flex align-items-center gap-2">
+                        <input class="form-check-input" type="checkbox" name="is_favorite" value="true" id="edit_is_favorite" {% if selected_game.is_favorite %}checked{% endif %}>
+                        <label class="form-check-label text-[10px] uppercase font-mono tracking-widest font-bold mb-0" for="edit_is_favorite">Mark as Favorite</label>
                     </div>
                 </div>
                 <div class="modal-footer border-top border-slate-100 p-4">
@@ -1115,7 +1252,86 @@
                 btn.disabled = false;
                 btn.textContent = originalText;
                 alert('Error syncing playtimes: ' + err);
-            });
+    // Real-time Favorite Toggle
+    window.toggleFavorite = function(gameId) {
+        const btn = document.getElementById('favorite-btn');
+        const icon = document.getElementById('favorite-star-icon');
+        if (!btn || !icon) return;
+        
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        fetch(`/relax/game/toggle-favorite/${gameId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                if (data.is_favorite) {
+                    icon.className = "fas fa-star text-warning text-xs";
+                } else {
+                    icon.className = "far fa-star text-warning text-xs";
+                }
+            } else {
+                alert('Failed to toggle favorite.');
+            }
+        })
+        .catch(err => {
+            console.error('Error toggling favorite:', err);
+        });
     };
+
+    // Render daily playtime chart
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('playtimeDistributionChart');
+        if (ctx) {
+            const labels = {{ chart_dates|safe|default:"[]" }};
+            const dataValues = {{ chart_hours|safe|default:"[]" }};
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Hours Played',
+                        data: dataValues,
+                        backgroundColor: 'rgba(155, 89, 182, 0.4)',
+                        borderColor: 'rgba(155, 89, 182, 0.8)',
+                        borderWidth: 1.5,
+                        borderRadius: 4,
+                        barPercentage: 0.65
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.parsed.y + ' hrs';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(128,128,128,0.08)' },
+                            ticks: { font: { size: 7, family: 'monospace' } }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { size: 7.5, family: 'monospace' } }
+                        }
+                    }
+                }
+            });
+        }
+    });
 </script>
 {% endblock %}
