@@ -388,6 +388,7 @@ class Game(models.Model):
     steam_app_id = models.CharField(max_length=50, blank=True, null=True, help_text="Steam App ID if it is a Steam game")
     local_path = models.CharField(max_length=500, blank=True, null=True, help_text="Path to local executable for non-Steam games")
     hours_played = models.FloatField(default=0.0)
+    playtime_offset = models.FloatField(default=0.0, help_text="Manual playtime offset to add to Steam hours")
     cover_image_url = models.CharField(max_length=500, blank=True, null=True)
     animated_bg_url = models.CharField(max_length=500, blank=True, null=True)
     is_active = models.BooleanField(default=True)
@@ -425,3 +426,66 @@ class GameVideo(models.Model):
 
     def __str__(self):
         return f"{self.game.name} - {self.title}"
+
+
+class GameBetaInfo(models.Model):
+    game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='beta_infos')
+    title = models.CharField(max_length=250)
+    signup_link = models.TextField()
+    is_active = models.BooleanField(default=True)
+    discovered_at = models.DateTimeField(auto_now_add=True)
+    notified = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.game.name} - {self.title}"
+
+
+class WatchlistGame(models.Model):
+    BUSINESS_MODELS = [
+        ('F2P', 'Free to Play'),
+        ('P2P', 'Pay to Play'),
+        ('UNKNOWN', 'Unknown'),
+    ]
+    name = models.CharField(max_length=150)
+    expected_release_date = models.CharField(max_length=100, blank=True, null=True)
+    business_model = models.CharField(max_length=50, choices=BUSINESS_MODELS, default='UNKNOWN')
+    price_estimate = models.CharField(max_length=50, blank=True, null=True)
+    system_requirements = models.TextField(blank=True, null=True)
+    official_website = models.URLField(blank=True, null=True)
+    current_status = models.CharField(max_length=100, blank=True, null=True)
+    check_interval_days = models.IntegerField(default=7)
+    last_checked_at = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+
+class BudgetWatchlistGame(models.Model):
+    name = models.CharField(max_length=150)
+    steam_app_id = models.CharField(max_length=50, blank=True, null=True)
+    target_budget = models.FloatField(default=30.0)
+    check_steam = models.BooleanField(default=True)
+    check_epic = models.BooleanField(default=True)
+    check_xbox = models.BooleanField(default=True)
+    current_price = models.FloatField(blank=True, null=True)
+    lowest_platform = models.CharField(max_length=50, blank=True, null=True)
+    last_checked_at = models.DateTimeField(blank=True, null=True)
+    notified_under_budget = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+
+class GamePlaytimeSession(models.Model):
+    game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='sessions')
+    start_time = models.DateTimeField(auto_now_add=True)
+    end_time = models.DateTimeField(blank=True, null=True)
+    limit_minutes = models.IntegerField(blank=True, null=True)
+    duration_seconds = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.game.name} Session ({self.start_time})"
+

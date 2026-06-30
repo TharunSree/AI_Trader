@@ -157,6 +157,26 @@
 
 {% block page_content %}
 <div class="row">
+    <div class="col-12 mb-4">
+        <ul class="nav nav-pills gap-2 bg-transparent p-1">
+            <li class="nav-item">
+                <a class="nav-link active font-bold text-xs uppercase tracking-wider px-4 py-2 rounded-pill bg-primary text-white" href="{% url 'relax_view' %}">
+                    <i class="fas fa-gamepad me-1.5"></i> Library
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link font-bold text-xs uppercase tracking-wider px-4 py-2 rounded-pill text-slate-500 dark:text-slate-400 hover:text-primary transition-colors" href="{% url 'relax_analytics' %}">
+                    <i class="fas fa-chart-bar me-1.5"></i> Analytics
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link font-bold text-xs uppercase tracking-wider px-4 py-2 rounded-pill text-slate-500 dark:text-slate-400 hover:text-primary transition-colors" href="{% url 'relax_watchlist' %}">
+                    <i class="fas fa-bookmark me-1.5"></i> Watchlists
+                </a>
+            </li>
+        </ul>
+    </div>
+
     {% if selected_game %}
         <!-- DETAILED VIEW (FULL PAGE) -->
         <div class="col-12 mb-3">

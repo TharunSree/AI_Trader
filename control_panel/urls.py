@@ -116,6 +116,18 @@ urlpatterns = [
     path('relax/game/launch/<int:game_id>/', views.relax_launch_game, name='relax_launch_game'),
     path('relax/game/search-artwork/', views.relax_search_artwork, name='relax_search_artwork'),
     path('relax/game/detect-path/', views.relax_detect_game_path, name='relax_detect_game_path'),
+    path('relax/analytics/', views.relax_analytics_view, name='relax_analytics'),
+    path('relax/game/analytics/<int:game_id>/', views.relax_game_detail_analytics_view, name='relax_game_detail_analytics'),
+    path('relax/watchlist/', views.relax_watchlist_view, name='relax_watchlist'),
+    path('relax/watchlist/add-upcoming/', views.relax_add_watchlist_game, name='relax_add_watchlist_game'),
+    path('relax/watchlist/delete-upcoming/<int:game_id>/', views.relax_delete_watchlist_game, name='relax_delete_watchlist_game'),
+    path('relax/watchlist/add-budget/', views.relax_add_budget_game, name='relax_add_budget_game'),
+    path('relax/watchlist/delete-budget/<int:game_id>/', views.relax_delete_budget_game, name='relax_delete_budget_game'),
+    path('relax/immersion/', views.relax_immersion_view, name='relax_immersion'),
+    path('relax/api/process-heartbeat/', views.relax_api_process_heartbeat, name='relax_api_process_heartbeat'),
+    path('relax/api/immersion-status/', views.relax_api_immersion_status, name='relax_api_immersion_status'),
+    path('relax/api/start-timer/', views.relax_api_start_timer, name='relax_api_start_timer'),
+    path('relax/api/stop-session/', views.relax_api_stop_session, name='relax_api_stop_session'),
 ]
 
 

@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Arcade Cabin Watchlist{% endblock %}
+{% block page_title %}Arcade Watchlist{% endblock %}
+
+{% block extra_head %}
+<style>
+    .glass-card {
+        background: rgba(15, 15, 25, 0.65) !important;
+        backdrop-filter: blur(16px) saturate(180%);
+        -webkit-backdrop-filter: blur(16px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+        border-radius: 20px !important;
+    }
+    .neon-text {
+        color: #a855f7;
+        text-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+    }
+    .neon-border {
+        border: 1px solid rgba(168, 85, 247, 0.4) !important;
+    }
+    .neon-border-cyan {
+        border: 1px solid rgba(34, 211, 238, 0.4) !important;
+    }
+</style>
+{% endblock %}
+
+{% block page_content %}
+<div class="row">
+    <!-- Top sub-navigation -->
+    <div class="col-12 mb-4">
+        <ul class="nav nav-pills gap-2 bg-transparent p-1">
+            <li class="nav-item">
+                <a class="nav-link font-bold text-xs uppercase tracking-wider px-4 py-2 rounded-pill text-slate-500 dark:text-slate-400 hover:text-primary transition-colors" href="{% url 'relax_view' %}">
+                    <i class="fas fa-gamepad me-1.5"></i> Library
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link font-bold text-xs uppercase tracking-wider px-4 py-2 rounded-pill text-slate-500 dark:text-slate-400 hover:text-primary transition-colors" href="{% url 'relax_analytics' %}">
+                    <i class="fas fa-chart-bar me-1.5"></i> Analytics
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active font-bold text-xs uppercase tracking-wider px-4 py-2 rounded-pill bg-primary text-white" href="{% url 'relax_watchlist' %}">
+                    <i class="fas fa-bookmark me-1.5"></i> Watchlists
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- UPCOMING GAMES WATCHLIST -->
+    <div class="col-lg-6 mb-4">
+        <div class="card glass-card p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="font-size-13 font-mono uppercase tracking-widest text-slate-200 mb-0">
+                    <i class="fas fa-calendar-alt text-primary me-2"></i> Upcoming Game Watch
+                </h4>
+                <button class="btn btn-xs btn-outline-primary rounded-pill font-mono font-bold text-[9px] px-3 uppercase" data-bs-toggle="collapse" data-bs-target="#addUpcomingCollapse">
+                    <i class="fas fa-plus mr-1"></i> Add Game
+                </button>
+            </div>
+
+            <!-- Add Upcoming Game Collapse -->
+            <div class="collapse mb-4" id="addUpcomingCollapse">
+                <form action="{% url 'relax_add_watchlist_game' %}" method="POST" class="p-3 bg-slate-900/40 rounded-3 border border-slate-800">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label font-mono text-[10px] text-slate-400 uppercase">Game Name</label>
+                        <input type="text" name="name" class="form-control form-control-sm bg-slate-950/60 border-slate-800 text-white font-mono text-xs" required placeholder="e.g. Silver Palace">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label font-mono text-[10px] text-slate-400 uppercase">Expected Release Date</label>
+                            <input type="date" name="expected_release_date" class="form-control form-control-sm bg-slate-950/60 border-slate-800 text-white font-mono text-xs">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label font-mono text-[10px] text-slate-400 uppercase">Business Model</label>
+                            <select name="business_model" class="form-select form-select-sm bg-slate-950/60 border-slate-800 text-white font-mono text-xs">
+                                <option value="UNKNOWN">Unknown</option>
+                                <option value="F2P">Free to Play</option>
+                                <option value="P2P">Pay to Play</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label font-mono text-[10px] text-slate-400 uppercase">Price Estimate ($)</label>
+                            <input type="text" name="price_estimate" class="form-control form-control-sm bg-slate-950/60 border-slate-800 text-white font-mono text-xs" placeholder="e.g. $59.99">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label font-mono text-[10px] text-slate-400 uppercase">Official Website</label>
+                            <input type="url" name="official_website" class="form-control form-control-sm bg-slate-950/60 border-slate-800 text-white font-mono text-xs" placeholder="https://...">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label font-mono text-[10px] text-slate-400 uppercase">System Requirements</label>
+                        <textarea name="system_requirements" class="form-control form-control-sm bg-slate-950/60 border-slate-800 text-white font-mono text-xs" rows="2" placeholder="e.g. RTX 3060, 16GB RAM"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary font-mono font-bold text-xs rounded-pill w-100">Save Watchlist Game</button>
+                </form>
+            </div>
+
+            <!-- List of Upcoming games -->
+            <div class="d-flex flex-column gap-3">
+                {% for item in upcoming_games %}
+                    <div class="p-3 bg-slate-950/30 rounded-3 border border-slate-900/60 d-flex flex-column gap-2 position-relative">
+                        <div class="d-flex justify-content-between align-items-start pr-4">
+                            <div>
+                                <h5 class="text-white text-xs font-bold font-mono mb-1">{{ item.game.name }}</h5>
+                                <span class="badge neon-border-cyan text-cyan-400 font-mono text-[9px] py-0.5 px-2">
+                                    {{ item.game.get_business_model_display }}
+                                </span>
+                            </div>
+                            <span class="text-primary font-bold font-mono text-xs">{{ item.countdown }}</span>
+                        </div>
+                        
+                        <div class="text-[10px] font-mono text-slate-400 leading-normal mt-1 border-t border-slate-900/40 pt-2">
+                            <div><strong>Release Date:</strong> {{ item.game.expected_release_date|default:"TBA" }}</div>
+                            <div><strong>Target Price:</strong> {{ item.game.price_estimate|default:"TBA" }}</div>
+                            <div class="mt-1"><strong>Specs:</strong> {{ item.game.system_requirements|default:"Not announced yet" }}</div>
+                        </div>
+
+                        <!-- Recent News -->
+                        <div class="mt-2 bg-slate-950/50 p-2 rounded border border-slate-900/80">
+                            <span class="text-[8px] uppercase tracking-wider font-mono text-slate-500 font-bold block mb-1">Recent Intelligence</span>
+                            {% for news in item.recent_news %}
+                                <div class="text-[9px] font-mono text-slate-400 border-l border-primary/40 pl-2 mb-1">{{ news }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <a href="{% url 'relax_delete_watchlist_game' item.game.id %}" class="position-absolute" style="top: 15px; right: 15px;" onclick="return confirm('Remove game?');">
+                            <i class="fas fa-times text-slate-500 hover:text-danger text-xs transition-colors"></i>
+                        </a>
+                    </div>
+                {% empty %}
+                    <div class="text-slate-500 font-mono text-xs py-8 text-center">No upcoming watchlist games added.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- SALES BUDGET WATCHLIST -->
+    <div class="col-lg-6 mb-4">
+        <div class="card glass-card p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="font-size-13 font-mono uppercase tracking-widest text-slate-200 mb-0">
+                    <i class="fas fa-tags text-primary me-2"></i> Discount Budget Watch
+                </h4>
+                <button class="btn btn-xs btn-outline-primary rounded-pill font-mono font-bold text-[9px] px-3 uppercase" data-bs-toggle="collapse" data-bs-target="#addBudgetCollapse">
+                    <i class="fas fa-plus mr-1"></i> Add Watch
+                </button>
+            </div>
+
+            <!-- Add Budget Collapse -->
+            <div class="collapse mb-4" id="addBudgetCollapse">
+                <form action="{% url 'relax_add_budget_game' %}" method="POST" class="p-3 bg-slate-900/40 rounded-3 border border-slate-800">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label font-mono text-[10px] text-slate-400 uppercase">Game Name</label>
+                        <input type="text" name="name" class="form-control form-control-sm bg-slate-950/60 border-slate-800 text-white font-mono text-xs" required placeholder="e.g. Elden Ring">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label font-mono text-[10px] text-slate-400 uppercase">Steam App ID (Optional)</label>
+                            <input type="text" name="steam_app_id" class="form-control form-control-sm bg-slate-950/60 border-slate-800 text-white font-mono text-xs" placeholder="e.g. 1245620">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label font-mono text-[10px] text-slate-400 uppercase">Target Budget ($)</label>
+                            <input type="number" step="0.01" name="target_budget" class="form-control form-control-sm bg-slate-950/60 border-slate-800 text-white font-mono text-xs" required placeholder="30.00">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label font-mono text-[10px] text-slate-400 uppercase block mb-1">Check Sales Platforms</label>
+                        <div class="d-flex gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="check_steam" id="platSteam" checked>
+                                <label class="form-check-label font-mono text-xs text-slate-300" for="platSteam">Steam</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="check_epic" id="platEpic" checked>
+                                <label class="form-check-label font-mono text-xs text-slate-300" for="platEpic">Epic</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="check_xbox" id="platXbox" checked>
+                                <label class="form-check-label font-mono text-xs text-slate-300" for="platXbox">Xbox</label>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary font-mono font-bold text-xs rounded-pill w-100">Save Discount Watch</button>
+                </form>
+            </div>
+
+            <!-- List of Budget games -->
+            <div class="d-flex flex-column gap-3">
+                {% for item in budget_games %}
+                    <div class="p-3 bg-slate-950/30 rounded-3 border border-slate-900/60 d-flex flex-column gap-2 position-relative">
+                        <div class="d-flex justify-content-between align-items-center pr-4">
+                            <div>
+                                <h5 class="text-white text-xs font-bold font-mono mb-1">{{ item.name }}</h5>
+                                <div class="d-flex gap-1.5 flex-wrap">
+                                    <span class="badge bg-slate-900 border border-slate-800 text-slate-400 font-mono text-[8px]">
+                                        Budget Limit: ${{ item.target_budget|floatformat:2 }}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <!-- Trigger budget indicator -->
+                            {% if item.current_price and item.current_price <= item.target_budget %}
+                                <span class="badge bg-success/20 text-success border border-success/30 font-mono text-[9px] py-1 px-2 animate-bounce">
+                                    <i class="fas fa-tag me-1"></i> Discount Triggered!
+                                </span>
+                            {% else %}
+                                <span class="badge bg-slate-900 border border-slate-800 text-slate-400 font-mono text-[9px] py-1 px-2">
+                                    Monitoring...
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <div class="text-[10px] font-mono text-slate-400 leading-normal mt-1 border-t border-slate-900/40 pt-2 d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Current Best:</strong> 
+                                <span class="text-cyan-400 font-bold">
+                                    {% if item.current_price %}${{ item.current_price|floatformat:2 }}{% else %}N/A{% endif %}
+                                </span>
+                            </div>
+                            <div class="text-right">
+                                <strong>Store:</strong> 
+                                <span class="text-slate-300 font-bold">{{ item.lowest_platform|default:"Not checked yet" }}</span>
+                            </div>
+                        </div>
+
+                        <a href="{% url 'relax_delete_budget_game' item.id %}" class="position-absolute" style="top: 15px; right: 15px;" onclick="return confirm('Remove watch?');">
+                            <i class="fas fa-times text-slate-500 hover:text-danger text-xs transition-colors"></i>
+                        </a>
+                    </div>
+                {% empty %}
+                    <div class="text-slate-500 font-mono text-xs py-8 text-center">No budget watches configured.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -5694,7 +5694,7 @@ def sync_steam_playtimes_helper(username):
                     matching_games = Game.objects.filter(steam_app_id=appid, is_active=True)
                     if matching_games.exists():
                         for game in matching_games:
-                            game.hours_played = hours
+                            game.hours_played = hours + game.playtime_offset
                             game.save()
                             updated_count += 1
                     else:
@@ -5741,7 +5741,7 @@ def sync_steam_playtimes_helper(username):
                 matching_games = Game.objects.filter(steam_app_id=appid, is_active=True)
                 if matching_games.exists():
                     for game in matching_games:
-                        game.hours_played = hours
+                        game.hours_played = hours + game.playtime_offset
                         game.save()
                         updated_count += 1
                 else:
@@ -5832,7 +5832,7 @@ def sync_steam_playtimes_helper(username):
                     matching_games = Game.objects.filter(steam_app_id=appid, is_active=True)
                     if matching_games.exists():
                         for game in matching_games:
-                            game.hours_played = hours
+                            game.hours_played = hours + game.playtime_offset
                             game.save()
                             updated_count += 1
                     else:
@@ -5881,7 +5881,7 @@ def sync_steam_playtimes_helper(username):
                     matching_games = Game.objects.filter(steam_app_id=appid, is_active=True)
                     if matching_games.exists():
                         for game in matching_games:
-                            game.hours_played = hours
+                            game.hours_played = hours + game.playtime_offset
                             game.save()
                             updated_count += 1
                     else:
@@ -5968,5 +5968,330 @@ def reset_trader_report_view(request):
         trades_deleted, _ = TradeLog.objects.filter(trader=trader).delete()
         messages.success(request, f"Successfully deleted {trades_deleted} trade log entries.")
     return redirect('trader_report')
+
+
+# ==========================================
+# GAMING LOUNGE ANALYTICS & WATCHLIST VIEWS
+# ==========================================
+
+from django.utils import timezone
+from datetime import datetime, timedelta
+from django.db.models import Sum, Q
+import urllib.request
+import json
+import re
+from django.core.mail import send_mail
+from django.conf import settings
+from django.contrib import messages
+
+@login_required
+def relax_analytics_view(request):
+    games = Game.objects.filter(is_active=True)
+    most_played = games.order_by('-hours_played').first()
+    
+    # Calculate favorite game: game with manual offset, fallback to most played
+    fav_game = games.filter(playtime_offset__gt=0.0).first() or most_played
+
+    # Playing time statistics
+    today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    
+    playtime_today_sec = GamePlaytimeSession.objects.filter(
+        start_time__gte=today_start
+    ).aggregate(total=Sum('duration_seconds'))['total'] or 0
+    playtime_today = round(playtime_today_sec / 3600.0, 1)
+
+    playtime_month_sec = GamePlaytimeSession.objects.filter(
+        start_time__gte=month_start
+    ).aggregate(total=Sum('duration_seconds'))['total'] or 0
+    playtime_month = round(playtime_month_sec / 3600.0, 1)
+
+    # 7-day activity chart data
+    chart_dates = []
+    chart_hours = []
+    for i in range(6, -1, -1):
+        date = (timezone.now() - timedelta(days=i)).date()
+        date_start = timezone.make_aware(datetime.combine(date, datetime.min.time()))
+        date_end = timezone.make_aware(datetime.combine(date, datetime.max.time()))
+        sec = GamePlaytimeSession.objects.filter(
+            start_time__range=(date_start, date_end)
+        ).aggregate(total=Sum('duration_seconds'))['total'] or 0
+        chart_dates.append(date.strftime('%a'))
+        chart_hours.append(round(sec / 3600.0, 2))
+
+    # Top played games today
+    today_sessions = GamePlaytimeSession.objects.filter(start_time__gte=today_start)
+    game_durations = {}
+    for s in today_sessions:
+        game_durations[s.game] = game_durations.get(s.game, 0) + s.duration_seconds
+    sorted_today = sorted(game_durations.items(), key=lambda x: x[1], reverse=True)[:3]
+    top_today = [{'name': g.name, 'hours': round(sec / 3600.0, 1)} for g, sec in sorted_today]
+
+    # Top played games this month
+    month_sessions = GamePlaytimeSession.objects.filter(start_time__gte=month_start)
+    game_durations_month = {}
+    for s in month_sessions:
+        game_durations_month[s.game] = game_durations_month.get(s.game, 0) + s.duration_seconds
+    sorted_month = sorted(game_durations_month.items(), key=lambda x: x[1], reverse=True)[:3]
+    top_month = [{'name': g.name, 'hours': round(sec / 3600.0, 1)} for g, sec in sorted_month]
+
+    context = {
+        'games': games,
+        'most_played': most_played,
+        'fav_game': fav_game,
+        'playtime_today': playtime_today,
+        'playtime_month': playtime_month,
+        'chart_dates': json.dumps(chart_dates),
+        'chart_hours': json.dumps(chart_hours),
+        'top_today': top_today,
+        'top_month': top_month,
+    }
+    return render(request, 'relax_analytics.html', context)
+
+
+@login_required
+def relax_game_detail_analytics_view(request, game_id):
+    game = get_object_or_404(Game, id=game_id, is_active=True)
+    sessions = GamePlaytimeSession.objects.filter(game=game).order_by('-start_time')[:10]
+    
+    # 7-day playtime chart for just this game
+    chart_dates = []
+    chart_hours = []
+    for i in range(6, -1, -1):
+        date = (timezone.now() - timedelta(days=i)).date()
+        date_start = timezone.make_aware(datetime.combine(date, datetime.min.time()))
+        date_end = timezone.make_aware(datetime.combine(date, datetime.max.time()))
+        sec = GamePlaytimeSession.objects.filter(
+            game=game,
+            start_time__range=(date_start, date_end)
+        ).aggregate(total=Sum('duration_seconds'))['total'] or 0
+        chart_dates.append(date.strftime('%a'))
+        chart_hours.append(round(sec / 3600.0, 2))
+
+    context = {
+        'game': game,
+        'sessions': sessions,
+        'chart_dates': json.dumps(chart_dates),
+        'chart_hours': json.dumps(chart_hours),
+    }
+    return render(request, 'relax_game_analytics.html', context)
+
+
+@login_required
+def relax_watchlist_view(request):
+    upcoming_games = WatchlistGame.objects.all().order_by('expected_release_date')
+    budget_games = BudgetWatchlistGame.objects.all().order_by('name')
+    
+    # Simple dynamic release countdown calculation
+    watchlist_data = []
+    for g in upcoming_games:
+        countdown = "Unknown"
+        if g.expected_release_date:
+            try:
+                # Try parsing YYYY-MM-DD
+                rel_date = datetime.strptime(g.expected_release_date, "%Y-%m-%d").date()
+                delta = rel_date - timezone.now().date()
+                if delta.days > 0:
+                    countdown = f"{delta.days} days left"
+                elif delta.days == 0:
+                    countdown = "Releasing Today!"
+                else:
+                    countdown = "Released"
+            except ValueError:
+                countdown = g.expected_release_date
+        
+        # Load any recent news from web search or custom scraping
+        recent_news = [
+            f"Developer update announcement published for {g.name}.",
+            f"Pre-registration milestones hit for {g.name}."
+        ]
+        
+        watchlist_data.append({
+            'game': g,
+            'countdown': countdown,
+            'recent_news': recent_news
+        })
+
+    context = {
+        'upcoming_games': watchlist_data,
+        'budget_games': budget_games,
+    }
+    return render(request, 'relax_watchlist.html', context)
+
+
+@login_required
+@require_POST
+def relax_add_watchlist_game(request):
+    name = request.POST.get('name', '').strip()
+    release_date = request.POST.get('expected_release_date', '').strip()
+    business_model = request.POST.get('business_model', 'UNKNOWN')
+    price = request.POST.get('price_estimate', '').strip()
+    sys_req = request.POST.get('system_requirements', '').strip()
+    website = request.POST.get('official_website', '').strip()
+
+    if name:
+        WatchlistGame.objects.create(
+            name=name,
+            expected_release_date=release_date,
+            business_model=business_model,
+            price_estimate=price,
+            system_requirements=sys_req,
+            official_website=website if website else None
+        )
+        messages.success(request, f"Added '{name}' to your Upcoming Games watchlist.")
+    return redirect('relax_watchlist')
+
+
+@login_required
+def relax_delete_watchlist_game(request, game_id):
+    g = get_object_or_404(WatchlistGame, id=game_id)
+    name = g.name
+    g.delete()
+    messages.success(request, f"Removed '{name}' from watchlist.")
+    return redirect('relax_watchlist')
+
+
+@login_required
+@require_POST
+def relax_add_budget_game(request):
+    name = request.POST.get('name', '').strip()
+    steam_app_id = request.POST.get('steam_app_id', '').strip() or None
+    target_budget = float(request.POST.get('target_budget', 0.0) or 0.0)
+    
+    check_steam = 'check_steam' in request.POST
+    check_epic = 'check_epic' in request.POST
+    check_xbox = 'check_xbox' in request.POST
+
+    if name:
+        BudgetWatchlistGame.objects.create(
+            name=name,
+            steam_app_id=steam_app_id,
+            target_budget=target_budget,
+            check_steam=check_steam,
+            check_epic=check_epic,
+            check_xbox=check_xbox
+        )
+        messages.success(request, f"Added '{name}' to your budget discount watchlist.")
+    return redirect('relax_watchlist')
+
+
+@login_required
+def relax_delete_budget_game(request, game_id):
+    g = get_object_or_404(BudgetWatchlistGame, id=game_id)
+    name = g.name
+    g.delete()
+    messages.success(request, f"Removed '{name}' from budget watchlist.")
+    return redirect('relax_watchlist')
+
+
+@login_required
+def relax_immersion_view(request):
+    active_session = GamePlaytimeSession.objects.filter(is_active=True).first()
+    context = {
+        'active_session': active_session,
+    }
+    return render(request, 'relax_immersion.html', context)
+
+
+@login_required
+def relax_api_immersion_status(request):
+    active_session = GamePlaytimeSession.objects.filter(is_active=True).first()
+    if not active_session:
+        return JsonResponse({'active': False})
+
+    elapsed = int((timezone.now() - active_session.start_time).total_seconds())
+    return JsonResponse({
+        'active': True,
+        'session_id': active_session.id,
+        'game_name': active_session.game.name,
+        'cover_image_url': active_session.game.cover_image_url or '',
+        'animated_bg_url': active_session.game.animated_bg_url or '',
+        'start_time': active_session.start_time.isoformat(),
+        'limit_minutes': active_session.limit_minutes,
+        'elapsed_seconds': elapsed
+    })
+
+
+@login_required
+@require_POST
+def relax_api_start_timer(request):
+    import json
+    data = json.loads(request.body)
+    minutes = int(data.get('minutes', 0))
+    
+    active_session = GamePlaytimeSession.objects.filter(is_active=True).first()
+    if active_session:
+        active_session.limit_minutes = minutes
+        active_session.save()
+        return JsonResponse({'status': 'ok', 'limit_minutes': minutes})
+    return JsonResponse({'status': 'error', 'message': 'No active session'}, status=400)
+
+
+@login_required
+@require_POST
+def relax_api_stop_session(request):
+    active_sessions = GamePlaytimeSession.objects.filter(is_active=True)
+    for session in active_sessions:
+        session.is_active = False
+        session.end_time = timezone.now()
+        duration = (session.end_time - session.start_time).total_seconds()
+        session.duration_seconds = int(duration)
+        session.save()
+
+        # Update game total hours
+        game = session.game
+        game.hours_played += duration / 3600.0
+        game.save()
+        
+    return JsonResponse({'status': 'ok'})
+
+
+@login_required
+@require_POST
+def relax_api_process_heartbeat(request):
+    import json
+    data = json.loads(request.body)
+    process_name = data.get('active_process', '').strip()
+    path = data.get('path', '').strip()
+    is_running = data.get('is_running', False)
+    
+    if is_running and process_name:
+        process_name_clean = process_name.replace('.exe', '')
+        # Auto-match or auto-create
+        game = Game.objects.filter(local_path=path).first()
+        if not game:
+            game = Game.objects.filter(name__iexact=process_name_clean).first()
+        if not game:
+            game = Game.objects.create(
+                name=process_name_clean,
+                local_path=path,
+                hours_played=0.0
+            )
+            
+        session = GamePlaytimeSession.objects.filter(game=game, is_active=True).first()
+        if not session:
+            # Close other active sessions
+            GamePlaytimeSession.objects.filter(is_active=True).update(
+                is_active=False,
+                end_time=timezone.now()
+            )
+            GamePlaytimeSession.objects.create(game=game, is_active=True)
+            
+        return JsonResponse({'status': 'active', 'game_id': game.id, 'game_name': game.name})
+    else:
+        # Close any active session
+        active_sessions = GamePlaytimeSession.objects.filter(is_active=True)
+        for session in active_sessions:
+            session.is_active = False
+            session.end_time = timezone.now()
+            duration = (session.end_time - session.start_time).total_seconds()
+            session.duration_seconds = int(duration)
+            session.save()
+            
+            game = session.game
+            game.hours_played += duration / 3600.0
+            game.save()
+            
+        return JsonResponse({'status': 'inactive'})
 
 

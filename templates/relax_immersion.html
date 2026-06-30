@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Arcade Cabin Immersion HUD{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Fullscreen override: Hide standard Veltrix layout wrapper */
+    #layout-wrapper {
+        display: none !important;
+    }
+    
+    /* Immersive base styles */
+    body {
+        background-color: #050508 !important;
+        overflow: hidden !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100vw;
+        height: 100vh;
+        font-family: 'Outfit', 'Inter', monospace;
+    }
+
+    .immersion-bg {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        background-size: cover;
+        background-position: center;
+        filter: brightness(0.25) blur(10px);
+        transition: background-image 1.5s ease-in-out;
+    }
+
+    .immersion-container {
+        position: fixed;
+        inset: 0;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 30px;
+        color: #ffffff;
+        background: radial-gradient(circle at center, transparent 30%, rgba(5, 5, 8, 0.8) 100%);
+    }
+
+    .hud-panel {
+        background: rgba(15, 15, 25, 0.6);
+        backdrop-filter: blur(20px) saturate(180%);
+        border: 1px solid rgba(168, 85, 247, 0.2);
+        box-shadow: 0 0 30px rgba(168, 85, 247, 0.15);
+        border-radius: 24px;
+        padding: 25px;
+        transition: all 0.3s ease;
+    }
+
+    .neon-glow-text {
+        color: #22d3ee;
+        text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+    }
+
+    .neon-glow-purple {
+        color: #a855f7;
+        text-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+    }
+
+    .btn-stop {
+        background: linear-gradient(135deg, #f43f5e, #be123c) !important;
+        border: none !important;
+        box-shadow: 0 0 15px rgba(244, 63, 94, 0.4);
+        border-radius: 50px;
+        color: #fff !important;
+        font-weight: bold;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-stop:hover {
+        transform: scale(1.05);
+        box-shadow: 0 0 25px rgba(244, 63, 94, 0.7);
+    }
+
+    .btn-preset {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        color: #cbd5e1;
+        font-size: 11px;
+        border-radius: 50px;
+        padding: 6px 16px;
+        transition: all 0.2s ease;
+    }
+
+    .btn-preset:hover, .btn-preset.active {
+        background: rgba(34, 211, 238, 0.15);
+        border-color: #22d3ee;
+        color: #22d3ee;
+        box-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
+    }
+
+    /* Fullscreen rest overlay warning */
+    .rest-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        background: rgba(5, 5, 8, 0.95);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+        text-align: center;
+    }
+
+    .rest-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .rest-alert-card {
+        max-width: 500px;
+        padding: 40px;
+        border-radius: 32px;
+        border: 1px solid rgba(244, 63, 94, 0.4);
+        background: rgba(15, 10, 15, 0.8);
+        box-shadow: 0 0 50px rgba(244, 63, 94, 0.25);
+        animation: alertPulse 2s infinite alternate;
+    }
+
+    @keyframes alertPulse {
+        from { box-shadow: 0 0 30px rgba(244, 63, 94, 0.2); }
+        to { box-shadow: 0 0 60px rgba(244, 63, 94, 0.45); }
+    }
+</style>
+{% endblock %}
+
+{% block page_content %}
+<!-- Sliding Artwork Backdrop -->
+<div class="immersion-bg" id="backdrop"></div>
+
+<!-- Fullscreen HUD Container -->
+<div class="immersion-container">
+    
+    <!-- Top Bar -->
+    <div class="d-flex justify-content-between align-items-center w-100">
+        <div class="d-flex align-items-center gap-3">
+            <span class="w-3 h-3 rounded-full bg-success animate-pulse"></span>
+            <h1 class="h4 font-mono font-bold uppercase tracking-widest text-slate-300 mb-0" id="active-game-name">
+                Monitoring Session...
+            </h1>
+        </div>
+        <button class="btn btn-sm btn-outline-secondary rounded-pill px-4 font-mono text-xs uppercase" onclick="exitImmersion()">
+            <i class="fas fa-sign-out-alt me-1.5"></i> Exit HUD
+        </button>
+    </div>
+
+    <!-- Center Section: Giant Timers -->
+    <div class="row justify-content-center my-auto w-100">
+        <div class="col-md-5 mb-4 text-center">
+            <div class="hud-panel p-4">
+                <h6 class="text-slate-400 font-mono text-xs uppercase tracking-widest mb-2">Time Played</h6>
+                <div class="h1 font-mono font-bold neon-glow-text" id="time-played" style="font-size: 3.5rem;">00:00:00</div>
+            </div>
+        </div>
+
+        <div class="col-md-5 mb-4 text-center" id="time-left-container" style="display: none;">
+            <div class="hud-panel p-4" style="border-color: rgba(168, 85, 247, 0.3);">
+                <h6 class="text-slate-400 font-mono text-xs uppercase tracking-widest mb-2">Time Left</h6>
+                <div class="h1 font-mono font-bold neon-glow-purple" id="time-left" style="font-size: 3.5rem;">00:00</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Controls Panel -->
+    <div class="row justify-content-center w-100">
+        <div class="col-xl-8">
+            <div class="hud-panel">
+                <div class="row align-items-center justify-content-between">
+                    <!-- Left: Presets -->
+                    <div class="col-md-7 mb-3 mb-md-0">
+                        <h6 class="text-slate-400 font-mono text-[10px] uppercase tracking-widest mb-3">Set Alert Reminder Limit</h6>
+                        <div class="d-flex gap-2 flex-wrap" id="preset-controls">
+                            <button class="btn btn-preset" onclick="setTimerLimit(15)">15 Mins</button>
+                            <button class="btn btn-preset" onclick="setTimerLimit(30)">30 Mins</button>
+                            <button class="btn btn-preset text-purple-400" onclick="setTimerLimit(60)">1 Hour</button>
+                            <button class="btn btn-preset text-purple-400" onclick="setTimerLimit(120)">2 Hours</button>
+                            <button class="btn btn-preset active" onclick="setTimerLimit(0)">Unlimited</button>
+                        </div>
+                    </div>
+
+                    <!-- Right: Stop Actions -->
+                    <div class="col-md-4 text-md-right">
+                        <button class="btn btn-stop px-5 py-2.5 font-mono text-xs uppercase tracking-wider w-100" onclick="stopPlayingSession()">
+                            <i class="fas fa-power-off me-2"></i> Stop Session
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Fullscreen Pro-Gamer Rest alert Overlay -->
+<div class="rest-overlay" id="rest-overlay">
+    <div class="rest-alert-card">
+        <div class="avatar-lg bg-danger/20 rounded-circle d-inline-flex align-items-center justify-content-center p-4 border border-danger/30 mb-4">
+            <i class="fas fa-heartbeat text-danger text-5xl animate-pulse"></i>
+        </div>
+        <h2 class="text-danger font-bold uppercase tracking-widest mb-3" style="font-size: 1.8rem; text-shadow: 0 0 10px rgba(244,63,94,0.4);">
+            REST INTERVAL REACHED
+        </h2>
+        <p class="text-slate-350 font-mono text-xs leading-normal mb-4">
+            Gamers cannot run on empty! You have been playing for too long. Take a break, hydrate, stretch your legs, and rest your eyes before starting your next run.
+        </p>
+        <div class="d-flex gap-3 justify-content-center">
+            <button class="btn btn-outline-danger rounded-pill px-4 font-mono text-xs uppercase" onclick="snoozeAlert()">
+                Snooze 10m
+            </button>
+            <button class="btn btn-danger rounded-pill px-4 font-mono text-xs uppercase" onclick="stopPlayingSession()">
+                Log Off Game
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let activeLimitMinutes = 0;
+    let elapsedSeconds = 0;
+    let isOverlayActive = false;
+    let updateIntervalId = null;
+
+    function formatTime(totalSeconds) {
+        const hrs = Math.floor(totalSeconds / 3600);
+        const mins = Math.floor((totalSeconds % 3600) / 60);
+        const secs = totalSeconds % 60;
+        return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    function formatTimeLeft(totalSeconds) {
+        if (totalSeconds <= 0) return "00:00";
+        const mins = Math.floor(totalSeconds / 60);
+        const secs = totalSeconds % 60;
+        return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    function syncImmersionHUD() {
+        fetch('/relax/api/immersion-status/')
+            .then(res => res.json())
+            .then(data => {
+                if (!data.active) {
+                    // No active session: Return to Library
+                    location.href = "{% url 'relax_view' %}";
+                    return;
+                }
+
+                // Update details
+                document.getElementById('active-game-name').innerText = `Active Session: ${data.game_name}`;
+                
+                // Update background cover
+                if (data.animated_bg_url) {
+                    let path = data.animated_bg_url;
+                    if (!path.startsWith('http')) {
+                        path = `{% url 'serve_local_file' %}?path=${encodeURIComponent(path)}`;
+                    }
+                    document.getElementById('backdrop').style.backgroundImage = `url('${path}')`;
+                }
+
+                // Update timers
+                elapsedSeconds = data.elapsed_seconds;
+                activeLimitMinutes = data.limit_minutes || 0;
+                
+                document.getElementById('time-played').innerText = formatTime(elapsedSeconds);
+
+                const limitSecs = activeLimitMinutes * 60;
+                const timeContainer = document.getElementById('time-left-container');
+                
+                if (activeLimitMinutes > 0) {
+                    timeContainer.style.display = 'block';
+                    const timeLeftSecs = limitSecs - elapsedSeconds;
+                    document.getElementById('time-left').innerText = formatTimeLeft(timeLeftSecs);
+
+                    // Trigger alert if limit reached
+                    if (timeLeftSecs <= 0 && !isOverlayActive) {
+                        triggerRestOverlay();
+                    }
+                } else {
+                    timeContainer.style.display = 'none';
+                    // Pro-gamer automatic warning after 2 hours (7200 seconds)
+                    if (elapsedSeconds >= 7200 && !isOverlayActive) {
+                        triggerRestOverlay();
+                    }
+                }
+            })
+            .catch(err => console.error("HUD Sync Error:", err));
+    }
+
+    function triggerRestOverlay() {
+        isOverlayActive = true;
+        document.getElementById('rest-overlay').classList.add('active');
+    }
+
+    function snoozeAlert() {
+        isOverlayActive = false;
+        document.getElementById('rest-overlay').classList.remove('active');
+        // Set new snooze limit (+10 minutes)
+        const newLimit = Math.floor(elapsedSeconds / 60) + 10;
+        setTimerLimit(newLimit);
+    }
+
+    function setTimerLimit(minutes) {
+        fetch('/relax/api/start-timer/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ minutes: minutes })
+        })
+        .then(res => res.json())
+        .then(data => {
+            // Update active preset styling
+            const buttons = document.querySelectorAll('#preset-controls button');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            
+            // Highlight match
+            if (minutes === 15) buttons[0].classList.add('active');
+            else if (minutes === 30) buttons[1].classList.add('active');
+            else if (minutes === 60) buttons[2].classList.add('active');
+            else if (minutes === 120) buttons[3].classList.add('active');
+            else if (minutes === 0) buttons[4].classList.add('active');
+
+            syncImmersionHUD();
+        })
+        .catch(err => console.error("Set limit error:", err));
+    }
+
+    function stopPlayingSession() {
+        fetch('/relax/api/stop-session/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(() => {
+            location.href = "{% url 'relax_view' %}";
+        });
+    }
+
+    function exitImmersion() {
+        location.href = "{% url 'relax_view' %}";
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        syncImmersionHUD();
+        updateIntervalId = setInterval(syncImmersionHUD, 1000);
+    });
+</script>
+{% endblock %}
