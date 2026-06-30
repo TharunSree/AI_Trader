@@ -5983,6 +5983,7 @@ import re
 from django.core.mail import send_mail
 from django.conf import settings
 from django.contrib import messages
+from .models import Game, GameBetaInfo, WatchlistGame, BudgetWatchlistGame, GamePlaytimeSession
 
 @login_required
 def relax_analytics_view(request):
