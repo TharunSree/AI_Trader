@@ -542,11 +542,15 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-[10px] uppercase font-mono tracking-widest font-bold">Local Path to Executable / Protocol URI (Optional)</label>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label text-[10px] uppercase font-mono tracking-widest font-bold mb-0">Local Path to Executable / Protocol URI (Optional)</label>
+                            <button type="button" class="btn btn-link text-[9px] p-0 font-mono text-info uppercase font-bold text-decoration-none" onclick="autoDetectPath('add')"><i class="fas fa-search me-1"></i> Auto-Detect Path</button>
+                        </div>
                         <div class="input-group">
                             <input type="text" id="game_local_path" name="local_path" class="form-control rounded-start-xl font-mono text-xs" placeholder="e.g. C:\Games\game.exe or xbox:Genshin">
                             <button type="button" class="btn btn-outline-primary rounded-end-xl px-3 text-xs" onclick="openFileBrowser('game_local_path')">Browse</button>
                         </div>
+                        <div id="add_path_detection_results" class="mt-2 d-none p-2 border border-slate-200 dark:border-slate-800 rounded-3 bg-slate-50 dark:bg-slate-900/60 font-mono text-[10px] text-slate-300" style="max-height: 150px; overflow-y: auto;"></div>
                     </div>
 
                     <div class="mb-3">
@@ -610,11 +614,15 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-[10px] uppercase font-mono tracking-widest font-bold">Local Path to Executable / Protocol URI (Optional)</label>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label text-[10px] uppercase font-mono tracking-widest font-bold mb-0">Local Path to Executable / Protocol URI (Optional)</label>
+                            <button type="button" class="btn btn-link text-[9px] p-0 font-mono text-info uppercase font-bold text-decoration-none" onclick="autoDetectPath('edit')"><i class="fas fa-search me-1"></i> Auto-Detect Path</button>
+                        </div>
                         <div class="input-group">
                             <input type="text" id="edit_game_local_path" name="local_path" class="form-control rounded-start-xl font-mono text-xs" value="{{ selected_game.local_path|default:'' }}" placeholder="e.g. C:\Games\game.exe or xbox:Genshin">
                             <button type="button" class="btn btn-outline-primary rounded-end-xl px-3 text-xs" onclick="openFileBrowser('edit_game_local_path')">Browse</button>
                         </div>
+                        <div id="edit_path_detection_results" class="mt-2 d-none p-2 border border-slate-200 dark:border-slate-800 rounded-3 bg-slate-50 dark:bg-slate-900/60 font-mono text-[10px] text-slate-300" style="max-height: 150px; overflow-y: auto;"></div>
                     </div>
 
                     <div class="mb-3">
@@ -1014,6 +1022,63 @@
                 itemsContainer.innerHTML = `<div class="alert alert-danger m-2 text-xs font-mono">Failed to load directory: ${err}</div>`;
             });
     }
+
+    // Auto-detect game installation path on the remote Windows Rig
+    window.autoDetectPath = function(modalPrefix) {
+        const modal = modalPrefix === 'edit' ? '#editGameModal' : '#addGameModal';
+        const nameInput = document.querySelector(`${modal} [name="name"]`);
+        const resultsDiv = document.getElementById(`${modalPrefix}_path_detection_results`);
+        
+        if (!nameInput || !nameInput.value.trim()) {
+            alert("Please enter the Game Name first so we can scan for it!");
+            return;
+        }
+        
+        const gameName = nameInput.value.trim();
+        resultsDiv.classList.remove('d-none');
+        resultsDiv.innerHTML = `<div class="text-slate-400 font-mono text-[9px]"><i class="fas fa-spinner fa-spin me-1"></i> Scanning Windows Gaming Rig for '${gameName}'...</div>`;
+        
+        fetch(`/relax/game/detect-path/?name=${encodeURIComponent(gameName)}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    if (data.paths && data.paths.length > 0) {
+                        let html = `<div class="fw-bold mb-1 border-b border-slate-200 dark:border-slate-800 pb-1 text-slate-400">Select detected file/shortcut:</div>`;
+                        data.paths.forEach(p => {
+                            const parts = p.split('\\');
+                            const basename = parts[parts.length - 1];
+                            const folder = parts.slice(0, -1).join('\\');
+                            html += `
+                                <div class="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800/80 rounded cursor-pointer transition-all d-flex flex-column gap-0.5 border-b border-slate-100 dark:border-slate-800/40" onclick="selectDetectedPath('${modalPrefix}', '${escapeJsPath(p)}')">
+                                    <div class="fw-semibold text-info" style="font-size: 10px;">${basename}</div>
+                                    <div class="text-[8px] text-slate-500 text-truncate" title="${p}">${folder}</div>
+                                </div>
+                            `;
+                        });
+                        resultsDiv.innerHTML = html;
+                    } else {
+                        resultsDiv.innerHTML = `<div class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i> No matching executables or shortcuts found on Windows rig.</div>`;
+                    }
+                } else {
+                    resultsDiv.innerHTML = `<div class="text-danger"><i class="fas fa-exclamation-circle me-1"></i> Error: ${data.message}</div>`;
+                }
+            })
+            .catch(err => {
+                resultsDiv.innerHTML = `<div class="text-danger"><i class="fas fa-exclamation-circle me-1"></i> Connection failed: ${err}</div>`;
+            });
+    };
+    
+    window.selectDetectedPath = function(modalPrefix, path) {
+        const modal = modalPrefix === 'edit' ? '#editGameModal' : '#addGameModal';
+        const pathInput = document.querySelector(`${modal} [name="local_path"]`);
+        const resultsDiv = document.getElementById(`${modalPrefix}_path_detection_results`);
+        
+        if (pathInput) {
+            pathInput.value = path;
+        }
+        resultsDiv.classList.add('d-none');
+        resultsDiv.innerHTML = '';
+    };
 
     function escapeJsPath(path) {
         return path.replace(/\\/g, '\\\\').replace(/'/g, "\\'");

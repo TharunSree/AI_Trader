@@ -5577,6 +5577,36 @@ def relax_launch_game(request, game_id):
     return redirect(f"/relax/?game_id={game.id}")
 
 
+@login_required
+def relax_detect_game_path(request):
+    name = request.GET.get('name', '').strip()
+    if not name:
+        return JsonResponse({'status': 'error', 'message': 'Game name is required'}, status=400)
+        
+    settings = SystemSettings.load()
+    if not settings.gaming_rig_ip:
+        return JsonResponse({'status': 'error', 'message': 'No gaming rig IP address is configured in Settings.'}, status=400)
+        
+    import urllib.request
+    import urllib.parse
+    import json
+    
+    encoded_name = urllib.parse.quote(name)
+    daemon_url = f"http://{settings.gaming_rig_ip}:5555/detect?name={encoded_name}"
+    
+    try:
+        req = urllib.request.Request(daemon_url)
+        with urllib.request.urlopen(req, timeout=8) as res:
+            res_data = json.loads(res.read().decode('utf-8'))
+            return JsonResponse(res_data)
+    except Exception as e:
+        logger.error(f"Failed to connect to Steam Launcher Daemon for detection: {e}")
+        return JsonResponse({
+            'status': 'error', 
+            'message': f"Could not connect to Steam Launcher Daemon at {settings.gaming_rig_ip}:5555. Make sure the daemon is running on your Windows rig."
+        }, status=500)
+
+
 def sync_steam_playtimes_helper(username):
     import xml.etree.ElementTree as ET
     import urllib.request
