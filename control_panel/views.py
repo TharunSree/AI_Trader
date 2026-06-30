@@ -5502,10 +5502,32 @@ def relax_api_process_heartbeat(request):
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
             
-    # GET: return all active games with a process_name
-    games = Game.objects.filter(is_active=True).exclude(process_name='')
-    game_data = [{'id': g.id, 'process_name': g.process_name.lower().strip()} for g in games]
-    return JsonResponse({'status': 'success', 'games': game_data})
+    # GET: return all active games with a process_name and check for pending launch triggers
+    from django.core.cache import cache
+    all_active = Game.objects.filter(is_active=True)
+    game_data = []
+    pending_launches = []
+    
+    for g in all_active:
+        if g.process_name:
+            game_data.append({'id': g.id, 'process_name': g.process_name.lower().strip()})
+        
+        # Check if this game was triggered to launch
+        cache_key = f"pending_launch_trigger_{g.id}"
+        if cache.get(cache_key):
+            cache.delete(cache_key)  # consume the event immediately
+            pending_launches.append({
+                'id': g.id,
+                'name': g.name,
+                'steam_app_id': g.steam_app_id or None,
+                'local_path': g.local_path or None
+            })
+            
+    return JsonResponse({
+        'status': 'success',
+        'games': game_data,
+        'pending_launches': pending_launches
+    })
 
 
 @login_required
@@ -5679,6 +5701,11 @@ def relax_add_video(request):
 @login_required
 def relax_launch_game(request, game_id):
     game = get_object_or_404(Game, id=game_id)
+    
+    # Flag this game as pending launch in cache (expires in 60s)
+    # The background client daemon on your Windows rig will catch this and trigger it natively
+    from django.core.cache import cache
+    cache.set(f"pending_launch_trigger_{game.id}", True, 60)
     
     # 1. Check if remote Windows Gaming Rig is configured (if Django runs on Linux)
     settings = SystemSettings.load()

@@ -42,6 +42,24 @@ def main():
                 response = json.loads(res.read().decode('utf-8'))
                 
             if response.get('status') == 'success':
+                # Handle any pending launches on the client
+                pending = response.get('pending_launches', [])
+                for item in pending:
+                    appid = item.get('steam_app_id')
+                    path = item.get('local_path')
+                    name = item.get('name')
+                    print(f"Received launch request for '{name}'")
+                    try:
+                        if appid:
+                            subprocess.Popen(["cmd.exe", "/c", "start", f"steam://rungameid/{appid}"])
+                            print(f"Launched Steam game {appid}")
+                        elif path:
+                            # Run with shell start
+                            subprocess.Popen(["cmd.exe", "/c", "start", "", path])
+                            print(f"Launched local path game: {path}")
+                    except Exception as run_ex:
+                        print(f"Launch error for '{name}': {run_ex}")
+
                 tracked_games = response.get('games', [])
                 if tracked_games:
                     # 2. Check running processes on this gaming PC
