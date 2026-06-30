@@ -4877,6 +4877,9 @@ import re
 import os
 import subprocess
 from html.parser import HTMLParser
+from django.contrib import messages
+from .models import Game, GameGuide, GameVideo
+
 def fetch_steam_details(app_id):
     try:
         url = f"https://store.steampowered.com/api/appdetails?appids={app_id}"
