@@ -480,18 +480,32 @@
         fetch(`/api/neural/learning-log/?trader_id=${currentTraderId}`)
             .then(res => res.json())
             .then(data => {
-                if (data.telemetry && data.telemetry.cpu_percent !== undefined) {
+                if (data.telemetry) {
                     const tel = data.telemetry;
-                    document.getElementById("flow-stat-cpu").textContent = `${tel.cpu_percent.toFixed(1)}%`;
-                    document.getElementById("flow-stat-mem").textContent = `${tel.system_used_percent.toFixed(1)}%`;
+                    const elCpu = document.getElementById("flow-stat-cpu");
+                    const elMem = document.getElementById("flow-stat-mem");
+                    if (elCpu) {
+                        elCpu.textContent = (tel.cpu_percent != null && !isNaN(tel.cpu_percent)) 
+                            ? `${parseFloat(tel.cpu_percent).toFixed(1)}%` 
+                            : `0.0%`;
+                    }
+                    if (elMem) {
+                        elMem.textContent = (tel.system_used_percent != null && !isNaN(tel.system_used_percent)) 
+                            ? `${parseFloat(tel.system_used_percent).toFixed(1)}%` 
+                            : `0.0%`;
+                    }
                 } else {
-                    document.getElementById("flow-stat-cpu").textContent = `OFFLINE`;
-                    document.getElementById("flow-stat-mem").textContent = `OFFLINE`;
+                    const elCpu = document.getElementById("flow-stat-cpu");
+                    const elMem = document.getElementById("flow-stat-mem");
+                    if (elCpu) elCpu.textContent = `OFFLINE`;
+                    if (elMem) elMem.textContent = `OFFLINE`;
                 }
             })
             .catch(() => {
-                document.getElementById("flow-stat-cpu").textContent = `OFFLINE`;
-                document.getElementById("flow-stat-mem").textContent = `OFFLINE`;
+                const elCpu = document.getElementById("flow-stat-cpu");
+                const elMem = document.getElementById("flow-stat-mem");
+                if (elCpu) elCpu.textContent = `OFFLINE`;
+                if (elMem) elMem.textContent = `OFFLINE`;
             });
 
         // Auto-refresh current page of execution history
