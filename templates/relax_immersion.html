@@ -4,6 +4,7 @@
 {% block title %}Arcade Cabin Immersion HUD{% endblock %}
 
 {% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
 <style>
     /* Fullscreen override: Hide topbar, sidebar, and footer */
     #page-topbar,
@@ -84,56 +85,55 @@
 
     /* Premium Sleek HUD Header */
     .hud-header-bar {
-        background: rgba(10, 8, 16, 0.5);
-        backdrop-filter: blur(25px) saturate(180%);
-        -webkit-backdrop-filter: blur(25px) saturate(180%);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        border-radius: 20px;
-        padding: 15px 25px;
+        background: transparent !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 10px 0px;
     }
 
     /* Minimalist Digital Display (Stopwatch/HUD style) */
     .hud-center-chronometer {
         text-align: center;
-        padding: 20px;
-        border-radius: 24px;
-        background: rgba(10, 8, 16, 0.35);
-        backdrop-filter: blur(15px);
-        border: 1px solid rgba(255, 255, 255, 0.03);
+        padding: 0;
+        background: transparent !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        border: none !important;
+        box-shadow: none !important;
         max-width: 480px;
         margin: 0 auto;
     }
 
     .hud-timer-digital {
-        font-family: 'JetBrains Mono', 'Courier New', monospace;
-        letter-spacing: -2px;
-        font-weight: 700;
-        font-size: 3.8rem;
+        font-family: 'Orbitron', 'JetBrains Mono', 'Courier New', monospace;
+        letter-spacing: 2px;
+        font-weight: 900;
+        font-size: 5rem;
         line-height: 1;
     }
 
     .neon-text-cyan {
         color: #22d3ee;
-        text-shadow: 0 0 15px rgba(34, 211, 238, 0.45);
+        text-shadow: 0 0 15px rgba(34, 211, 238, 0.7), 0 0 30px rgba(34, 211, 238, 0.4);
     }
 
     .neon-text-purple {
         color: #c084fc;
-        text-shadow: 0 0 15px rgba(192, 132, 252, 0.45);
+        text-shadow: 0 0 15px rgba(192, 132, 252, 0.7), 0 0 30px rgba(192, 132, 252, 0.4);
     }
 
     /* Media-Bar Style Bottom Tray */
     .hud-bottom-bar {
-        background: rgba(10, 8, 16, 0.6);
-        backdrop-filter: blur(25px) saturate(200%);
-        -webkit-backdrop-filter: blur(25px) saturate(200%);
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
-        border-radius: 24px;
-        padding: 15px 30px;
-        width: 100%;
-        max-width: 1000px;
+        background: rgba(10, 8, 16, 0.3) !important;
+        backdrop-filter: blur(10px) !important;
+        -webkit-backdrop-filter: blur(10px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.04) !important;
+        border-radius: 50px !important;
+        padding: 10px 25px !important;
+        width: auto !important;
+        max-width: 900px;
         margin: 0 auto;
     }
 
@@ -282,8 +282,8 @@
                 
                 <!-- Custom minutes input -->
                 <div class="d-flex align-items-center gap-1.5 border-l border-slate-800 pl-3">
-                    <input type="number" id="custom-minutes" class="form-control form-control-sm text-center font-mono py-0.5" style="width: 60px; height: 26px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: white; border-radius: 50px; font-size: 10px;" placeholder="Mins">
-                    <button class="btn btn-hud-preset py-1 px-2.5 font-mono text-[9px] uppercase font-bold" onclick="setCustomLimit()">Set</button>
+                    <input type="number" id="custom-minutes" class="form-control form-control-sm text-center font-mono py-0.5" style="width: 55px; height: 24px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); color: white; border-radius: 50px; font-size: 9px; font-weight: bold; outline: none; box-shadow: none;" placeholder="Mins">
+                    <button class="btn btn-hud-preset py-1 px-2.5 font-mono text-[9px] uppercase font-bold" style="padding: 4px 10px; font-size: 9px;" onclick="setCustomLimit()">Set</button>
                 </div>
             </div>
 

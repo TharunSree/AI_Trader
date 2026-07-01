@@ -67,8 +67,11 @@
     <!-- Hero Header Panel -->
     <div class="col-12 mb-4">
         <div class="hero-banner-watchlist shadow-lg d-flex justify-content-between align-items-center flex-wrap gap-4 position-relative">
-            <div class="position-absolute" style="inset: 0; background: radial-gradient(circle at right, rgba(168, 85, 247, 0.1) 0%, transparent 70%); pointer-events: none;"></div>
-            <div>
+            {% if game.header_image %}
+                <img src="{{ game.header_image }}" class="position-absolute w-100 h-100" style="inset: 0; object-fit: cover; filter: brightness(0.28); pointer-events: none; z-index: 0;">
+            {% endif %}
+            <div class="position-absolute" style="inset: 0; background: radial-gradient(circle at right, rgba(168, 85, 247, 0.1) 0%, transparent 70%); pointer-events: none; z-index: 1;"></div>
+            <div class="position-relative" style="z-index: 2;">
                 <span class="badge bg-primary/20 text-indigo-300 font-mono text-[9px] uppercase tracking-widest px-3 py-1.5 border border-primary/30 mb-2">Upcoming Intelligence Dossier</span>
                 <h1 class="text-white font-bold tracking-wide mb-2" style="font-size: 2.2rem; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">{{ game.name }}</h1>
                 <div class="d-flex align-items-center gap-3 flex-wrap">
@@ -80,12 +83,12 @@
             </div>
             
             {% if countdown_days is not None %}
-                <div class="hud-panel p-4 rounded-4 bg-black/40 border border-white/10 text-center" style="min-width: 180px;">
+                <div class="hud-panel p-4 rounded-4 bg-black/40 border border-white/10 text-center position-relative" style="min-width: 180px; z-index: 2;">
                     <div class="countdown-number font-mono font-bold">{{ countdown_days }}</div>
                     <div class="text-[10px] uppercase font-mono tracking-widest text-slate-400 mt-1.5">Days to Release</div>
                 </div>
             {% else %}
-                <div class="hud-panel p-4 rounded-4 bg-black/40 border border-white/10 text-center" style="min-width: 180px;">
+                <div class="hud-panel p-4 rounded-4 bg-black/40 border border-white/10 text-center position-relative" style="min-width: 180px; z-index: 2;">
                     <div class="text-info font-mono font-bold h3 mb-0">{{ countdown }}</div>
                     <div class="text-[10px] uppercase font-mono tracking-widest text-slate-400 mt-1.5">Release Status</div>
                 </div>

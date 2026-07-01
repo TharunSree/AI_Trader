@@ -73,9 +73,21 @@ class Command(BaseCommand):
                 title = item.find('title').text
                 link = item.find('link').text
                 
+                title_lower = title.lower()
+                
+                # Verify that the article title actually relates to this game
+                name_words = [w.strip() for w in game.name.lower().split() if len(w.strip()) > 2]
+                name_match = False
+                if any(word in title_lower for word in name_words):
+                    name_match = True
+                elif "wuthering" in game.name.lower() and ("wuwa" in title_lower or "wuthering" in title_lower):
+                    name_match = True
+                elif "genshin" in game.name.lower() and "genshin" in title_lower:
+                    name_match = True
+                
                 # Check for beta keywords
                 keywords = ["beta", "recruitment", "signup", "apply", "test", "registration"]
-                if any(kw in title.lower() for kw in keywords):
+                if name_match and any(kw in title_lower for kw in keywords):
                     # Check if already logged
                     exists = GameBetaInfo.objects.filter(game=game, signup_link=link).exists()
                     if not exists:

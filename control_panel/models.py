@@ -403,6 +403,9 @@ class Game(models.Model):
             return self.hours_played / self.years_played
         return self.hours_played
 
+    def has_active_beta(self):
+        return self.beta_infos.filter(is_active=True).exists()
+
     def __str__(self):
         return self.name
 
@@ -457,6 +460,7 @@ class WatchlistGame(models.Model):
     ]
     name = models.CharField(max_length=150)
     steam_app_id = models.CharField(max_length=50, blank=True, null=True, help_text="Steam App ID if available")
+    header_image = models.URLField(max_length=500, blank=True, null=True, help_text="Horizontal banner image URL")
     expected_release_date = models.CharField(max_length=100, blank=True, null=True)
     business_model = models.CharField(max_length=50, choices=BUSINESS_MODELS, default='UNKNOWN')
     price_estimate = models.CharField(max_length=50, blank=True, null=True)
@@ -587,6 +591,39 @@ class WatchlistGame(models.Model):
                             self.business_model = 'P2P'
                         self.save()
                         return True
+            except Exception:
+                pass
+
+        # 1. Steam Header construction
+        if self.steam_app_id and not self.header_image:
+            self.header_image = f"https://cdn.cloudflare.steamstatic.com/steam/apps/{self.steam_app_id}/header.jpg"
+            self.save()
+            
+        # 2. Local game cover fallback
+        if not self.header_image:
+            try:
+                local_g = Game.objects.filter(name__iexact=self.name).first()
+                if local_g and local_g.cover_image_url:
+                    self.header_image = local_g.cover_image_url
+                    self.save()
+            except Exception:
+                pass
+                
+        # 3. Wikipedia cover lookup fallback
+        if not self.header_image:
+            try:
+                encoded = urllib.parse.quote(self.name)
+                wiki_url = f"https://en.wikipedia.org/w/api.php?action=query&titles={encoded}&prop=pageimages&format=json&pithumbsize=600"
+                wiki_req = urllib.request.Request(wiki_url, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(wiki_req, timeout=5) as wiki_res:
+                    wiki_data = json.loads(wiki_res.read().decode('utf-8'))
+                pages = wiki_data.get('query', {}).get('pages', {})
+                for pid, pdata in pages.items():
+                    thumb = pdata.get('thumbnail', {})
+                    if thumb and thumb.get('source'):
+                        self.header_image = thumb.get('source')
+                        self.save()
+                        break
             except Exception:
                 pass
         return False
