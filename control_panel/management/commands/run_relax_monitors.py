@@ -85,6 +85,16 @@ class Command(BaseCommand):
                 elif "genshin" in game.name.lower() and "genshin" in title_lower:
                     name_match = True
                 
+                # Exclude crossover comparison articles that mention other watchlisted or library titles
+                if name_match:
+                    from control_panel.models import WatchlistGame, Game
+                    other_names = []
+                    for og in list(WatchlistGame.objects.all()) + list(Game.objects.all()):
+                        if og.name.lower() != game.name.lower() and len(og.name) > 4:
+                            other_names.append(og.name.lower())
+                    if any(other_name in title_lower for other_name in other_names):
+                        name_match = False
+                
                 # Check for beta keywords
                 keywords = ["beta", "recruitment", "signup", "apply", "test", "registration"]
                 if name_match and any(kw in title_lower for kw in keywords):

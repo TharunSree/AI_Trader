@@ -541,12 +541,12 @@ class WatchlistGame(models.Model):
                     
                     # 1. Official Website
                     website = data.get('website')
-                    if website:
+                    if website and not self.official_website:
                         self.official_website = website
                         
                     # 2. System Requirements (Minimum)
                     pc_reqs = data.get('pc_requirements', {}).get('minimum', '')
-                    if pc_reqs:
+                    if pc_reqs and not self.system_requirements:
                         # Convert HTML lists and linebreaks into clean markdown newlines
                         html = pc_reqs
                         html = html.replace('<li>', '\n - ')
@@ -562,7 +562,7 @@ class WatchlistGame(models.Model):
                         
                     # 3. Price Estimate
                     price_overview = data.get('price_overview')
-                    if price_overview:
+                    if price_overview and not self.price_estimate:
                         final_formatted = price_overview.get('final_formatted', '')
                         if final_formatted:
                             self.price_estimate = final_formatted.replace('₹', '').strip()
@@ -572,28 +572,30 @@ class WatchlistGame(models.Model):
                             
                     # 4. Release Date
                     rel_data = data.get('release_date', {})
-                    if rel_data and not rel_data.get('coming_soon'):
-                        date_str = rel_data.get('date', '')
-                        if date_str:
-                            try:
-                                parsed_date = datetime.strptime(date_str, "%d %b, %Y").date()
-                                self.expected_release_date = parsed_date.strftime("%Y-%m-%d")
-                            except Exception:
+                    if rel_data and not self.expected_release_date:
+                        if not rel_data.get('coming_soon'):
+                            date_str = rel_data.get('date', '')
+                            if date_str:
                                 try:
-                                    parsed_date = datetime.strptime(date_str, "%b %d, %Y").date()
+                                    parsed_date = datetime.strptime(date_str, "%d %b, %Y").date()
                                     self.expected_release_date = parsed_date.strftime("%Y-%m-%d")
                                 except Exception:
-                                    self.expected_release_date = date_str
-                    elif rel_data and rel_data.get('coming_soon'):
-                        self.expected_release_date = rel_data.get('date', 'Coming Soon')
+                                    try:
+                                        parsed_date = datetime.strptime(date_str, "%b %d, %Y").date()
+                                        self.expected_release_date = parsed_date.strftime("%Y-%m-%d")
+                                    except Exception:
+                                        self.expected_release_date = date_str
+                        else:
+                            self.expected_release_date = rel_data.get('date', 'Coming Soon')
                         
                     # 5. Business Model
-                    is_free = data.get('is_free', False)
-                    genres = [g.get('description', '').lower() for g in data.get('genres', [])]
-                    if is_free or 'free to play' in genres:
-                        self.business_model = 'F2P'
-                    else:
-                        self.business_model = 'P2P'
+                    if self.business_model in ['UNKNOWN', '']:
+                        is_free = data.get('is_free', False)
+                        genres = [g.get('description', '').lower() for g in data.get('genres', [])]
+                        if is_free or 'free to play' in genres:
+                            self.business_model = 'F2P'
+                        else:
+                            self.business_model = 'P2P'
                         
                     self.save()
                     return True
