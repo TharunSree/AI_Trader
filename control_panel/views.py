@@ -6125,6 +6125,21 @@ def relax_watchlist_view(request):
     upcoming_games = WatchlistGame.objects.all().order_by('expected_release_date')
     budget_games = BudgetWatchlistGame.objects.all().order_by('name')
     
+    # Auto-scout stale prices (older than 3 hours, max 2 games per visit to keep load times instant)
+    from django.utils import timezone
+    from datetime import timedelta
+    stale_limit = timezone.now() - timedelta(hours=3)
+    scouted = 0
+    for bg in budget_games:
+        if scouted >= 2:
+            break
+        if not bg.last_checked_at or bg.last_checked_at < stale_limit:
+            bg.scout_price()
+            scouted += 1
+            
+    # Re-fetch budget_games list to get the updated values
+    budget_games = BudgetWatchlistGame.objects.all().order_by('name')
+    
     # Simple dynamic release countdown calculation
     watchlist_data = []
     for g in upcoming_games:
