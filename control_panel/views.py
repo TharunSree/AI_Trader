@@ -6455,63 +6455,83 @@ def relax_api_process_heartbeat(request):
     process_name = data.get('active_process', '').strip()
     path = data.get('path', '').strip()
     is_running = data.get('is_running', False)
+    steam_app_id = data.get('steam_app_id')
     
-    if is_running and process_name:
-        process_name_clean = process_name.replace('.exe', '').lower()
-        process_name_normalized = " ".join(process_name_clean.split())
-        
-        # Match in Python memory to handle any whitespace/double-space variations
+    if is_running and (process_name or steam_app_id):
         game = None
         
-        # 1. Match by space/dash insensitive alphanumeric title (e.g. "cyberpunk2077" matches "Cyberpunk 2077")
-        def normalize_name(n):
-            import re
-            return re.sub(r'[^a-zA-Z0-9]', '', n.lower().strip()) if n else ""
+        # 1. Match by Steam App ID if provided in heartbeat
+        if steam_app_id:
+            game = active_games.filter(steam_app_id=str(steam_app_id)).first()
+            if not game:
+                # Auto-discover and create game details from Steam Store API!
+                try:
+                    name, cover, bg = fetch_steam_details(steam_app_id)
+                    if name:
+                        game = Game.objects.create(
+                            name=name,
+                            steam_app_id=str(steam_app_id),
+                            cover_image_url=cover,
+                            animated_bg_url=bg,
+                            hours_played=0.0
+                        )
+                except Exception as discover_err:
+                    logger.error(f"Auto-discovery failed for Steam AppID {steam_app_id}: {discover_err}")
+                    
+        # 2. Match by process name/path if not resolved by Steam ID
+        if not game and process_name:
+            process_name_clean = process_name.replace('.exe', '').lower()
+            process_name_normalized = " ".join(process_name_clean.split())
             
-        process_normalized = normalize_name(process_name_clean)
-        for g in active_games:
-            if normalize_name(g.name) == process_normalized:
-                game = g
-                break
+            # Match by space/dash insensitive alphanumeric title (e.g. "cyberpunk2077" matches "Cyberpunk 2077")
+            def normalize_name(n):
+                import re
+                return re.sub(r'[^a-zA-Z0-9]', '', n.lower().strip()) if n else ""
                 
-        # 2. Check specific process mapping aliases (e.g. openverseclient -> Wuthering Waves)
-        if not game:
-            if 'openverseclient' in process_name_clean or 'wuwa' in process_name_clean or 'client' in process_name_clean or 'wuthering' in process_name_clean:
-                for g in active_games:
-                    g_norm = g.name.lower()
-                    if 'wuthering' in g_norm or 'wuwa' in g_norm:
-                        game = g
-                        break
-            elif 'genshin' in process_name_clean:
-                for g in active_games:
-                    g_norm = g.name.lower()
-                    if 'genshin' in g_norm:
-                        game = g
-                        break
-            elif 'neverness' in process_name_clean or 'nte' in process_name_clean:
-                for g in active_games:
-                    g_norm = g.name.lower()
-                    if 'neverness' in g_norm or 'nte' in g_norm:
-                        game = g
-                        break
-
-        # 3. Match by path
-        if not game and path:
-            game = active_games.filter(local_path=path).first()
-            
-        # 4. Fallback default lookup
-        if not game:
-            game = active_games.filter(name__iexact=process_name_clean).first()
-            
-        # 5. Create new game entry if completely missing
-        if not game:
-            # Capitalize each word nicely for the new entry name
-            new_game_name = " ".join([w.capitalize() for w in process_name_clean.replace('_', ' ').split()])
-            game = Game.objects.create(
-                name=new_game_name,
-                local_path=path,
-                hours_played=0.0
-            )
+            process_normalized = normalize_name(process_name_clean)
+            for g in active_games:
+                if normalize_name(g.name) == process_normalized:
+                    game = g
+                    break
+                    
+            # Check specific process mapping aliases (e.g. openverseclient -> Wuthering Waves)
+            if not game:
+                if 'openverseclient' in process_name_clean or 'wuwa' in process_name_clean or 'client' in process_name_clean or 'wuthering' in process_name_clean:
+                    for g in active_games:
+                        g_norm = g.name.lower()
+                        if 'wuthering' in g_norm or 'wuwa' in g_norm:
+                            game = g
+                            break
+                elif 'genshin' in process_name_clean:
+                    for g in active_games:
+                        g_norm = g.name.lower()
+                        if 'genshin' in g_norm:
+                            game = g
+                            break
+                elif 'neverness' in process_name_clean or 'nte' in process_name_clean:
+                    for g in active_games:
+                        g_norm = g.name.lower()
+                        if 'neverness' in g_norm or 'nte' in g_norm:
+                            game = g
+                            break
+    
+            # Match by path
+            if not game and path:
+                game = active_games.filter(local_path=path).first()
+                
+            # Fallback default lookup
+            if not game:
+                game = active_games.filter(name__iexact=process_name_clean).first()
+                
+            # Create new game entry if completely missing
+            if not game:
+                # Capitalize each word nicely for the new entry name
+                new_game_name = " ".join([w.capitalize() for w in process_name_clean.replace('_', ' ').split()])
+                game = Game.objects.create(
+                    name=new_game_name,
+                    local_path=path,
+                    hours_played=0.0
+                )
             
         # If this game is currently ignored (user stopped session manually but game is still running), skip tracking updates
         if game and cache.get(f"ignore_game_tracking_{game.id}"):

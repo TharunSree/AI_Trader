@@ -125,11 +125,6 @@ def heartbeat_worker():
             # 1. Pull latest game list from Django
             fetch_monitored_list()
             
-            # If no games exist, sleep and skip scanning to save RAM/CPU!
-            if not monitored_games:
-                time.sleep(3)
-                continue
-                
             active_title = get_active_window_title().lower()
             active_title_clean = " ".join(active_title.split())
             
@@ -139,10 +134,21 @@ def heartbeat_worker():
             active_process = ""
             active_path = ""
             is_running = False
+            steam_appid_running = 0
+            
+            # Check if a Steam game is running via Windows Registry
+            if sys.platform == 'win32':
+                try:
+                    import winreg
+                    key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam\ActiveProcess")
+                    val, _ = winreg.QueryValueEx(key, "RunningAppId")
+                    steam_appid_running = int(val)
+                except Exception:
+                    pass
             
             # Step 1: High-efficiency foreground window title matching (0% RAM/CPU)
             matched_game = None
-            if not is_noise_window:
+            if not is_noise_window and monitored_games:
                 for game in monitored_games:
                     name_clean = " ".join(game['name'].lower().split())
                     # Match title fragments (e.g. "wuthering waves", "genshin impact")
@@ -154,7 +160,11 @@ def heartbeat_worker():
                 # Foreground window title matched the game directly!
                 active_process = matched_game['executables'][0] if matched_game['executables'] else (matched_game['name'].lower() + '.exe')
                 is_running = True
-            else:
+            elif steam_appid_running > 0:
+                # Fallback to Steam Registry detection! This detects ANY running Steam game!
+                active_process = f"steam_{steam_appid_running}"
+                is_running = True
+            elif monitored_games:
                 # Step 2: Fallback to scanning running processes, but only once every 12 seconds to save RAM!
                 if time.time() - last_tasklist_run >= 12:
                     running_executables = get_running_executables()
@@ -176,7 +186,7 @@ def heartbeat_worker():
                 print(f"[STATUS] Focus state changed to: {status_str} | Title: '{active_title}'")
                 last_state = is_running
                 last_process = active_process
-
+ 
             # Resolve our local LAN IP to auto-register with Django
             import socket
             local_ip = ""
@@ -187,7 +197,7 @@ def heartbeat_worker():
                 s.close()
             except Exception:
                 pass
-
+ 
             # If we found an active game, report it
             if is_running:
                 payload = {
@@ -195,6 +205,7 @@ def heartbeat_worker():
                     "path": active_path,
                     "window_title": active_title,
                     "is_running": True,
+                    "steam_app_id": steam_appid_running if steam_appid_running > 0 else None,
                     "local_ip": local_ip
                 }
             else:
@@ -204,6 +215,7 @@ def heartbeat_worker():
                     "path": "",
                     "window_title": "",
                     "is_running": False,
+                    "steam_app_id": None,
                     "local_ip": local_ip
                 }
 
