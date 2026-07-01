@@ -165,8 +165,8 @@ def heartbeat_worker():
                 active_process = f"steam_{steam_appid_running}"
                 is_running = True
             elif monitored_games:
-                # Step 2: Fallback to scanning running processes, but only once every 12 seconds to save RAM!
-                if time.time() - last_tasklist_run >= 12:
+                # Step 2: Fallback to scanning running processes, but only once every 3 seconds to save RAM!
+                if time.time() - last_tasklist_run >= 3:
                     running_executables = get_running_executables()
                     last_tasklist_run = time.time()
                 

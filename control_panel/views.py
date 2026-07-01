@@ -6434,9 +6434,13 @@ def relax_api_process_heartbeat(request):
         # Add common aliases for major games
         g_lower = g.name.lower()
         if 'wuthering' in g_lower or 'wuwa' in g_lower:
-            exes.extend(['openverseclient.exe', 'client.exe', 'wuwa.exe'])
+            exes.extend(['openverseclient.exe', 'client.exe', 'wuwa.exe', 'client-win64-shipping.exe'])
         elif 'genshin' in g_lower:
             exes.extend(['genshinimpact.exe', 'genshin.exe'])
+        elif 'star rail' in g_lower or 'honkai' in g_lower:
+            exes.extend(['starrail.exe', 'honkai.exe'])
+        elif 'zenless' in g_lower or 'zzz' in g_lower:
+            exes.extend(['zenlesszonezero.exe', 'zzz.exe'])
         elif 'neverness' in g_lower or 'nte' in g_lower:
             exes.extend(['nte.exe', 'nevernesstoeverness.exe'])
             
@@ -6506,6 +6510,18 @@ def relax_api_process_heartbeat(request):
                     for g in active_games:
                         g_norm = g.name.lower()
                         if 'genshin' in g_norm:
+                            game = g
+                            break
+                elif 'starrail' in process_name_clean or 'star_rail' in process_name_clean or 'star rail' in process_name_clean:
+                    for g in active_games:
+                        g_norm = g.name.lower()
+                        if 'star rail' in g_norm or 'honkai' in g_norm:
+                            game = g
+                            break
+                elif 'zenless' in process_name_clean or 'zzz' in process_name_clean:
+                    for g in active_games:
+                        g_norm = g.name.lower()
+                        if 'zenless' in g_norm or 'zzz' in g_norm:
                             game = g
                             break
                 elif 'neverness' in process_name_clean or 'nte' in process_name_clean:
