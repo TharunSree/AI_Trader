@@ -217,6 +217,11 @@ def heartbeat_worker():
             with urllib.request.urlopen(req, timeout=3) as res:
                 res_data = json.loads(res.read().decode('utf-8'))
                 
+                # Update monitored games list in real-time from heartbeat response
+                if 'monitored_games' in res_data:
+                    global monitored_games
+                    monitored_games = res_data['monitored_games']
+                
                 # Check for pull-based pending launch triggers returned by Django (firewall-proof fallback!)
                 pending = res_data.get('pending_launches', [])
                 for pl in pending:

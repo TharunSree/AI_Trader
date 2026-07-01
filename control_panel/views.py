@@ -6419,30 +6419,33 @@ def relax_api_process_heartbeat(request):
             pass
 
     active_games = Game.objects.filter(is_active=True)
+    
+    # Always build the list of monitored games so both GET and POST requests have it
+    monitored_games = []
+    for g in active_games:
+        exes = []
+        if g.local_path:
+            exe = os.path.basename(g.local_path).lower()
+            if exe.endswith('.exe'):
+                exes.append(exe)
+        clean_name = g.name.replace(' ', '').lower() + '.exe'
+        exes.append(clean_name)
+        
+        # Add common aliases for major games
+        g_lower = g.name.lower()
+        if 'wuthering' in g_lower or 'wuwa' in g_lower:
+            exes.extend(['openverseclient.exe', 'client.exe', 'wuwa.exe'])
+        elif 'genshin' in g_lower:
+            exes.extend(['genshinimpact.exe', 'genshin.exe'])
+        elif 'neverness' in g_lower or 'nte' in g_lower:
+            exes.extend(['nte.exe', 'nevernesstoeverness.exe'])
+            
+        monitored_games.append({
+            'name': g.name,
+            'executables': list(set(exes))
+        })
 
     if request.method == 'GET':
-        monitored_games = []
-        for g in active_games:
-            exes = []
-            if g.local_path:
-                exe = os.path.basename(g.local_path).lower()
-                if exe.endswith('.exe'):
-                    exes.append(exe)
-            clean_name = g.name.replace(' ', '').lower() + '.exe'
-            exes.append(clean_name)
-            
-            # Add common aliases for major games
-            g_lower = g.name.lower()
-            if 'wuthering' in g_lower or 'wuwa' in g_lower:
-                exes.extend(['openverseclient.exe', 'client.exe', 'wuwa.exe'])
-            elif 'genshin' in g_lower:
-                exes.extend(['genshinimpact.exe', 'genshin.exe'])
-                
-            monitored_games.append({
-                'name': g.name,
-                'executables': list(set(exes))
-            })
-            
         response_data = {'monitored_games': monitored_games}
         if pending_launches:
             response_data['pending_launches'] = pending_launches
@@ -6485,6 +6488,12 @@ def relax_api_process_heartbeat(request):
                     if 'genshin' in g_norm:
                         game = g
                         break
+            elif 'neverness' in process_name_clean or 'nte' in process_name_clean:
+                for g in active_games:
+                    g_norm = g.name.lower()
+                    if 'neverness' in g_norm or 'nte' in g_norm:
+                        game = g
+                        break
 
         # 3. Match by path
         if not game and path:
@@ -6506,7 +6515,12 @@ def relax_api_process_heartbeat(request):
             
         # If this game is currently ignored (user stopped session manually but game is still running), skip tracking updates
         if game and cache.get(f"ignore_game_tracking_{game.id}"):
-            response_data = {'status': 'ignored', 'game_id': game.id, 'game_name': game.name}
+            response_data = {
+                'status': 'ignored', 
+                'game_id': game.id, 
+                'game_name': game.name,
+                'monitored_games': monitored_games
+            }
             if pending_launches:
                 response_data['pending_launches'] = pending_launches
             return JsonResponse(response_data)
@@ -6529,7 +6543,12 @@ def relax_api_process_heartbeat(request):
         # Update last active timestamp in cache
         cache.set(f"game_session_active_{session.id}", timezone.now(), 600)  # 10 minute cache TTL
             
-        response_data = {'status': 'active', 'game_id': game.id, 'game_name': game.name}
+        response_data = {
+            'status': 'active', 
+            'game_id': game.id, 
+            'game_name': game.name,
+            'monitored_games': monitored_games
+        }
         if pending_launches:
             response_data['pending_launches'] = pending_launches
         return JsonResponse(response_data)
@@ -6562,7 +6581,10 @@ def relax_api_process_heartbeat(request):
             # Clean up cache
             cache.delete(f"game_session_active_{session.id}")
             
-        response_data = {'status': 'inactive'}
+        response_data = {
+            'status': 'inactive',
+            'monitored_games': monitored_games
+        }
         if pending_launches:
             response_data['pending_launches'] = pending_launches
         return JsonResponse(response_data)
