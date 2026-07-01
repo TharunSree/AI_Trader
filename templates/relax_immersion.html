@@ -207,15 +207,15 @@
         max-width: 540px;
         padding: 45px;
         border-radius: 36px;
-        border: 1px solid rgba(234, 179, 8, 0.35);
+        border: 1px solid rgba(34, 211, 238, 0.35);
         background: rgba(14, 8, 14, 0.85);
-        box-shadow: 0 0 60px rgba(234, 179, 8, 0.2);
+        box-shadow: 0 0 60px rgba(34, 211, 238, 0.2);
         animation: alertPulse 2.5s infinite alternate;
     }
 
     @keyframes alertPulse {
-        from { box-shadow: 0 0 35px rgba(234, 179, 8, 0.15); }
-        to { box-shadow: 0 0 65px rgba(234, 179, 8, 0.35); }
+        from { box-shadow: 0 0 35px rgba(34, 211, 238, 0.15); }
+        to { box-shadow: 0 0 65px rgba(34, 211, 238, 0.35); }
     }
 
     /* Glitch Transition overlay */
@@ -344,8 +344,8 @@
 
             <!-- Right: Actions -->
             <div class="d-flex gap-2">
-                <button class="btn btn-hud-preset text-warning border-warning/30 px-3.5 py-2 font-mono text-xs uppercase tracking-wider" onclick="triggerRestModeManual()">
-                    <i class="fas fa-coffee me-1 text-warning"></i> Cooldown
+                <button class="btn btn-hud-preset text-info border-info/30 px-3.5 py-2 font-mono text-xs uppercase tracking-wider" onclick="triggerRestModeManual()">
+                    <i class="fas fa-coffee me-1 text-info"></i> Cooldown
                 </button>
                 <button class="btn btn-stop-session px-4 py-2 font-mono text-xs uppercase tracking-wider" onclick="stopPlayingSession()">
                     <i class="fas fa-power-off me-1.5"></i> Stop Session
@@ -358,10 +358,10 @@
 <!-- Fullscreen Pro-Gamer Rest alert Overlay -->
 <div class="rest-overlay" id="rest-overlay" style="background: linear-gradient(135deg, #0d091a 0%, #050308 100%);">
     <div class="rest-alert-card text-center">
-        <div class="avatar-lg bg-warning/10 rounded-circle d-inline-flex align-items-center justify-content-center p-4 border border-warning/20 mb-4">
-            <i class="fas fa-mug-hot text-warning text-5xl animate-bounce"></i>
+        <div class="avatar-lg bg-info/10 rounded-circle d-inline-flex align-items-center justify-content-center p-4 border border-info/20 mb-4">
+            <i class="fas fa-mug-hot text-info text-5xl animate-bounce"></i>
         </div>
-        <h2 id="rest-title" class="text-warning font-bold uppercase tracking-widest mb-1 font-mono" style="font-size: 1.5rem; text-shadow: 0 0 12px rgba(234,179,8,0.4);">
+        <h2 id="rest-title" class="text-info font-bold uppercase tracking-widest mb-1 font-mono" style="font-size: 1.5rem; text-shadow: 0 0 12px rgba(34, 211, 238, 0.4);">
             REST INTERVAL ACTIVE
         </h2>
         <p id="rest-subtitle" class="text-slate-400 font-mono text-[9px] uppercase tracking-wider mb-4">
@@ -369,7 +369,7 @@
         </p>
         
         <!-- Cooldown Timer display -->
-        <div id="rest-timer-display" class="hud-timer-digital neon-text-amber mb-4" style="font-size: 5.5rem;">
+        <div id="rest-timer-display" class="hud-timer-digital neon-text-cyan mb-4" style="font-size: 5.5rem;">
             30:00
         </div>
         
@@ -377,7 +377,7 @@
             Step away from the screen, stretch, hydrate, and rest your eyes. A 30-minute break is highly recommended for focus normalization.
         </p>
         <div class="d-flex gap-3 justify-content-center">
-            <button id="btn-resume-run" class="btn btn-hud-preset px-4 font-mono text-xs uppercase" onclick="skipRest()" style="border-color: rgba(234,179,8,0.4); color: #eab308;">
+            <button id="btn-resume-run" class="btn btn-hud-preset px-4 font-mono text-xs uppercase" onclick="skipRest()" style="border-color: rgba(34, 211, 238, 0.4); color: #22d3ee;">
                 <i class="fas fa-forward me-1.5"></i> Skip Cooldown
             </button>
             <button class="btn btn-stop-session px-4 font-mono text-xs uppercase" onclick="stopPlayingSession()">
@@ -619,15 +619,15 @@
             
             // Restore default rest card text styling
             document.getElementById('rest-title').innerText = "REST INTERVAL ACTIVE";
-            document.getElementById('rest-title').className = "text-warning font-bold uppercase tracking-widest mb-1 font-mono";
+            document.getElementById('rest-title').className = "text-info font-bold uppercase tracking-widest mb-1 font-mono";
             document.getElementById('rest-subtitle').innerText = "Long Session Protection: Cooldown Active";
-            document.getElementById('rest-timer-display').className = "hud-timer-digital neon-text-amber mb-4";
+            document.getElementById('rest-timer-display').className = "hud-timer-digital neon-text-cyan mb-4";
             
             const resumeBtn = document.getElementById('btn-resume-run');
             resumeBtn.innerHTML = '<i class="fas fa-forward me-1.5"></i> Skip Cooldown';
             resumeBtn.className = "btn btn-hud-preset px-4 font-mono text-xs uppercase";
-            resumeBtn.style.color = "#eab308";
-            resumeBtn.style.borderColor = "rgba(234, 179, 8, 0.4)";
+            resumeBtn.style.color = "#22d3ee";
+            resumeBtn.style.borderColor = "rgba(34, 211, 238, 0.4)";
         });
     }
 
