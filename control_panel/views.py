@@ -6441,13 +6441,26 @@ def relax_api_process_heartbeat(request):
                 is_active=False,
                 end_time=timezone.now()
             )
-            GamePlaytimeSession.objects.create(game=game, is_active=True)
+            session = GamePlaytimeSession.objects.create(game=game, is_active=True)
+            
+        # Update last active timestamp in cache
+        from django.core.cache import cache
+        cache.set(f"game_session_active_{session.id}", timezone.now(), 600)  # 10 minute cache TTL
             
         return JsonResponse({'status': 'active', 'game_id': game.id, 'game_name': game.name})
     else:
-        # Close any active session
+        # Close any active session, but only if they have been inactive for more than 180 seconds (3 mins grace period)
+        from django.core.cache import cache
         active_sessions = GamePlaytimeSession.objects.filter(is_active=True)
         for session in active_sessions:
+            last_active = cache.get(f"game_session_active_{session.id}")
+            if last_active:
+                inactive_duration = (timezone.now() - last_active).total_seconds()
+                if inactive_duration < 180:
+                    # Still in grace period, keep session active
+                    continue
+            
+            # Exceeded grace period, close session
             session.is_active = False
             session.end_time = timezone.now()
             duration = (session.end_time - session.start_time).total_seconds()
@@ -6457,6 +6470,9 @@ def relax_api_process_heartbeat(request):
             game = session.game
             game.hours_played += duration / 3600.0
             game.save()
+            
+            # Clean up cache
+            cache.delete(f"game_session_active_{session.id}")
             
         return JsonResponse({'status': 'inactive'})
 

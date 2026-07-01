@@ -53,7 +53,7 @@
         width: 100%;
         height: 100%;
         object-fit: cover;
-        filter: brightness(0.22) blur(10px) saturate(130%);
+        filter: brightness(0.25) blur(6px) saturate(120%);
         transition: opacity 1.5s ease-in-out;
         z-index: 1;
     }
@@ -65,7 +65,7 @@
         height: 100%;
         background-size: cover;
         background-position: center;
-        filter: brightness(0.2) blur(12px) saturate(120%);
+        filter: brightness(0.22) blur(8px) saturate(110%);
         transition: background-image 1.5s ease-in-out;
         z-index: 1;
     }
@@ -77,74 +77,74 @@
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        padding: 40px;
+        padding: 30px;
         color: #ffffff;
-        background: radial-gradient(circle at center, transparent 20%, rgba(3, 2, 6, 0.85) 100%);
+        background: radial-gradient(circle at center, transparent 30%, rgba(3, 2, 6, 0.8) 100%);
     }
 
-    /* High-fidelity Envato Glassmorphism Panels */
-    .envato-hud-card {
-        background: rgba(10, 8, 16, 0.45);
-        backdrop-filter: blur(25px) saturate(210%);
-        -webkit-backdrop-filter: blur(25px) saturate(210%);
+    /* Premium Sleek HUD Header */
+    .hud-header-bar {
+        background: rgba(10, 8, 16, 0.5);
+        backdrop-filter: blur(25px) saturate(180%);
+        -webkit-backdrop-filter: blur(25px) saturate(180%);
         border: 1px solid rgba(255, 255, 255, 0.05);
-        box-shadow: 0 15px 45px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.05);
-        border-radius: 28px;
-        padding: 25px;
-        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        border-radius: 20px;
+        padding: 15px 25px;
     }
 
-    .envato-hud-card:hover {
-        border-color: rgba(168, 85, 247, 0.25);
-        box-shadow: 0 20px 50px rgba(168, 85, 247, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    /* Minimalist Digital Display (Stopwatch/HUD style) */
+    .hud-center-chronometer {
+        text-align: center;
+        padding: 20px;
+        border-radius: 24px;
+        background: rgba(10, 8, 16, 0.35);
+        backdrop-filter: blur(15px);
+        border: 1px solid rgba(255, 255, 255, 0.03);
+        max-width: 480px;
+        margin: 0 auto;
     }
 
-    /* Neon Digital display fonts and glows */
     .hud-timer-digital {
         font-family: 'JetBrains Mono', 'Courier New', monospace;
         letter-spacing: -2px;
         font-weight: 700;
+        font-size: 3.8rem;
+        line-height: 1;
     }
 
     .neon-text-cyan {
         color: #22d3ee;
-        text-shadow: 0 0 15px rgba(34, 211, 238, 0.4), 0 0 30px rgba(34, 211, 238, 0.1);
+        text-shadow: 0 0 15px rgba(34, 211, 238, 0.45);
     }
 
     .neon-text-purple {
         color: #c084fc;
-        text-shadow: 0 0 15px rgba(192, 132, 252, 0.4), 0 0 30px rgba(192, 132, 252, 0.1);
+        text-shadow: 0 0 15px rgba(192, 132, 252, 0.45);
     }
 
-    .neon-border-glow-purple {
-        border: 1px solid rgba(168, 85, 247, 0.4) !important;
-        box-shadow: 0 0 20px rgba(168, 85, 247, 0.15) !important;
-    }
-
-    /* Buttons and controls */
-    .btn-stop-session {
-        background: linear-gradient(135deg, #f43f5e, #e11d48) !important;
-        border: none !important;
-        color: #ffffff !important;
-        box-shadow: 0 4px 20px rgba(244, 63, 94, 0.35);
-        border-radius: 50px;
-        font-weight: 700;
-        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .btn-stop-session:hover {
-        transform: translateY(-2px) scale(1.03);
-        box-shadow: 0 8px 30px rgba(244, 63, 94, 0.55);
+    /* Media-Bar Style Bottom Tray */
+    .hud-bottom-bar {
+        background: rgba(10, 8, 16, 0.6);
+        backdrop-filter: blur(25px) saturate(200%);
+        -webkit-backdrop-filter: blur(25px) saturate(200%);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
+        border-radius: 24px;
+        padding: 15px 30px;
+        width: 100%;
+        max-width: 1000px;
+        margin: 0 auto;
     }
 
     .btn-hud-preset {
-        background: rgba(255, 255, 255, 0.04);
+        background: rgba(255, 255, 255, 0.03);
         border: 1px solid rgba(255, 255, 255, 0.08);
         color: #94a3b8;
         font-family: 'JetBrains Mono', monospace;
-        font-size: 11px;
-        border-radius: 50px;
-        padding: 8px 18px;
+        font-size: 10px;
+        border-radius: 30px;
+        padding: 6px 14px;
         transition: all 0.25s ease;
     }
 
@@ -152,7 +152,24 @@
         background: rgba(34, 211, 238, 0.12);
         border-color: #22d3ee;
         color: #22d3ee;
-        box-shadow: 0 0 12px rgba(34, 211, 238, 0.25);
+        box-shadow: 0 0 10px rgba(34, 211, 238, 0.2);
+    }
+
+    .btn-stop-session {
+        background: linear-gradient(135deg, #f43f5e, #be123c) !important;
+        border: none !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 15px rgba(244, 63, 94, 0.3);
+        border-radius: 30px;
+        font-weight: 700;
+        font-size: 11px;
+        letter-spacing: 0.5px;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .btn-stop-session:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(244, 63, 94, 0.5);
     }
 
     /* Rest overlays */
@@ -204,73 +221,67 @@
 <div class="immersion-container">
     
     <!-- Top HUD Bar -->
-    <div class="d-flex justify-content-between align-items-center w-100 envato-hud-card py-3 px-4">
+    <div class="d-flex justify-content-between align-items-center w-100 hud-header-bar">
         <div class="d-flex align-items-center gap-3">
             <div class="position-relative d-flex align-items-center justify-content-center">
-                <span class="position-absolute w-3 h-3 rounded-full bg-success animate-ping"></span>
-                <span class="w-2.5 h-2.5 rounded-full bg-success"></span>
+                <span class="position-absolute w-2 h-2 rounded-full bg-success animate-ping"></span>
+                <span class="w-1.5 h-1.5 rounded-full bg-success"></span>
             </div>
             <!-- Dynamic Mini Thumbnail -->
-            <img id="active-game-thumb" src="" class="rounded animate-pulse" style="width: 28px; height: 38px; object-fit: cover; border: 1px solid rgba(255,255,255,0.15); display: none;">
+            <img id="active-game-thumb" src="" class="rounded" style="width: 20px; height: 28px; object-fit: cover; border: 1px solid rgba(255,255,255,0.15); display: none;">
             
-            <h1 class="h5 font-mono font-bold uppercase tracking-widest text-slate-100 mb-0" id="active-game-name">
+            <h1 class="font-mono font-bold uppercase tracking-widest text-slate-100 mb-0" id="active-game-name" style="font-size: 11px;">
                 Monitoring Session...
             </h1>
         </div>
-        <button class="btn btn-sm btn-outline-light rounded-pill px-4 font-mono text-xs uppercase tracking-wider" style="border-color: rgba(255,255,255,0.15);" onclick="exitImmersion()">
+        <button class="btn btn-xs btn-outline-light rounded-pill px-3 font-mono text-[9px] uppercase tracking-wider" style="border-color: rgba(255,255,255,0.15);" onclick="exitImmersion()">
             <i class="fas fa-sign-out-alt me-1.5"></i> Exit HUD
         </button>
     </div>
 
     <!-- Center Section: Giant Timers -->
-    <div class="row justify-content-center my-auto w-100 gap-4">
-        <!-- Play Time Card -->
-        <div class="col-md-5">
-            <div class="envato-hud-card text-center p-5">
-                <h6 class="text-slate-400 font-mono text-xs uppercase tracking-widest mb-3">
-                    <i class="fas fa-clock text-cyan-400 me-2"></i> Playtime Elapsed
-                </h6>
-                <div class="h1 hud-timer-digital neon-text-cyan my-2" id="time-played" style="font-size: 4.8rem;">00:00:00</div>
+    <div class="hud-center-chronometer">
+        <div class="d-flex flex-column gap-3 align-items-center">
+            <div>
+                <span class="text-slate-400 font-mono text-[10px] uppercase tracking-widest block mb-1">Elapsed Playtime</span>
+                <div class="hud-timer-digital neon-text-cyan" id="time-played">00:00:00</div>
             </div>
-        </div>
-
-        <!-- Limit Time Card -->
-        <div class="col-md-5" id="time-left-container" style="display: none;">
-            <div class="envato-hud-card text-center p-5 neon-border-glow-purple">
-                <h6 class="text-slate-400 font-mono text-xs uppercase tracking-widest mb-3">
-                    <i class="fas fa-hourglass-half text-purple-400 me-2"></i> Session Time Left
-                </h6>
-                <div class="h1 hud-timer-digital neon-text-purple my-2" id="time-left" style="font-size: 4.8rem;">00:00</div>
+            
+            <div id="time-left-container" style="display: none; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 12px; width: 100%;">
+                <span class="text-slate-400 font-mono text-[10px] uppercase tracking-widest block mb-1">Session Limit Remaining</span>
+                <div class="hud-timer-digital neon-text-purple" id="time-left" style="font-size: 2.2rem;">00:00</div>
             </div>
         </div>
     </div>
 
     <!-- Bottom Controls Tray -->
-    <div class="row justify-content-center w-100">
-        <div class="col-xl-8">
-            <div class="envato-hud-card p-4">
-                <div class="row align-items-center justify-content-between">
-                    <!-- Left: Presets -->
-                    <div class="col-md-7 mb-3 mb-md-0">
-                        <h6 class="text-slate-400 font-mono text-xs uppercase tracking-widest mb-3">
-                            <i class="fas fa-bell text-slate-500 me-1.5"></i> Set Alert Reminder Limit
-                        </h6>
-                        <div class="d-flex gap-2 flex-wrap" id="preset-controls">
-                            <button class="btn btn-hud-preset" onclick="setTimerLimit(15)">15 Mins</button>
-                            <button class="btn btn-hud-preset" onclick="setTimerLimit(30)">30 Mins</button>
-                            <button class="btn btn-hud-preset text-purple-400" onclick="setTimerLimit(60)">1 Hour</button>
-                            <button class="btn btn-hud-preset text-purple-400" onclick="setTimerLimit(120)">2 Hours</button>
-                            <button class="btn btn-hud-preset active" onclick="setTimerLimit(0)">Unlimited</button>
-                        </div>
-                    </div>
-
-                    <!-- Right: Stop Actions -->
-                    <div class="col-md-4 text-md-right">
-                        <button class="btn btn-stop-session px-5 py-3 font-mono text-xs uppercase tracking-widest w-100" onclick="stopPlayingSession()">
-                            <i class="fas fa-power-off me-2"></i> Stop Session
-                        </button>
-                    </div>
+    <div class="hud-bottom-bar">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <!-- Left: Preset alert buttons -->
+            <div class="d-flex align-items-center gap-3">
+                <span class="text-slate-400 font-mono text-[10px] uppercase tracking-widest">
+                    <i class="fas fa-bell me-1 text-slate-500"></i> Alert Limit:
+                </span>
+                <div class="d-flex gap-1.5" id="preset-controls">
+                    <button class="btn btn-hud-preset" onclick="setTimerLimit(15)">15m</button>
+                    <button class="btn btn-hud-preset" onclick="setTimerLimit(30)">30m</button>
+                    <button class="btn btn-hud-preset text-purple-400" onclick="setTimerLimit(60)">1h</button>
+                    <button class="btn btn-hud-preset text-purple-400" onclick="setTimerLimit(120)">2h</button>
+                    <button class="btn btn-hud-preset active" onclick="setTimerLimit(0)">None</button>
                 </div>
+                
+                <!-- Custom minutes input -->
+                <div class="d-flex align-items-center gap-1.5 border-l border-slate-800 pl-3">
+                    <input type="number" id="custom-minutes" class="form-control form-control-sm text-center font-mono py-0.5" style="width: 60px; height: 26px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: white; border-radius: 50px; font-size: 10px;" placeholder="Mins">
+                    <button class="btn btn-hud-preset py-1 px-2.5 font-mono text-[9px] uppercase font-bold" onclick="setCustomLimit()">Set</button>
+                </div>
+            </div>
+
+            <!-- Right: Stop Session -->
+            <div>
+                <button class="btn btn-stop-session px-4 py-2 font-mono text-xs uppercase tracking-wider" onclick="stopPlayingSession()">
+                    <i class="fas fa-power-off me-1.5"></i> Stop Session
+                </button>
             </div>
         </div>
     </div>
@@ -304,6 +315,7 @@
     let elapsedSeconds = 0;
     let isOverlayActive = false;
     let updateIntervalId = null;
+    let lastBackdropPath = ""; // Cache backdrop path to prevent reloading/blinking every second
 
     function formatTime(totalSeconds) {
         const hrs = Math.floor(totalSeconds / 3600);
@@ -338,35 +350,38 @@
                     if (!thumbPath.startsWith('http')) {
                         thumbPath = `{% url 'serve_local_file' %}?path=${encodeURIComponent(thumbPath)}`;
                     }
-                    thumbEl.src = thumbPath;
+                    if (thumbEl.src !== thumbPath) {
+                        thumbEl.src = thumbPath;
+                    }
                     thumbEl.style.display = 'block';
                 } else {
                     thumbEl.style.display = 'none';
                 }
 
-                // Handle backdrop dynamic image or video loop
+                // Handle backdrop dynamic image or video loop (avoiding reload blink)
                 if (data.animated_bg_url) {
                     let path = data.animated_bg_url;
                     if (!path.startsWith('http')) {
                         path = `{% url 'serve_local_file' %}?path=${encodeURIComponent(path)}`;
                     }
                     
-                    const isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.webm') || path.toLowerCase().endsWith('.mkv') || path.toLowerCase().endsWith('.mov');
-                    const videoEl = document.getElementById('backdrop-video');
-                    const imgEl = document.getElementById('backdrop-image');
+                    if (path !== lastBackdropPath) {
+                        lastBackdropPath = path;
+                        const isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.webm') || path.toLowerCase().endsWith('.mkv') || path.toLowerCase().endsWith('.mov');
+                        const videoEl = document.getElementById('backdrop-video');
+                        const imgEl = document.getElementById('backdrop-image');
 
-                    if (isVideo) {
-                        if (videoEl.src !== path) {
+                        if (isVideo) {
                             videoEl.src = path;
                             videoEl.load();
                             videoEl.play().catch(e => console.log("Video autoplay blocked/failed:", e));
+                            videoEl.style.display = 'block';
+                            imgEl.style.display = 'none';
+                        } else {
+                            videoEl.style.display = 'none';
+                            imgEl.style.display = 'block';
+                            imgEl.style.backgroundImage = `url('${path}')`;
                         }
-                        videoEl.style.display = 'block';
-                        imgEl.style.display = 'none';
-                    } else {
-                        videoEl.style.display = 'none';
-                        imgEl.style.display = 'block';
-                        imgEl.style.backgroundImage = `url('${path}')`;
                     }
                 }
 
@@ -384,11 +399,23 @@
                     const timeLeftSecs = limitSecs - elapsedSeconds;
                     document.getElementById('time-left').innerText = formatTimeLeft(timeLeftSecs);
 
+                    // Update preset button active states including custom settings
+                    const buttons = document.querySelectorAll('#preset-controls button');
+                    buttons.forEach(btn => btn.classList.remove('active'));
+                    if (activeLimitMinutes === 15) buttons[0].classList.add('active');
+                    else if (activeLimitMinutes === 30) buttons[1].classList.add('active');
+                    else if (activeLimitMinutes === 60) buttons[2].classList.add('active');
+                    else if (activeLimitMinutes === 120) buttons[3].classList.add('active');
+
                     if (timeLeftSecs <= 0 && !isOverlayActive) {
                         triggerRestOverlay();
                     }
                 } else {
                     timeContainer.style.display = 'none';
+                    const buttons = document.querySelectorAll('#preset-controls button');
+                    buttons.forEach(btn => btn.classList.remove('active'));
+                    buttons[4].classList.add('active');
+                    
                     if (elapsedSeconds >= 7200 && !isOverlayActive) {
                         triggerRestOverlay();
                     }
@@ -409,6 +436,16 @@
         setTimerLimit(newLimit);
     }
 
+    function setCustomLimit() {
+        const inputVal = document.getElementById('custom-minutes').value;
+        const minutes = parseInt(inputVal, 10);
+        if (isNaN(minutes) || minutes <= 0) {
+            alert("Please enter a valid positive number of minutes.");
+            return;
+        }
+        setTimerLimit(minutes);
+    }
+
     function setTimerLimit(minutes) {
         fetch('/relax/api/start-timer/', {
             method: 'POST',
@@ -420,15 +457,6 @@
         })
         .then(res => res.json())
         .then(data => {
-            const buttons = document.querySelectorAll('#preset-controls button');
-            buttons.forEach(btn => btn.classList.remove('active'));
-            
-            if (minutes === 15) buttons[0].classList.add('active');
-            else if (minutes === 30) buttons[1].classList.add('active');
-            else if (minutes === 60) buttons[2].classList.add('active');
-            else if (minutes === 120) buttons[3].classList.add('active');
-            else if (minutes === 0) buttons[4].classList.add('active');
-
             syncImmersionHUD();
         })
         .catch(err => console.error("Set limit error:", err));
