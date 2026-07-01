@@ -5484,10 +5484,25 @@ def relax_add_video(request):
 def relax_launch_game(request, game_id):
     game = get_object_or_404(Game, id=game_id)
     
-    # Flag this game as pending launch in cache (expires in 60s)
-    # The client daemon will pick this up on its next 3-second heartbeat poll (firewall-proof pull model!)
-    from django.core.cache import cache
-    cache.set(f"pending_launch_trigger_{game.id}", True, 60)
+    # Flag this game as pending launch in queue file (firewall-proof and multi-worker safe pull model!)
+    from django.conf import settings as django_settings
+    queue_file = os.path.join(django_settings.BASE_DIR, 'pending_launches.json')
+    launches = []
+    if os.path.exists(queue_file):
+        try:
+            with open(queue_file, 'r') as f:
+                launches = json.load(f)
+        except Exception:
+            pass
+    launches.append({
+        'appid': game.steam_app_id or None,
+        'path': game.local_path or None
+    })
+    try:
+        with open(queue_file, 'w') as f:
+            json.dump(launches, f)
+    except Exception:
+        pass
     
     # 1. Check if remote Windows Gaming Rig is configured (if Django runs on Linux)
     settings = SystemSettings.load()
@@ -6421,19 +6436,19 @@ def relax_api_process_heartbeat(request):
             settings.gaming_rig_ip = client_ip
             settings.save()
 
-    # Extract any pending launch triggers for active games from cache
+    # Extract any pending launch triggers from file queue
     pending_launches = []
+    from django.conf import settings as django_settings
+    queue_file = os.path.join(django_settings.BASE_DIR, 'pending_launches.json')
+    if os.path.exists(queue_file):
+        try:
+            with open(queue_file, 'r') as f:
+                pending_launches = json.load(f)
+            os.remove(queue_file)
+        except Exception:
+            pass
+
     active_games = Game.objects.filter(is_active=True)
-    for g in active_games:
-        cache_key = f"pending_launch_trigger_{g.id}"
-        if cache.get(cache_key):
-            cache.delete(cache_key)  # consume the event trigger
-            pending_launches.append({
-                'id': g.id,
-                'name': g.name,
-                'appid': g.steam_app_id or None,
-                'path': g.local_path or None
-            })
 
     if request.method == 'GET':
         monitored_games = []
