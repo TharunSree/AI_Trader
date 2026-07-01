@@ -284,6 +284,11 @@
                                 Replay Theater
                             </a>
                         </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link font-bold text-xs uppercase tracking-wider py-2.5" data-bs-toggle="tab" href="#notes-tab" role="tab">
+                                📓 Operations Log
+                            </a>
+                        </li>
                     </ul>
                 </div>
 
@@ -293,7 +298,7 @@
                         <!-- TAB 1: GUIDES -->
                         <div class="tab-pane active" id="guides-tab" role="tabpanel">
                             <div class="d-flex justify-content-between align-items-center mb-3">
-                                <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2.5 py-1 font-mono text-[9px] uppercase font-bold" onclick="toggleGuidesSidebar()" id="btn-toggle-sidebar">
+                                <button type="button" class="btn btn-xs rounded-pill px-2.5 py-1 font-mono text-[9px] uppercase font-bold" style="border: 1px solid rgba(168, 85, 247, 0.4); color: #a855f7; background: transparent;" onclick="toggleGuidesSidebar()" id="btn-toggle-sidebar">
                                     <i class="fas fa-columns mr-1"></i> Collapse Sidebar
                                 </button>
                             </div>
@@ -466,6 +471,79 @@
                                                 <div class="text-[9px] font-mono uppercase tracking-widest">No recordings found</div>
                                             </div>
                                         {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TAB 3: NOTES & CHEATS (OPERATIONS LOG) -->
+                        <div class="tab-pane" id="notes-tab" role="tabpanel">
+                            <div class="row">
+                                <!-- Notes List -->
+                                <div class="col-lg-8 pr-lg-4 mb-4 mb-lg-0">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h4 class="font-size-11 uppercase tracking-widest text-slate-400 font-bold font-mono">Operations Log & Codes</h4>
+                                    </div>
+                                    
+                                    <div class="d-flex flex-column gap-3" id="notes-list-container">
+                                        {% for note in selected_game.notes.all %}
+                                            <div class="card bg-slate-50/50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/80 rounded-3 p-3 position-relative shadow-sm transition-all duration-300 hover:border-primary/30 mb-0" style="border-radius: 12px !important;">
+                                                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                                    <div>
+                                                        {% if note.title %}
+                                                            <h5 class="text-xs font-bold text-slate-800 dark:text-slate-200 mb-1 font-mono uppercase tracking-wide">{{ note.title }}</h5>
+                                                        {% endif %}
+                                                        <span class="text-[9px] font-mono text-slate-400"><i class="fas fa-clock mr-1"></i> {{ note.created_at|date:"M d, Y H:i" }}</span>
+                                                    </div>
+                                                    <div class="d-flex gap-2">
+                                                        {% if note.is_cheat %}
+                                                            <button onclick="copyNoteContent('note-content-{{ note.id }}', this)" class="btn btn-xs btn-outline-success rounded-pill px-2.5 py-0.5 font-mono text-[9px] font-bold uppercase"><i class="fas fa-copy me-1"></i> Copy Code</button>
+                                                        {% endif %}
+                                                        <form method="post" action="{% url 'relax_delete_note' note.id %}" class="d-inline" onsubmit="return confirm('Delete this note?');">
+                                                            {% csrf_token %}
+                                                            <button class="btn btn-xs btn-outline-danger rounded-pill px-2 py-0.5"><i class="fas fa-trash-alt text-[10px]"></i></button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                                <div class="text-xs font-mono text-slate-600 dark:text-slate-300 whitespace-pre-wrap rounded bg-white/40 dark:bg-black/20 p-2.5 border border-slate-100 dark:border-slate-800/40" id="note-content-{{ note.id }}">{{ note.content }}</div>
+                                            </div>
+                                        {% empty %}
+                                            <div class="text-center py-5 text-slate-400">
+                                                <i class="fas fa-sticky-note text-2xl mb-2 opacity-30"></i>
+                                                <p class="font-mono text-xs uppercase tracking-widest">No entries recorded</p>
+                                                <p class="font-mono text-[9px] mt-1">Use the panel on the right to log notes, cheat codes, or configurations for this game.</p>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Add Note Form -->
+                                <div class="col-lg-4">
+                                    <div class="card rounded-3 border border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/30 p-3 shadow-sm" style="border-radius: 12px !important;">
+                                        <h5 class="font-size-11 uppercase tracking-widest text-slate-800 dark:text-slate-300 font-bold font-mono mb-3"><i class="fas fa-plus mr-1"></i> Log Entry</h5>
+                                        <form action="{% url 'relax_add_note' %}" method="POST">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="game_id" value="{{ selected_game.id }}">
+                                            
+                                            <div class="mb-3">
+                                                <label class="form-label text-[9px] uppercase font-mono tracking-widest font-bold">Category / Title</label>
+                                                <input type="text" name="title" class="form-control form-control-sm text-xs rounded-xl border-slate-200" placeholder="e.g. Cheat, Key Bind, Crafting">
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label class="form-label text-[9px] uppercase font-mono tracking-widest font-bold">Log Content</label>
+                                                <textarea name="content" rows="6" class="form-control text-xs rounded-xl font-mono border-slate-200" placeholder="Paste your cheat code, level key, or game notes here..." required></textarea>
+                                            </div>
+                                            
+                                            <div class="form-check form-switch mb-4">
+                                                <input class="form-check-input" type="checkbox" id="isCheatSwitch" name="is_cheat">
+                                                <label class="form-check-label text-[10px] uppercase font-mono tracking-widest font-bold text-slate-500" for="isCheatSwitch">Treat as Quick-Copy Cheat</label>
+                                            </div>
+                                            
+                                            <button type="submit" class="btn btn-sm btn-primary w-100 rounded-pill font-bold uppercase tracking-wider text-xs py-2">
+                                                Save Entry
+                                            </button>
+                                        </form>
                                     </div>
                                 </div>
                             </div>
@@ -1302,6 +1380,23 @@
                 syncBannerStatus();
             });
         }
+    };
+    window.copyNoteContent = function(elementId, btnEl) {
+        const text = document.getElementById(elementId).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            const origText = btnEl.innerHTML;
+            btnEl.innerHTML = '<i class="fas fa-check me-1"></i> Copied!';
+            btnEl.classList.remove('btn-outline-success');
+            btnEl.classList.add('btn-success', 'text-white');
+            setTimeout(() => {
+                btnEl.innerHTML = origText;
+                btnEl.classList.remove('btn-success', 'text-white');
+                btnEl.classList.add('btn-outline-success');
+            }, 1500);
+        }).catch(err => {
+            console.error('Failed to copy code: ', err);
+            alert('Failed to copy code. Please select and copy manually.');
+        });
     };
 </script>
 {% endblock %}

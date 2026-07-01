@@ -460,6 +460,17 @@ class GameVideo(models.Model):
         return f"{self.game.name} - {self.title}"
 
 
+class GameNote(models.Model):
+    game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='notes')
+    title = models.CharField(max_length=200, blank=True, null=True, help_text="Note title or Category (e.g. Cheat, Level Key, Crafting Recipe)")
+    content = models.TextField(help_text="Content of the note")
+    is_cheat = models.BooleanField(default=False, help_text="If true, displays with a copy button for easy copying during gameplay")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.game.name} - {self.title or 'Unnamed Note'}"
+
+
 class GameBetaInfo(models.Model):
     game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='beta_infos')
     title = models.CharField(max_length=250)

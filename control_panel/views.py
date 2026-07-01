@@ -5518,6 +5518,42 @@ def relax_delete_guide(request, guide_id):
 
 @login_required
 @require_POST
+def relax_add_note(request):
+    from .models import GameNote
+    game_id = request.POST.get('game_id')
+    title = request.POST.get('title', '').strip()
+    content = request.POST.get('content', '').strip()
+    is_cheat = request.POST.get('is_cheat') == 'on' or request.POST.get('is_cheat') == 'true' or request.POST.get('is_cheat') == '1'
+
+    game = get_object_or_404(Game, id=game_id)
+    if not content:
+        messages.error(request, "Note content cannot be empty.")
+        return redirect(f"/relax/?game_id={game.id}")
+
+    GameNote.objects.create(
+        game=game,
+        title=title or None,
+        content=content,
+        is_cheat=is_cheat
+    )
+    messages.success(request, f"New note/cheat added for {game.name}!")
+    return redirect(f"/relax/?game_id={game.id}")
+
+
+@login_required
+@require_POST
+def relax_delete_note(request, note_id):
+    from .models import GameNote
+    note = get_object_or_404(GameNote, id=note_id)
+    game_id = note.game_id
+    game_name = note.game.name
+    note.delete()
+    messages.success(request, f"Note successfully removed from {game_name}.")
+    return redirect(f"/relax/?game_id={game_id}")
+
+
+@login_required
+@require_POST
 def relax_add_video(request):
     game_id = request.POST.get('game_id')
     title = request.POST.get('title', '').strip()
