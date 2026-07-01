@@ -23,28 +23,56 @@ if len(sys.argv) > 1:
 
 # Helper to check active foreground window on Windows
 def get_active_window_title():
-    try:
-        hwnd = ctypes.windll.user32.GetForegroundWindow()
-        length = ctypes.windll.user32.GetWindowTextLengthW(hwnd)
-        buf = ctypes.create_unicode_buffer(length + 1)
-        ctypes.windll.user32.GetWindowTextW(hwnd, buf, length + 1)
-        return buf.value
-    except Exception:
-        return ""
+    if sys.platform == 'win32':
+        try:
+            hwnd = ctypes.windll.user32.GetForegroundWindow()
+            length = ctypes.windll.user32.GetWindowTextLengthW(hwnd)
+            buf = ctypes.create_unicode_buffer(length + 1)
+            ctypes.windll.user32.GetWindowTextW(hwnd, buf, length + 1)
+            return buf.value
+        except Exception:
+            return ""
+    else:
+        # Linux active window check using xdotool
+        try:
+            out = subprocess.check_output("xdotool getwindowfocus getwindowname", shell=True, stderr=subprocess.DEVNULL)
+            return out.decode('utf-8', errors='ignore').strip()
+        except Exception:
+            try:
+                # Fallback using xprop
+                out = subprocess.check_output("xprop -id $(xprop -root 32x _NET_ACTIVE_WINDOW | awk '{print $NF}') WM_NAME", shell=True, stderr=subprocess.DEVNULL)
+                title = out.decode('utf-8', errors='ignore').strip()
+                if '=' in title:
+                    return title.split('=', 1)[1].strip().strip('"')
+                return title
+            except Exception:
+                return ""
 
 # Helper to scan active process executable names using lightweight tasklist command
 def get_running_executables():
     executables = set()
-    try:
-        # NH = No Headers, FO CSV = CSV format
-        output = subprocess.check_output("tasklist /NH /FO CSV", shell=True).decode('utf-8', errors='ignore')
-        for line in output.strip().splitlines():
-            if line.startswith('"'):
-                parts = line.split('","')
-                if parts:
-                    executables.add(parts[0].replace('"', '').lower())
-    except Exception:
-        pass
+    if sys.platform == 'win32':
+        try:
+            # NH = No Headers, FO CSV = CSV format
+            output = subprocess.check_output("tasklist /NH /FO CSV", shell=True).decode('utf-8', errors='ignore')
+            for line in output.strip().splitlines():
+                if line.startswith('"'):
+                    parts = line.split('","')
+                    if parts:
+                        executables.add(parts[0].replace('"', '').lower())
+        except Exception:
+            pass
+    else:
+        # Linux process scan
+        try:
+            output = subprocess.check_output("ps -eo comm", shell=True, stderr=subprocess.DEVNULL).decode('utf-8', errors='ignore')
+            for line in output.strip().splitlines():
+                name = line.strip().lower()
+                executables.add(name)
+                # Map to .exe naming compatibility for cross-platform matches
+                executables.add(name + '.exe')
+        except Exception:
+            pass
     return executables
 
 monitored_games = []
@@ -186,13 +214,19 @@ class LaunchRequestHandler(BaseHTTPRequestHandler):
             try:
                 if appid:
                     print(f"Launching Steam game AppID: {appid}")
-                    subprocess.Popen(f"start steam://rungameid/{appid}", shell=True)
+                    if sys.platform == 'win32':
+                        subprocess.Popen(f"start steam://rungameid/{appid}", shell=True)
+                    else:
+                        subprocess.Popen(f"xdg-open steam://rungameid/{appid}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                     success = True
                     message = f"Launched Steam AppID {appid}"
                 elif game_path:
                     print(f"Launching local game: {game_path}")
                     if os.path.exists(game_path):
-                        subprocess.Popen(f'start "" "{game_path}"', shell=True)
+                        if sys.platform == 'win32':
+                            subprocess.Popen(f'start "" "{game_path}"', shell=True)
+                        else:
+                            subprocess.Popen(f'xdg-open "{game_path}"', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                         success = True
                         message = f"Launched local game {game_path}"
                     else:
