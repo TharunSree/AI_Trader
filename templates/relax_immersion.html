@@ -270,7 +270,7 @@
 </div>
 
 <!-- Boot Sequence Overlay -->
-<div id="boot-overlay" class="position-fixed inset-0 d-flex flex-column align-items-center justify-content-center bg-black" style="z-index: 200; transition: opacity 0.8s ease-in-out; font-family: 'JetBrains Mono', monospace; color: #22d3ee; background-color: #030206;">
+<div id="boot-overlay" class="position-fixed inset-0 d-flex flex-column align-items-center justify-content-center bg-black" style="z-index: 200; transition: opacity 0.8s ease-in-out; font-family: 'JetBrains Mono', monospace; color: #22d3ee; background-color: #030206; pointer-events: none;">
     <div class="text-center">
         <h2 class="text-lg font-bold uppercase tracking-widest mb-3 animate-pulse">>>> INITIALIZING MODULE <<<</h2>
         <div id="boot-logs" class="text-left font-mono text-[10px] text-slate-400 mt-4" style="width: 320px; height: 110px; overflow: hidden; line-height: 1.8;"></div>
@@ -488,7 +488,7 @@
                 if (data.animated_bg_url) {
                     const rawPath = data.animated_bg_url;
                     let path = rawPath;
-                    if (!path.startsWith('http') && !path.startsWith('/')) {
+                    if (!path.startsWith('http')) {
                         path = `{% url 'serve_local_file' %}?path=${encodeURIComponent(path)}`;
                     }
                     
@@ -682,8 +682,12 @@
         location.href = "{% url 'relax_view' %}";
     }
 
+    // Initialize and start HUD synchronization loop immediately on script execution
+    syncImmersionHUD();
+    updateIntervalId = setInterval(syncImmersionHUD, 1000);
+
     // Terminal Boot sequence animation log runner
-    document.addEventListener("DOMContentLoaded", () => {
+    (function() {
         const logs = [
             "INITIALIZING GRAPHICS HUD CONTAINER...",
             "ESTABLISHING SYSTEM HEARTBEAT SYNC...",
@@ -703,16 +707,17 @@
                 setTimeout(runBootLog, 220);
             } else {
                 setTimeout(() => {
-                    document.getElementById('boot-overlay').style.opacity = 0;
-                    setTimeout(() => {
-                        document.getElementById('boot-overlay').style.display = 'none';
-                        syncImmersionHUD();
-                        updateIntervalId = setInterval(syncImmersionHUD, 1000);
-                    }, 800);
+                    const overlay = document.getElementById('boot-overlay');
+                    if (overlay) {
+                        overlay.style.opacity = 0;
+                        setTimeout(() => {
+                            overlay.style.display = 'none';
+                        }, 800);
+                    }
                 }, 400);
             }
         }
         setTimeout(runBootLog, 150);
-    });
+    })();
 </script>
 {% endblock %}
