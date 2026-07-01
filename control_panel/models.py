@@ -565,6 +565,30 @@ class WatchlistGame(models.Model):
                     return True
             except Exception:
                 pass
+
+        # CheapShark price fallback for non-Steam games (Epic, GOG, Humble Store)
+        if not self.price_estimate:
+            try:
+                # search_data is already loaded from lines 488 if CheapShark search succeeded
+                if 'search_data' in locals() and search_data:
+                    cheapest_usd = float(search_data[0].get('cheapest', 0.0))
+                    if cheapest_usd > 0:
+                        usd_to_inr = 83.5
+                        try:
+                            rate_url = "https://open.er-api.com/v6/latest/USD"
+                            ex_req = urllib.request.Request(rate_url, headers={'User-Agent': 'Mozilla/5.0'})
+                            with urllib.request.urlopen(ex_req, timeout=3) as ex_res:
+                                rate_data = json.loads(ex_res.read().decode('utf-8'))
+                                usd_to_inr = float(rate_data.get('rates', {}).get('INR', 83.5))
+                        except Exception:
+                            pass
+                        self.price_estimate = str(int(cheapest_usd * usd_to_inr))
+                        if self.business_model == 'UNKNOWN':
+                            self.business_model = 'P2P'
+                        self.save()
+                        return True
+            except Exception:
+                pass
         return False
 
 
