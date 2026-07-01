@@ -79,6 +79,24 @@
         transform: scale(1.02);
     }
     
+    /* Swoop-in Active Session Banner styles */
+    .session-banner-container {
+        height: 0;
+        opacity: 0;
+        transform: translateY(-30px) scale(0.98);
+        transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        overflow: hidden;
+        margin-bottom: 0;
+        pointer-events: none;
+    }
+    .session-banner-container.active {
+        height: 180px;
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        margin-bottom: 1.5rem;
+        pointer-events: auto;
+    }
+    
     /* 3D button switch styling for Text/Web toggle */
     .toggle-3d-btn {
         background: #f1f5f9;
@@ -459,24 +477,13 @@
         </div>
 
     {% else %}
-        <!-- ACTIVE SESSION BANNER (PLAYING NOW) -->
-        {% if active_session %}
-        <div class="col-12 mb-4">
+        <!-- ACTIVE PLAYTIME SESSION BANNER (DYNAMIC SWOOP IN) -->
+        <div id="dynamic-session-banner" class="col-12 session-banner-container">
             <div class="position-relative rounded-4 overflow-hidden shadow-lg border border-primary/20" style="height: 180px; border-radius: 24px !important; background-color: #0d081b;">
-                <!-- Video/Image Background -->
-                {% if active_session.game.animated_bg_url %}
-                    {% if ".mp4" in active_session.game.animated_bg_url or ".webm" in active_session.game.animated_bg_url or "movies/" in active_session.game.animated_bg_url or "redirect?" in active_session.game.animated_bg_url %}
-                        <video class="position-absolute w-100 h-100" autoplay loop muted playsinline style="object-fit: cover; filter: brightness(0.35); inset: 0; z-index: 1;">
-                            <source src="{% if 'http://' in active_session.game.animated_bg_url or 'https://' in active_session.game.animated_bg_url %}{{ active_session.game.animated_bg_url }}{% else %}{% url 'serve_local_file' %}?path={{ active_session.game.animated_bg_url }}{% endif %}" type="video/mp4">
-                        </video>
-                    {% else %}
-                        <div class="position-absolute w-100 h-100" style="background-image: url('{% if 'http://' in active_session.game.animated_bg_url or 'https://' in active_session.game.animated_bg_url %}{{ active_session.game.animated_bg_url }}{% else %}{% url 'serve_local_file' %}?path={{ active_session.game.animated_bg_url }}{% endif %}'); background-size: cover; background-position: center; filter: brightness(0.3); inset: 0; z-index: 1;"></div>
-                    {% endif %}
-                {% elif active_session.game.cover_image_url %}
-                    <div class="position-absolute w-100 h-100" style="background-image: url('{% if 'http://' in active_session.game.cover_image_url or 'https://' in active_session.game.cover_image_url %}{{ active_session.game.cover_image_url }}{% else %}{% url 'serve_local_file' %}?path={{ active_session.game.cover_image_url }}{% endif %}'); background-size: cover; background-position: center; filter: brightness(0.25) blur(4px); inset: 0; z-index: 1;"></div>
-                {% else %}
-                    <div class="position-absolute w-100 h-100" style="background: linear-gradient(135deg, #100b26 0%, #030206 100%); inset: 0; z-index: 1;"></div>
-                {% endif %}
+                <!-- Dynamic Video Backdrop -->
+                <video id="banner-bg-video" class="position-absolute w-100 h-100" autoplay loop muted playsinline style="object-fit: cover; filter: brightness(0.35); inset: 0; z-index: 1; display: none;"></video>
+                <!-- Dynamic Image Backdrop -->
+                <div id="banner-bg-image" class="position-absolute w-100 h-100" style="background-size: cover; background-position: center; filter: brightness(0.3); inset: 0; z-index: 1; display: none;"></div>
                 
                 <!-- Gradient Mask overlay -->
                 <div class="position-absolute w-100 h-100" style="inset: 0; z-index: 2; background: linear-gradient(90deg, rgba(13,8,27,0.92) 0%, rgba(13,8,27,0.4) 100%);"></div>
@@ -485,12 +492,10 @@
                 <div class="position-absolute d-flex align-items-center justify-content-between px-4 px-md-5 w-100 h-100" style="inset: 0; z-index: 3;">
                     <div class="d-flex align-items-center gap-4">
                         <!-- Cover Art Thumbnail -->
-                        {% if active_session.game.cover_image_url %}
-                            <img src="{% if 'http://' in active_session.game.cover_image_url or 'https://' in active_session.game.cover_image_url %}{{ active_session.game.cover_image_url }}{% else %}{% url 'serve_local_file' %}?path={{ active_session.game.cover_image_url }}{% endif %}" class="rounded-3 shadow-md border border-white/10 d-none d-md-block" style="width: 70px; height: 95px; object-fit: cover;">
-                        {% endif %}
+                        <img id="banner-game-thumb" class="rounded-3 shadow-md border border-white/10 d-none d-md-block" style="width: 70px; height: 95px; object-fit: cover;">
                         <div>
                             <span class="badge bg-primary text-white font-mono text-[9px] uppercase tracking-widest py-1 px-3 mb-2 animate-pulse" style="letter-spacing: 1.5px; box-shadow: 0 0 10px rgba(99,102,241,0.4);"><i class="fas fa-circle text-xs text-white-50 mr-1"></i> PLAYING NOW</span>
-                            <h2 class="text-white font-bold uppercase tracking-wide mb-1" style="font-size: 1.5rem; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">{{ active_session.game.name }}</h2>
+                            <h2 id="banner-game-name" class="text-white font-bold uppercase tracking-wide mb-1" style="font-size: 1.5rem; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">GAME TITLE</h2>
                             <p class="text-slate-300 font-mono text-[10px] mb-0 opacity-80">Active Playtime Tracking | System 1 Rig</p>
                         </div>
                     </div>
@@ -1187,28 +1192,105 @@
             });
     };
 
-    // Active Playtime Session banner tracking logic
-    {% if active_session %}
-    (function() {
-        let elapsed = parseInt("{{ active_session_elapsed }}", 10);
-        const timerEl = document.getElementById('active-session-timer');
-        
-        function formatTime(totalSeconds) {
-            const hrs = Math.floor(totalSeconds / 3600);
-            const mins = Math.floor((totalSeconds % 3600) / 60);
-            const secs = totalSeconds % 60;
-            return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-        }
-        
-        if (timerEl) {
-            timerEl.innerText = formatTime(elapsed);
-            setInterval(() => {
-                elapsed++;
-                timerEl.innerText = formatTime(elapsed);
-            }, 1000);
-        }
-    })();
-    
+    // Active Playtime Session banner tracking logic (Dynamic Swoop & Poll)
+    let sessionActive = false;
+    let sessionElapsed = 0;
+    let sessionTimerInterval = null;
+    let bannerStatusPollingInterval = null;
+    let lastBgUrl = "";
+
+    function formatTime(totalSeconds) {
+        const hrs = Math.floor(totalSeconds / 3600);
+        const mins = Math.floor((totalSeconds % 3600) / 60);
+        const secs = totalSeconds % 60;
+        return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    function syncBannerStatus() {
+        fetch('/relax/api/immersion-status/')
+            .then(res => res.json())
+            .then(data => {
+                const banner = document.getElementById('dynamic-session-banner');
+                if (!banner) return;
+                
+                if (data.active) {
+                    sessionElapsed = data.elapsed_seconds;
+                    
+                    // Update Text
+                    document.getElementById('banner-game-name').innerText = data.game_name.toUpperCase();
+                    
+                    // Update Cover Thumb
+                    const thumbEl = document.getElementById('banner-game-thumb');
+                    if (data.cover_image_url) {
+                        let thumbPath = data.cover_image_url;
+                        if (!thumbPath.startsWith('http')) {
+                            thumbPath = `{% url 'serve_local_file' %}?path=${encodeURIComponent(thumbPath)}`;
+                        }
+                        thumbEl.src = thumbPath;
+                        thumbEl.style.display = 'block';
+                    } else {
+                        thumbEl.style.display = 'none';
+                    }
+                    
+                    // Update Background Video/Image
+                    if (data.animated_bg_url && data.animated_bg_url !== lastBgUrl) {
+                        lastBgUrl = data.animated_bg_url;
+                        let path = data.animated_bg_url;
+                        if (!path.startsWith('http')) {
+                            path = `{% url 'serve_local_file' %}?path=${encodeURIComponent(path)}`;
+                        }
+                        
+                        const isVideo = path.toLowerCase().includes('.mp4') || path.toLowerCase().includes('.webm') || path.toLowerCase().includes('movies/') || path.toLowerCase().includes('redirect?');
+                        const videoEl = document.getElementById('banner-bg-video');
+                        const imgEl = document.getElementById('banner-bg-image');
+                        
+                        if (isVideo) {
+                            videoEl.src = path;
+                            videoEl.style.display = 'block';
+                            imgEl.style.display = 'none';
+                            videoEl.load();
+                            videoEl.play().catch(e => console.log("Banner video play blocked:", e));
+                        } else {
+                            videoEl.style.display = 'none';
+                            imgEl.style.display = 'block';
+                            imgEl.style.backgroundImage = `url('${path}')`;
+                        }
+                    }
+                    
+                    // Swoop In!
+                    if (!sessionActive) {
+                        sessionActive = true;
+                        banner.classList.add('active');
+                        
+                        // Start ticking timer
+                        if (sessionTimerInterval) clearInterval(sessionTimerInterval);
+                        const timerEl = document.getElementById('active-session-timer');
+                        timerEl.innerText = formatTime(sessionElapsed);
+                        sessionTimerInterval = setInterval(() => {
+                            sessionElapsed++;
+                            timerEl.innerText = formatTime(sessionElapsed);
+                        }, 1000);
+                    }
+                } else {
+                    // Swoop Out!
+                    if (sessionActive) {
+                        sessionActive = false;
+                        banner.classList.remove('active');
+                        lastBgUrl = "";
+                        if (sessionTimerInterval) {
+                            clearInterval(sessionTimerInterval);
+                            sessionTimerInterval = null;
+                        }
+                    }
+                }
+            })
+            .catch(err => console.error("Banner status fetch error:", err));
+    }
+
+    // Run sync immediately on load, then poll every 2 seconds
+    syncBannerStatus();
+    bannerStatusPollingInterval = setInterval(syncBannerStatus, 2000);
+
     window.stopPlayingSessionBanner = function() {
         if (confirm("Are you sure you want to stop tracking this playtime session?")) {
             fetch('/relax/api/stop-session/', {
@@ -1218,10 +1300,9 @@
                 }
             })
             .then(() => {
-                window.location.reload();
+                syncBannerStatus();
             });
         }
     };
-    {% endif %}
 </script>
 {% endblock %}
