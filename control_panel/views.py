@@ -5492,7 +5492,7 @@ def relax_add_guide(request):
 
     if not content_markdown:
         messages.error(request, "Guide content is empty.")
-        return redirect(f"/relax/?game_id={game.id}")
+        return redirect(f"/relax/?game_id={game.id}&tab=guides")
 
     GameGuide.objects.create(
         game=game,
@@ -5501,7 +5501,7 @@ def relax_add_guide(request):
         content_markdown=content_markdown
     )
     messages.success(request, f"New guide added for {game.name}!")
-    return redirect(f"/relax/?game_id={game.id}")
+    return redirect(f"/relax/?game_id={game.id}&tab=guides")
 
 
 @login_required
@@ -5513,7 +5513,7 @@ def relax_delete_guide(request, guide_id):
     game_name = guide.game.name
     guide.delete()
     messages.success(request, f"Guide successfully removed from {game_name}.")
-    return redirect(f"/relax/?game_id={game_id}")
+    return redirect(f"/relax/?game_id={game_id}&tab=guides")
 
 
 @login_required
@@ -5528,7 +5528,7 @@ def relax_add_note(request):
     game = get_object_or_404(Game, id=game_id)
     if not content:
         messages.error(request, "Note content cannot be empty.")
-        return redirect(f"/relax/?game_id={game.id}")
+        return redirect(f"/relax/?game_id={game.id}&tab=notes")
 
     GameNote.objects.create(
         game=game,
@@ -5537,7 +5537,7 @@ def relax_add_note(request):
         is_cheat=is_cheat
     )
     messages.success(request, f"New note/cheat added for {game.name}!")
-    return redirect(f"/relax/?game_id={game.id}")
+    return redirect(f"/relax/?game_id={game.id}&tab=notes")
 
 
 @login_required
@@ -5549,7 +5549,7 @@ def relax_delete_note(request, note_id):
     game_name = note.game.name
     note.delete()
     messages.success(request, f"Note successfully removed from {game_name}.")
-    return redirect(f"/relax/?game_id={game_id}")
+    return redirect(f"/relax/?game_id={game_id}&tab=notes")
 
 
 @login_required
@@ -5566,7 +5566,7 @@ def relax_add_video(request):
 
     if not youtube_url:
         messages.error(request, "YouTube URL is required.")
-        return redirect(f"/relax/?game_id={game.id}")
+        return redirect(f"/relax/?game_id={game.id}&tab=videos")
 
     GameVideo.objects.create(
         game=game,
@@ -5574,7 +5574,7 @@ def relax_add_video(request):
         youtube_url=youtube_url
     )
     messages.success(request, f"Gameplay video added for {game.name}!")
-    return redirect(f"/relax/?game_id={game.id}")
+    return redirect(f"/relax/?game_id={game.id}&tab=videos")
 
 
 @login_required
