@@ -747,19 +747,10 @@
 {% block extra_javascript %}
 <script>
     // Advanced Local vs Host Launching logic for Multi-System setups
-    // Advanced Local vs Host Launching logic for Multi-System setups
     window.launchGame = function(gameId, steamAppId, localPath) {
-        const cleanSteamId = (steamAppId && steamAppId !== 'None' && steamAppId !== 'null' && steamAppId !== 'undefined') ? steamAppId.trim() : '';
-        
-        // If it is a Steam game, trigger browser-side launch protocol directly.
-        // This is firewall-proof, zero-config, and matches the v1.0.80 behavior.
-        if (cleanSteamId) {
-            window.location.href = `steam://rungameid/${cleanSteamId}`;
-        } else {
-            // Non-Steam games: route to server-side launch view
-            // which will trigger the remote Windows launcher daemon on their rig.
-            window.location.href = `/relax/game/launch/${gameId}/`;
-        }
+        // Route all launch requests to the server launch view which registers 
+        // the trigger in the file queue, and redirects back to reload the page.
+        window.location.href = `/relax/game/launch/${gameId}/`;
     };
 
     // Guide Reader switcher logic
