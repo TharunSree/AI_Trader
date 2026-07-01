@@ -419,7 +419,7 @@
                             <li class="menu-title font-mono tracking-widest text-[9px] uppercase mt-3">My Library</li>
                             {% for g in games %}
                                 <li>
-                                    <a href="?game_id={{ g.id }}" class="waves-effect {% if selected_game.id == g.id %}active{% endif %}">
+                                    <a href="{% url 'relax_view' %}?game_id={{ g.id }}" class="waves-effect {% if selected_game.id == g.id %}active{% endif %}">
                                         {% if g.cover_image_url %}
                                             <img src="{% if 'http://' in g.cover_image_url or 'https://' in g.cover_image_url %}{{ g.cover_image_url }}{% else %}{% url 'serve_local_file' %}?path={{ g.cover_image_url }}{% endif %}" class="rounded-1 me-2 align-middle shadow-sm" style="width: 16px; height: 22px; object-fit: cover; border: 1px solid rgba(128,128,128,0.15); margin-top: -3px; display: inline-block;">
                                         {% else %}

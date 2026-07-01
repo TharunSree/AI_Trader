@@ -6224,7 +6224,7 @@ def relax_add_budget_game(request):
     check_xbox = 'check_xbox' in request.POST
 
     if name:
-        BudgetWatchlistGame.objects.create(
+        game = BudgetWatchlistGame.objects.create(
             name=name,
             steam_app_id=steam_app_id,
             target_budget=target_budget,
@@ -6232,16 +6232,20 @@ def relax_add_budget_game(request):
             check_epic=check_epic,
             check_xbox=check_xbox
         )
-        # Trigger background crawl thread immediately!
-        import threading
-        from django.core.management import call_command
-        def run_scout():
-            try:
-                call_command('run_relax_monitors')
-            except Exception:
-                pass
-        threading.Thread(target=run_scout, daemon=True).start()
-        messages.success(request, f"Added '{name}' to your budget watchlist. Scouting game discounts in the background...")
+        # Scout price synchronously immediately so the user doesn't see "N/A" on creation
+        game.scout_price()
+        messages.success(request, f"Added '{name}' to your budget watchlist and scouted live prices successfully!")
+    return redirect('relax_watchlist')
+
+
+@login_required
+def relax_watchlist_refresh(request):
+    watchlist = BudgetWatchlistGame.objects.all()
+    success_count = 0
+    for item in watchlist:
+        if item.scout_price():
+            success_count += 1
+    messages.success(request, f"Refreshed discount scout prices for {success_count} of {watchlist.count()} watchlist games!")
     return redirect('relax_watchlist')
 
 

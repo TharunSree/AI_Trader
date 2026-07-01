@@ -485,6 +485,65 @@ class BudgetWatchlistGame(models.Model):
     def __str__(self):
         return self.name
 
+    def scout_price(self):
+        import urllib.request
+        import urllib.parse
+        import json
+        from django.utils import timezone
+        
+        # Get exchange rate
+        usd_to_inr = 83.5
+        try:
+            url = "https://open.er-api.com/v6/latest/USD"
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=4) as res:
+                ex_data = json.loads(res.read().decode('utf-8'))
+                usd_to_inr = ex_data.get('rates', {}).get('INR', 83.5)
+        except Exception:
+            pass
+
+        encoded_title = urllib.parse.quote(self.name)
+        search_url = f"https://www.cheapshark.com/api/1.0/games?title={encoded_title}"
+        try:
+            req = urllib.request.Request(search_url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=6) as res:
+                search_data = json.loads(res.read().decode('utf-8'))
+            
+            if search_data:
+                game_id = search_data[0].get('gameID')
+                details_url = f"https://www.cheapshark.com/api/1.0/games?id={game_id}"
+                
+                req_details = urllib.request.Request(details_url, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(req_details, timeout=6) as d_res:
+                    details_data = json.loads(d_res.read().decode('utf-8'))
+                
+                deals = details_data.get('deals', [])
+                lowest_price_usd = None
+                store_map = {"1": "Steam", "25": "Epic Games", "27": "Xbox Store", "18": "GOG"}
+                lowest_store = None
+                
+                for deal in deals:
+                    store_id = deal.get('storeID')
+                    price_usd = float(deal.get('price', 999.0))
+                    
+                    if store_id == "1" and not self.check_steam: continue
+                    if store_id == "25" and not self.check_epic: continue
+                    if store_id == "27" and not self.check_xbox: continue
+                    
+                    if lowest_price_usd is None or price_usd < lowest_price_usd:
+                        lowest_price_usd = price_usd
+                        lowest_store = store_map.get(store_id, f"Store #{store_id}")
+                
+                if lowest_price_usd is not None:
+                    self.current_price = lowest_price_usd * usd_to_inr
+                    self.lowest_platform = lowest_store
+            
+            self.last_checked_at = timezone.now()
+            self.save()
+            return True
+        except Exception:
+            return False
+
 
 class GamePlaytimeSession(models.Model):
     game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='sessions')
