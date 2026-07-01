@@ -124,6 +124,16 @@
         text-shadow: 0 0 15px rgba(192, 132, 252, 0.7), 0 0 30px rgba(192, 132, 252, 0.4);
     }
 
+    .neon-text-amber {
+        color: #fbbf24;
+        text-shadow: 0 0 15px rgba(251, 191, 36, 0.7), 0 0 30px rgba(251, 191, 36, 0.4);
+    }
+
+    .neon-text-green {
+        color: #34d399;
+        text-shadow: 0 0 15px rgba(52, 211, 153, 0.7), 0 0 30px rgba(52, 211, 153, 0.4);
+    }
+
     /* Media-Bar Style Bottom Tray */
     .hud-bottom-bar {
         background: rgba(10, 8, 16, 0.3) !important;
@@ -172,12 +182,12 @@
         box-shadow: 0 6px 20px rgba(244, 63, 94, 0.5);
     }
 
-    /* Rest overlays */
+    /* Rest/Cooldown Screen Overlay */
     .rest-overlay {
         position: fixed;
         inset: 0;
         z-index: 100;
-        background: rgba(4, 3, 7, 0.96);
+        background: rgba(4, 3, 7, 0.97);
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -194,18 +204,50 @@
     }
 
     .rest-alert-card {
-        max-width: 520px;
+        max-width: 540px;
         padding: 45px;
         border-radius: 36px;
-        border: 1px solid rgba(244, 63, 94, 0.35);
+        border: 1px solid rgba(234, 179, 8, 0.35);
         background: rgba(14, 8, 14, 0.85);
-        box-shadow: 0 0 60px rgba(244, 63, 94, 0.3);
+        box-shadow: 0 0 60px rgba(234, 179, 8, 0.2);
         animation: alertPulse 2.5s infinite alternate;
     }
 
     @keyframes alertPulse {
-        from { box-shadow: 0 0 35px rgba(244, 63, 94, 0.2); }
-        to { box-shadow: 0 0 65px rgba(244, 63, 94, 0.5); }
+        from { box-shadow: 0 0 35px rgba(234, 179, 8, 0.15); }
+        to { box-shadow: 0 0 65px rgba(234, 179, 8, 0.35); }
+    }
+
+    /* Glitch Transition overlay */
+    .glitch-transition-overlay {
+        position: fixed;
+        inset: 0;
+        background: #030206;
+        z-index: 150;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #22d3ee;
+        font-family: 'Orbitron', monospace;
+        font-size: 1.3rem;
+        letter-spacing: 5px;
+    }
+
+    .glitch-transition-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+        animation: glitchShake 0.3s infinite;
+    }
+
+    @keyframes glitchShake {
+        0% { background-color: #030206; filter: hue-rotate(0deg); }
+        25% { background-color: #120a1a; filter: hue-rotate(45deg); }
+        50% { background-color: #08111e; }
+        75% { background-color: #1a0808; filter: hue-rotate(90deg); }
+        100% { background-color: #030206; }
     }
 
     /* Remove standard spin buttons (up/down arrows) from custom minutes input */
@@ -225,6 +267,19 @@
 <div class="immersion-backdrop-container">
     <video id="backdrop-video" autoplay loop muted playsinline class="immersion-bg-video" style="display: none;"></video>
     <div id="backdrop-image" class="immersion-bg-image"></div>
+</div>
+
+<!-- Boot Sequence Overlay -->
+<div id="boot-overlay" class="position-fixed inset-0 d-flex flex-column align-items-center justify-content-center bg-black" style="z-index: 200; transition: opacity 0.8s ease-in-out; font-family: 'JetBrains Mono', monospace; color: #22d3ee; background-color: #030206;">
+    <div class="text-center">
+        <h2 class="text-lg font-bold uppercase tracking-widest mb-3 animate-pulse">>>> INITIALIZING MODULE <<<</h2>
+        <div id="boot-logs" class="text-left font-mono text-[10px] text-slate-400 mt-4" style="width: 320px; height: 110px; overflow: hidden; line-height: 1.8;"></div>
+    </div>
+</div>
+
+<!-- Glitch Transition Overlay -->
+<div id="glitch-overlay" class="glitch-transition-overlay">
+    <span class="animate-pulse">LOADING COGNITIVE DATA...</span>
 </div>
 
 <!-- Fullscreen HUD Container -->
@@ -287,8 +342,11 @@
                 </div>
             </div>
 
-            <!-- Right: Stop Session -->
-            <div>
+            <!-- Right: Actions -->
+            <div class="d-flex gap-2">
+                <button class="btn btn-hud-preset text-warning border-warning/30 px-3.5 py-2 font-mono text-xs uppercase tracking-wider" onclick="triggerRestModeManual()">
+                    <i class="fas fa-coffee me-1 text-warning"></i> Cooldown
+                </button>
                 <button class="btn btn-stop-session px-4 py-2 font-mono text-xs uppercase tracking-wider" onclick="stopPlayingSession()">
                     <i class="fas fa-power-off me-1.5"></i> Stop Session
                 </button>
@@ -298,23 +356,32 @@
 </div>
 
 <!-- Fullscreen Pro-Gamer Rest alert Overlay -->
-<div class="rest-overlay" id="rest-overlay">
-    <div class="rest-alert-card">
-        <div class="avatar-lg bg-danger/20 rounded-circle d-inline-flex align-items-center justify-content-center p-4 border border-danger/30 mb-4">
-            <i class="fas fa-heartbeat text-danger text-5xl animate-pulse"></i>
+<div class="rest-overlay" id="rest-overlay" style="background: linear-gradient(135deg, #0d091a 0%, #050308 100%);">
+    <div class="rest-alert-card text-center">
+        <div class="avatar-lg bg-warning/10 rounded-circle d-inline-flex align-items-center justify-content-center p-4 border border-warning/20 mb-4">
+            <i class="fas fa-mug-hot text-warning text-5xl animate-bounce"></i>
         </div>
-        <h2 class="text-danger font-bold uppercase tracking-widest mb-3" style="font-size: 1.8rem; text-shadow: 0 0 10px rgba(244,63,94,0.4);">
-            REST INTERVAL REACHED
+        <h2 id="rest-title" class="text-warning font-bold uppercase tracking-widest mb-1 font-mono" style="font-size: 1.5rem; text-shadow: 0 0 12px rgba(234,179,8,0.4);">
+            REST INTERVAL ACTIVE
         </h2>
-        <p class="text-slate-300 font-mono text-xs leading-normal mb-4">
-            Gamers cannot run on empty! You have been playing for too long. Take a break, hydrate, stretch your legs, and rest your eyes before starting your next run.
+        <p id="rest-subtitle" class="text-slate-400 font-mono text-[9px] uppercase tracking-wider mb-4">
+            Long Session Protection: Cooldown Active
+        </p>
+        
+        <!-- Cooldown Timer display -->
+        <div id="rest-timer-display" class="hud-timer-digital neon-text-amber mb-4" style="font-size: 5.5rem;">
+            30:00
+        </div>
+        
+        <p class="text-slate-300 font-mono text-xs leading-normal mb-5">
+            Step away from the screen, stretch, hydrate, and rest your eyes. A 30-minute break is highly recommended for focus normalization.
         </p>
         <div class="d-flex gap-3 justify-content-center">
-            <button class="btn btn-outline-danger rounded-pill px-4 font-mono text-xs uppercase" onclick="snoozeAlert()">
-                Snooze 10m
+            <button id="btn-resume-run" class="btn btn-hud-preset px-4 font-mono text-xs uppercase" onclick="skipRest()" style="border-color: rgba(234,179,8,0.4); color: #eab308;">
+                <i class="fas fa-forward me-1.5"></i> Skip Cooldown
             </button>
-            <button class="btn btn-danger rounded-pill px-4 font-mono text-xs uppercase" onclick="stopPlayingSession()">
-                Log Off Game
+            <button class="btn btn-stop-session px-4 font-mono text-xs uppercase" onclick="stopPlayingSession()">
+                <i class="fas fa-power-off me-1.5"></i> End Session
             </button>
         </div>
     </div>
@@ -325,23 +392,73 @@
     let elapsedSeconds = 0;
     let isOverlayActive = false;
     let updateIntervalId = null;
-    let lastBackdropPath = ""; // Cache backdrop path to prevent reloading/blinking every second
+    let lastBackdropPath = "";
+    
+    // Cooldown states
+    let restIntervalId = null;
+    let restSecondsRemaining = 1800; // 30 minutes default
 
-    function formatTime(totalSeconds) {
-        const hrs = Math.floor(totalSeconds / 3600);
-        const mins = Math.floor((totalSeconds % 3600) / 60);
-        const secs = totalSeconds % 60;
-        return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    // Web Audio Synthesizer chime generator
+    function playChime() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+            osc.frequency.setValueAtTime(880.00, ctx.currentTime + 0.15); // A5
+            
+            gain.gain.setValueAtTime(0.3, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+            
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.5);
+        } catch (e) {
+            console.log("Web Audio not supported or blocked:", e);
+        }
     }
 
-    function formatTimeLeft(totalSeconds) {
-        if (totalSeconds <= 0) return "00:00";
-        const mins = Math.floor(totalSeconds / 60);
-        const secs = totalSeconds % 60;
-        return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    function formatTime(secs) {
+        const h = Math.floor(secs / 3600);
+        const m = Math.floor((secs % 3600) / 60);
+        const s = secs % 60;
+        return [
+            h.toString().padStart(2, '0'),
+            m.toString().padStart(2, '0'),
+            s.toString().padStart(2, '0')
+        ].join(':');
+    }
+
+    function formatTimeLeft(secs) {
+        if (secs <= 0) return "00:00";
+        const m = Math.floor(secs / 60);
+        const s = secs % 60;
+        return [
+            m.toString().padStart(2, '0'),
+            s.toString().padStart(2, '0')
+        ].join(':');
+    }
+
+    // Grid terminal transition helper
+    function triggerTransition(callback) {
+        const overlay = document.getElementById('glitch-overlay');
+        overlay.classList.add('active');
+        setTimeout(() => {
+            if (callback) callback();
+        }, 300);
+        setTimeout(() => {
+            overlay.classList.remove('active');
+        }, 700);
     }
 
     function syncImmersionHUD() {
+        // Skip sync if cooldown rest overlay is active (handles local timer updates instead)
+        if (isOverlayActive) return;
+
         fetch('/relax/api/immersion-status/')
             .then(res => res.json())
             .then(data => {
@@ -350,10 +467,9 @@
                     return;
                 }
 
-                // Update text
-                document.getElementById('active-game-name').innerText = `Active Session: ${data.game_name}`;
+                // Update game information
+                document.getElementById('active-game-name').innerText = data.game_name.toUpperCase();
                 
-                // Show cover image thumbnail
                 const thumbEl = document.getElementById('active-game-thumb');
                 if (data.cover_image_url) {
                     let thumbPath = data.cover_image_url;
@@ -368,16 +484,17 @@
                     thumbEl.style.display = 'none';
                 }
 
-                // Handle backdrop dynamic image or video loop (avoiding reload blink)
+                // Check extension BEFORE rewriting path
                 if (data.animated_bg_url) {
-                    let path = data.animated_bg_url;
-                    if (!path.startsWith('http')) {
+                    const rawPath = data.animated_bg_url;
+                    let path = rawPath;
+                    if (!path.startsWith('http') && !path.startsWith('/')) {
                         path = `{% url 'serve_local_file' %}?path=${encodeURIComponent(path)}`;
                     }
                     
                     if (path !== lastBackdropPath) {
                         lastBackdropPath = path;
-                        const isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.webm') || path.toLowerCase().endsWith('.mkv') || path.toLowerCase().endsWith('.mov');
+                        const isVideo = rawPath.toLowerCase().endsWith('.mp4') || rawPath.toLowerCase().endsWith('.webm') || rawPath.toLowerCase().endsWith('.mkv') || rawPath.toLowerCase().endsWith('.mov');
                         const videoEl = document.getElementById('backdrop-video');
                         const imgEl = document.getElementById('backdrop-image');
 
@@ -395,7 +512,7 @@
                     }
                 }
 
-                // Update timers
+                // Timers
                 elapsedSeconds = data.elapsed_seconds;
                 activeLimitMinutes = data.limit_minutes || 0;
                 
@@ -409,7 +526,7 @@
                     const timeLeftSecs = limitSecs - elapsedSeconds;
                     document.getElementById('time-left').innerText = formatTimeLeft(timeLeftSecs);
 
-                    // Update preset button active states including custom settings
+                    // Update preset active buttons
                     const buttons = document.querySelectorAll('#preset-controls button');
                     buttons.forEach(btn => btn.classList.remove('active'));
                     if (activeLimitMinutes === 15) buttons[0].classList.add('active');
@@ -417,8 +534,9 @@
                     else if (activeLimitMinutes === 60) buttons[2].classList.add('active');
                     else if (activeLimitMinutes === 120) buttons[3].classList.add('active');
 
+                    // If limit elapsed, start rest cooldown mode!
                     if (timeLeftSecs <= 0 && !isOverlayActive) {
-                        triggerRestOverlay();
+                        triggerRestMode();
                     }
                 } else {
                     timeContainer.style.display = 'none';
@@ -427,16 +545,90 @@
                     buttons[4].classList.add('active');
                     
                     if (elapsedSeconds >= 7200 && !isOverlayActive) {
-                        triggerRestOverlay();
+                        triggerRestMode();
                     }
                 }
             })
             .catch(err => console.error("HUD Sync Error:", err));
     }
 
-    function triggerRestOverlay() {
-        isOverlayActive = true;
-        document.getElementById('rest-overlay').classList.add('active');
+    // Cooldown Screen Initializer
+    function triggerRestMode() {
+        triggerTransition(() => {
+            isOverlayActive = true;
+            document.getElementById('rest-overlay').classList.add('active');
+            
+            // Set 30 minute rest timer
+            restSecondsRemaining = 1800;
+            updateRestTimerUI();
+            
+            // Clear any active interval and restart rest countdown
+            if (restIntervalId) clearInterval(restIntervalId);
+            restIntervalId = setInterval(runRestCountdown, 1000);
+        });
+    }
+
+    function triggerRestModeManual() {
+        triggerRestMode();
+    }
+
+    function runRestCountdown() {
+        if (restSecondsRemaining > 0) {
+            restSecondsRemaining--;
+            updateRestTimerUI();
+        } else {
+            // Cooldown Complete!
+            clearInterval(restIntervalId);
+            restIntervalId = null;
+            playChime();
+            
+            // Format timer UI to Green success mode
+            document.getElementById('rest-title').innerText = "COOLDOWN COMPLETED";
+            document.getElementById('rest-title').className = "text-success font-bold uppercase tracking-widest mb-1 font-mono";
+            document.getElementById('rest-subtitle').innerText = "Optimal rest threshold achieved";
+            document.getElementById('rest-timer-display').className = "hud-timer-digital neon-text-green mb-4";
+            document.getElementById('rest-timer-display').innerText = "00:00";
+            
+            // Elevate bypass button to Resume run
+            const resumeBtn = document.getElementById('btn-resume-run');
+            resumeBtn.innerHTML = '<i class="fas fa-play me-1.5"></i> Resume Run';
+            resumeBtn.className = "btn btn-success rounded-pill px-4 font-mono text-xs uppercase shadow-[0_0_15px_rgba(52,211,153,0.3)]";
+            resumeBtn.style.color = "#ffffff";
+            resumeBtn.style.borderColor = "#34d399";
+        }
+    }
+
+    function updateRestTimerUI() {
+        const m = Math.floor(restSecondsRemaining / 60);
+        const s = restSecondsRemaining % 60;
+        const timeStr = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        document.getElementById('rest-timer-display').innerText = timeStr;
+    }
+
+    function skipRest() {
+        // Reset timer limit to None so we don't instantly re-trigger
+        setTimerLimit(0);
+        
+        triggerTransition(() => {
+            isOverlayActive = false;
+            document.getElementById('rest-overlay').classList.remove('active');
+            if (restIntervalId) {
+                clearInterval(restIntervalId);
+                restIntervalId = null;
+            }
+            
+            // Restore default rest card text styling
+            document.getElementById('rest-title').innerText = "REST INTERVAL ACTIVE";
+            document.getElementById('rest-title').className = "text-warning font-bold uppercase tracking-widest mb-1 font-mono";
+            document.getElementById('rest-subtitle').innerText = "Long Session Protection: Cooldown Active";
+            document.getElementById('rest-timer-display').className = "hud-timer-digital neon-text-amber mb-4";
+            
+            const resumeBtn = document.getElementById('btn-resume-run');
+            resumeBtn.innerHTML = '<i class="fas fa-forward me-1.5"></i> Skip Cooldown';
+            resumeBtn.className = "btn btn-hud-preset px-4 font-mono text-xs uppercase";
+            resumeBtn.style.color = "#eab308";
+            resumeBtn.style.borderColor = "rgba(234, 179, 8, 0.4)";
+        });
     }
 
     function snoozeAlert() {
@@ -488,9 +680,37 @@
         location.href = "{% url 'relax_view' %}";
     }
 
+    // Terminal Boot sequence animation log runner
     document.addEventListener("DOMContentLoaded", () => {
-        syncImmersionHUD();
-        updateIntervalId = setInterval(syncImmersionHUD, 1000);
+        const logs = [
+            "INITIALIZING GRAPHICS HUD CONTAINER...",
+            "ESTABLISHING SYSTEM HEARTBEAT SYNC...",
+            "RETRIEVING CURRENT SESSION METRICS...",
+            "LOADING ACTIVE DEEP TELEMETRY...",
+            "SYSTEM CALIBRATION COMPLETED. HUD ONLINE."
+        ];
+        const logContainer = document.getElementById('boot-logs');
+        let index = 0;
+        
+        function runBootLog() {
+            if (index < logs.length) {
+                const line = document.createElement('div');
+                line.textContent = `[OK] ${logs[index]}`;
+                logContainer.appendChild(line);
+                index++;
+                setTimeout(runBootLog, 220);
+            } else {
+                setTimeout(() => {
+                    document.getElementById('boot-overlay').style.opacity = 0;
+                    setTimeout(() => {
+                        document.getElementById('boot-overlay').style.display = 'none';
+                        syncImmersionHUD();
+                        updateIntervalId = setInterval(syncImmersionHUD, 1000);
+                    }, 800);
+                }, 400);
+            }
+        }
+        setTimeout(runBootLog, 150);
     });
 </script>
 {% endblock %}

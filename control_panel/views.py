@@ -5310,7 +5310,8 @@ def relax_edit_game(request, game_id):
 @login_required
 def serve_local_file(request):
     import os
-    from django.http import FileResponse, Http404
+    import re
+    from django.http import FileResponse, HttpResponse, Http404
     from django.shortcuts import redirect
     file_path = request.GET.get('path', '').strip()
     if not file_path:
@@ -5329,7 +5330,51 @@ def serve_local_file(request):
             return redirect("https://images.unsplash.com/photo-1538481199705-c710c4e965fc?q=80&w=350&auto=format&fit=crop")
         else:
             return redirect("https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop")
+            
+    # Lookup mime type
+    mime_type = "application/octet-stream"
+    if ext == '.mp4':
+        mime_type = "video/mp4"
+    elif ext == '.webm':
+        mime_type = "video/webm"
+    elif ext == '.mkv':
+        mime_type = "video/x-matroska"
+    elif ext == '.png':
+        mime_type = "image/png"
+    elif ext in ['.jpg', '.jpeg']:
+        mime_type = "image/jpeg"
+    elif ext == '.gif':
+        mime_type = "image/gif"
         
+    # Support HTTP Range requests (HTTP 206) for smooth seeking and buffering of videos
+    range_header = request.META.get('HTTP_RANGE', '').strip()
+    if range_header and ext in ['.mp4', '.webm', '.mkv', '.avi']:
+        try:
+            statobj = os.stat(file_path)
+            file_size = statobj.st_size
+            
+            range_match = re.match(r'bytes=(\d+)-(\d*)', range_header)
+            if range_match:
+                first_byte, last_byte = range_match.groups()
+                first_byte = int(first_byte) if first_byte else 0
+                last_byte = int(last_byte) if last_byte else file_size - 1
+                if last_byte >= file_size:
+                    last_byte = file_size - 1
+                    
+                length = last_byte - first_byte + 1
+                
+                resp = HttpResponse(status=206, content_type=mime_type)
+                resp['Content-Range'] = f'bytes {first_byte}-{last_byte}/{file_size}'
+                resp['Accept-Ranges'] = 'bytes'
+                resp['Content-Length'] = str(length)
+                
+                with open(file_path, 'rb') as f:
+                    f.seek(first_byte)
+                    resp.content = f.read(length)
+                return resp
+        except Exception:
+            pass
+            
     return FileResponse(open(file_path, 'rb'))
 
 
@@ -6401,10 +6446,14 @@ def relax_api_process_heartbeat(request):
         # Match in Python memory to handle any whitespace/double-space variations
         game = None
         
-        # 1. Match by exact normalized title (e.g. "wuthering waves" or "cyberpunk 2077")
+        # 1. Match by space/dash insensitive alphanumeric title (e.g. "cyberpunk2077" matches "Cyberpunk 2077")
+        def normalize_name(n):
+            import re
+            return re.sub(r'[^a-zA-Z0-9]', '', n.lower().strip()) if n else ""
+            
+        process_normalized = normalize_name(process_name_clean)
         for g in active_games:
-            g_name_normalized = " ".join(g.name.lower().split())
-            if g_name_normalized == process_name_normalized:
+            if normalize_name(g.name) == process_normalized:
                 game = g
                 break
                 
@@ -6412,14 +6461,14 @@ def relax_api_process_heartbeat(request):
         if not game:
             if 'openverseclient' in process_name_clean or 'wuwa' in process_name_clean or 'client' in process_name_clean or 'wuthering' in process_name_clean:
                 for g in active_games:
-                    g_name_normalized = " ".join(g.name.lower().split())
-                    if 'wuthering' in g_name_normalized or 'wuwa' in g_name_normalized:
+                    g_norm = g.name.lower()
+                    if 'wuthering' in g_norm or 'wuwa' in g_norm:
                         game = g
                         break
             elif 'genshin' in process_name_clean:
                 for g in active_games:
-                    g_name_normalized = " ".join(g.name.lower().split())
-                    if 'genshin' in g_name_normalized:
+                    g_norm = g.name.lower()
+                    if 'genshin' in g_norm:
                         game = g
                         break
 
@@ -6433,8 +6482,10 @@ def relax_api_process_heartbeat(request):
             
         # 5. Create new game entry if completely missing
         if not game:
+            # Capitalize each word nicely for the new entry name
+            new_game_name = " ".join([w.capitalize() for w in process_name_clean.replace('_', ' ').split()])
             game = Game.objects.create(
-                name=process_name_clean.capitalize(),
+                name=new_game_name,
                 local_path=path,
                 hours_played=0.0
             )

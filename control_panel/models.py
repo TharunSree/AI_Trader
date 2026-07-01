@@ -403,6 +403,26 @@ class Game(models.Model):
             return self.hours_played / self.years_played
         return self.hours_played
 
+    @property
+    def cover_image_display(self):
+        if self.cover_image_url:
+            val = self.cover_image_url.strip()
+            if not val.startswith('http') and not val.startswith('/'):
+                import urllib.parse
+                return f"/relax/serve-local-file/?path={urllib.parse.quote(val)}"
+            return val
+        return ""
+
+    @property
+    def animated_bg_display(self):
+        if self.animated_bg_url:
+            val = self.animated_bg_url.strip()
+            if not val.startswith('http') and not val.startswith('/'):
+                import urllib.parse
+                return f"/relax/serve-local-file/?path={urllib.parse.quote(val)}"
+            return val
+        return ""
+
     def has_active_beta(self):
         return self.beta_infos.filter(is_active=True).exists()
 
@@ -470,6 +490,16 @@ class WatchlistGame(models.Model):
     check_interval_days = models.IntegerField(default=7)
     last_checked_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def header_image_display(self):
+        if self.header_image:
+            val = self.header_image.strip()
+            if not val.startswith('http') and not val.startswith('/'):
+                import urllib.parse
+                return f"/relax/serve-local-file/?path={urllib.parse.quote(val)}"
+            return val
+        return ""
 
     def __str__(self):
         return self.name
