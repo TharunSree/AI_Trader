@@ -547,8 +547,16 @@ class WatchlistGame(models.Model):
                     # 2. System Requirements (Minimum)
                     pc_reqs = data.get('pc_requirements', {}).get('minimum', '')
                     if pc_reqs:
-                        clean_reqs = re.sub('<[^<]+?>', ' ', pc_reqs)
-                        clean_reqs = ' '.join(clean_reqs.split())
+                        # Convert HTML lists and linebreaks into clean markdown newlines
+                        html = pc_reqs
+                        html = html.replace('<li>', '\n - ')
+                        html = html.replace('</li>', '')
+                        html = html.replace('<br>', '\n')
+                        html = html.replace('<br/>', '\n')
+                        html = html.replace('<br />', '\n')
+                        clean_reqs = re.sub('<[^<]+?>', '', html)
+                        lines = [line.strip() for line in clean_reqs.split('\n') if line.strip()]
+                        clean_reqs = '\n'.join(lines)
                         clean_reqs = clean_reqs.replace('OS *:', 'OS:')
                         self.system_requirements = clean_reqs
                         
@@ -671,7 +679,20 @@ class WatchlistGame(models.Model):
                         if clean_s not in valid_snippets:
                             valid_snippets.append(clean_s)
                 if valid_snippets:
-                    self.system_requirements = " | ".join(valid_snippets[:3])
+                    # Format snippets line-by-line beautifully
+                    spec_lines = []
+                    for vs in valid_snippets[:3]:
+                        # Split by common separator punctuation
+                        parts = re.split(r'[;.|]', vs)
+                        for part in parts:
+                            part_clean = part.strip()
+                            if len(part_clean) > 8 and any(kw in part_clean.lower() for kw in keywords):
+                                spec_lines.append(f"- {part_clean}")
+                    unique_lines = []
+                    for line in spec_lines:
+                        if line not in unique_lines:
+                            unique_lines.append(line)
+                    self.system_requirements = "\n".join(unique_lines)
                     self.save()
             except Exception:
                 pass
