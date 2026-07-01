@@ -10,8 +10,16 @@ import urllib.parse
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 # Server Configuration
-DJANGO_SERVER_URL = "http://localhost:8000" # Update as per your System 2 address
+DJANGO_SERVER_URL = "http://localhost:8000"
 DAEMON_PORT = 5555
+
+# Parse Server URL from command line arguments if provided
+if len(sys.argv) > 1:
+    arg_url = sys.argv[1].strip()
+    if not arg_url.startswith("http"):
+        DJANGO_SERVER_URL = f"http://{arg_url}"
+    else:
+        DJANGO_SERVER_URL = arg_url
 
 # Helper to check active foreground window on Windows
 def get_active_window_title():
@@ -41,10 +49,11 @@ def get_running_executables():
 
 monitored_games = []
 last_fetched_time = 0
+has_warned = False
 
 def fetch_monitored_list():
-    global monitored_games, last_fetched_time
-    if time.time() - last_fetched_time < 30:
+    global monitored_games, last_fetched_time, has_warned
+    if time.time() - last_fetched_time < 20:
         return
     try:
         url = f"{DJANGO_SERVER_URL}/relax/api/process-heartbeat/"
@@ -52,9 +61,19 @@ def fetch_monitored_list():
         with urllib.request.urlopen(req, timeout=3) as res:
             data = json.loads(res.read().decode('utf-8'))
             monitored_games = data.get('monitored_games', [])
+            
+            # Print success log upon successful connection
+            if len(monitored_games) > 0:
+                print(f"[INFO] Successfully connected to Django server at {DJANGO_SERVER_URL}. Monitoring {len(monitored_games)} active library titles.")
+                has_warned = False
             last_fetched_time = time.time()
-    except Exception:
-        pass
+    except Exception as e:
+        if not has_warned:
+            print(f"[WARNING] Could not connect to Django server at {DJANGO_SERVER_URL} ({e}).")
+            print(f" -> Please run the daemon pointing to your System 2 Server IP e.g.:")
+            print(f"    python steam_launcher_daemon.py http://<SERVER_IP>:8000")
+            has_warned = True
+        last_fetched_time = time.time()
 
 # Thread to periodically report active game heartbeats to Django
 def heartbeat_worker():

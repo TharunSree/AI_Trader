@@ -5311,6 +5311,7 @@ def relax_edit_game(request, game_id):
 def serve_local_file(request):
     import os
     from django.http import FileResponse, Http404
+    from django.shortcuts import redirect
     file_path = request.GET.get('path', '').strip()
     if not file_path:
         raise Http404("Path is empty")
@@ -5323,7 +5324,11 @@ def serve_local_file(request):
         raise Http404("File extension not allowed")
         
     if not os.path.exists(file_path) or not os.path.isfile(file_path):
-        raise Http404("File does not exist")
+        # Fallback to high-quality Unsplash placeholders if running remotely and file is missing
+        if 'cover' in file_path.lower() or 'thumb' in file_path.lower():
+            return redirect("https://images.unsplash.com/photo-1538481199705-c710c4e965fc?q=80&w=350&auto=format&fit=crop")
+        else:
+            return redirect("https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop")
         
     return FileResponse(open(file_path, 'rb'))
 
