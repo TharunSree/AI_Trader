@@ -5,9 +5,26 @@
 
 {% block extra_head %}
 <style>
-    /* Fullscreen override: Hide standard Veltrix layout wrapper */
-    #layout-wrapper {
+    /* Fullscreen override: Hide topbar, sidebar, and footer */
+    #page-topbar,
+    .vertical-menu,
+    footer.footer {
         display: none !important;
+    }
+    
+    /* Reset layout margins for true fullscreen canvas */
+    .main-content {
+        margin-left: 0 !important;
+        padding: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+    }
+    
+    .page-content {
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
     }
     
     /* Immersive base styles */
