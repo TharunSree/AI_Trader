@@ -254,7 +254,13 @@ class Command(BaseCommand):
                     lowest_price_inr = lowest_price_usd * usd_to_inr
                     item.current_price = lowest_price_inr
                     item.lowest_platform = lowest_store
-                    if lowest_deal_id:
+                    
+                    steam_id = details_data.get('info', {}).get('steamAppID')
+                    if steam_id and str(steam_id) != "0":
+                        if not item.steam_app_id:
+                            item.steam_app_id = str(steam_id)
+                        item.buy_link = f"https://store.steampowered.com/app/{steam_id}/"
+                    elif lowest_deal_id:
                         item.buy_link = f"https://www.cheapshark.com/redirect?dealID={lowest_deal_id}"
                     else:
                         item.buy_link = None

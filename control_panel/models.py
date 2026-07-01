@@ -882,7 +882,13 @@ class BudgetWatchlistGame(models.Model):
                 if lowest_price_usd is not None:
                     self.current_price = lowest_price_usd * usd_to_inr
                     self.lowest_platform = lowest_store
-                    if lowest_deal_id:
+                    
+                    steam_id = details_data.get('info', {}).get('steamAppID')
+                    if steam_id and str(steam_id) != "0":
+                        if not self.steam_app_id:
+                            self.steam_app_id = str(steam_id)
+                        self.buy_link = f"https://store.steampowered.com/app/{steam_id}/"
+                    elif lowest_deal_id:
                         self.buy_link = f"https://www.cheapshark.com/redirect?dealID={lowest_deal_id}"
                     else:
                         self.buy_link = None
