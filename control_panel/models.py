@@ -505,6 +505,28 @@ class WatchlistGame(models.Model):
             except Exception:
                 pass
                 
+        # Search Steam Store API fallback to find steamAppID if still not set
+        if not self.steam_app_id:
+            try:
+                encoded_title = urllib.parse.quote(self.name)
+                steam_search_url = f"https://store.steampowered.com/api/storesearch/?term={encoded_title}&l=english&cc=in"
+                req = urllib.request.Request(steam_search_url, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(req, timeout=5) as res:
+                    steam_data = json.loads(res.read().decode('utf-8'))
+                items = steam_data.get('items', [])
+                if items:
+                    matched = None
+                    for item in items:
+                        if item.get('name', '').lower() == self.name.lower():
+                            matched = item
+                            break
+                    if not matched:
+                        matched = items[0]
+                    self.steam_app_id = str(matched.get('id'))
+                    self.save()
+            except Exception:
+                pass
+                
         # If we have steam_app_id, query Steam Store API
         if self.steam_app_id:
             url = f"https://store.steampowered.com/api/appdetails?appids={self.steam_app_id}&cc=in"
