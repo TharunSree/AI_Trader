@@ -626,6 +626,72 @@ class WatchlistGame(models.Model):
                         break
             except Exception:
                 pass
+
+        # 4. DuckDuckGo System Requirements Crawler (Failsafe/Non-Steam fallback)
+        if not self.system_requirements:
+            try:
+                query = urllib.parse.quote(f"{self.name} PC minimum system requirements GPU CPU RAM")
+                url = f"https://html.duckduckgo.com/html/?q={query}"
+                req = urllib.request.Request(url, headers={
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+                })
+                with urllib.request.urlopen(req, timeout=6) as res:
+                    html = res.read().decode('utf-8')
+                snippets = re.findall(r'<a class="result__snippet"[^>]*>(.*?)</a>', html, re.DOTALL)
+                
+                keywords = ["ram", "gb", "intel", "i5", "i7", "gtx", "rtx", "gpu", "cpu", "processor", "windows", "storage", "ryzen", "amd", "nvidia"]
+                valid_snippets = []
+                for s in snippets:
+                    clean_s = re.sub(r'<[^>]+>', ' ', s)
+                    clean_s = ' '.join(clean_s.split())
+                    matches = sum(1 for kw in keywords if kw in clean_s.lower())
+                    if matches >= 2:
+                        if clean_s not in valid_snippets:
+                            valid_snippets.append(clean_s)
+                if valid_snippets:
+                    self.system_requirements = " | ".join(valid_snippets[:3])
+                    self.save()
+            except Exception:
+                pass
+
+        # 5. DuckDuckGo Price Crawler (Failsafe/Non-Steam fallback)
+        if not self.price_estimate:
+            try:
+                query = urllib.parse.quote(f"{self.name} game official price cost USD")
+                url = f"https://html.duckduckgo.com/html/?q={query}"
+                req = urllib.request.Request(url, headers={
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+                })
+                with urllib.request.urlopen(req, timeout=6) as res:
+                    html = res.read().decode('utf-8')
+                snippets = re.findall(r'<a class="result__snippet"[^>]*>(.*?)</a>', html, re.DOTALL)
+                
+                prices = []
+                for s in snippets:
+                    clean_s = re.sub(r'<[^>]+>', ' ', s)
+                    clean_s = ' '.join(clean_s.split())
+                    matches = re.findall(r'\$\s?(\d{2,3}(?:\.\d{2})?)', clean_s)
+                    for m in matches:
+                        val = float(m)
+                        if 29 <= val <= 160:
+                            prices.append(val)
+                if prices:
+                    cheapest_usd = prices[0]
+                    usd_to_inr = 83.5
+                    try:
+                        rate_url = "https://open.er-api.com/v6/latest/USD"
+                        ex_req = urllib.request.Request(rate_url, headers={'User-Agent': 'Mozilla/5.0'})
+                        with urllib.request.urlopen(ex_req, timeout=3) as ex_res:
+                            rate_data = json.loads(ex_res.read().decode('utf-8'))
+                            usd_to_inr = float(rate_data.get('rates', {}).get('INR', 83.5))
+                    except Exception:
+                        pass
+                    self.price_estimate = str(int(cheapest_usd * usd_to_inr))
+                    if self.business_model == 'UNKNOWN':
+                        self.business_model = 'P2P'
+                    self.save()
+            except Exception:
+                pass
         return False
 
 

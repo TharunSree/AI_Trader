@@ -6131,7 +6131,7 @@ def get_game_recent_news(game_name):
     import urllib.parse
     import xml.etree.ElementTree as ET
     
-    query = urllib.parse.quote(f"{game_name} game news")
+    query = urllib.parse.quote(f"{game_name} (release OR gameplay OR trailer OR announcement OR leaks) when:30d")
     rss_url = f"https://news.google.com/rss/search?q={query}&hl=en-US&gl=US&ceid=US:en"
     news_list = []
     try:
@@ -6139,7 +6139,7 @@ def get_game_recent_news(game_name):
         with urllib.request.urlopen(req, timeout=3) as res:
             root = ET.fromstring(res.read())
             items = root.findall('.//item')
-            for item in items[:2]:
+            for item in items[:4]:
                 title = item.find('title').text
                 # Strip source suffix if present (e.g. " - IGN")
                 if " - " in title:
