@@ -29,7 +29,7 @@
     
     /* Immersive base styles */
     body {
-        background-color: #050508 !important;
+        background-color: #030206 !important;
         overflow: hidden !important;
         margin: 0 !important;
         padding: 0 !important;
@@ -38,14 +38,36 @@
         font-family: 'Outfit', 'Inter', monospace;
     }
 
-    .immersion-bg {
+    /* Video and Image sliding backdrops */
+    .immersion-backdrop-container {
         position: fixed;
         inset: 0;
         z-index: 1;
+        background-color: #030206;
+        overflow: hidden;
+    }
+
+    .immersion-bg-video {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        filter: brightness(0.22) blur(10px) saturate(130%);
+        transition: opacity 1.5s ease-in-out;
+        z-index: 1;
+    }
+
+    .immersion-bg-image {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
         background-size: cover;
         background-position: center;
-        filter: brightness(0.25) blur(10px);
+        filter: brightness(0.2) blur(12px) saturate(120%);
         transition: background-image 1.5s ease-in-out;
+        z-index: 1;
     }
 
     .immersion-container {
@@ -55,69 +77,90 @@
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        padding: 30px;
+        padding: 40px;
         color: #ffffff;
-        background: radial-gradient(circle at center, transparent 30%, rgba(5, 5, 8, 0.8) 100%);
+        background: radial-gradient(circle at center, transparent 20%, rgba(3, 2, 6, 0.85) 100%);
     }
 
-    .hud-panel {
-        background: rgba(15, 15, 25, 0.6);
-        backdrop-filter: blur(20px) saturate(180%);
-        border: 1px solid rgba(168, 85, 247, 0.2);
-        box-shadow: 0 0 30px rgba(168, 85, 247, 0.15);
-        border-radius: 24px;
+    /* High-fidelity Envato Glassmorphism Panels */
+    .envato-hud-card {
+        background: rgba(10, 8, 16, 0.45);
+        backdrop-filter: blur(25px) saturate(210%);
+        -webkit-backdrop-filter: blur(25px) saturate(210%);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        box-shadow: 0 15px 45px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+        border-radius: 28px;
         padding: 25px;
-        transition: all 0.3s ease;
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    .neon-glow-text {
+    .envato-hud-card:hover {
+        border-color: rgba(168, 85, 247, 0.25);
+        box-shadow: 0 20px 50px rgba(168, 85, 247, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    }
+
+    /* Neon Digital display fonts and glows */
+    .hud-timer-digital {
+        font-family: 'JetBrains Mono', 'Courier New', monospace;
+        letter-spacing: -2px;
+        font-weight: 700;
+    }
+
+    .neon-text-cyan {
         color: #22d3ee;
-        text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+        text-shadow: 0 0 15px rgba(34, 211, 238, 0.4), 0 0 30px rgba(34, 211, 238, 0.1);
     }
 
-    .neon-glow-purple {
-        color: #a855f7;
-        text-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+    .neon-text-purple {
+        color: #c084fc;
+        text-shadow: 0 0 15px rgba(192, 132, 252, 0.4), 0 0 30px rgba(192, 132, 252, 0.1);
     }
 
-    .btn-stop {
-        background: linear-gradient(135deg, #f43f5e, #be123c) !important;
+    .neon-border-glow-purple {
+        border: 1px solid rgba(168, 85, 247, 0.4) !important;
+        box-shadow: 0 0 20px rgba(168, 85, 247, 0.15) !important;
+    }
+
+    /* Buttons and controls */
+    .btn-stop-session {
+        background: linear-gradient(135deg, #f43f5e, #e11d48) !important;
         border: none !important;
-        box-shadow: 0 0 15px rgba(244, 63, 94, 0.4);
+        color: #ffffff !important;
+        box-shadow: 0 4px 20px rgba(244, 63, 94, 0.35);
         border-radius: 50px;
-        color: #fff !important;
-        font-weight: bold;
-        transition: all 0.2s ease;
-    }
-    
-    .btn-stop:hover {
-        transform: scale(1.05);
-        box-shadow: 0 0 25px rgba(244, 63, 94, 0.7);
+        font-weight: 700;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    .btn-preset {
-        background: rgba(255,255,255,0.05);
-        border: 1px solid rgba(255,255,255,0.1);
-        color: #cbd5e1;
+    .btn-stop-session:hover {
+        transform: translateY(-2px) scale(1.03);
+        box-shadow: 0 8px 30px rgba(244, 63, 94, 0.55);
+    }
+
+    .btn-hud-preset {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: #94a3b8;
+        font-family: 'JetBrains Mono', monospace;
         font-size: 11px;
         border-radius: 50px;
-        padding: 6px 16px;
-        transition: all 0.2s ease;
+        padding: 8px 18px;
+        transition: all 0.25s ease;
     }
 
-    .btn-preset:hover, .btn-preset.active {
-        background: rgba(34, 211, 238, 0.15);
+    .btn-hud-preset:hover, .btn-hud-preset.active {
+        background: rgba(34, 211, 238, 0.12);
         border-color: #22d3ee;
         color: #22d3ee;
-        box-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
+        box-shadow: 0 0 12px rgba(34, 211, 238, 0.25);
     }
 
-    /* Fullscreen rest overlay warning */
+    /* Rest overlays */
     .rest-overlay {
         position: fixed;
         inset: 0;
         z-index: 100;
-        background: rgba(5, 5, 8, 0.95);
+        background: rgba(4, 3, 7, 0.96);
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -134,79 +177,96 @@
     }
 
     .rest-alert-card {
-        max-width: 500px;
-        padding: 40px;
-        border-radius: 32px;
-        border: 1px solid rgba(244, 63, 94, 0.4);
-        background: rgba(15, 10, 15, 0.8);
-        box-shadow: 0 0 50px rgba(244, 63, 94, 0.25);
-        animation: alertPulse 2s infinite alternate;
+        max-width: 520px;
+        padding: 45px;
+        border-radius: 36px;
+        border: 1px solid rgba(244, 63, 94, 0.35);
+        background: rgba(14, 8, 14, 0.85);
+        box-shadow: 0 0 60px rgba(244, 63, 94, 0.3);
+        animation: alertPulse 2.5s infinite alternate;
     }
 
     @keyframes alertPulse {
-        from { box-shadow: 0 0 30px rgba(244, 63, 94, 0.2); }
-        to { box-shadow: 0 0 60px rgba(244, 63, 94, 0.45); }
+        from { box-shadow: 0 0 35px rgba(244, 63, 94, 0.2); }
+        to { box-shadow: 0 0 65px rgba(244, 63, 94, 0.5); }
     }
 </style>
 {% endblock %}
 
 {% block page_content %}
-<!-- Sliding Artwork Backdrop -->
-<div class="immersion-bg" id="backdrop"></div>
+<!-- Sliding Artwork Backdrop (Dynamic Video / Image loop) -->
+<div class="immersion-backdrop-container">
+    <video id="backdrop-video" autoplay loop muted playsinline class="immersion-bg-video" style="display: none;"></video>
+    <div id="backdrop-image" class="immersion-bg-image"></div>
+</div>
 
 <!-- Fullscreen HUD Container -->
 <div class="immersion-container">
     
-    <!-- Top Bar -->
-    <div class="d-flex justify-content-between align-items-center w-100">
+    <!-- Top HUD Bar -->
+    <div class="d-flex justify-content-between align-items-center w-100 envato-hud-card py-3 px-4">
         <div class="d-flex align-items-center gap-3">
-            <span class="w-3 h-3 rounded-full bg-success animate-pulse"></span>
-            <h1 class="h4 font-mono font-bold uppercase tracking-widest text-slate-300 mb-0" id="active-game-name">
+            <div class="position-relative d-flex align-items-center justify-content-center">
+                <span class="position-absolute w-3 h-3 rounded-full bg-success animate-ping"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-success"></span>
+            </div>
+            <!-- Dynamic Mini Thumbnail -->
+            <img id="active-game-thumb" src="" class="rounded animate-pulse" style="width: 28px; height: 38px; object-fit: cover; border: 1px solid rgba(255,255,255,0.15); display: none;">
+            
+            <h1 class="h5 font-mono font-bold uppercase tracking-widest text-slate-100 mb-0" id="active-game-name">
                 Monitoring Session...
             </h1>
         </div>
-        <button class="btn btn-sm btn-outline-secondary rounded-pill px-4 font-mono text-xs uppercase" onclick="exitImmersion()">
+        <button class="btn btn-sm btn-outline-light rounded-pill px-4 font-mono text-xs uppercase tracking-wider" style="border-color: rgba(255,255,255,0.15);" onclick="exitImmersion()">
             <i class="fas fa-sign-out-alt me-1.5"></i> Exit HUD
         </button>
     </div>
 
     <!-- Center Section: Giant Timers -->
-    <div class="row justify-content-center my-auto w-100">
-        <div class="col-md-5 mb-4 text-center">
-            <div class="hud-panel p-4">
-                <h6 class="text-slate-400 font-mono text-xs uppercase tracking-widest mb-2">Time Played</h6>
-                <div class="h1 font-mono font-bold neon-glow-text" id="time-played" style="font-size: 3.5rem;">00:00:00</div>
+    <div class="row justify-content-center my-auto w-100 gap-4">
+        <!-- Play Time Card -->
+        <div class="col-md-5">
+            <div class="envato-hud-card text-center p-5">
+                <h6 class="text-slate-400 font-mono text-xs uppercase tracking-widest mb-3">
+                    <i class="fas fa-clock text-cyan-400 me-2"></i> Playtime Elapsed
+                </h6>
+                <div class="h1 hud-timer-digital neon-text-cyan my-2" id="time-played" style="font-size: 4.8rem;">00:00:00</div>
             </div>
         </div>
 
-        <div class="col-md-5 mb-4 text-center" id="time-left-container" style="display: none;">
-            <div class="hud-panel p-4" style="border-color: rgba(168, 85, 247, 0.3);">
-                <h6 class="text-slate-400 font-mono text-xs uppercase tracking-widest mb-2">Time Left</h6>
-                <div class="h1 font-mono font-bold neon-glow-purple" id="time-left" style="font-size: 3.5rem;">00:00</div>
+        <!-- Limit Time Card -->
+        <div class="col-md-5" id="time-left-container" style="display: none;">
+            <div class="envato-hud-card text-center p-5 neon-border-glow-purple">
+                <h6 class="text-slate-400 font-mono text-xs uppercase tracking-widest mb-3">
+                    <i class="fas fa-hourglass-half text-purple-400 me-2"></i> Session Time Left
+                </h6>
+                <div class="h1 hud-timer-digital neon-text-purple my-2" id="time-left" style="font-size: 4.8rem;">00:00</div>
             </div>
         </div>
     </div>
 
-    <!-- Bottom Controls Panel -->
+    <!-- Bottom Controls Tray -->
     <div class="row justify-content-center w-100">
         <div class="col-xl-8">
-            <div class="hud-panel">
+            <div class="envato-hud-card p-4">
                 <div class="row align-items-center justify-content-between">
                     <!-- Left: Presets -->
                     <div class="col-md-7 mb-3 mb-md-0">
-                        <h6 class="text-slate-400 font-mono text-[10px] uppercase tracking-widest mb-3">Set Alert Reminder Limit</h6>
+                        <h6 class="text-slate-400 font-mono text-xs uppercase tracking-widest mb-3">
+                            <i class="fas fa-bell text-slate-500 me-1.5"></i> Set Alert Reminder Limit
+                        </h6>
                         <div class="d-flex gap-2 flex-wrap" id="preset-controls">
-                            <button class="btn btn-preset" onclick="setTimerLimit(15)">15 Mins</button>
-                            <button class="btn btn-preset" onclick="setTimerLimit(30)">30 Mins</button>
-                            <button class="btn btn-preset text-purple-400" onclick="setTimerLimit(60)">1 Hour</button>
-                            <button class="btn btn-preset text-purple-400" onclick="setTimerLimit(120)">2 Hours</button>
-                            <button class="btn btn-preset active" onclick="setTimerLimit(0)">Unlimited</button>
+                            <button class="btn btn-hud-preset" onclick="setTimerLimit(15)">15 Mins</button>
+                            <button class="btn btn-hud-preset" onclick="setTimerLimit(30)">30 Mins</button>
+                            <button class="btn btn-hud-preset text-purple-400" onclick="setTimerLimit(60)">1 Hour</button>
+                            <button class="btn btn-hud-preset text-purple-400" onclick="setTimerLimit(120)">2 Hours</button>
+                            <button class="btn btn-hud-preset active" onclick="setTimerLimit(0)">Unlimited</button>
                         </div>
                     </div>
 
                     <!-- Right: Stop Actions -->
                     <div class="col-md-4 text-md-right">
-                        <button class="btn btn-stop px-5 py-2.5 font-mono text-xs uppercase tracking-wider w-100" onclick="stopPlayingSession()">
+                        <button class="btn btn-stop-session px-5 py-3 font-mono text-xs uppercase tracking-widest w-100" onclick="stopPlayingSession()">
                             <i class="fas fa-power-off me-2"></i> Stop Session
                         </button>
                     </div>
@@ -225,7 +285,7 @@
         <h2 class="text-danger font-bold uppercase tracking-widest mb-3" style="font-size: 1.8rem; text-shadow: 0 0 10px rgba(244,63,94,0.4);">
             REST INTERVAL REACHED
         </h2>
-        <p class="text-slate-350 font-mono text-xs leading-normal mb-4">
+        <p class="text-slate-300 font-mono text-xs leading-normal mb-4">
             Gamers cannot run on empty! You have been playing for too long. Take a break, hydrate, stretch your legs, and rest your eyes before starting your next run.
         </p>
         <div class="d-flex gap-3 justify-content-center">
@@ -264,21 +324,50 @@
             .then(res => res.json())
             .then(data => {
                 if (!data.active) {
-                    // No active session: Return to Library
                     location.href = "{% url 'relax_view' %}";
                     return;
                 }
 
-                // Update details
+                // Update text
                 document.getElementById('active-game-name').innerText = `Active Session: ${data.game_name}`;
                 
-                // Update background cover
+                // Show cover image thumbnail
+                const thumbEl = document.getElementById('active-game-thumb');
+                if (data.cover_image_url) {
+                    let thumbPath = data.cover_image_url;
+                    if (!thumbPath.startsWith('http')) {
+                        thumbPath = `{% url 'serve_local_file' %}?path=${encodeURIComponent(thumbPath)}`;
+                    }
+                    thumbEl.src = thumbPath;
+                    thumbEl.style.display = 'block';
+                } else {
+                    thumbEl.style.display = 'none';
+                }
+
+                // Handle backdrop dynamic image or video loop
                 if (data.animated_bg_url) {
                     let path = data.animated_bg_url;
                     if (!path.startsWith('http')) {
                         path = `{% url 'serve_local_file' %}?path=${encodeURIComponent(path)}`;
                     }
-                    document.getElementById('backdrop').style.backgroundImage = `url('${path}')`;
+                    
+                    const isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.webm') || path.toLowerCase().endsWith('.mkv') || path.toLowerCase().endsWith('.mov');
+                    const videoEl = document.getElementById('backdrop-video');
+                    const imgEl = document.getElementById('backdrop-image');
+
+                    if (isVideo) {
+                        if (videoEl.src !== path) {
+                            videoEl.src = path;
+                            videoEl.load();
+                            videoEl.play().catch(e => console.log("Video autoplay blocked/failed:", e));
+                        }
+                        videoEl.style.display = 'block';
+                        imgEl.style.display = 'none';
+                    } else {
+                        videoEl.style.display = 'none';
+                        imgEl.style.display = 'block';
+                        imgEl.style.backgroundImage = `url('${path}')`;
+                    }
                 }
 
                 // Update timers
@@ -295,13 +384,11 @@
                     const timeLeftSecs = limitSecs - elapsedSeconds;
                     document.getElementById('time-left').innerText = formatTimeLeft(timeLeftSecs);
 
-                    // Trigger alert if limit reached
                     if (timeLeftSecs <= 0 && !isOverlayActive) {
                         triggerRestOverlay();
                     }
                 } else {
                     timeContainer.style.display = 'none';
-                    // Pro-gamer automatic warning after 2 hours (7200 seconds)
                     if (elapsedSeconds >= 7200 && !isOverlayActive) {
                         triggerRestOverlay();
                     }
@@ -318,7 +405,6 @@
     function snoozeAlert() {
         isOverlayActive = false;
         document.getElementById('rest-overlay').classList.remove('active');
-        // Set new snooze limit (+10 minutes)
         const newLimit = Math.floor(elapsedSeconds / 60) + 10;
         setTimerLimit(newLimit);
     }
@@ -334,11 +420,9 @@
         })
         .then(res => res.json())
         .then(data => {
-            // Update active preset styling
             const buttons = document.querySelectorAll('#preset-controls button');
             buttons.forEach(btn => btn.classList.remove('active'));
             
-            // Highlight match
             if (minutes === 15) buttons[0].classList.add('active');
             else if (minutes === 30) buttons[1].classList.add('active');
             else if (minutes === 60) buttons[2].classList.add('active');

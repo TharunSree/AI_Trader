@@ -6386,7 +6386,7 @@ def relax_api_process_heartbeat(request):
                 
         # 2. Check specific process mapping aliases (e.g. openverseclient -> Wuthering Waves)
         if not game:
-            if 'openverseclient' in process_name_clean or 'wuwa' in process_name_clean or 'client' in process_name_clean:
+            if 'openverseclient' in process_name_clean or 'wuwa' in process_name_clean or 'client' in process_name_clean or 'wuthering' in process_name_clean:
                 for g in active_games:
                     g_name_normalized = " ".join(g.name.lower().split())
                     if 'wuthering' in g_name_normalized or 'wuwa' in g_name_normalized:

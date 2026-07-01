@@ -53,7 +53,13 @@
         <div class="col-12 mb-4">
             <div class="position-relative rounded-4 overflow-hidden glass-card" style="height: 250px; border: 1px solid rgba(255,255,255,0.06);">
                 {% if game.animated_bg_url %}
-                    <img src="{% if 'http://' in game.animated_bg_url or 'https://' in game.animated_bg_url %}{{ game.animated_bg_url }}{% else %}{% url 'serve_local_file' %}?path={{ game.animated_bg_url }}{% endif %}" class="w-100 h-100" style="object-fit: cover; filter: brightness(0.45);">
+                    {% if '.mp4' in game.animated_bg_url.lower or '.webm' in game.animated_bg_url.lower or '.mkv' in game.animated_bg_url.lower or '.mov' in game.animated_bg_url.lower %}
+                        <video autoplay loop muted playsinline class="w-100 h-100" style="object-fit: cover; filter: brightness(0.45);">
+                            <source src="{% if 'http://' in game.animated_bg_url or 'https://' in game.animated_bg_url %}{{ game.animated_bg_url }}{% else %}{% url 'serve_local_file' %}?path={{ game.animated_bg_url }}{% endif %}" type="video/mp4">
+                        </video>
+                    {% else %}
+                        <img src="{% if 'http://' in game.animated_bg_url or 'https://' in game.animated_bg_url %}{{ game.animated_bg_url }}{% else %}{% url 'serve_local_file' %}?path={{ game.animated_bg_url }}{% endif %}" class="w-100 h-100" style="object-fit: cover; filter: brightness(0.45);">
+                    {% endif %}
                 {% else %}
                     <div class="w-100 h-100 bg-slate-900/60"></div>
                 {% endif %}
