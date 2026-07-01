@@ -470,10 +470,10 @@
                             <source src="{% if 'http://' in active_session.game.animated_bg_url or 'https://' in active_session.game.animated_bg_url %}{{ active_session.game.animated_bg_url }}{% else %}{% url 'serve_local_file' %}?path={{ active_session.game.animated_bg_url }}{% endif %}" type="video/mp4">
                         </video>
                     {% else %}
-                        <div class="position-absolute w-100 h-100" style="background-image: url('{% if \'http://\' in active_session.game.animated_bg_url or \'https://\' in active_session.game.animated_bg_url %}{{ active_session.game.animated_bg_url }}{% else %}{% url 'serve_local_file' %}?path={{ active_session.game.animated_bg_url }}{% endif %}'); background-size: cover; background-position: center; filter: brightness(0.3); inset: 0; z-index: 1;"></div>
+                        <div class="position-absolute w-100 h-100" style="background-image: url('{% if 'http://' in active_session.game.animated_bg_url or 'https://' in active_session.game.animated_bg_url %}{{ active_session.game.animated_bg_url }}{% else %}{% url 'serve_local_file' %}?path={{ active_session.game.animated_bg_url }}{% endif %}'); background-size: cover; background-position: center; filter: brightness(0.3); inset: 0; z-index: 1;"></div>
                     {% endif %}
                 {% elif active_session.game.cover_image_url %}
-                    <div class="position-absolute w-100 h-100" style="background-image: url('{% if \'http://\' in active_session.game.cover_image_url or \'https://\' in active_session.game.cover_image_url %}{{ active_session.game.cover_image_url }}{% else %}{% url 'serve_local_file' %}?path={{ active_session.game.cover_image_url }}{% endif %}'); background-size: cover; background-position: center; filter: brightness(0.25) blur(4px); inset: 0; z-index: 1;"></div>
+                    <div class="position-absolute w-100 h-100" style="background-image: url('{% if 'http://' in active_session.game.cover_image_url or 'https://' in active_session.game.cover_image_url %}{{ active_session.game.cover_image_url }}{% else %}{% url 'serve_local_file' %}?path={{ active_session.game.cover_image_url }}{% endif %}'); background-size: cover; background-position: center; filter: brightness(0.25) blur(4px); inset: 0; z-index: 1;"></div>
                 {% else %}
                     <div class="position-absolute w-100 h-100" style="background: linear-gradient(135deg, #100b26 0%, #030206 100%); inset: 0; z-index: 1;"></div>
                 {% endif %}
