@@ -133,18 +133,22 @@ def heartbeat_worker():
             active_title = get_active_window_title().lower()
             active_title_clean = " ".join(active_title.split())
             
+            # Avoid false positives from music players, browsers, and chat apps
+            is_noise_window = any(x in active_title_clean for x in ['spotify', 'discord', 'chrome', 'firefox', 'msedge', 'opera', 'browser', 'youtube'])
+            
             active_process = ""
             active_path = ""
             is_running = False
             
             # Step 1: High-efficiency foreground window title matching (0% RAM/CPU)
             matched_game = None
-            for game in monitored_games:
-                name_clean = " ".join(game['name'].lower().split())
-                # Match title fragments (e.g. "wuthering waves", "genshin impact")
-                if name_clean in active_title_clean:
-                    matched_game = game
-                    break
+            if not is_noise_window:
+                for game in monitored_games:
+                    name_clean = " ".join(game['name'].lower().split())
+                    # Match title fragments (e.g. "wuthering waves", "genshin impact")
+                    if name_clean in active_title_clean:
+                        matched_game = game
+                        break
                     
             if matched_game:
                 # Foreground window title matched the game directly!

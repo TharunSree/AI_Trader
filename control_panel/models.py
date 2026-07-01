@@ -394,6 +394,7 @@ class Game(models.Model):
     cover_image_url = models.CharField(max_length=500, blank=True, null=True)
     animated_bg_url = models.CharField(max_length=500, blank=True, null=True)
     is_active = models.BooleanField(default=True)
+    watch_beta_recruitment = models.BooleanField(default=False, help_text="Watch this game for beta recruitment signups")
     created_at = models.DateTimeField(auto_now_add=True)
 
     @property
@@ -478,6 +479,7 @@ class BudgetWatchlistGame(models.Model):
     check_xbox = models.BooleanField(default=True)
     current_price = models.FloatField(blank=True, null=True, help_text="Current lowest price in INR (Rupees)")
     lowest_platform = models.CharField(max_length=50, blank=True, null=True)
+    buy_link = models.TextField(blank=True, null=True, help_text="Direct link to purchase the deal")
     last_checked_at = models.DateTimeField(blank=True, null=True)
     notified_under_budget = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -519,24 +521,51 @@ class BudgetWatchlistGame(models.Model):
                 
                 deals = details_data.get('deals', [])
                 lowest_price_usd = None
-                store_map = {"1": "Steam", "25": "Epic Games", "27": "Xbox Store", "18": "GOG"}
+                lowest_deal_id = None
+                store_map = {
+                    "1": "Steam",
+                    "2": "GamersGate",
+                    "3": "GreenManGaming",
+                    "7": "Funstock",
+                    "11": "Humble Store",
+                    "15": "Fanatical",
+                    "18": "GOG",
+                    "21": "Nintendo eShop",
+                    "25": "Epic Games",
+                    "27": "Xbox Store",
+                    "30": "PlayStation Store"
+                }
                 lowest_store = None
                 
                 for deal in deals:
                     store_id = deal.get('storeID')
                     price_usd = float(deal.get('price', 999.0))
+                    deal_id = deal.get('dealID')
                     
-                    if store_id == "1" and not self.check_steam: continue
-                    if store_id == "25" and not self.check_epic: continue
-                    if store_id == "27" and not self.check_xbox: continue
+                    # Strict platform filtering
+                    is_steam_deal = store_id in ["1", "2", "3", "11", "15", "18"]
+                    is_epic_deal = store_id == "25"
+                    is_xbox_deal = store_id == "27"
+                    
+                    if is_steam_deal and not self.check_steam: continue
+                    if is_epic_deal and not self.check_epic: continue
+                    if is_xbox_deal and not self.check_xbox: continue
+                    
+                    if not is_steam_deal and not is_epic_deal and not is_xbox_deal:
+                        continue
                     
                     if lowest_price_usd is None or price_usd < lowest_price_usd:
                         lowest_price_usd = price_usd
+                        lowest_deal_id = deal_id
                         lowest_store = store_map.get(store_id, f"Store #{store_id}")
                 
                 if lowest_price_usd is not None:
                     self.current_price = lowest_price_usd * usd_to_inr
                     self.lowest_platform = lowest_store
+                    if lowest_deal_id:
+                        self.buy_link = f"https://www.cheapshark.com/redirect?dealID={lowest_deal_id}"
+                    else:
+                        self.buy_link = None
             
             self.last_checked_at = timezone.now()
             self.save()

@@ -8,6 +8,7 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from django.core.mail import send_mail
 from django.conf import settings
+from django.db import models
 from control_panel.models import Game, GameBetaInfo, WatchlistGame, BudgetWatchlistGame
 
 class Command(BaseCommand):
@@ -30,7 +31,7 @@ class Command(BaseCommand):
             self.stderr.write(f"Failed to fetch feed {url}: {e}")
             return None
 
-    def send_email_notification(self, subject, body):
+    def send_email_notification(self, subject, body, html_message=None):
         recipient = getattr(settings, 'EMAIL_HOST_USER', None)
         if not recipient:
             self.stdout.write("Email recipient not configured. Skipping alert dispatch.")
@@ -41,6 +42,7 @@ class Command(BaseCommand):
                 message=body,
                 from_email=recipient,
                 recipient_list=[recipient],
+                html_message=html_message,
                 fail_silently=False
             )
             self.stdout.write(f"Dispatched email notification: {subject.encode('ascii', errors='replace').decode('ascii')}")
@@ -49,8 +51,14 @@ class Command(BaseCommand):
 
     def check_beta_recruitment(self):
         self.stdout.write("Scouting beta test signups...")
-        # Target games like Genshin Impact and Wuthering Waves
-        target_games = Game.objects.filter(name__icontains="genshin") | Game.objects.filter(name__icontains="wuthering") | Game.objects.filter(name__icontains="wuwa")
+        # Target games explicitly flagged for beta tracking, falling back to defaults if none are set
+        target_games = Game.objects.filter(is_active=True, watch_beta_recruitment=True)
+        if not target_games.exists():
+            target_games = Game.objects.filter(is_active=True).filter(
+                models.Q(name__icontains="genshin") | 
+                models.Q(name__icontains="wuthering") | 
+                models.Q(name__icontains="wuwa")
+            )
         
         for game in target_games:
             query = urllib.parse.quote(f"{game.name} beta test recruitment signup")
@@ -136,17 +144,21 @@ class Command(BaseCommand):
         watchlist = BudgetWatchlistGame.objects.all()
         usd_to_inr = self.get_usd_to_inr_rate()
         
-        # Store ID mapping of CheapShark
-        # Store 1 = Steam, Store 25 = Epic Games, Store 27 = Xbox Store
         store_map = {
             "1": "Steam",
+            "2": "GamersGate",
+            "3": "GreenManGaming",
+            "7": "Funstock",
+            "11": "Humble Store",
+            "15": "Fanatical",
+            "18": "GOG",
+            "21": "Nintendo eShop",
             "25": "Epic Games",
             "27": "Xbox Store",
-            "18": "GOG"
+            "30": "PlayStation Store"
         }
 
         for item in watchlist:
-            # Search game by title on CheapShark
             encoded_title = urllib.parse.quote(item.name)
             search_url = f"https://www.cheapshark.com/api/1.0/games?title={encoded_title}"
             
@@ -158,7 +170,6 @@ class Command(BaseCommand):
                 if not search_data:
                     continue
 
-                # Get game details by CheapShark Game ID
                 game_id = search_data[0].get('gameID')
                 details_url = f"https://www.cheapshark.com/api/1.0/games?id={game_id}"
                 
@@ -167,19 +178,29 @@ class Command(BaseCommand):
                 
                 deals = details_data.get('deals', [])
                 lowest_price_usd = None
+                lowest_deal_id = None
                 lowest_store = None
 
                 for deal in deals:
                     store_id = deal.get('storeID')
                     price_usd = float(deal.get('price', 999.0))
+                    deal_id = deal.get('dealID')
                     
-                    # Apply platform filter preferences
-                    if store_id == "1" and not item.check_steam: continue
-                    if store_id == "25" and not item.check_epic: continue
-                    if store_id == "27" and not item.check_xbox: continue
+                    # Strict platform filtering
+                    is_steam_deal = store_id in ["1", "2", "3", "11", "15", "18"]
+                    is_epic_deal = store_id == "25"
+                    is_xbox_deal = store_id == "27"
+                    
+                    if is_steam_deal and not item.check_steam: continue
+                    if is_epic_deal and not item.check_epic: continue
+                    if is_xbox_deal and not item.check_xbox: continue
+                    
+                    if not is_steam_deal and not is_epic_deal and not is_xbox_deal:
+                        continue
 
                     if lowest_price_usd is None or price_usd < lowest_price_usd:
                         lowest_price_usd = price_usd
+                        lowest_deal_id = deal_id
                         lowest_store = store_map.get(store_id, f"Store #{store_id}")
 
                 item.last_checked_at = timezone.now()
@@ -188,16 +209,82 @@ class Command(BaseCommand):
                     lowest_price_inr = lowest_price_usd * usd_to_inr
                     item.current_price = lowest_price_inr
                     item.lowest_platform = lowest_store
+                    if lowest_deal_id:
+                        item.buy_link = f"https://www.cheapshark.com/redirect?dealID={lowest_deal_id}"
+                    else:
+                        item.buy_link = None
                     
                     # Notify check in INR
                     if lowest_price_inr <= item.target_budget:
                         if not item.notified_under_budget:
                             subject = f"💸 DEAL ALERT: {item.name} is on sale!"
-                            body = f"Good news! {item.name} has dropped below your budget limit of INR {item.target_budget:.2f}:\n\nCurrent Price: INR {lowest_price_inr:.2f} (approx ${lowest_price_usd:.2f})\nStore: {lowest_store}\n\nGet it before the sale ends!"
-                            self.send_email_notification(subject, body)
+                            
+                            # Envato-Style Premium Dark Theme HTML Email
+                            buy_btn_html = f'<a href="{item.buy_link}" class="btn-cta" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #a855f7, #6366f1); color: #ffffff !important; text-decoration: none !important; font-size: 14px; font-weight: 700; padding: 15px 40px; border-radius: 50px; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 0 15px rgba(168, 85, 247, 0.4); margin-top: 20px;">Purchase Deal</a>' if item.buy_link else ''
+                            
+                            html_msg = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {{ margin: 0; padding: 0; background-color: #0c0a12; font-family: 'Inter', Helvetica, Arial, sans-serif; color: #e2e8f0; }}
+        .wrapper {{ width: 100%; table-layout: fixed; background-color: #0c0a12; padding: 40px 0; }}
+        .main-card {{ max-width: 600px; margin: 0 auto; background-color: #141020; border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 16px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }}
+        .header {{ background: linear-gradient(135deg, #a855f7, #6366f1); padding: 30px; text-align: center; }}
+        .header h1 {{ margin: 0; font-size: 24px; font-weight: 800; letter-spacing: 2px; color: #ffffff; text-transform: uppercase; }}
+        .content {{ padding: 40px 30px; text-align: center; }}
+        .game-title {{ font-size: 28px; font-weight: 800; color: #22d3ee; margin: 10px 0 20px 0; text-shadow: 0 0 10px rgba(34, 211, 238, 0.3); }}
+        .price-badge {{ display: inline-block; background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; border-radius: 30px; padding: 10px 25px; font-size: 20px; font-weight: 700; color: #22c55e; margin-bottom: 25px; }}
+        .details-table {{ width: 100%; border-collapse: collapse; margin: 25px 0; background: rgba(255,255,255,0.02); border-radius: 8px; overflow: hidden; }}
+        .details-table td {{ padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 14px; text-align: left; }}
+        .details-table td.label {{ color: #94a3b8; font-weight: bold; width: 35%; }}
+        .details-table td.value {{ color: #f1f5f9; }}
+        .footer {{ background: #07050a; padding: 25px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid rgba(255,255,255,0.03); }}
+    </style>
+</head>
+<body>
+    <div class="wrapper" style="background-color: #0c0a12; padding: 40px 0;">
+        <div class="main-card" style="max-width: 600px; margin: 0 auto; background-color: #141020; border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 16px; overflow: hidden;">
+            <div class="header" style="background: linear-gradient(135deg, #a855f7, #6366f1); padding: 30px; text-align: center;">
+                <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: 2px; color: #ffffff; text-transform: uppercase;">DEAL ALERT</h1>
+            </div>
+            <div class="content" style="padding: 40px 30px; text-align: center; color: #e2e8f0;">
+                <p style="margin: 0; font-size: 12px; font-weight: 700; text-transform: uppercase; color: #a855f7; letter-spacing: 1px;">Target Budget Met</p>
+                <div class="game-title" style="font-size: 28px; font-weight: 800; color: #22d3ee; margin: 10px 0 20px 0;">{item.name}</div>
+                <div class="price-badge" style="display: inline-block; background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; border-radius: 30px; padding: 10px 25px; font-size: 20px; font-weight: 700; color: #22c55e; margin-bottom: 25px;">₹{lowest_price_inr:.2f}</div>
+                <p style="font-size: 14px; color: #94a3b8; line-height: 1.6; margin: 0 0 20px 0;">Great news! A monitored title on your budget watchlist has dropped below your budget threshold.</p>
+                
+                <table class="details-table" style="width: 100%; border-collapse: collapse; margin: 25px 0; background: rgba(255,255,255,0.02); border-radius: 8px; overflow: hidden;">
+                    <tr>
+                        <td class="label" style="padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 14px; text-align: left; color: #94a3b8; font-weight: bold; width: 35%;">Store</td>
+                        <td class="value" style="padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 14px; text-align: left; color: #f1f5f9;">{lowest_store}</td>
+                    </tr>
+                    <tr>
+                        <td class="label" style="padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 14px; text-align: left; color: #94a3b8; font-weight: bold; width: 35%;">Current Price</td>
+                        <td class="value" style="padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 14px; text-align: left; color: #f1f5f9;">₹{lowest_price_inr:.2f} (approx ${lowest_price_usd:.2f})</td>
+                    </tr>
+                    <tr>
+                        <td class="label" style="padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 14px; text-align: left; color: #94a3b8; font-weight: bold; width: 35%;">Target Budget</td>
+                        <td class="value" style="padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 14px; text-align: left; color: #f1f5f9;">₹{item.target_budget:.2f}</td>
+                    </tr>
+                </table>
+                
+                {buy_btn_html}
+            </div>
+            <div class="footer" style="background: #07050a; padding: 25px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid rgba(255,255,255,0.03);">
+                <p style="margin: 0 0 8px 0;">This is an automated notification from your QuantTrader Pro Arcade Lounge dashboard.</p>
+                <p style="margin: 0;">© 2026 QuantTrader Pro. All Rights Reserved.</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+"""
+                            
+                            plain_body = f"Good news! {item.name} has dropped below your budget limit of INR {item.target_budget:.2f}:\n\nCurrent Price: INR {lowest_price_inr:.2f} (approx ${lowest_price_usd:.2f})\nStore: {lowest_store}\n\nGet it before the sale ends!"
+                            self.send_email_notification(subject, plain_body, html_message=html_msg)
                             item.notified_under_budget = True
                     else:
-                        # Reset notification flag if price goes back up
                         item.notified_under_budget = False
                 
                 item.save()

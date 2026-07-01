@@ -80,21 +80,43 @@ class IdleTelemetryEngine {
         events.forEach(e => document.addEventListener(e, updateActivity, { passive: true }));
     }
 
+    async checkGameSessionActive() {
+        try {
+            const response = await fetch('/relax/api/immersion-status/');
+            const data = await response.json();
+            return data.active === true;
+        } catch (e) {
+            return false;
+        }
+    }
+
     startEngine() {
         setInterval(() => {
             if (this.isLoggingOut) return;
             
             const idleTime = Date.now() - this.lastActivity;
 
-            // Phase 2: Complete Logout
-            if (this.logoutThreshold > 0 && idleTime >= this.logoutThreshold) {
-                this.triggerLogout();
-                return;
-            }
+            // Check if any threshold is crossed
+            const crossedLock = !this.isLocked && this.lockThreshold > 0 && idleTime >= this.lockThreshold;
+            const crossedLogout = this.logoutThreshold > 0 && idleTime >= this.logoutThreshold;
 
-            // Phase 1: Lockscreen
-            if (!this.isLocked && this.lockThreshold > 0 && idleTime >= this.lockThreshold) {
-                this.triggerLock();
+            if (crossedLock || crossedLogout) {
+                this.checkGameSessionActive().then(isActive => {
+                    if (isActive) {
+                        // User is in a gaming session, reset inactivity timer
+                        this.lastActivity = Date.now();
+                        return;
+                    }
+
+                    if (crossedLogout) {
+                        this.triggerLogout();
+                        return;
+                    }
+
+                    if (crossedLock) {
+                        this.triggerLock();
+                    }
+                });
             }
             
         }, 5000);
@@ -123,6 +145,9 @@ class IdleTelemetryEngine {
     triggerLogout() {
         if (this.isLoggingOut) return;
         this.isLoggingOut = true;
+        
+        // Save current path to restore on re-login
+        localStorage.setItem('qt_last_path', window.location.pathname + window.location.search);
         
         const form = document.createElement('form');
         form.method = 'POST';

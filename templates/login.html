@@ -141,6 +141,9 @@
 
             <form method="post" action="{% url 'login' %}" class="space-y-6">
                 {% csrf_token %}
+                {% if request.GET.next %}
+                <input type="hidden" name="next" value="{{ request.GET.next }}">
+                {% endif %}
                 
                 <div class="space-y-2 group relative">
                     <label class="block text-[9px] font-bold text-macchiato-subtext0 uppercase tracking-[0.2em] transition-colors group-focus-within:text-macchiato-sapphire ml-1" for="id_username">Operator ID</label>
@@ -175,5 +178,15 @@
             </div>
         </div>
     </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const savedPath = localStorage.getItem('qt_last_path');
+            const urlParams = new URLSearchParams(window.location.search);
+            if (savedPath && !urlParams.has('next')) {
+                localStorage.removeItem('qt_last_path');
+                window.location.search = `?next=${encodeURIComponent(savedPath)}`;
+            }
+        });
+    </script>
 </body>
 </html>

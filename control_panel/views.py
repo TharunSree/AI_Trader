@@ -6120,6 +6120,44 @@ def relax_game_detail_analytics_view(request, game_id):
     return render(request, 'relax_game_analytics.html', context)
 
 
+def get_game_recent_news(game_name):
+    from django.core.cache import cache
+    cache_key = f"game_news_{game_name.replace(' ', '_').lower()}"
+    cached_news = cache.get(cache_key)
+    if cached_news:
+        return cached_news
+        
+    import urllib.request
+    import urllib.parse
+    import xml.etree.ElementTree as ET
+    
+    query = urllib.parse.quote(f"{game_name} game news")
+    rss_url = f"https://news.google.com/rss/search?q={query}&hl=en-US&gl=US&ceid=US:en"
+    news_list = []
+    try:
+        req = urllib.request.Request(rss_url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=3) as res:
+            root = ET.fromstring(res.read())
+            items = root.findall('.//item')
+            for item in items[:2]:
+                title = item.find('title').text
+                # Strip source suffix if present (e.g. " - IGN")
+                if " - " in title:
+                    title = title.rsplit(" - ", 1)[0]
+                news_list.append(title)
+    except Exception:
+        pass
+        
+    if not news_list:
+        news_list = [
+            f"Developer update announcement published for {game_name}.",
+            f"Pre-registration milestones hit for {game_name}."
+        ]
+        
+    cache.set(cache_key, news_list, 3600)
+    return news_list
+
+
 @login_required
 def relax_watchlist_view(request):
     upcoming_games = WatchlistGame.objects.all().order_by('expected_release_date')
@@ -6158,26 +6196,39 @@ def relax_watchlist_view(request):
             except ValueError:
                 countdown = g.expected_release_date
         
-        # Load any recent news from web search or custom scraping
-        recent_news = [
-            f"Developer update announcement published for {g.name}.",
-            f"Pre-registration milestones hit for {g.name}."
-        ]
+        # Load dynamic recent news
+        recent_news = get_game_recent_news(g.name)
         
         watchlist_data.append({
             'game': g,
             'countdown': countdown,
-            'recent_news': recent_news
+            'recent_news': news_list if 'news_list' in locals() else recent_news
         })
 
+    active_betas = GameBetaInfo.objects.filter(is_active=True).order_by('-discovered_at')
+    
     settings = SystemSettings.load()
     context = {
         'watchlist': watchlist_data,
         'budget_games': budget_games,
+        'active_betas': active_betas,
         'settings': settings,
         'games': Game.objects.filter(is_active=True),
     }
     return render(request, 'relax_watchlist.html', context)
+
+
+@login_required
+@require_POST
+def relax_toggle_beta_watch(request, game_id):
+    game = get_object_or_404(Game, id=game_id)
+    game.watch_beta_recruitment = not game.watch_beta_recruitment
+    game.save()
+    return JsonResponse({
+        'status': 'success',
+        'game_id': game.id,
+        'watch_beta_recruitment': game.watch_beta_recruitment
+    })
 
 
 @login_required

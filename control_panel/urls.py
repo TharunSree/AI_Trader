@@ -125,6 +125,7 @@ urlpatterns = [
     path('relax/watchlist/delete-budget/<int:game_id>/', views.relax_delete_budget_game, name='relax_delete_budget_game'),
     path('relax/watchlist/update-global-budget/', views.relax_update_global_budget, name='relax_update_global_budget'),
     path('relax/watchlist/refresh/', views.relax_watchlist_refresh, name='relax_watchlist_refresh'),
+    path('relax/watchlist/toggle-beta/<int:game_id>/', views.relax_toggle_beta_watch, name='relax_toggle_beta_watch'),
     path('relax/watchlist/game/<int:game_id>/', views.relax_watchlist_game_detail, name='relax_watchlist_game_detail'),
     path('relax/immersion/', views.relax_immersion_view, name='relax_immersion'),
     path('relax/api/process-heartbeat/', views.relax_api_process_heartbeat, name='relax_api_process_heartbeat'),
