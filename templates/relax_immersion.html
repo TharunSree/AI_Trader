@@ -207,6 +207,16 @@
         from { box-shadow: 0 0 35px rgba(244, 63, 94, 0.2); }
         to { box-shadow: 0 0 65px rgba(244, 63, 94, 0.5); }
     }
+
+    /* Remove standard spin buttons (up/down arrows) from custom minutes input */
+    #custom-minutes::-webkit-outer-spin-button,
+    #custom-minutes::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    #custom-minutes[type=number] {
+        -moz-appearance: textfield;
+    }
 </style>
 {% endblock %}
 
