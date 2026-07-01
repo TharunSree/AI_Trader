@@ -21,6 +21,14 @@ if len(sys.argv) > 1:
     else:
         DJANGO_SERVER_URL = arg_url
 
+# Bypass system proxies to ensure loopback traffic goes directly to localhost
+try:
+    proxy_handler = urllib.request.ProxyHandler({})
+    opener = urllib.request.build_opener(proxy_handler)
+    urllib.request.install_opener(opener)
+except Exception:
+    pass
+
 # Helper to check active foreground window on Windows
 def get_active_window_title():
     if sys.platform == 'win32':
