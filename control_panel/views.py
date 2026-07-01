@@ -5186,6 +5186,17 @@ def relax_view(request):
 
     steam_username_session = request.session.get('steam_username', '')
     
+    # Active Playtime Session info
+    active_session = GamePlaytimeSession.objects.filter(is_active=True).first()
+    active_session_elapsed = 0
+    if active_session:
+        from django.core.cache import cache
+        last_active = cache.get(f"game_session_active_{active_session.id}")
+        if not last_active or (timezone.now() - last_active).total_seconds() > 7:
+            active_session = None
+        else:
+            active_session_elapsed = int((timezone.now() - active_session.start_time).total_seconds())
+
     context = {
         'games': games,
         'selected_game': selected_game,
@@ -5193,6 +5204,8 @@ def relax_view(request):
         'page_title': 'Relax Lounge',
         'settings': settings,
         'steam_username_session': steam_username_session,
+        'active_session': active_session,
+        'active_session_elapsed': active_session_elapsed,
     }
     return render(request, 'relax.html', context)
 
@@ -6055,6 +6068,17 @@ def relax_analytics_view(request):
     sorted_month = sorted(game_durations_month.items(), key=lambda x: x[1], reverse=True)[:3]
     top_month = [{'name': g.name, 'hours': round(sec / 3600.0, 1)} for g, sec in sorted_month]
 
+    # Active Playtime Session info
+    active_session = GamePlaytimeSession.objects.filter(is_active=True).first()
+    active_session_elapsed = 0
+    if active_session:
+        from django.core.cache import cache
+        last_active = cache.get(f"game_session_active_{active_session.id}")
+        if not last_active or (timezone.now() - last_active).total_seconds() > 7:
+            active_session = None
+        else:
+            active_session_elapsed = int((timezone.now() - active_session.start_time).total_seconds())
+
     context = {
         'games': games,
         'most_played': most_played,
@@ -6065,6 +6089,8 @@ def relax_analytics_view(request):
         'chart_hours': json.dumps(chart_hours),
         'top_today': top_today,
         'top_month': top_month,
+        'active_session': active_session,
+        'active_session_elapsed': active_session_elapsed,
     }
     return render(request, 'relax_analytics.html', context)
 
@@ -6443,6 +6469,8 @@ def relax_api_process_heartbeat(request):
             exes.extend(['zenlesszonezero.exe', 'zzz.exe'])
         elif 'neverness' in g_lower or 'nte' in g_lower:
             exes.extend(['nte.exe', 'nevernesstoeverness.exe'])
+        elif 'forza' in g_lower:
+            exes.extend(['forzamotorsportapex.exe', 'forzahorizon4.exe', 'forzahorizon5.exe', 'forzamotorsport.exe', 'forza.exe'])
             
         monitored_games.append({
             'name': g.name,
@@ -6528,6 +6556,12 @@ def relax_api_process_heartbeat(request):
                     for g in active_games:
                         g_norm = g.name.lower()
                         if 'neverness' in g_norm or 'nte' in g_norm:
+                            game = g
+                            break
+                elif 'forza' in process_name_clean:
+                    for g in active_games:
+                        g_norm = g.name.lower()
+                        if 'forza' in g_norm:
                             game = g
                             break
     

@@ -63,6 +63,45 @@
     </div>
 
     <!-- Telemetry Cards -->
+    {% if active_session %}
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card h-100 p-3 border-0 text-white animate-pulse" style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); border-radius: 20px; box-shadow: 0 0 15px rgba(239, 68, 68, 0.45);">
+            <div class="d-flex align-items-center gap-3 h-100">
+                {% if active_session.game.cover_image_url %}
+                    <img src="{% if 'http://' in active_session.game.cover_image_url or 'https://' in active_session.game.cover_image_url %}{{ active_session.game.cover_image_url }}{% else %}{% url 'serve_local_file' %}?path={{ active_session.game.cover_image_url }}{% endif %}" class="rounded-3" style="width: 48px; height: 60px; object-fit: cover;">
+                {% endif %}
+                <div class="min-w-0 flex-1">
+                    <h6 class="text-white/80 font-mono text-[9px] uppercase tracking-widest mb-0.5"><i class="fas fa-circle text-white text-[8px] mr-1 animate-pulse"></i> In Session</h6>
+                    <h4 class="text-white font-bold text-xs truncate mb-1">{{ active_session.game.name }}</h4>
+                    <span class="badge bg-white/20 text-white font-mono text-[10px] py-1 px-2.5" id="active-session-stat-timer">00:00:00</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        (function() {
+            let elapsed = parseInt("{{ active_session_elapsed }}", 10);
+            const timerEl = document.getElementById('active-session-stat-timer');
+            
+            function formatTime(totalSeconds) {
+                const hrs = Math.floor(totalSeconds / 3600);
+                const mins = Math.floor((totalSeconds % 3600) / 60);
+                const secs = totalSeconds % 60;
+                return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            }
+            
+            if (timerEl) {
+                timerEl.innerText = formatTime(elapsed);
+                setInterval(() => {
+                    elapsed++;
+                    timerEl.innerText = formatTime(elapsed);
+                }, 1000);
+            }
+        })();
+    </script>
+    {% endif %}
+
     <div class="col-xl-3 col-md-6 mb-4">
         <div class="card bg-info text-white h-100 p-3 shadow-lg border-0" style="border-radius: 20px;">
             <div class="d-flex align-items-center justify-content-between">

@@ -459,6 +459,52 @@
         </div>
 
     {% else %}
+        <!-- ACTIVE SESSION BANNER (PLAYING NOW) -->
+        {% if active_session %}
+        <div class="col-12 mb-4">
+            <div class="position-relative rounded-4 overflow-hidden shadow-lg border border-primary/20" style="height: 180px; border-radius: 24px !important; background-color: #0d081b;">
+                <!-- Video/Image Background -->
+                {% if active_session.game.animated_bg_url %}
+                    {% if ".mp4" in active_session.game.animated_bg_url or ".webm" in active_session.game.animated_bg_url or "movies/" in active_session.game.animated_bg_url or "redirect?" in active_session.game.animated_bg_url %}
+                        <video class="position-absolute w-100 h-100" autoplay loop muted playsinline style="object-fit: cover; filter: brightness(0.35); inset: 0; z-index: 1;">
+                            <source src="{% if 'http://' in active_session.game.animated_bg_url or 'https://' in active_session.game.animated_bg_url %}{{ active_session.game.animated_bg_url }}{% else %}{% url 'serve_local_file' %}?path={{ active_session.game.animated_bg_url }}{% endif %}" type="video/mp4">
+                        </video>
+                    {% else %}
+                        <div class="position-absolute w-100 h-100" style="background-image: url('{% if \'http://\' in active_session.game.animated_bg_url or \'https://\' in active_session.game.animated_bg_url %}{{ active_session.game.animated_bg_url }}{% else %}{% url 'serve_local_file' %}?path={{ active_session.game.animated_bg_url }}{% endif %}'); background-size: cover; background-position: center; filter: brightness(0.3); inset: 0; z-index: 1;"></div>
+                    {% endif %}
+                {% elif active_session.game.cover_image_url %}
+                    <div class="position-absolute w-100 h-100" style="background-image: url('{% if \'http://\' in active_session.game.cover_image_url or \'https://\' in active_session.game.cover_image_url %}{{ active_session.game.cover_image_url }}{% else %}{% url 'serve_local_file' %}?path={{ active_session.game.cover_image_url }}{% endif %}'); background-size: cover; background-position: center; filter: brightness(0.25) blur(4px); inset: 0; z-index: 1;"></div>
+                {% else %}
+                    <div class="position-absolute w-100 h-100" style="background: linear-gradient(135deg, #100b26 0%, #030206 100%); inset: 0; z-index: 1;"></div>
+                {% endif %}
+                
+                <!-- Gradient Mask overlay -->
+                <div class="position-absolute w-100 h-100" style="inset: 0; z-index: 2; background: linear-gradient(90deg, rgba(13,8,27,0.92) 0%, rgba(13,8,27,0.4) 100%);"></div>
+
+                <!-- Content Overlay -->
+                <div class="position-absolute d-flex align-items-center justify-content-between px-4 px-md-5 w-100 h-100" style="inset: 0; z-index: 3;">
+                    <div class="d-flex align-items-center gap-4">
+                        <!-- Cover Art Thumbnail -->
+                        {% if active_session.game.cover_image_url %}
+                            <img src="{% if 'http://' in active_session.game.cover_image_url or 'https://' in active_session.game.cover_image_url %}{{ active_session.game.cover_image_url }}{% else %}{% url 'serve_local_file' %}?path={{ active_session.game.cover_image_url }}{% endif %}" class="rounded-3 shadow-md border border-white/10 d-none d-md-block" style="width: 70px; height: 95px; object-fit: cover;">
+                        {% endif %}
+                        <div>
+                            <span class="badge bg-primary text-white font-mono text-[9px] uppercase tracking-widest py-1 px-3 mb-2 animate-pulse" style="letter-spacing: 1.5px; box-shadow: 0 0 10px rgba(99,102,241,0.4);"><i class="fas fa-circle text-xs text-white-50 mr-1"></i> PLAYING NOW</span>
+                            <h2 class="text-white font-bold uppercase tracking-wide mb-1" style="font-size: 1.5rem; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">{{ active_session.game.name }}</h2>
+                            <p class="text-slate-300 font-mono text-[10px] mb-0 opacity-80">Active Playtime Tracking | System 1 Rig</p>
+                        </div>
+                    </div>
+                    
+                    <div class="text-end">
+                        <h6 class="text-slate-400 font-mono text-[9px] uppercase tracking-widest mb-1 opacity-70">Session Playtime</h6>
+                        <h1 class="text-white font-mono font-bold mb-2 tracking-wider" id="active-session-timer" style="font-size: 2rem; text-shadow: 0 0 15px rgba(255,255,255,0.25);">00:00:00</h1>
+                        <button onclick="stopPlayingSessionBanner()" class="btn btn-xs btn-outline-danger rounded-pill px-3 font-mono text-[9px] font-bold uppercase tracking-wider"><i class="fas fa-stop me-1"></i> End Session</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- LIBRARY VIEW (FULL PAGE GRID) -->
         <div class="col-12 mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
@@ -1141,18 +1187,41 @@
             });
     };
 
-    // Auto-Immersion Redirection Check
-    setInterval(() => {
-        if (!sessionStorage.getItem('exit_immersion')) {
-            fetch('/relax/api/immersion-status/')
-                .then(res => res.json())
-                .then(data => {
-                    if (data.active) {
-                        window.location.href = "{% url 'relax_immersion' %}";
-                    }
-                })
-                .catch(err => {});
+    // Active Playtime Session banner tracking logic
+    {% if active_session %}
+    (function() {
+        let elapsed = parseInt("{{ active_session_elapsed }}", 10);
+        const timerEl = document.getElementById('active-session-timer');
+        
+        function formatTime(totalSeconds) {
+            const hrs = Math.floor(totalSeconds / 3600);
+            const mins = Math.floor((totalSeconds % 3600) / 60);
+            const secs = totalSeconds % 60;
+            return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
         }
-    }, 4000);
+        
+        if (timerEl) {
+            timerEl.innerText = formatTime(elapsed);
+            setInterval(() => {
+                elapsed++;
+                timerEl.innerText = formatTime(elapsed);
+            }, 1000);
+        }
+    })();
+    
+    window.stopPlayingSessionBanner = function() {
+        if (confirm("Are you sure you want to stop tracking this playtime session?")) {
+            fetch('/relax/api/stop-session/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(() => {
+                window.location.reload();
+            });
+        }
+    };
+    {% endif %}
 </script>
 {% endblock %}
