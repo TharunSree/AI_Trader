@@ -61,7 +61,7 @@ class Command(BaseCommand):
             )
         
         for game in target_games:
-            query = urllib.parse.quote(f"{game.name} beta test recruitment signup")
+            query = urllib.parse.quote(f"{game.name} beta test recruitment signup when:30d")
             rss_url = f"https://news.google.com/rss/search?q={query}&hl=en-US&gl=US&ceid=US:en"
             
             root = self.fetch_rss_feed(rss_url)
@@ -170,7 +170,27 @@ class Command(BaseCommand):
                 if not search_data:
                     continue
 
-                game_id = search_data[0].get('gameID')
+                # Match hierarchy (Steam ID -> Exact name -> Substring -> First result)
+                matched_result = None
+                if item.steam_app_id:
+                    for res in search_data:
+                        if str(res.get('steamAppID')) == str(item.steam_app_id):
+                            matched_result = res
+                            break
+                if not matched_result:
+                    for res in search_data:
+                        if res.get('external', '').lower() == item.name.lower():
+                            matched_result = res
+                            break
+                if not matched_result:
+                    for res in search_data:
+                        if item.name.lower() in res.get('external', '').lower():
+                            matched_result = res
+                            break
+                if not matched_result:
+                    matched_result = search_data[0]
+
+                game_id = matched_result.get('gameID')
                 details_url = f"https://www.cheapshark.com/api/1.0/games?id={game_id}"
                 
                 with urllib.request.urlopen(urllib.request.Request(details_url, headers={'User-Agent': 'Mozilla/5.0'}), timeout=8) as d_res:
@@ -222,6 +242,9 @@ class Command(BaseCommand):
                             # Envato-Style Premium Dark Theme HTML Email
                             buy_btn_html = f'<a href="{item.buy_link}" class="btn-cta" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #a855f7, #6366f1); color: #ffffff !important; text-decoration: none !important; font-size: 14px; font-weight: 700; padding: 15px 40px; border-radius: 50px; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 0 15px rgba(168, 85, 247, 0.4); margin-top: 20px;">Purchase Deal</a>' if item.buy_link else ''
                             
+                            game_thumb = matched_result.get('thumb', '')
+                            thumb_img_html = f'<div style="text-align: center; margin: 20px 0;"><img src="{game_thumb}" alt="{item.name}" style="width: 140px; height: 190px; object-fit: cover; border-radius: 12px; border: 2px solid rgba(34, 211, 238, 0.4); box-shadow: 0 0 25px rgba(34, 211, 238, 0.25);"></div>' if game_thumb else ''
+
                             html_msg = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -251,6 +274,7 @@ class Command(BaseCommand):
             <div class="content" style="padding: 40px 30px; text-align: center; color: #e2e8f0;">
                 <p style="margin: 0; font-size: 12px; font-weight: 700; text-transform: uppercase; color: #a855f7; letter-spacing: 1px;">Target Budget Met</p>
                 <div class="game-title" style="font-size: 28px; font-weight: 800; color: #22d3ee; margin: 10px 0 20px 0;">{item.name}</div>
+                {thumb_img_html}
                 <div class="price-badge" style="display: inline-block; background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; border-radius: 30px; padding: 10px 25px; font-size: 20px; font-weight: 700; color: #22c55e; margin-bottom: 25px;">₹{lowest_price_inr:.2f}</div>
                 <p style="font-size: 14px; color: #94a3b8; line-height: 1.6; margin: 0 0 20px 0;">Great news! A monitored title on your budget watchlist has dropped below your budget threshold.</p>
                 

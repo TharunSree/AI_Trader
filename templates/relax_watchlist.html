@@ -108,7 +108,7 @@
             </div>
 
             <!-- List Items -->
-            <div class="d-flex flex-column gap-3">
+            <div class="d-flex flex-column gap-3 p-1" style="max-height: 480px; overflow-y: auto;">
                 {% for item in watchlist %}
                     <div class="p-3 rounded-4 position-relative" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%); border: 1px solid rgba(168, 85, 247, 0.25) !important;">
                         <div class="d-flex justify-content-between align-items-start mb-2">
@@ -251,7 +251,7 @@
             </div>
 
             <!-- List of Budget games -->
-            <div class="d-flex flex-column gap-3">
+            <div class="d-flex flex-column gap-3 p-1" style="max-height: 480px; overflow-y: auto;">
                 {% for item in budget_games %}
                     {% if item.current_price and item.current_price <= item.target_budget %}
                         <!-- Deal triggered gradient green border badge style -->
@@ -324,7 +324,7 @@
             <p class="text-xs text-slate-550 dark:text-slate-400 font-mono mb-4 leading-relaxed">
                 Scouted active recruitments and signups. Click to open the registration page directly.
             </p>
-            <div class="d-flex flex-column gap-3">
+            <div class="d-flex flex-column gap-3 p-1" style="max-height: 280px; overflow-y: auto;">
                 {% for beta in active_betas %}
                     <div class="p-3 rounded-4" style="background: rgba(244, 63, 94, 0.04); border: 1px solid rgba(244, 63, 94, 0.2) !important;">
                         <span class="badge bg-danger/10 text-danger font-mono text-[8px] uppercase tracking-wider py-1 px-1.5 mb-1.5 d-inline-block">{{ beta.game.name }}</span>

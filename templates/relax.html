@@ -223,6 +223,13 @@
                         {% else %}
                             <span class="badge font-mono py-1.5 px-3 bg-secondary/20 border border-secondary/30 text-secondary" title="New tier: <10 hours of runtime"><i class="fas fa-star text-secondary me-1"></i> New</span>
                         {% endif %}
+                        {% if selected_game.beta_infos.all %}
+                            {% for b in selected_game.beta_infos.all %}
+                                {% if b.is_active %}
+                                    <span class="badge font-mono py-1.5 px-3 bg-danger/20 border border-danger/30 text-danger animate-pulse" title="Beta test recruitment signup is currently open!"><i class="fas fa-flask text-danger me-1"></i> Beta Active</span>
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
                     </div>
                     
                     <div class="d-flex gap-2 flex-wrap items-center">
@@ -502,6 +509,15 @@
                                             <span class="badge bg-success/20 text-success font-mono text-[8px] py-1 px-2 rounded-pill border border-success/30" title="Rookie: 10+ hours of runtime"><i class="fas fa-medal text-success me-1"></i> Rookie</span>
                                         {% else %}
                                             <span class="badge bg-secondary/20 text-secondary font-mono text-[8px] py-1 px-2 rounded-pill border border-secondary/30" title="New: <10 hours of runtime"><i class="fas fa-star text-secondary me-1"></i> New</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="position-absolute" style="top: 10px; right: 10px; z-index: 10;">
+                                        {% if game.beta_infos.all %}
+                                            {% for b in game.beta_infos.all %}
+                                                {% if b.is_active %}
+                                                    <span class="badge bg-danger/25 text-danger font-mono text-[8px] py-1 px-2 rounded-pill border border-danger/40 animate-pulse" title="Beta test recruitment signup is currently open!"><i class="fas fa-flask text-danger me-1"></i> Beta Active</span>
+                                                {% endif %}
+                                            {% endfor %}
                                         {% endif %}
                                     </div>
                                     <div class="game-cover-overlay">

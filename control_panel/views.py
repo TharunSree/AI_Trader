@@ -6550,11 +6550,7 @@ def relax_watchlist_game_detail(request, game_id):
             countdown = game.expected_release_date
 
     # Dynamic recent news from search
-    recent_news = [
-        f"Developer update announcement published for {game.name}.",
-        f"Pre-registration milestones hit for {game.name}.",
-        f"Community discussion active regarding the upcoming release of {game.name}."
-    ]
+    recent_news = get_game_recent_news(game.name)
 
     context = {
         'game': game,

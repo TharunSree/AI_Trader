@@ -512,7 +512,27 @@ class BudgetWatchlistGame(models.Model):
                 search_data = json.loads(res.read().decode('utf-8'))
             
             if search_data:
-                game_id = search_data[0].get('gameID')
+                # Match hierarchy (Steam ID -> Exact name -> Substring -> First result)
+                matched_result = None
+                if self.steam_app_id:
+                    for res in search_data:
+                        if str(res.get('steamAppID')) == str(self.steam_app_id):
+                            matched_result = res
+                            break
+                if not matched_result:
+                    for res in search_data:
+                        if res.get('external', '').lower() == self.name.lower():
+                            matched_result = res
+                            break
+                if not matched_result:
+                    for res in search_data:
+                        if self.name.lower() in res.get('external', '').lower():
+                            matched_result = res
+                            break
+                if not matched_result:
+                    matched_result = search_data[0]
+
+                game_id = matched_result.get('gameID')
                 details_url = f"https://www.cheapshark.com/api/1.0/games?id={game_id}"
                 
                 req_details = urllib.request.Request(details_url, headers={'User-Agent': 'Mozilla/5.0'})
