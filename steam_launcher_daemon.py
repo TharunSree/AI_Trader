@@ -246,7 +246,7 @@ def heartbeat_worker():
             # Silence network disconnect exceptions
             pass
             
-        time.sleep(3)
+        time.sleep(1)
 
 # HTTP Request Handler for Launch commands
 class LaunchRequestHandler(BaseHTTPRequestHandler):

@@ -5483,168 +5483,79 @@ def relax_add_video(request):
 @login_required
 def relax_launch_game(request, game_id):
     game = get_object_or_404(Game, id=game_id)
+    import platform
+    import subprocess
     
-    # Flag this game as pending launch in queue file (firewall-proof and multi-worker safe pull model!)
-    from django.conf import settings as django_settings
-    queue_file = os.path.join(django_settings.BASE_DIR, 'pending_launches.json')
-    launches = []
-    if os.path.exists(queue_file):
-        try:
-            with open(queue_file, 'r') as f:
-                launches = json.load(f)
-        except Exception:
-            pass
-    launches.append({
-        'appid': game.steam_app_id or None,
-        'path': game.local_path or None
-    })
-    try:
-        with open(queue_file, 'w') as f:
-            json.dump(launches, f)
-    except Exception:
-        pass
-    
-    # 1. Check if remote Windows Gaming Rig is configured (if Django runs on Linux)
-    settings = SystemSettings.load()
-    if settings.gaming_rig_ip:
-        rig_host = settings.gaming_rig_ip
-        
-        # Try HTTP launcher daemon first (highly recommended, port 5555)
-        import urllib.request
-        import urllib.parse
-        
-        params = {}
+    # 1. Local launch if Django itself runs on Windows (local single-PC development setup)
+    if platform.system() == 'Windows':
+        launched = False
         if game.steam_app_id:
-            params['appid'] = game.steam_app_id
-        elif game.local_path:
-            params['path'] = game.local_path
-            
-        if params:
-            encoded_params = urllib.parse.urlencode(params)
-            daemon_url = f"http://{rig_host}:5555/launch?{encoded_params}"
-            
             try:
-                logger.info(f"Connecting to Steam Launcher Daemon at {daemon_url}...")
-                req = urllib.request.Request(daemon_url)
-                with urllib.request.urlopen(req, timeout=3) as daemon_res:
-                    res_data = json.loads(daemon_res.read().decode('utf-8'))
-                    if res_data.get('status') == 'success':
-                        messages.success(request, f"Sent remote launch command for '{game.name}' to Windows rig {rig_host} via Launcher Daemon!")
-                        return redirect(f"/relax/?game_id={game.id}")
-            except Exception as daemon_ex:
-                logger.warning(f"Launcher Daemon connection failed: {daemon_ex}. Trying SSH fallback...")
-
-        # Fallback to SSH method if daemon is offline/unreachable and SSH credentials exist
-        if settings.gaming_rig_ssh_username:
-            rig_user = settings.gaming_rig_ssh_username
-            rig_pass = settings.gaming_rig_ssh_password
+                import winreg
+                key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam")
+                steam_exe, _ = winreg.QueryValueEx(key, "SteamExe")
+                if steam_exe and os.path.exists(steam_exe):
+                    steam_dir = os.path.dirname(steam_exe)
+                    subprocess.Popen([steam_exe, "-applaunch", str(game.steam_app_id)], cwd=steam_dir)
+                    launched = True
+            except Exception:
+                pass
             
-            if game.steam_app_id:
-                remote_cmd = f"cmd.exe /c start steam://rungameid/{game.steam_app_id}"
-            elif game.local_path:
-                remote_cmd = f"cmd.exe /c start \"\" \"{game.local_path}\""
-            else:
-                messages.error(request, "No launch path or Steam ID specified.")
-                return redirect(f"/relax/?game_id={game.id}")
-                
-            import shutil
-            sshpass_bin = shutil.which("sshpass")
-            ssh_args = ["ssh", "-o", "ConnectTimeout=4", "-o", "StrictHostKeyChecking=no", f"{rig_user}@{rig_host}", remote_cmd]
-            
-            if rig_pass and sshpass_bin:
-                cmd_to_run = [sshpass_bin, "-p", rig_pass] + ssh_args
-            else:
-                cmd_to_run = ssh_args
-                
-            try:
-                logger.info(f"Triggering remote launch on Windows rig {rig_host} via SSH...")
-                subprocess.Popen(cmd_to_run, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                messages.success(request, f"Sent remote launch command for '{game.name}' to Windows rig {rig_host} via SSH!")
-                return redirect(f"/relax/?game_id={game.id}")
-            except Exception as ssh_ex:
-                logger.error(f"Failed to run SSH launch command: {ssh_ex}")
-                messages.warning(request, f"Remote SSH launch trigger failed: {str(ssh_ex)}. Attempting local launch fallback...")
-
-    # 2. Local launch fallback
-    try:
-        import platform
-        if platform.system() != 'Windows':
-            messages.error(request, "Remote launch failed: No gaming rig IP address is configured in Settings. Go to the Settings page and enter your rig's IP (e.g. 192.168.29.254).")
-            return redirect(f"/relax/?game_id={game.id}")
-            
-        if game.steam_app_id:
-            if platform.system() == 'Windows':
-                launched = False
+            if not launched:
                 try:
-                    import winreg
-                    key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam")
-                    steam_exe, _ = winreg.QueryValueEx(key, "SteamExe")
-                    if steam_exe and os.path.exists(steam_exe):
-                        steam_dir = os.path.dirname(steam_exe)
-                        subprocess.Popen([steam_exe, "-applaunch", str(game.steam_app_id)], cwd=steam_dir)
-                        launched = True
+                    subprocess.Popen(["cmd.exe", "/c", "start", f"steam://rungameid/{game.steam_app_id}"], shell=True)
+                    launched = True
                 except Exception:
                     pass
-                
-                if not launched:
-                    try:
-                        subprocess.Popen(["cmd.exe", "/c", "start", f"steam://rungameid/{game.steam_app_id}"], shell=True)
-                        launched = True
-                    except Exception:
-                        pass
-                        
-                if not launched:
-                    try:
-                        os.startfile(f"steam://rungameid/{game.steam_app_id}")
-                    except Exception:
-                        pass
-                messages.success(request, f"Launching '{game.name}' via Steam on host...")
-            else:
-                steam_url = f"steam://rungameid/{game.steam_app_id}"
-                subprocess.Popen(['xdg-open', steam_url] if platform.system() == 'Linux' else ['open', steam_url])
-                messages.success(request, f"Launching '{game.name}' via Steam on host...")
+            
+            if not launched:
+                try:
+                    os.startfile(f"steam://rungameid/{game.steam_app_id}")
+                    launched = True
+                except Exception:
+                    pass
         elif game.local_path:
             is_uri = ':' in game.local_path and not ('\\' in game.local_path or '/' in game.local_path)
             if is_uri or os.path.exists(game.local_path):
-                if platform.system() == 'Windows':
-                    launched = False
-                    try:
-                        subprocess.Popen(["cmd.exe", "/c", "start", '""', game.local_path], shell=True)
-                        launched = True
-                    except Exception:
-                        pass
-                    if not launched:
-                        try:
-                            os.startfile(game.local_path)
-                        except Exception:
-                            pass
-                else:
-                    subprocess.Popen([game.local_path], shell=False)
-                messages.success(request, f"Launching '{game.name}' locally on host...")
-            else:
-                if game.local_path.startswith(('xbox:', 'steam:', 'epic:', 'com.epicgames.launcher:')):
-                    if platform.system() == 'Windows':
-                        launched = False
-                        try:
-                            subprocess.Popen(["cmd.exe", "/c", "start", game.local_path], shell=True)
-                            launched = True
-                        except Exception:
-                            pass
-                        if not launched:
-                            try:
-                                os.startfile(game.local_path)
-                            except Exception:
-                                pass
-                        messages.success(request, f"Launching '{game.name}' via protocol on host...")
-                    else:
-                        messages.error(request, f"Protocols are only supported on Windows: {game.local_path}")
-                else:
-                    messages.error(request, f"Local path not found on host: {game.local_path}")
-        else:
-            messages.error(request, "No launch path or Steam ID specified.")
-    except Exception as e:
-        messages.error(request, f"Error launching game: {str(e)}")
+                try:
+                    subprocess.Popen(["cmd.exe", "/c", "start", '""', game.local_path], shell=True)
+                    launched = True
+                except Exception:
+                    pass
         
+        if launched:
+            messages.success(request, f"Launched '{game.name}' successfully on local host.")
+        else:
+            messages.error(request, f"Failed to launch '{game.name}' locally. Verify the path or Steam ID.")
+        return redirect(f"/relax/?game_id={game.id}")
+
+    # 2. Remote launch via background daemon pull queue (highly robust, firewall-proof, zero page-hangs!)
+    settings = SystemSettings.load()
+    if settings.gaming_rig_ip:
+        # Flag this game as pending launch in queue file
+        from django.conf import settings as django_settings
+        queue_file = os.path.join(django_settings.BASE_DIR, 'pending_launches.json')
+        launches = []
+        if os.path.exists(queue_file):
+            try:
+                with open(queue_file, 'r') as f:
+                    launches = json.load(f)
+            except Exception:
+                pass
+        launches.append({
+            'appid': game.steam_app_id or None,
+            'path': game.local_path or None
+        })
+        try:
+            with open(queue_file, 'w') as f:
+                json.dump(launches, f)
+        except Exception:
+            pass
+            
+        messages.success(request, f"Remote launch command for '{game.name}' queued. Starting on your gaming PC shortly!")
+        return redirect(f"/relax/?game_id={game.id}")
+        
+    messages.error(request, "Remote launch failed: No gaming rig IP address is configured in Settings. Go to the Settings page and enter your rig's IP.")
     return redirect(f"/relax/?game_id={game.id}")
 
 
@@ -6478,7 +6389,7 @@ def relax_api_process_heartbeat(request):
             response_data['pending_launches'] = pending_launches
         return JsonResponse(response_data)
 
-    data = json.loads(request.body)
+    data = json.loads(request.body.decode('utf-8'))
     process_name = data.get('active_process', '').strip()
     path = data.get('path', '').strip()
     is_running = data.get('is_running', False)
