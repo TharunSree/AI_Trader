@@ -74,6 +74,7 @@ def heartbeat_worker():
                 continue
                 
             active_title = get_active_window_title().lower()
+            active_title_clean = " ".join(active_title.split())
             
             active_process = ""
             active_path = ""
@@ -82,9 +83,9 @@ def heartbeat_worker():
             # Step 1: High-efficiency foreground window title matching (0% RAM/CPU)
             matched_game = None
             for game in monitored_games:
-                name_lower = game['name'].lower()
+                name_clean = " ".join(game['name'].lower().split())
                 # Match title fragments (e.g. "wuthering waves", "genshin impact")
-                if name_lower in active_title or ('wuthering' in name_lower and 'wuthering' in active_title):
+                if name_clean in active_title_clean:
                     matched_game = game
                     break
                     

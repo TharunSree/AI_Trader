@@ -7,12 +7,20 @@
 {% block extra_head %}
 <style>
     .glass-card {
-        background: rgba(15, 15, 25, 0.65) !important;
-        backdrop-filter: blur(16px) saturate(180%);
-        -webkit-backdrop-filter: blur(16px) saturate(180%);
-        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        background: rgba(255, 255, 255, 0.45) !important;
+        backdrop-filter: blur(24px) saturate(220%);
+        -webkit-backdrop-filter: blur(24px) saturate(220%);
+        border: 1px solid rgba(255, 255, 255, 0.5) !important;
+        box-shadow: 0 8px 32px rgba(31, 38, 135, 0.08) !important;
+        border-radius: 24px !important;
+        color: #1f2937 !important;
+        transition: all 0.3s ease;
+    }
+    .dark .glass-card {
+        background: rgba(15, 15, 25, 0.45) !important;
+        border: 1px solid rgba(255, 255, 255, 0.07) !important;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
-        border-radius: 20px !important;
+        color: #f3f4f6 !important;
     }
     .neon-text {
         color: #a855f7;
@@ -28,116 +36,122 @@
 {% endblock %}
 
 {% block page_content %}
-<div class="row">
-    <div class="col-12 mb-3">
-        <a href="{% url 'relax_analytics' %}" class="text-decoration-none text-slate-500 dark:text-slate-400 hover:text-primary transition-colors font-mono text-xs d-flex align-items-center gap-1">
-            <i class="fas fa-arrow-left"></i> Back to Analytics
-        </a>
-    </div>
+<div class="position-relative overflow-hidden w-100" style="min-height: 80vh;">
+    <!-- Glowing backdrop blobs for rich glassmorphism saturation -->
+    <div class="position-absolute rounded-circle" style="top: 10%; left: 10%; width: 250px; height: 250px; background: rgba(168, 85, 247, 0.12); filter: blur(95px); pointer-events: none; z-index: 0;"></div>
+    <div class="position-absolute rounded-circle" style="top: 40%; right: 10%; width: 300px; height: 300px; background: rgba(34, 211, 238, 0.1); filter: blur(110px); pointer-events: none; z-index: 0;"></div>
+    <div class="position-absolute rounded-circle" style="bottom: 10%; left: 30%; width: 200px; height: 200px; background: rgba(236, 72, 153, 0.08); filter: blur(85px); pointer-events: none; z-index: 0;"></div>
 
-    <!-- Game Hero Banner -->
-    <div class="col-12 mb-4">
-        <div class="position-relative rounded-4 overflow-hidden glass-card" style="height: 250px; border: 1px solid rgba(255,255,255,0.06);">
-            {% if game.animated_bg_url %}
-                <img src="{% if 'http://' in game.animated_bg_url or 'https://' in game.animated_bg_url %}{{ game.animated_bg_url }}{% else %}{% url 'serve_local_file' %}?path={{ game.animated_bg_url }}{% endif %}" class="w-100 h-100" style="object-fit: cover; filter: brightness(0.4);">
-            {% else %}
-                <div class="w-100 h-100 bg-slate-900"></div>
-            {% endif %}
-            <div class="position-absolute" style="bottom: 0; left: 0; right: 0; padding: 25px; background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%);">
-                <div class="d-flex align-items-center gap-4">
-                    <img src="{% if 'http://' in game.cover_image_url or 'https://' in game.cover_image_url %}{{ game.cover_image_url }}{% else %}{% url 'serve_local_file' %}?path={{ game.cover_image_url }}{% endif %}" class="rounded-3 shadow-lg" style="width: 70px; height: 100px; object-fit: cover; border: 1px solid rgba(255,255,255,0.2);">
-                    <div>
-                        <h2 class="text-white font-bold uppercase tracking-widest mb-2" style="font-size: 1.6rem; text-shadow: 0 0 10px rgba(168,85,247,0.5);">{{ game.name }}</h2>
-                        <div class="d-flex align-items-center gap-3 flex-wrap">
-                            <span class="badge neon-border-cyan text-cyan-400 font-mono py-1 px-3"><i class="fas fa-gamepad me-1"></i> {{ game.hours_played|floatformat:1 }} total hours</span>
-                            {% if game.playtime_offset > 0.0 %}
-                                <span class="badge neon-border text-purple-400 font-mono py-1 px-3"><i class="fas fa-plus me-1"></i> {{ game.playtime_offset|floatformat:1 }} offset hours</span>
-                            {% endif %}
-                            {% if game.steam_app_id %}
-                                <span class="badge bg-blue-500/20 text-blue-300 border border-blue-500/30 font-mono py-1 px-3"><i class="fab fa-steam me-1"></i> AppID: {{ game.steam_app_id }}</span>
-                            {% endif %}
+    <div class="row position-relative" style="z-index: 1;">
+        <div class="col-12 mb-3">
+            <a href="{% url 'relax_analytics' %}" class="text-decoration-none text-slate-500 dark:text-slate-400 hover:text-primary transition-colors font-mono text-xs d-flex align-items-center gap-1">
+                <i class="fas fa-arrow-left"></i> Back to Analytics
+            </a>
+        </div>
+
+        <!-- Game Hero Banner -->
+        <div class="col-12 mb-4">
+            <div class="position-relative rounded-4 overflow-hidden glass-card" style="height: 250px; border: 1px solid rgba(255,255,255,0.06);">
+                {% if game.animated_bg_url %}
+                    <img src="{% if 'http://' in game.animated_bg_url or 'https://' in game.animated_bg_url %}{{ game.animated_bg_url }}{% else %}{% url 'serve_local_file' %}?path={{ game.animated_bg_url }}{% endif %}" class="w-100 h-100" style="object-fit: cover; filter: brightness(0.45);">
+                {% else %}
+                    <div class="w-100 h-100 bg-slate-900/60"></div>
+                {% endif %}
+                <div class="position-absolute" style="bottom: 0; left: 0; right: 0; padding: 25px; background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%);">
+                    <div class="d-flex align-items-center gap-4">
+                        <img src="{% if 'http://' in game.cover_image_url or 'https://' in game.cover_image_url %}{{ game.cover_image_url }}{% else %}{% url 'serve_local_file' %}?path={{ game.cover_image_url }}{% endif %}" class="rounded-3 shadow-lg" style="width: 70px; height: 100px; object-fit: cover; border: 1px solid rgba(255,255,255,0.2);">
+                        <div>
+                            <h2 class="text-white font-bold uppercase tracking-widest mb-2" style="font-size: 1.6rem; text-shadow: 0 0 10px rgba(168,85,247,0.5);">{{ game.name }}</h2>
+                            <div class="d-flex align-items-center gap-3 flex-wrap">
+                                <span class="badge neon-border-cyan text-cyan-400 font-mono py-1 px-3"><i class="fas fa-gamepad me-1"></i> {{ game.hours_played|floatformat:1 }} total hours</span>
+                                {% if game.playtime_offset > 0.0 %}
+                                    <span class="badge neon-border text-purple-400 font-mono py-1 px-3"><i class="fas fa-plus me-1"></i> {{ game.playtime_offset|floatformat:1 }} offset hours</span>
+                                {% endif %}
+                                {% if game.steam_app_id %}
+                                    <span class="badge bg-blue-500/20 text-blue-300 border border-blue-500/30 font-mono py-1 px-3"><i class="fab fa-steam me-1"></i> AppID: {{ game.steam_app_id }}</span>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Playtime chart just for this game -->
-    <div class="col-lg-8 mb-4">
-        <div class="card glass-card p-4 h-100">
-            <h4 class="font-size-13 font-mono uppercase tracking-widest text-slate-200 mb-4">
-                <i class="fas fa-chart-bar text-cyan-400 me-2"></i> Playtime Activity (7 Days)
-            </h4>
-            <div style="height: 250px; position: relative;">
-                <canvas id="gamePlaytimeChart"></canvas>
-            </div>
-        </div>
-    </div>
-
-    <!-- Quick Stats -->
-    <div class="col-lg-4 mb-4">
-        <div class="card glass-card p-4 h-100">
-            <h4 class="font-size-13 font-mono uppercase tracking-widest text-slate-200 mb-4">
-                <i class="fas fa-cogs text-primary me-2"></i> Session Telemetry
-            </h4>
-            <div class="d-flex flex-column gap-3 mt-2">
-                <div class="d-flex justify-content-between align-items-center pb-2 border-b border-slate-800">
-                    <span class="text-slate-400 font-mono text-xs">Total Sessions Logged</span>
-                    <span class="text-white font-mono font-bold text-xs">{{ sessions.count }}</span>
-                </div>
-                <div class="d-flex justify-content-between align-items-center pb-2 border-b border-slate-800">
-                    <span class="text-slate-400 font-mono text-xs">Platform Target</span>
-                    <span class="text-cyan-400 font-mono font-bold text-xs">
-                        {% if game.steam_app_id %}Steam Engine{% else %}Local Process{% endif %}
-                    </span>
-                </div>
-                <div class="d-flex justify-content-between align-items-center pb-2 border-b border-slate-800">
-                    <span class="text-slate-400 font-mono text-xs">Execution Path</span>
-                    <span class="text-slate-200 font-mono text-xs truncate max-w-[180px]" title="{{ game.local_path|default:'None' }}">
-                        {{ game.local_path|default:'Steam Direct Link' }}
-                    </span>
+        <!-- Playtime chart just for this game -->
+        <div class="col-lg-8 mb-4">
+            <div class="card glass-card p-4 h-100">
+                <h4 class="font-size-13 font-mono uppercase tracking-widest text-slate-800 dark:text-slate-200 mb-4">
+                    <i class="fas fa-chart-bar text-cyan-400 me-2"></i> Playtime Activity (7 Days)
+                </h4>
+                <div style="height: 250px; position: relative;">
+                    <canvas id="gamePlaytimeChart"></canvas>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Session History List -->
-    <div class="col-12 mb-4">
-        <div class="card glass-card p-4">
-            <h4 class="font-size-13 font-mono uppercase tracking-widest text-slate-200 mb-4">
-                <i class="fas fa-history text-purple-500 me-2"></i> Session History Ledger (Last 10)
-            </h4>
-            <div class="table-responsive">
-                <table class="table table-dark table-borderless font-mono text-xs mb-0">
-                    <thead>
-                        <tr class="text-slate-500 border-b border-slate-800">
-                            <th class="py-2.5">Start Time</th>
-                            <th class="py-2.5">End Time</th>
-                            <th class="py-2.5">Limit (Mins)</th>
-                            <th class="py-2.5 text-right">Duration</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-800">
-                        {% for s in sessions %}
-                            <tr class="text-slate-300">
-                                <td class="py-3">{{ s.start_time|date:"Y-m-d H:i" }}</td>
-                                <td class="py-3">{{ s.end_time|date:"Y-m-d H:i"|default:"Active Playing..." }}</td>
-                                <td class="py-3">{{ s.limit_minutes|default:"Unlimited" }}</td>
-                                <td class="py-3 text-right text-cyan-400 font-bold">
-                                    {% if s.is_active %}
-                                        <span class="text-amber-400 animate-pulse">Running...</span>
-                                    {% else %}
-                                        {{ s.duration_seconds|divisibleby:3600|yesno:"hours,mins" }} 
-                                        {{ s.duration_seconds }} sec
-                                    {% endif %}
-                                </td>
+        <!-- Quick Stats -->
+        <div class="col-lg-4 mb-4">
+            <div class="card glass-card p-4 h-100">
+                <h4 class="font-size-13 font-mono uppercase tracking-widest text-slate-800 dark:text-slate-200 mb-4">
+                    <i class="fas fa-cogs text-primary me-2"></i> Session Telemetry
+                </h4>
+                <div class="d-flex flex-column gap-3 mt-2">
+                    <div class="d-flex justify-content-between align-items-center pb-2 border-b border-slate-200 dark:border-slate-800">
+                        <span class="text-slate-500 dark:text-slate-400 font-mono text-xs">Total Sessions Logged</span>
+                        <span class="text-slate-900 dark:text-white font-mono font-bold text-xs">{{ sessions.count }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center pb-2 border-b border-slate-200 dark:border-slate-800">
+                        <span class="text-slate-500 dark:text-slate-400 font-mono text-xs">Platform Target</span>
+                        <span class="text-cyan-400 font-mono font-bold text-xs">
+                            {% if game.steam_app_id %}Steam Engine{% else %}Local Process{% endif %}
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center pb-2 border-b border-slate-200 dark:border-slate-800">
+                        <span class="text-slate-500 dark:text-slate-400 font-mono text-xs">Execution Path</span>
+                        <span class="text-slate-700 dark:text-slate-200 font-mono text-xs truncate max-w-[180px]" title="{{ game.local_path|default:'None' }}">
+                            {{ game.local_path|default:'Steam Direct Link' }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Session History List -->
+        <div class="col-12 mb-4">
+            <div class="card glass-card p-4">
+                <h4 class="font-size-13 font-mono uppercase tracking-widest text-slate-800 dark:text-slate-200 mb-4">
+                    <i class="fas fa-history text-purple-500 me-2"></i> Session History Ledger (Last 10)
+                </h4>
+                <div class="table-responsive">
+                    <table class="table table-borderless font-mono text-xs mb-0">
+                        <thead>
+                            <tr class="text-slate-500 border-b border-slate-200 dark:border-slate-800">
+                                <th class="py-2.5">Start Time</th>
+                                <th class="py-2.5">End Time</th>
+                                <th class="py-2.5">Limit (Mins)</th>
+                                <th class="py-2.5 text-right">Duration</th>
                             </tr>
-                        {% empty %}
-                            <tr>
-                                <td colspan="4" class="py-6 text-center text-slate-500">No telemetry session logs recorded yet.</td>
-                            </tr>
-                        {% endfor %}
+                        </thead>
+                        <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                            {% for s in sessions %}
+                                <tr class="text-slate-700 dark:text-slate-300">
+                                    <td class="py-3">{{ s.start_time|date:"Y-m-d H:i" }}</td>
+                                    <td class="py-3">{{ s.end_time|date:"Y-m-d H:i"|default:"Active Playing..." }}</td>
+                                    <td class="py-3">{{ s.limit_minutes|default:"Unlimited" }}</td>
+                                    <td class="py-3 text-right text-cyan-400 font-bold">
+                                        {% if s.is_active %}
+                                            <span class="text-amber-400 animate-pulse">Running...</span>
+                                        {% else %}
+                                            {{ s.duration_seconds|divisibleby:3600|yesno:"hours,mins" }} 
+                                            {{ s.duration_seconds }} sec
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="4" class="py-6 text-center text-slate-500">No telemetry session logs recorded yet.</td>
+                                </tr>
+                            {% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -191,4 +205,5 @@
         });
     });
 </script>
+</div>
 {% endblock %}

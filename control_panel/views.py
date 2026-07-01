@@ -6106,6 +6106,8 @@ def relax_game_detail_analytics_view(request, game_id):
 
     context = {
         'game': game,
+        'selected_game': game,
+        'games': Game.objects.filter(is_active=True),
         'sessions': sessions,
         'chart_dates': json.dumps(chart_dates),
         'chart_hours': json.dumps(chart_hours),
@@ -6153,6 +6155,7 @@ def relax_watchlist_view(request):
         'watchlist': watchlist_data,
         'budget_games': budget_games,
         'settings': settings,
+        'games': Game.objects.filter(is_active=True),
     }
     return render(request, 'relax_watchlist.html', context)
 
@@ -6443,6 +6446,7 @@ def relax_watchlist_game_detail(request, game_id):
         'countdown_days': countdown_days,
         'recent_news': recent_news,
         'page_title': f"{game.name} - Watchlist Details",
+        'games': Game.objects.filter(is_active=True),
     }
     return render(request, 'relax_watchlist_detail.html', context)
 
