@@ -6363,24 +6363,47 @@ def relax_api_process_heartbeat(request):
     is_running = data.get('is_running', False)
     
     if is_running and process_name:
-        process_name_clean = process_name.replace('.exe', '')
-        # Auto-match or auto-create
-        game = None
+        process_name_clean = process_name.replace('.exe', '').lower()
+        process_name_normalized = " ".join(process_name_clean.split())
         
-        # Check specific process mapping aliases
-        process_lower = process_name.lower()
-        if 'openverseclient' in process_lower or 'wuwa' in process_lower or 'client.exe' in process_lower:
-            game = Game.objects.filter(name__icontains='wuthering waves').first() or Game.objects.filter(name__icontains='wuwa').first()
-        elif 'genshin' in process_lower:
-            game = Game.objects.filter(name__icontains='genshin').first()
+        # Match in Python memory to handle any whitespace/double-space variations
+        game = None
+        active_games = Game.objects.filter(is_active=True)
+        
+        # 1. Match by exact normalized title (e.g. "wuthering waves" or "cyberpunk 2077")
+        for g in active_games:
+            g_name_normalized = " ".join(g.name.lower().split())
+            if g_name_normalized == process_name_normalized:
+                game = g
+                break
+                
+        # 2. Check specific process mapping aliases (e.g. openverseclient -> Wuthering Waves)
+        if not game:
+            if 'openverseclient' in process_name_clean or 'wuwa' in process_name_clean or 'client' in process_name_clean:
+                for g in active_games:
+                    g_name_normalized = " ".join(g.name.lower().split())
+                    if 'wuthering' in g_name_normalized or 'wuwa' in g_name_normalized:
+                        game = g
+                        break
+            elif 'genshin' in process_name_clean:
+                for g in active_games:
+                    g_name_normalized = " ".join(g.name.lower().split())
+                    if 'genshin' in g_name_normalized:
+                        game = g
+                        break
+
+        # 3. Match by path
+        if not game and path:
+            game = active_games.filter(local_path=path).first()
             
+        # 4. Fallback default lookup
         if not game:
-            game = Game.objects.filter(local_path=path).first()
-        if not game:
-            game = Game.objects.filter(name__iexact=process_name_clean).first()
+            game = active_games.filter(name__iexact=process_name_clean).first()
+            
+        # 5. Create new game entry if completely missing
         if not game:
             game = Game.objects.create(
-                name=process_name_clean,
+                name=process_name_clean.capitalize(),
                 local_path=path,
                 hours_played=0.0
             )

@@ -62,6 +62,8 @@ def heartbeat_worker():
     
     last_tasklist_run = 0
     running_executables = set()
+    last_state = None
+    last_process = None
     
     while True:
         try:
@@ -109,6 +111,13 @@ def heartbeat_worker():
                     if is_running:
                         break
             
+            # Print transition logs to the terminal for debugging
+            if is_running != last_state or active_process != last_process:
+                status_str = f"ACTIVE ({active_process})" if is_running else "INACTIVE"
+                print(f"[STATUS] Focus state changed to: {status_str} | Title: '{active_title}'")
+                last_state = is_running
+                last_process = active_process
+
             # If we found an active game, report it
             if is_running:
                 payload = {
