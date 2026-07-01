@@ -5484,6 +5484,11 @@ def relax_add_video(request):
 def relax_launch_game(request, game_id):
     game = get_object_or_404(Game, id=game_id)
     
+    # Flag this game as pending launch in cache (expires in 60s)
+    # The client daemon will pick this up on its next 3-second heartbeat poll (firewall-proof pull model!)
+    from django.core.cache import cache
+    cache.set(f"pending_launch_trigger_{game.id}", True, 60)
+    
     # 1. Check if remote Windows Gaming Rig is configured (if Django runs on Linux)
     settings = SystemSettings.load()
     if settings.gaming_rig_ip:
@@ -6402,7 +6407,9 @@ from django.views.decorators.csrf import csrf_exempt
 def relax_api_process_heartbeat(request):
     import json
     import os
-    from .models import SystemSettings
+    from .models import SystemSettings, Game
+    from django.core.cache import cache
+    from django.utils import timezone
     
     # Auto-register gaming rig IP address based on incoming daemon heartbeat requests
     client_ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR'))
@@ -6414,8 +6421,21 @@ def relax_api_process_heartbeat(request):
             settings.gaming_rig_ip = client_ip
             settings.save()
 
+    # Extract any pending launch triggers for active games from cache
+    pending_launches = []
+    active_games = Game.objects.filter(is_active=True)
+    for g in active_games:
+        cache_key = f"pending_launch_trigger_{g.id}"
+        if cache.get(cache_key):
+            cache.delete(cache_key)  # consume the event trigger
+            pending_launches.append({
+                'id': g.id,
+                'name': g.name,
+                'appid': g.steam_app_id or None,
+                'path': g.local_path or None
+            })
+
     if request.method == 'GET':
-        active_games = Game.objects.filter(is_active=True)
         monitored_games = []
         for g in active_games:
             exes = []
@@ -6437,7 +6457,11 @@ def relax_api_process_heartbeat(request):
                 'name': g.name,
                 'executables': list(set(exes))
             })
-        return JsonResponse({'monitored_games': monitored_games})
+            
+        response_data = {'monitored_games': monitored_games}
+        if pending_launches:
+            response_data['pending_launches'] = pending_launches
+        return JsonResponse(response_data)
 
     data = json.loads(request.body)
     process_name = data.get('active_process', '').strip()
@@ -6450,7 +6474,6 @@ def relax_api_process_heartbeat(request):
         
         # Match in Python memory to handle any whitespace/double-space variations
         game = None
-        active_games = Game.objects.filter(is_active=True)
         
         # 1. Match by exact normalized title (e.g. "wuthering waves" or "cyberpunk 2077")
         for g in active_games:
@@ -6500,13 +6523,14 @@ def relax_api_process_heartbeat(request):
             session = GamePlaytimeSession.objects.create(game=game, is_active=True)
             
         # Update last active timestamp in cache
-        from django.core.cache import cache
         cache.set(f"game_session_active_{session.id}", timezone.now(), 600)  # 10 minute cache TTL
             
-        return JsonResponse({'status': 'active', 'game_id': game.id, 'game_name': game.name})
+        response_data = {'status': 'active', 'game_id': game.id, 'game_name': game.name}
+        if pending_launches:
+            response_data['pending_launches'] = pending_launches
+        return JsonResponse(response_data)
     else:
         # Close any active session, but only if they have been inactive for more than 180 seconds (3 mins grace period)
-        from django.core.cache import cache
         active_sessions = GamePlaytimeSession.objects.filter(is_active=True)
         for session in active_sessions:
             last_active = cache.get(f"game_session_active_{session.id}")
@@ -6530,7 +6554,10 @@ def relax_api_process_heartbeat(request):
             # Clean up cache
             cache.delete(f"game_session_active_{session.id}")
             
-        return JsonResponse({'status': 'inactive'})
+        response_data = {'status': 'inactive'}
+        if pending_launches:
+            response_data['pending_launches'] = pending_launches
+        return JsonResponse(response_data)
 
 
 @login_required

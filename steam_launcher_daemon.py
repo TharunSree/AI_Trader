@@ -177,13 +177,25 @@ def heartbeat_worker():
                 last_state = is_running
                 last_process = active_process
 
+            # Resolve our local LAN IP to auto-register with Django
+            import socket
+            local_ip = ""
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                s.connect(("8.8.8.8", 80))
+                local_ip = s.getsockname()[0]
+                s.close()
+            except Exception:
+                pass
+
             # If we found an active game, report it
             if is_running:
                 payload = {
                     "active_process": active_process,
                     "path": active_path,
                     "window_title": active_title,
-                    "is_running": True
+                    "is_running": True,
+                    "local_ip": local_ip
                 }
             else:
                 # Report inactive
@@ -191,7 +203,8 @@ def heartbeat_worker():
                     "active_process": "",
                     "path": "",
                     "window_title": "",
-                    "is_running": False
+                    "is_running": False,
+                    "local_ip": local_ip
                 }
 
             # Send heartbeat POST to Django
@@ -202,7 +215,32 @@ def heartbeat_worker():
                 headers={'Content-Type': 'application/json'}
             )
             with urllib.request.urlopen(req, timeout=3) as res:
-                res.read()
+                res_data = json.loads(res.read().decode('utf-8'))
+                
+                # Check for pull-based pending launch triggers returned by Django (firewall-proof fallback!)
+                pending = res_data.get('pending_launches', [])
+                for pl in pending:
+                    appid = pl.get('appid')
+                    game_path = pl.get('path')
+                    
+                    try:
+                        if appid:
+                            print(f"[DAEMON] Launching Steam game AppID: {appid}")
+                            if sys.platform == 'win32':
+                                subprocess.Popen(f"start steam://rungameid/{appid}", shell=True)
+                            else:
+                                subprocess.Popen(f"xdg-open steam://rungameid/{appid}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        elif game_path:
+                            print(f"[DAEMON] Launching local game: {game_path}")
+                            if os.path.exists(game_path):
+                                if sys.platform == 'win32':
+                                    subprocess.Popen(f'start "" "{game_path}"', shell=True)
+                                else:
+                                    subprocess.Popen(f'xdg-open "{game_path}"', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                            else:
+                                print(f"[DAEMON] Path not found: {game_path}")
+                    except Exception as launch_err:
+                        print(f"[DAEMON] Launch failed: {launch_err}")
                 
         except Exception as e:
             # Silence network disconnect exceptions
