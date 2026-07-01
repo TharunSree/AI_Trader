@@ -6324,8 +6324,15 @@ def relax_immersion_view(request):
 
 @login_required
 def relax_api_immersion_status(request):
+    from django.core.cache import cache
     active_session = GamePlaytimeSession.objects.filter(is_active=True).first()
     if not active_session:
+        return JsonResponse({'active': False})
+
+    # If the session has not received a daemon heartbeat in the last 7 seconds,
+    # it means the game process has stopped on the client rig. Close the HUD immediately!
+    last_active = cache.get(f"game_session_active_{active_session.id}")
+    if not last_active or (timezone.now() - last_active).total_seconds() > 7:
         return JsonResponse({'active': False})
 
     elapsed = int((timezone.now() - active_session.start_time).total_seconds())
