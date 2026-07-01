@@ -227,11 +227,13 @@
                     
                     <div class="d-flex gap-2 flex-wrap items-center">
                         {% if selected_game.steam_app_id or selected_game.local_path %}
-                            <button id="btn-launch-client" onclick="launchGame('{{ selected_game.id }}', '{{ selected_game.steam_app_id|default:'' }}', '{{ selected_game.local_path|default:'' }}', false)" class="btn btn-sm btn-outline-info rounded-pill px-3.5 py-1.5 font-bold font-mono text-[10px] uppercase tracking-widest d-none">
-                                <i class="fas fa-desktop mr-1"></i> Boot Client
+                            <!-- Primary local client launch button -->
+                            <button id="btn-launch-client" onclick="launchGame('{{ selected_game.id }}', '{{ selected_game.steam_app_id|default:'' }}', '{{ selected_game.local_path|default:'' }}', false)" class="btn btn-play btn-sm text-white font-mono px-4 py-1.5 uppercase tracking-widest">
+                                <i class="fas fa-play mr-1"></i> Play Game
                             </button>
-                            <button id="btn-launch-host" onclick="launchGame('{{ selected_game.id }}', '{{ selected_game.steam_app_id|default:'' }}', '{{ selected_game.local_path|default:'' }}', true)" class="btn btn-play btn-sm text-white font-mono px-4 py-1.5 uppercase tracking-widest">
-                                <i class="fas fa-play mr-1"></i> {% if selected_game.steam_app_id %}Boot Steam{% else %}Boot Game{% endif %}
+                            <!-- Secondary remote host launch button -->
+                            <button id="btn-launch-host" onclick="launchGame('{{ selected_game.id }}', '{{ selected_game.steam_app_id|default:'' }}', '{{ selected_game.local_path|default:'' }}', true)" class="btn btn-sm btn-outline-info rounded-pill px-3.5 py-1.5 font-bold font-mono text-[10px] uppercase tracking-widest" title="Starts this game on the remote server hosting the Django application.">
+                                <i class="fas fa-server mr-1"></i> Launch on Server
                             </button>
                         {% endif %}
 
@@ -750,9 +752,7 @@
 <script>
     // Advanced Local vs Host Launching logic for Multi-System setups
     window.launchGame = function(gameId, steamAppId, localPath, isHostAction) {
-        const isLocalServer = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
-        
-        if (isHostAction || isLocalServer) {
+        if (isHostAction) {
             // Launch on the server host machine
             window.location.href = `/relax/game/launch/${gameId}/`;
         } else {
@@ -767,24 +767,6 @@
             }
         }
     };
-
-    document.addEventListener("DOMContentLoaded", function() {
-        const isLocalServer = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
-        const clientBtn = document.getElementById('btn-launch-client');
-        const hostBtn = document.getElementById('btn-launch-host');
-        if (clientBtn && hostBtn) {
-            if (!isLocalServer) {
-                clientBtn.classList.remove('d-none');
-                clientBtn.classList.remove('btn-outline-primary');
-                clientBtn.classList.add('btn-primary');
-                
-                hostBtn.classList.remove('btn-outline-primary');
-                hostBtn.classList.add('btn-outline-secondary');
-                hostBtn.innerHTML = '<i class="fas fa-server mr-1"></i> 🖥️ Launch on Server';
-                hostBtn.setAttribute('title', 'Starts this game on the remote server hosting the Django application.');
-            }
-        }
-    });
 
     // Guide Reader switcher logic
     window.viewGuide = function(guideId) {
