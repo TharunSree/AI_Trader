@@ -227,13 +227,9 @@
                     
                     <div class="d-flex gap-2 flex-wrap items-center">
                         {% if selected_game.steam_app_id or selected_game.local_path %}
-                            <!-- Primary local client launch button -->
-                            <button id="btn-launch-client" onclick="launchGame('{{ selected_game.id|escapejs }}', '{{ selected_game.steam_app_id|default:''|escapejs }}', '{{ selected_game.local_path|default:''|escapejs }}', false)" class="btn btn-play btn-sm text-white font-mono px-4 py-1.5 uppercase tracking-widest">
-                                <i class="fas fa-play mr-1"></i> Play Game
-                            </button>
-                            <!-- Secondary remote host launch button -->
-                            <button id="btn-launch-host" onclick="launchGame('{{ selected_game.id|escapejs }}', '{{ selected_game.steam_app_id|default:''|escapejs }}', '{{ selected_game.local_path|default:''|escapejs }}', true)" class="btn btn-sm btn-outline-info rounded-pill px-3.5 py-1.5 font-bold font-mono text-[10px] uppercase tracking-widest" title="Starts this game on the remote server hosting the Django application.">
-                                <i class="fas fa-server mr-1"></i> Launch on Server
+                            <!-- Single unified PLAY button -->
+                            <button id="btn-launch-game" onclick="launchGame('{{ selected_game.id|escapejs }}', '{{ selected_game.steam_app_id|default:''|escapejs }}', '{{ selected_game.local_path|default:''|escapejs }}')" class="btn btn-play btn-sm text-white font-mono px-4 py-1.5 uppercase tracking-widest">
+                                <i class="fas fa-play mr-1"></i> PLAY GAME
                             </button>
                         {% endif %}
 
@@ -751,29 +747,17 @@
 {% block extra_javascript %}
 <script>
     // Advanced Local vs Host Launching logic for Multi-System setups
-    window.launchGame = function(gameId, steamAppId, localPath, isHostAction) {
-        if (isHostAction) {
-            // Launch on the server host machine
-            window.location.href = `/relax/game/launch/${gameId}/`;
+    window.launchGame = function(gameId, steamAppId, localPath) {
+        const cleanSteamId = (steamAppId && steamAppId !== 'None' && steamAppId !== 'null' && steamAppId !== 'undefined') ? steamAppId.trim() : '';
+        const isLocalServer = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+        
+        // If we have a Steam App ID and are on a remote client, trigger the local Steam client directly.
+        if (cleanSteamId && !isLocalServer) {
+            window.location.href = `steam://rungameid/${cleanSteamId}`;
         } else {
-            // Launch on the client machine
-            const cleanSteamId = (steamAppId && steamAppId !== 'None' && steamAppId !== 'null' && steamAppId !== 'undefined') ? steamAppId.trim() : '';
-            
-            if (cleanSteamId) {
-                window.location.href = `steam://rungameid/${cleanSteamId}`;
-            } else if (localPath && localPath.trim() !== '' && localPath !== 'None') {
-                const isLocalServer = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
-                if (isLocalServer) {
-                    // Local server: can execute local path via backend
-                    window.location.href = `/relax/game/launch/${gameId}/`;
-                } else {
-                    // Remote client browser: warn about sandbox block and guide setup
-                    alert("⚠️ Browser Security Sandbox Restriction:\n\nDirect launching of local executable paths (e.g. '" + localPath + "') is blocked by your web browser's security sandbox.\n\n💡 Solution: Add this game as a 'Non-Steam Game' in your Steam client, set its Steam App ID in the game editor, and launch it via Steam.");
-                }
-            } else {
-                // Fallback to server launch
-                window.location.href = `/relax/game/launch/${gameId}/`;
-            }
+            // Non-Steam games or local setup: route to server-side launch view
+            // which will trigger the remote Windows launcher daemon on their rig.
+            window.location.href = `/relax/game/launch/${gameId}/`;
         }
     };
 

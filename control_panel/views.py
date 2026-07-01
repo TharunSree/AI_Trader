@@ -6402,6 +6402,18 @@ from django.views.decorators.csrf import csrf_exempt
 def relax_api_process_heartbeat(request):
     import json
     import os
+    from .models import SystemSettings
+    
+    # Auto-register gaming rig IP address based on incoming daemon heartbeat requests
+    client_ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR'))
+    if client_ip:
+        if ',' in client_ip:
+            client_ip = client_ip.split(',')[0].strip()
+        settings = SystemSettings.load()
+        if settings.gaming_rig_ip != client_ip:
+            settings.gaming_rig_ip = client_ip
+            settings.save()
+
     if request.method == 'GET':
         active_games = Game.objects.filter(is_active=True)
         monitored_games = []
