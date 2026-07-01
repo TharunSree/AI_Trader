@@ -6333,7 +6333,9 @@ def relax_api_stop_session(request):
     return JsonResponse({'status': 'ok'})
 
 
-@login_required
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
 def relax_api_process_heartbeat(request):
     import json
     import os
