@@ -748,6 +748,9 @@
 <script>
     // Advanced Local vs Host Launching logic for Multi-System setups
     window.launchGame = function(gameId, steamAppId, localPath) {
+        // Clear browser sessionStorage override so auto-redirection triggers on new game launch
+        sessionStorage.removeItem('exit_immersion');
+        
         // Route all launch requests to the server launch view which registers 
         // the trigger in the file queue, and redirects back to reload the page.
         window.location.href = `/relax/game/launch/${gameId}/`;
@@ -1140,14 +1143,16 @@
 
     // Auto-Immersion Redirection Check
     setInterval(() => {
-        fetch('/relax/api/immersion-status/')
-            .then(res => res.json())
-            .then(data => {
-                if (data.active) {
-                    window.location.href = "{% url 'relax_immersion' %}";
-                }
-            })
-            .catch(err => {});
+        if (!sessionStorage.getItem('exit_immersion')) {
+            fetch('/relax/api/immersion-status/')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.active) {
+                        window.location.href = "{% url 'relax_immersion' %}";
+                    }
+                })
+                .catch(err => {});
+        }
     }, 4000);
 </script>
 {% endblock %}

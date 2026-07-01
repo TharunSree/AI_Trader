@@ -665,6 +665,7 @@
     }
 
     function stopPlayingSession() {
+        sessionStorage.removeItem('exit_immersion');
         fetch('/relax/api/stop-session/', {
             method: 'POST',
             headers: {
@@ -677,6 +678,7 @@
     }
 
     function exitImmersion() {
+        sessionStorage.setItem('exit_immersion', 'true');
         location.href = "{% url 'relax_view' %}";
     }
 

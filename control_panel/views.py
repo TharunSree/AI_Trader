@@ -5325,11 +5325,14 @@ def serve_local_file(request):
         raise Http404("File extension not allowed")
         
     if not os.path.exists(file_path) or not os.path.isfile(file_path):
-        # Fallback to high-quality Unsplash placeholders if running remotely and file is missing
-        if 'cover' in file_path.lower() or 'thumb' in file_path.lower():
-            return redirect("https://images.unsplash.com/photo-1538481199705-c710c4e965fc?q=80&w=350&auto=format&fit=crop")
+        # Fallback to high-quality video or image placeholders
+        if ext in ['.mp4', '.webm', '.mkv', '.avi']:
+            return redirect("https://assets.mixkit.co/videos/preview/mixkit-glass-sphere-spinning-in-purple-neon-light-44754-large.mp4")
         else:
-            return redirect("https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop")
+            if 'cover' in file_path.lower() or 'thumb' in file_path.lower():
+                return redirect("https://images.unsplash.com/photo-1538481199705-c710c4e965fc?q=80&w=350&auto=format&fit=crop")
+            else:
+                return redirect("https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800&auto=format&fit=crop")
             
     # Lookup mime type
     mime_type = "application/octet-stream"
@@ -6356,6 +6359,7 @@ def relax_api_start_timer(request):
 @login_required
 @require_POST
 def relax_api_stop_session(request):
+    from django.core.cache import cache
     active_sessions = GamePlaytimeSession.objects.filter(is_active=True)
     for session in active_sessions:
         session.is_active = False
@@ -6368,6 +6372,9 @@ def relax_api_stop_session(request):
         game = session.game
         game.hours_played += duration / 3600.0
         game.save()
+        
+        # Prevent auto-tracking this game again until it goes inactive on the client
+        cache.set(f"ignore_game_tracking_{game.id}", True, 7200)
         
     return JsonResponse({'status': 'ok'})
 
@@ -6490,6 +6497,19 @@ def relax_api_process_heartbeat(request):
                 hours_played=0.0
             )
             
+        # If this game is currently ignored (user stopped session manually but game is still running), skip tracking updates
+        if game and cache.get(f"ignore_game_tracking_{game.id}"):
+            response_data = {'status': 'ignored', 'game_id': game.id, 'game_name': game.name}
+            if pending_launches:
+                response_data['pending_launches'] = pending_launches
+            return JsonResponse(response_data)
+            
+        # Self-cleaning: clear ignore flags for other games
+        for g in active_games:
+            if game and g.id == game.id:
+                continue
+            cache.delete(f"ignore_game_tracking_{g.id}")
+            
         session = GamePlaytimeSession.objects.filter(game=game, is_active=True).first()
         if not session:
             # Close other active sessions
@@ -6507,6 +6527,10 @@ def relax_api_process_heartbeat(request):
             response_data['pending_launches'] = pending_launches
         return JsonResponse(response_data)
     else:
+        # Clear ignore flags for all games since nothing is running now
+        for g in active_games:
+            cache.delete(f"ignore_game_tracking_{g.id}")
+            
         # Close any active session, but only if they have been inactive for more than 180 seconds (3 mins grace period)
         active_sessions = GamePlaytimeSession.objects.filter(is_active=True)
         for session in active_sessions:
