@@ -6242,7 +6242,7 @@ def relax_add_watchlist_game(request):
     website = request.POST.get('official_website', '').strip()
 
     if name:
-        WatchlistGame.objects.create(
+        game = WatchlistGame.objects.create(
             name=name,
             expected_release_date=release_date,
             business_model=business_model,
@@ -6250,16 +6250,9 @@ def relax_add_watchlist_game(request):
             system_requirements=sys_req,
             official_website=website if website else None
         )
-        # Trigger background crawl thread immediately!
-        import threading
-        from django.core.management import call_command
-        def run_scout():
-            try:
-                call_command('run_relax_monitors')
-            except Exception:
-                pass
-        threading.Thread(target=run_scout, daemon=True).start()
-        messages.success(request, f"Added '{name}' to your Upcoming Games watchlist. Scouting release details and news in the background...")
+        # Scout details from Steam Store API synchronously
+        game.scout_details()
+        messages.success(request, f"Added '{name}' to your upcoming games watchlist and populated specs from Steam successfully!")
     return redirect('relax_watchlist')
 
 

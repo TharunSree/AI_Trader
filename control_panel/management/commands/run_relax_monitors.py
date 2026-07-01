@@ -124,6 +124,9 @@ class Command(BaseCommand):
             rss_url = f"https://news.google.com/rss/search?q={query}&hl=en-US&gl=US&ceid=US:en"
             root = self.fetch_rss_feed(rss_url)
             
+            # 3. Dynamic specs and launch details lookup
+            game.scout_details()
+            
             game.last_checked_at = timezone.now()
             game.save()
 

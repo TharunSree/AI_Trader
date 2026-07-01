@@ -456,6 +456,7 @@ class WatchlistGame(models.Model):
         ('UNKNOWN', 'Unknown'),
     ]
     name = models.CharField(max_length=150)
+    steam_app_id = models.CharField(max_length=50, blank=True, null=True, help_text="Steam App ID if available")
     expected_release_date = models.CharField(max_length=100, blank=True, null=True)
     business_model = models.CharField(max_length=50, choices=BUSINESS_MODELS, default='UNKNOWN')
     price_estimate = models.CharField(max_length=50, blank=True, null=True)
@@ -468,6 +469,103 @@ class WatchlistGame(models.Model):
 
     def __str__(self):
         return self.name
+
+    def scout_details(self):
+        import urllib.request
+        import urllib.parse
+        import json
+        import re
+        from django.utils import timezone
+        from datetime import datetime
+        
+        # Search CheapShark first to find steamAppID if not set
+        if not self.steam_app_id:
+            encoded_title = urllib.parse.quote(self.name)
+            search_url = f"https://www.cheapshark.com/api/1.0/games?title={encoded_title}"
+            try:
+                req = urllib.request.Request(search_url, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(req, timeout=5) as res:
+                    search_data = json.loads(res.read().decode('utf-8'))
+                if search_data:
+                    matched = None
+                    for r in search_data:
+                        if r.get('external', '').lower() == self.name.lower():
+                            matched = r
+                            break
+                    if not matched:
+                        matched = search_data[0]
+                    steam_id = matched.get('steamAppID')
+                    if steam_id and steam_id != 'None':
+                        self.steam_app_id = steam_id
+                        self.save()
+            except Exception:
+                pass
+                
+        # If we have steam_app_id, query Steam Store API
+        if self.steam_app_id:
+            url = f"https://store.steampowered.com/api/appdetails?appids={self.steam_app_id}&cc=in"
+            try:
+                req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(req, timeout=6) as res:
+                    response_data = json.loads(res.read().decode('utf-8'))
+                
+                game_data_outer = response_data.get(str(self.steam_app_id), {})
+                if game_data_outer.get('success'):
+                    data = game_data_outer.get('data', {})
+                    
+                    # 1. Official Website
+                    website = data.get('website')
+                    if website:
+                        self.official_website = website
+                        
+                    # 2. System Requirements (Minimum)
+                    pc_reqs = data.get('pc_requirements', {}).get('minimum', '')
+                    if pc_reqs:
+                        clean_reqs = re.sub('<[^<]+?>', ' ', pc_reqs)
+                        clean_reqs = ' '.join(clean_reqs.split())
+                        clean_reqs = clean_reqs.replace('OS *:', 'OS:')
+                        self.system_requirements = clean_reqs
+                        
+                    # 3. Price Estimate
+                    price_overview = data.get('price_overview')
+                    if price_overview:
+                        final_formatted = price_overview.get('final_formatted', '')
+                        if final_formatted:
+                            self.price_estimate = final_formatted.replace('₹', '').strip()
+                        else:
+                            price_val = price_overview.get('final', 0) / 100
+                            self.price_estimate = str(int(price_val))
+                            
+                    # 4. Release Date
+                    rel_data = data.get('release_date', {})
+                    if rel_data and not rel_data.get('coming_soon'):
+                        date_str = rel_data.get('date', '')
+                        if date_str:
+                            try:
+                                parsed_date = datetime.strptime(date_str, "%d %b, %Y").date()
+                                self.expected_release_date = parsed_date.strftime("%Y-%m-%d")
+                            except Exception:
+                                try:
+                                    parsed_date = datetime.strptime(date_str, "%b %d, %Y").date()
+                                    self.expected_release_date = parsed_date.strftime("%Y-%m-%d")
+                                except Exception:
+                                    self.expected_release_date = date_str
+                    elif rel_data and rel_data.get('coming_soon'):
+                        self.expected_release_date = rel_data.get('date', 'Coming Soon')
+                        
+                    # 5. Business Model
+                    is_free = data.get('is_free', False)
+                    genres = [g.get('description', '').lower() for g in data.get('genres', [])]
+                    if is_free or 'free to play' in genres:
+                        self.business_model = 'F2P'
+                    else:
+                        self.business_model = 'P2P'
+                        
+                    self.save()
+                    return True
+            except Exception:
+                pass
+        return False
 
 
 class BudgetWatchlistGame(models.Model):
