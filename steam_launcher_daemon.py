@@ -1,6 +1,16 @@
 import os
 import sys
 import json
+
+# Redirect stdout and stderr if running under pythonw.exe (where they are None or write-blocked)
+if sys.stdout is None or sys.stderr is None:
+    class DummyWriter:
+        def write(self, data):
+            pass
+        def flush(self):
+            pass
+    sys.stdout = DummyWriter()
+    sys.stderr = DummyWriter()
 import ctypes
 import subprocess
 import threading
@@ -113,6 +123,7 @@ def fetch_monitored_list():
 
 # Thread to periodically report active game heartbeats to Django
 def heartbeat_worker():
+    global monitored_games
     print("Arcade Lounge heartbeat monitor thread started...")
     
     last_tasklist_run = 0
@@ -231,7 +242,6 @@ def heartbeat_worker():
                 
                 # Update monitored games list in real-time from heartbeat response
                 if 'monitored_games' in res_data:
-                    global monitored_games
                     monitored_games = res_data['monitored_games']
                 
                 # Check for pull-based pending launch triggers returned by Django (firewall-proof fallback!)
