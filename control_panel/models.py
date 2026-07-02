@@ -922,3 +922,23 @@ class GamePlaytimeSession(models.Model):
     def __str__(self):
         return f"{self.game.name} Session ({self.start_time})"
 
+    @property
+    def duration_display(self):
+        if self.is_active:
+            return "Running..."
+        total_seconds = self.duration_seconds
+        if total_seconds < 60:
+            return f"{total_seconds} sec"
+        elif total_seconds < 3600:
+            mins = total_seconds // 60
+            secs = total_seconds % 60
+            if secs > 0:
+                return f"{mins} min {secs} sec"
+            return f"{mins} min"
+        else:
+            hrs = total_seconds // 3600
+            mins = (total_seconds % 3600) // 60
+            if mins > 0:
+                return f"{hrs} hr {mins} min"
+            return f"{hrs} hr"
+

@@ -148,8 +148,7 @@
                                         {% if s.is_active %}
                                             <span class="text-amber-400 animate-pulse">Running...</span>
                                         {% else %}
-                                            {{ s.duration_seconds|divisibleby:3600|yesno:"hours,mins" }} 
-                                            {{ s.duration_seconds }} sec
+                                            {{ s.duration_display }}
                                         {% endif %}
                                     </td>
                                 </tr>
