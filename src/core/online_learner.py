@@ -38,16 +38,17 @@ class OnlineLearner:
         # Populated by record_observation(), consumed by record_entry()
         self._obs_cache = {}
 
-        # Stats
+        # Stats — recover from DB so process restarts don't reset progress
         self.completed_trades = 0
         self.total_updates = 0
         self.total_reward = 0.0
         self.win_count = 0
         self.loss_count = 0
+        self._recover_stats_from_db()
 
         self._log_event(
             'INIT',
-            reason=f"Initialized: buffer={buffer_size}, update_every={update_every}, lr={online_lr}"
+            reason=f"Initialized: buffer={buffer_size}, update_every={update_every}, lr={online_lr}, recovered_trades={self.completed_trades}"
         )
 
     # ------------------------------------------------------------------
@@ -227,18 +228,58 @@ class OnlineLearner:
     # PPO Micro-Update
     # ------------------------------------------------------------------
 
-    def maybe_update(self):
-        """Run a PPO micro-update if enough experience has accumulated."""
-        if len(self.experience_buffer) < self.update_every:
-            return False
+    def _recover_stats_from_db(self):
+        """Recover learning stats from DB so process restarts don't reset progress."""
+        if not self.trader_id:
+            return
+        try:
+            from control_panel.models import OnlineLearningLog
+            # Count all EXIT events = completed round-trips
+            exit_count = OnlineLearningLog.objects.filter(
+                trader_id=self.trader_id, event_type='EXIT'
+            ).count()
+            update_count = OnlineLearningLog.objects.filter(
+                trader_id=self.trader_id, event_type='UPDATE'
+            ).count()
 
-        if self.completed_trades % self.update_every != 0:
+            if exit_count > 0:
+                self.completed_trades = exit_count
+                self.total_updates = update_count
+                # Recover win/loss from details JSON of EXIT events
+                exits_with_details = OnlineLearningLog.objects.filter(
+                    trader_id=self.trader_id, event_type='EXIT'
+                ).values_list('details', flat=True)
+                for details in exits_with_details:
+                    if isinstance(details, dict):
+                        reward = details.get('reward', 0.0)
+                        self.total_reward += reward
+                        if reward > 0:
+                            self.win_count += 1
+                        else:
+                            self.loss_count += 1
+
+                logger.info(
+                    f"[ONLINE LEARNING] Recovered stats from DB: "
+                    f"trades={self.completed_trades}, updates={self.total_updates}, "
+                    f"wins={self.win_count}, losses={self.loss_count}"
+                )
+        except Exception as e:
+            logger.warning(f"[ONLINE LEARNING] Could not recover stats from DB: {e}")
+
+    def maybe_update(self):
+        """Run a PPO micro-update if enough experience has accumulated.
+        
+        Fixed: Removed broken `completed_trades % update_every` modulo gate that
+        never fired because process restarts reset the in-memory counter to 0.
+        Now simply checks buffer size — learn whenever we have enough experiences.
+        """
+        if len(self.experience_buffer) < self.update_every:
             return False
 
         experiences = list(self.experience_buffer)
         avg_reward = self.total_reward / max(1, self.completed_trades)
         
-        # Save previous weights
+        # Save previous weights for drift comparison
         prev_weights_filename = f"previous_weights_T{self.trader_id}.pth" if self.trader_id else "previous_weights.pth"
         prev_state_dict = {}
         try:
@@ -259,6 +300,9 @@ class OnlineLearner:
         try:
             self.agent.online_update(memory, lr_override=self.online_lr)
             self.total_updates += 1
+
+            # Clear buffer after successful update to prevent replaying stale experiences
+            self.experience_buffer.clear()
 
             # Compute weight changes summary
             weight_changes = {}

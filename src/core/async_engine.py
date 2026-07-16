@@ -290,19 +290,20 @@ class AITradingEngine:
             logger.debug(f"[POSITION] {self.symbol} | Held: {held_qty:.6f} | Entry: ${bot_entry_price:.2f} | Now: ${current_price:.2f} | P/L: {unrealized_check:.2%}")
                 
         # --- Define TP/SL thresholds — ADAPTIVE based on position size ---
-        # Small accounts ($50-200): take frequent small profits, avoid premature stop-losses
-        # Large accounts ($500+): standard wider thresholds
+        # Fixed: Previous 0.4%/5.0% TP/SL created a 12.5:1 risk-to-reward ratio
+        # where fees ($0.03 round trip) ate the tiny 0.4% gains entirely.
+        # New ratios give trades room to breathe above the fee spread.
         position_value = held_qty * current_price if held_qty > 0 else 0.0
         
         if is_crypto:
             if position_value < 50.0:
-                # MICRO positions (<$50): scalp mode — grab small wins, never sell at loss
-                take_profit_pct = 0.004   # 0.4% gain → sell (e.g. $0.04 on $10)
-                stop_loss_pct   = -0.050  # 5.0% loss → only cut on extreme drops
+                # MICRO positions (<$50): wider TP to clear fees, tighter SL
+                take_profit_pct = 0.015   # 1.5% gain ($0.15 on $10 — 5x fee cost)
+                stop_loss_pct   = -0.020  # 2.0% loss → 1:1.3 R/R ratio
             elif position_value < 200.0:
-                # SMALL positions (<$200): tight profits, relaxed stops
-                take_profit_pct = 0.006   # 0.6% gain
-                stop_loss_pct   = -0.035  # 3.5% loss
+                # SMALL positions (<$200): balanced TP/SL
+                take_profit_pct = 0.015   # 1.5% gain
+                stop_loss_pct   = -0.025  # 2.5% loss
             else:
                 # STANDARD positions ($200+): normal thresholds
                 take_profit_pct = 0.012   # 1.2% gain
@@ -311,23 +312,18 @@ class AITradingEngine:
             take_profit_pct = 0.008   # 0.8% gain (stocks)
             stop_loss_pct   = -0.020  # 2.0% loss (stocks)
 
-        # --- SMART PROFIT GUARD: Block loss sells on small positions ---
+        # --- SMART PROFIT GUARD: Block noise sells within SL range ---
+        # Only blocks sells that are small losses but not yet at stop-loss level.
+        # Fixed: Previous version blocked ALL loss sells on micro positions (<$50),
+        # which meant stop-losses never triggered and positions bled indefinitely.
         if held_qty > 0 and bot_entry_price > 0:
             unrealized_pct = (current_price - bot_entry_price) / bot_entry_price
             
-            if position_value < 50.0 and unrealized_pct < 0:
-                # MICRO positions: NEVER sell at a loss — the absolute dollar loss is
-                # tiny but fees/spread eat disproportionately into small capital
+            if position_value < 200.0 and unrealized_pct < 0 and unrealized_pct > stop_loss_pct:
+                # Block noise sells within SL range — not a true stop-loss yet
                 logger.info(
-                    f"[PROFIT GUARD] Blocking ALL loss sells on micro position {self.symbol} "
-                    f"(${position_value:.2f}) loss {unrealized_pct:.2%}. Holding for recovery."
-                )
-                return
-            elif position_value < 200.0 and unrealized_pct < 0 and unrealized_pct > stop_loss_pct:
-                # SMALL positions: block noise sells within SL range
-                logger.info(
-                    f"[PROFIT GUARD] Blocking noise sell on {self.symbol} — small position "
-                    f"(${position_value:.2f}) loss {unrealized_pct:.2%} is within SL range. Holding."
+                    f"[PROFIT GUARD] Blocking noise sell on {self.symbol} — position "
+                    f"(${position_value:.2f}) loss {unrealized_pct:.2%} is within SL range ({stop_loss_pct:.2%}). Holding."
                 )
                 return
 
@@ -475,8 +471,11 @@ class AITradingEngine:
         
         logger.info(f"[CAPITAL] Balance=${total_balance:.2f} | Tier={protection_tier} | Tradeable=${tradeable:.2f}")
         
-        # [FRACTIONAL OVERRIDE] Physical share bounding removed for Micro-Accounts
-        trade_size_usd = tradeable * (action_confidence * 0.15)
+        # [FRACTIONAL OVERRIDE] Scale position size with AI confidence
+        # Fixed: Old multiplier (0.15) always hit the $10 minimum floor on small accounts.
+        # New multiplier (0.30) allows stronger signals to produce larger, more meaningful positions.
+        sizing_multiplier = 0.30 if is_crypto else 0.15
+        trade_size_usd = tradeable * (action_confidence * sizing_multiplier)
         
         min_notional = 10.0 if is_crypto else 1.0
         
