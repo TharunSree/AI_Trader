@@ -166,6 +166,15 @@ def heartbeat_worker():
                     if name_clean in active_title_clean:
                         matched_game = game
                         break
+                    # Secondary: check if any executable stem appears in the window title
+                    # This catches games like NTE whose window title is "HTGame" not "Neverness to Everness"
+                    for exe in game.get('executables', []):
+                        exe_stem = exe.replace('.exe', '').lower()
+                        if len(exe_stem) >= 4 and exe_stem in active_title_clean:
+                            matched_game = game
+                            break
+                    if matched_game:
+                        break
                     
             if matched_game:
                 # Foreground window title matched the game directly!

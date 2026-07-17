@@ -6504,7 +6504,7 @@ def relax_api_process_heartbeat(request):
         elif 'zenless' in g_lower or 'zzz' in g_lower:
             exes.extend(['zenlesszonezero.exe', 'zzz.exe'])
         elif 'neverness' in g_lower or 'nte' in g_lower:
-            exes.extend(['nte.exe', 'nevernesstoeverness.exe'])
+            exes.extend(['nte.exe', 'nevernesstoeverness.exe', 'ntegloballauncher.exe', 'htgame.exe', 'nteglobal.exe'])
         elif 'forza' in g_lower:
             exes.extend(['forzamotorsportapex.exe', 'forzahorizon4.exe', 'forzahorizon5.exe', 'forzamotorsport.exe', 'forza.exe'])
             
@@ -6588,7 +6588,7 @@ def relax_api_process_heartbeat(request):
                         if 'zenless' in g_norm or 'zzz' in g_norm:
                             game = g
                             break
-                elif 'neverness' in process_name_clean or 'nte' in process_name_clean:
+                elif 'neverness' in process_name_clean or 'nte' in process_name_clean or 'htgame' in process_name_clean or 'ntegloballauncher' in process_name_clean:
                     for g in active_games:
                         g_norm = g.name.lower()
                         if 'neverness' in g_norm or 'nte' in g_norm:
