@@ -166,6 +166,14 @@ def heartbeat_worker():
                     if name_clean in active_title_clean:
                         matched_game = game
                         break
+                    
+                    # Try base name without subtitles (e.g. "The Witcher 3: Wild Hunt" -> "the witcher 3")
+                    name_base = game['name'].split(':')[0].split(' - ')[0].lower().strip()
+                    name_base_clean = " ".join(name_base.split())
+                    if len(name_base_clean) >= 4 and (name_base_clean in active_title_clean or active_title_clean in name_base_clean):
+                        matched_game = game
+                        break
+                        
                     # Secondary: check if any executable stem appears in the window title
                     # This catches games like NTE whose window title is "HTGame" not "Neverness to Everness"
                     for exe in game.get('executables', []):

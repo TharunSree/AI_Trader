@@ -576,6 +576,10 @@ def _build_dashboard_context():
     evolution_total = ModelVariant.objects.count()
     
     # === System Alerts ===
+    # Auto-dismiss alerts older than 7 days to prevent unbounded accumulation
+    from django.utils import timezone as tz
+    cutoff = tz.now() - tz.timedelta(days=7)
+    SystemAlert.objects.filter(is_read=False, timestamp__lt=cutoff).update(is_read=True)
     system_alerts = SystemAlert.objects.filter(is_read=False).order_by('-timestamp')[:10]
     
     # === Latest Report ===
@@ -6507,6 +6511,8 @@ def relax_api_process_heartbeat(request):
             exes.extend(['nte.exe', 'nevernesstoeverness.exe', 'ntegloballauncher.exe', 'htgame.exe', 'nteglobal.exe'])
         elif 'forza' in g_lower:
             exes.extend(['forzamotorsportapex.exe', 'forzahorizon4.exe', 'forzahorizon5.exe', 'forzamotorsport.exe', 'forza.exe'])
+        elif 'witcher' in g_lower:
+            exes.extend(['witcher3.exe', 'witcher.exe'])
             
         monitored_games.append({
             'name': g.name,
@@ -6598,6 +6604,12 @@ def relax_api_process_heartbeat(request):
                     for g in active_games:
                         g_norm = g.name.lower()
                         if 'forza' in g_norm:
+                            game = g
+                            break
+                elif 'witcher' in process_name_clean:
+                    for g in active_games:
+                        g_norm = g.name.lower()
+                        if 'witcher' in g_norm:
                             game = g
                             break
     
