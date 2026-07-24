@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load tz %}
 
 {% block title %}{{ game.name }} Playtime Telemetry{% endblock %}
 {% block page_title %}{{ game.name }} Analytics{% endblock %}
@@ -141,8 +142,8 @@
                         <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
                             {% for s in sessions %}
                                 <tr class="text-slate-700 dark:text-slate-300">
-                                    <td class="py-3">{{ s.start_time|date:"Y-m-d H:i" }}</td>
-                                    <td class="py-3">{{ s.end_time|date:"Y-m-d H:i"|default:"Active Playing..." }}</td>
+                                    <td class="py-3">{{ s.start_time|localtime|date:"Y-m-d h:i A" }}</td>
+                                    <td class="py-3">{% if s.end_time %}{{ s.end_time|localtime|date:"Y-m-d h:i A" }}{% else %}<span class="text-amber-500 animate-pulse">Active Playing...</span>{% endif %}</td>
                                     <td class="py-3">
                                         {% if s.is_active %}
                                             <span class="badge font-mono py-1 px-2.5 bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30">

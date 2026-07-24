@@ -6112,7 +6112,7 @@ def cleanup_and_merge_sessions(game=None):
                     s.duration_seconds = calc_dur
                     s.save(update_fields=['duration_seconds'])
                     
-        # Merge close sessions (gap between start of next and end of previous <= 600s / 10m)
+        # Merge close sessions (gap between start of next and end of previous <= 180s / 3m)
         i = 0
         while i < len(sessions) - 1:
             curr = sessions[i]
@@ -6122,7 +6122,7 @@ def cleanup_and_merge_sessions(game=None):
             nxt_start = nxt.start_time
             
             gap = (nxt_start - curr_end).total_seconds()
-            if gap <= 600:
+            if gap <= 180:
                 if nxt.is_active or curr.is_active:
                     curr.is_active = True
                     curr.end_time = None
@@ -6742,8 +6742,8 @@ def relax_api_process_heartbeat(request):
             
         session = GamePlaytimeSession.objects.filter(game=game, is_active=True).first()
         if not session:
-            # Check if there is a recently ended session for this game (within 10 mins / 600s)
-            cutoff = timezone.now() - timedelta(minutes=10)
+            # Check if there is a recently ended session for this game (within 3 mins / 180s)
+            cutoff = timezone.now() - timedelta(minutes=3)
             recent = GamePlaytimeSession.objects.filter(
                 game=game, is_active=False, end_time__gte=cutoff
             ).order_by('-end_time').first()
