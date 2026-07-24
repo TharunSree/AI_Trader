@@ -6104,6 +6104,13 @@ def cleanup_and_merge_sessions(game=None):
         if not sessions:
             continue
             
+        # Auto-close stale active sessions older than 5 minutes (300s) without heartbeats
+        from django.core.cache import cache
+        for s in list(GamePlaytimeSession.objects.filter(game=g, is_active=True)):
+            last_active = cache.get(f"game_session_active_{s.id}")
+            if not last_active or (timezone.now() - last_active).total_seconds() > 300:
+                close_game_session(s)
+
         # Fix 0 or missing duration_seconds on completed sessions
         for s in sessions:
             if not s.is_active and s.end_time and s.start_time:
@@ -6741,6 +6748,13 @@ def relax_api_process_heartbeat(request):
             cache.delete(f"ignore_game_tracking_{g.id}")
             
         session = GamePlaytimeSession.objects.filter(game=game, is_active=True).first()
+        if session:
+            # Stale session check: if last heartbeat is missing or older than 5 minutes (300s), close yesterday's/stale session
+            last_active = cache.get(f"game_session_active_{session.id}")
+            if not last_active or (timezone.now() - last_active).total_seconds() > 300:
+                close_game_session(session)
+                session = None
+
         if not session:
             # Check if there is a recently ended session for this game (within 3 mins / 180s)
             cutoff = timezone.now() - timedelta(minutes=3)
