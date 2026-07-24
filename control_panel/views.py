@@ -6075,8 +6075,17 @@ def close_game_session(session):
     session.end_time = timezone.now()
     duration = max(1, int((session.end_time - session.start_time).total_seconds()))
     session.duration_seconds = duration
-    session.save()
     
+    # If duration is less than 30 seconds, discard it as a false positive/accidental blip
+    if duration < 30:
+        game = session.game
+        session.delete()
+        recalculate_game_playtime(game)
+        from django.core.cache import cache
+        cache.delete(f"game_session_active_{session.id}")
+        return
+
+    session.save()
     recalculate_game_playtime(session.game)
     from django.core.cache import cache
     cache.delete(f"game_session_active_{session.id}")
@@ -6086,7 +6095,8 @@ def cleanup_and_merge_sessions(game=None):
     """
     1. Computes missing duration_seconds for past completed sessions.
     2. Merges close/fragmented sessions for the same game (gap <= 10 minutes).
-    3. Recalculates total hours_played for affected games.
+    3. Purges standalone micro sessions (< 30 seconds).
+    4. Recalculates total hours_played for affected games.
     """
     games = [game] if game else list(Game.objects.filter(is_active=True))
     for g in games:
@@ -6127,6 +6137,11 @@ def cleanup_and_merge_sessions(game=None):
             else:
                 i += 1
                 
+        # Purge any standalone micro sessions (< 30 seconds) that were not merged
+        for s in list(GamePlaytimeSession.objects.filter(game=g, is_active=False)):
+            if s.duration_seconds < 30:
+                s.delete()
+
         recalculate_game_playtime(g)
 
 
@@ -6580,8 +6595,13 @@ def relax_api_process_heartbeat(request):
             exes.extend(['zenlesszonezero.exe', 'zzz.exe'])
         elif 'neverness' in g_lower or 'nte' in g_lower:
             exes.extend(['nte.exe', 'nevernesstoeverness.exe', 'ntegloballauncher.exe', 'htgame.exe', 'nteglobal.exe'])
-        elif 'forza' in g_lower:
-            exes.extend(['forzamotorsportapex.exe', 'forzahorizon4.exe', 'forzahorizon5.exe', 'forzamotorsport.exe', 'forza.exe'])
+        elif 'forza' in g_lower or 'fh' in g_lower:
+            exes.extend([
+                'forzamotorsportapex.exe', 'forzahorizon4.exe', 'forzahorizon5.exe',
+                'forzahorizon6.exe', 'forzamotorsport.exe', 'forza.exe',
+                'fh6.exe', 'fh5.exe', 'fh4.exe', 'fh.exe',
+                'forza_x64_release.final.exe', 'forzahorizon5_x64.exe'
+            ])
         elif 'witcher' in g_lower:
             exes.extend(['witcher3.exe', 'witcher.exe'])
             
@@ -6671,10 +6691,10 @@ def relax_api_process_heartbeat(request):
                         if 'neverness' in g_norm or 'nte' in g_norm:
                             game = g
                             break
-                elif 'forza' in process_name_clean:
+                elif 'forza' in process_name_clean or 'fh' in process_name_clean or 'horizon' in process_name_clean:
                     for g in active_games:
                         g_norm = g.name.lower()
-                        if 'forza' in g_norm:
+                        if 'forza' in g_norm or 'fh' in g_norm:
                             game = g
                             break
                 elif 'witcher' in process_name_clean:

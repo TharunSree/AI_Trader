@@ -207,6 +207,27 @@ def heartbeat_worker():
                             break
                     if is_running:
                         break
+
+                # Additional keyword fallback check for processes (e.g. forzahorizon, fh6, etc.)
+                if not is_running:
+                    for game in monitored_games:
+                        g_low = game['name'].lower()
+                        keywords = []
+                        if 'forza' in g_low or 'fh' in g_low:
+                            keywords = ['forza', 'fh6', 'fh5', 'fh4']
+                        elif 'witcher' in g_low:
+                            keywords = ['witcher']
+                        elif 'neverness' in g_low or 'nte' in g_low:
+                            keywords = ['htgame', 'nte']
+                        
+                        if keywords:
+                            for proc in running_executables:
+                                if any(kw in proc for kw in keywords):
+                                    active_process = proc
+                                    is_running = True
+                                    break
+                        if is_running:
+                            break
             
             # Print transition logs to the terminal for debugging
             if is_running != last_state or active_process != last_process:
