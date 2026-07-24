@@ -224,8 +224,26 @@
                         ticks: { color: '#94a3b8', font: { family: 'monospace', size: 10 } }
                     }
                 }
-            }
         });
+
+        // Live Auto-Refresh for Active Game Session Badges & Telemetry
+        let isCurrentlyLive = {% if game.sessions.first and game.sessions.first.is_active %}true{% else %}false{% endif %};
+        const currentGameId = {{ game.id }};
+
+        function pollSessionStatus() {
+            fetch('/relax/api/immersion-status/')
+                .then(res => res.json())
+                .then(data => {
+                    const sessionIsActive = data.active && data.game_id === currentGameId;
+                    if (isCurrentlyLive !== sessionIsActive) {
+                        // Session status changed (started or ended)! Auto-refresh page to update badges
+                        location.reload();
+                    }
+                })
+                .catch(e => console.log("Poll status check:", e));
+        }
+
+        setInterval(pollSessionStatus, 5000);
     });
 </script>
 </div>

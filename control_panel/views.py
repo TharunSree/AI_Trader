@@ -6485,6 +6485,7 @@ def relax_api_immersion_status(request):
     return JsonResponse({
         'active': True,
         'session_id': active_session.id,
+        'game_id': active_session.game.id,
         'game_name': active_session.game.name,
         'cover_image_url': active_session.game.cover_image_url or '',
         'animated_bg_url': active_session.game.animated_bg_url or '',
