@@ -927,6 +927,10 @@ class GamePlaytimeSession(models.Model):
         if self.is_active:
             return "Running..."
         total_seconds = self.duration_seconds
+        if (total_seconds is None or total_seconds <= 0) and self.start_time and self.end_time:
+            total_seconds = max(1, int((self.end_time - self.start_time).total_seconds()))
+        if not total_seconds or total_seconds <= 0:
+            return "0 sec"
         if total_seconds < 60:
             return f"{total_seconds} sec"
         elif total_seconds < 3600:

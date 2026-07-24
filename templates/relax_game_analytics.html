@@ -134,7 +134,7 @@
                             <tr class="text-slate-500 border-b border-slate-200 dark:border-slate-800">
                                 <th class="py-2.5">Start Time</th>
                                 <th class="py-2.5">End Time</th>
-                                <th class="py-2.5">Limit (Mins)</th>
+                                <th class="py-2.5">Session Status</th>
                                 <th class="py-2.5 text-right">Duration</th>
                             </tr>
                         </thead>
@@ -143,7 +143,25 @@
                                 <tr class="text-slate-700 dark:text-slate-300">
                                     <td class="py-3">{{ s.start_time|date:"Y-m-d H:i" }}</td>
                                     <td class="py-3">{{ s.end_time|date:"Y-m-d H:i"|default:"Active Playing..." }}</td>
-                                    <td class="py-3">{{ s.limit_minutes|default:"Unlimited" }}</td>
+                                    <td class="py-3">
+                                        {% if s.is_active %}
+                                            <span class="badge font-mono py-1 px-2.5 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400">
+                                                <i class="fas fa-play text-[9px] me-1 animate-pulse"></i> Live Playing
+                                            </span>
+                                        {% elif s.duration_seconds >= 7200 %}
+                                            <span class="badge font-mono py-1 px-2.5 bg-purple-500/20 border border-purple-500/30 text-purple-300">
+                                                <i class="fas fa-fire text-[9px] me-1 text-amber-400"></i> Marathon (2h+)
+                                            </span>
+                                        {% elif s.duration_seconds >= 1800 %}
+                                            <span class="badge font-mono py-1 px-2.5 bg-blue-500/20 border border-blue-500/30 text-blue-300">
+                                                <i class="fas fa-gamepad text-[9px] me-1"></i> Standard
+                                            </span>
+                                        {% else %}
+                                            <span class="badge font-mono py-1 px-2.5 bg-slate-500/20 border border-slate-500/30 text-slate-400">
+                                                <i class="fas fa-bolt text-[9px] me-1 text-amber-300"></i> Quick Play
+                                            </span>
+                                        {% endif %}
+                                    </td>
                                     <td class="py-3 text-right text-cyan-400 font-bold">
                                         {% if s.is_active %}
                                             <span class="text-amber-400 animate-pulse">Running...</span>

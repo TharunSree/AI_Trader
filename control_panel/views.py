@@ -6052,8 +6052,87 @@ from django.conf import settings
 from django.contrib import messages
 from .models import Game, GameBetaInfo, WatchlistGame, BudgetWatchlistGame, GamePlaytimeSession
 
+def recalculate_game_playtime(game):
+    if not game:
+        return
+    total_sec = GamePlaytimeSession.objects.filter(
+        game=game, is_active=False
+    ).aggregate(total=Sum('duration_seconds'))['total'] or 0
+    active = GamePlaytimeSession.objects.filter(game=game, is_active=True).first()
+    active_sec = 0
+    if active and active.start_time:
+        active_sec = max(0, int((timezone.now() - active.start_time).total_seconds()))
+    
+    total_hours = ((total_sec + active_sec) / 3600.0) + (game.playtime_offset or 0.0)
+    game.hours_played = round(total_hours, 2)
+    game.save(update_fields=['hours_played'])
+
+
+def close_game_session(session):
+    if not session or not session.is_active:
+        return
+    session.is_active = False
+    session.end_time = timezone.now()
+    duration = max(1, int((session.end_time - session.start_time).total_seconds()))
+    session.duration_seconds = duration
+    session.save()
+    
+    recalculate_game_playtime(session.game)
+    from django.core.cache import cache
+    cache.delete(f"game_session_active_{session.id}")
+
+
+def cleanup_and_merge_sessions(game=None):
+    """
+    1. Computes missing duration_seconds for past completed sessions.
+    2. Merges close/fragmented sessions for the same game (gap <= 10 minutes).
+    3. Recalculates total hours_played for affected games.
+    """
+    games = [game] if game else list(Game.objects.filter(is_active=True))
+    for g in games:
+        sessions = list(GamePlaytimeSession.objects.filter(game=g).order_by('start_time'))
+        if not sessions:
+            continue
+            
+        # Fix 0 or missing duration_seconds on completed sessions
+        for s in sessions:
+            if not s.is_active and s.end_time and s.start_time:
+                calc_dur = max(1, int((s.end_time - s.start_time).total_seconds()))
+                if s.duration_seconds <= 0 or abs(s.duration_seconds - calc_dur) > 5:
+                    s.duration_seconds = calc_dur
+                    s.save(update_fields=['duration_seconds'])
+                    
+        # Merge close sessions (gap between start of next and end of previous <= 600s / 10m)
+        i = 0
+        while i < len(sessions) - 1:
+            curr = sessions[i]
+            nxt = sessions[i + 1]
+            
+            curr_end = curr.end_time or (curr.start_time + timedelta(seconds=curr.duration_seconds)) if curr.duration_seconds else curr.start_time
+            nxt_start = nxt.start_time
+            
+            gap = (nxt_start - curr_end).total_seconds()
+            if gap <= 600:
+                if nxt.is_active or curr.is_active:
+                    curr.is_active = True
+                    curr.end_time = None
+                    curr.duration_seconds = 0
+                else:
+                    curr.end_time = max(curr_end, nxt.end_time or nxt_start)
+                    curr.duration_seconds = max(1, int((curr.end_time - curr.start_time).total_seconds()))
+                curr.save()
+                
+                nxt.delete()
+                sessions.pop(i + 1)
+            else:
+                i += 1
+                
+        recalculate_game_playtime(g)
+
+
 @login_required
 def relax_analytics_view(request):
+    cleanup_and_merge_sessions()
     games = Game.objects.filter(is_active=True)
     
     # Sort games list in memory by normalized density (Hours/Year)
@@ -6138,6 +6217,7 @@ def relax_analytics_view(request):
 @login_required
 def relax_game_detail_analytics_view(request, game_id):
     game = get_object_or_404(Game, id=game_id, is_active=True)
+    cleanup_and_merge_sessions(game)
     sessions = GamePlaytimeSession.objects.filter(game=game).order_by('-start_time')[:10]
     
     # 7-day playtime chart for just this game
@@ -6435,19 +6515,9 @@ def relax_api_stop_session(request):
     from django.core.cache import cache
     active_sessions = GamePlaytimeSession.objects.filter(is_active=True)
     for session in active_sessions:
-        session.is_active = False
-        session.end_time = timezone.now()
-        duration = (session.end_time - session.start_time).total_seconds()
-        session.duration_seconds = int(duration)
-        session.save()
-
-        # Update game total hours
-        game = session.game
-        game.hours_played += duration / 3600.0
-        game.save()
-        
-        # Prevent auto-tracking this game again until it goes inactive on the client
-        cache.set(f"ignore_game_tracking_{game.id}", True, 7200)
+        game_id = session.game_id
+        close_game_session(session)
+        cache.set(f"ignore_game_tracking_{game_id}", True, 7200)
         
     return JsonResponse({'status': 'ok'})
 
@@ -6651,12 +6721,23 @@ def relax_api_process_heartbeat(request):
             
         session = GamePlaytimeSession.objects.filter(game=game, is_active=True).first()
         if not session:
-            # Close other active sessions
-            GamePlaytimeSession.objects.filter(is_active=True).update(
-                is_active=False,
-                end_time=timezone.now()
-            )
-            session = GamePlaytimeSession.objects.create(game=game, is_active=True)
+            # Check if there is a recently ended session for this game (within 10 mins / 600s)
+            cutoff = timezone.now() - timedelta(minutes=10)
+            recent = GamePlaytimeSession.objects.filter(
+                game=game, is_active=False, end_time__gte=cutoff
+            ).order_by('-end_time').first()
+            
+            if recent:
+                session = recent
+                session.is_active = True
+                session.end_time = None
+                session.save()
+            else:
+                # Close active sessions for other games properly!
+                for other in GamePlaytimeSession.objects.filter(is_active=True):
+                    if other.game_id != game.id:
+                        close_game_session(other)
+                session = GamePlaytimeSession.objects.create(game=game, is_active=True)
             
         # Update last active timestamp in cache
         cache.set(f"game_session_active_{session.id}", timezone.now(), 600)  # 10 minute cache TTL
@@ -6686,18 +6767,7 @@ def relax_api_process_heartbeat(request):
                     continue
             
             # Exceeded grace period, close session
-            session.is_active = False
-            session.end_time = timezone.now()
-            duration = (session.end_time - session.start_time).total_seconds()
-            session.duration_seconds = int(duration)
-            session.save()
-            
-            game = session.game
-            game.hours_played += duration / 3600.0
-            game.save()
-            
-            # Clean up cache
-            cache.delete(f"game_session_active_{session.id}")
+            close_game_session(session)
             
         response_data = {
             'status': 'inactive',
