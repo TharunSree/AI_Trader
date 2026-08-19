@@ -6728,13 +6728,13 @@ def relax_api_process_heartbeat(request):
                         if 'zenless' in g_norm or 'zzz' in g_norm:
                             game = g
                             break
-                elif 'neverness' in process_name_clean or 'nte' in process_name_clean or 'htgame' in process_name_clean or 'ntegloballauncher' in process_name_clean:
+                elif 'neverness' in process_name_clean or 'htgame' in process_name_clean or process_name_clean.startswith('nte') or process_name_clean in ['nte.exe', 'nteglobal.exe', 'ntegloballauncher.exe']:
                     for g in active_games:
                         g_norm = g.name.lower()
                         if 'neverness' in g_norm or 'nte' in g_norm:
                             game = g
                             break
-                elif 'forza' in process_name_clean or 'fh' in process_name_clean or 'horizon' in process_name_clean:
+                elif 'forza' in process_name_clean or 'horizon' in process_name_clean or process_name_clean.startswith('fh') or process_name_clean in ['fh.exe', 'fh4.exe', 'fh5.exe', 'fh6.exe']:
                     for g in active_games:
                         g_norm = g.name.lower()
                         if 'forza' in g_norm or 'fh' in g_norm:

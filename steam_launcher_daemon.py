@@ -218,7 +218,7 @@ def heartbeat_worker():
                         elif 'witcher' in g_low:
                             keywords = ['witcher']
                         elif 'neverness' in g_low or 'nte' in g_low:
-                            keywords = ['htgame', 'nte']
+                            keywords = ['htgame', 'neverness', 'ntegloballauncher', 'nteglobal', 'nte.exe']
                         
                         if keywords:
                             for proc in running_executables:
