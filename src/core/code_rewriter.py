@@ -276,27 +276,47 @@ class _UnifiedAIClient:
         raise ValueError(f"No AI API key or module found! {debug_msg}")
 
     def generate(self, prompt, temperature=0.4):
-        """Generate text from any provider. Returns the raw response text."""
+        """Generate text from any provider. Returns the raw response text with 429 fallback handling."""
         if self.provider == 'gemini':
-            if hasattr(self, '_gemini_api_key'):
-                import requests
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={self._gemini_api_key}"
-                headers = {"Content-Type": "application/json"}
-                data = {
-                    "contents": [{"parts": [{"text": prompt}]}],
-                    "generationConfig": {"temperature": temperature}
-                }
-                resp = requests.post(url, headers=headers, json=data)
-                if resp.status_code != 200:
-                    raise RuntimeError(f"Gemini API Error: {resp.text}")
-                return resp.json()['candidates'][0]['content']['parts'][0]['text']
-            else:
-                response = self._client.models.generate_content(
-                    model='gemini-2.5-flash',
-                    contents=prompt,
-                    config=genai_types.GenerateContentConfig(temperature=temperature),
-                )
-                return response.text
+            import time
+            fallback_models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
+            last_err = None
+            
+            for m in fallback_models:
+                for attempt in range(2):
+                    try:
+                        if hasattr(self, '_gemini_api_key'):
+                            import requests
+                            url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={self._gemini_api_key}"
+                            headers = {"Content-Type": "application/json"}
+                            data = {
+                                "contents": [{"parts": [{"text": prompt}]}],
+                                "generationConfig": {"temperature": temperature}
+                            }
+                            resp = requests.post(url, headers=headers, json=data, timeout=30)
+                            if resp.status_code != 200:
+                                if resp.status_code == 429:
+                                    print(f"[COGNITIVE REWRITER] Gemini {m} 429 Quota Exceeded. Retrying in {3 * (attempt + 1)}s...")
+                                    time.sleep(3 * (attempt + 1))
+                                    continue
+                                raise RuntimeError(f"Gemini API Error ({m}): {resp.text}")
+                            return resp.json()['candidates'][0]['content']['parts'][0]['text']
+                        else:
+                            response = self._client.models.generate_content(
+                                model=m,
+                                contents=prompt,
+                                config=genai_types.GenerateContentConfig(temperature=temperature),
+                            )
+                            return response.text
+                    except Exception as e:
+                        last_err = e
+                        err_str = str(e)
+                        if '429' in err_str or 'RESOURCE_EXHAUSTED' in err_str:
+                            print(f"[COGNITIVE REWRITER] Gemini {m} rate limited (429). Trying fallback model...")
+                            time.sleep(2)
+                            break
+                        raise e
+            raise RuntimeError(f"All Gemini models exhausted: {last_err}")
 
         elif self.provider == 'openai':
             response = self._client.chat.completions.create(

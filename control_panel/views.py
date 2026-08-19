@@ -6061,7 +6061,16 @@ def recalculate_game_playtime(game):
     active = GamePlaytimeSession.objects.filter(game=game, is_active=True).first()
     active_sec = 0
     if active and active.start_time:
-        active_sec = max(0, int((timezone.now() - active.start_time).total_seconds()))
+        from django.core.cache import cache
+        last_active = cache.get(f"game_session_active_{active.id}")
+        if last_active:
+            active_sec = max(0, int((last_active - active.start_time).total_seconds()))
+        else:
+            elapsed = (timezone.now() - active.start_time).total_seconds()
+            if elapsed > 1800:
+                active_sec = 1800  # Cap active duration at 30 mins if cache key expired
+            else:
+                active_sec = max(0, int(elapsed))
     
     total_hours = ((total_sec + active_sec) / 3600.0) + (game.playtime_offset or 0.0)
     game.hours_played = round(total_hours, 2)
@@ -6071,9 +6080,27 @@ def recalculate_game_playtime(game):
 def close_game_session(session):
     if not session or not session.is_active:
         return
+    from django.core.cache import cache
     session.is_active = False
-    session.end_time = timezone.now()
+    
+    last_active = cache.get(f"game_session_active_{session.id}")
+    if last_active:
+        session.end_time = last_active
+    else:
+        # Cache key expired! Do NOT set end_time to now (18 hours later).
+        elapsed = (timezone.now() - session.start_time).total_seconds()
+        if elapsed > 1800:
+            session.end_time = session.start_time + timedelta(minutes=15)
+        else:
+            session.end_time = timezone.now()
+
     duration = max(1, int((session.end_time - session.start_time).total_seconds()))
+    
+    # Absolute safety cap: No single session can log > 8 hours without active heartbeats
+    if duration > 28800:
+        duration = 1800  # Reset stale 18-hour session to 30 mins
+        session.end_time = session.start_time + timedelta(minutes=30)
+
     session.duration_seconds = duration
     
     # If duration is less than 30 seconds, discard it as a false positive/accidental blip
@@ -6081,25 +6108,32 @@ def close_game_session(session):
         game = session.game
         session.delete()
         recalculate_game_playtime(game)
-        from django.core.cache import cache
         cache.delete(f"game_session_active_{session.id}")
         return
 
     session.save()
     recalculate_game_playtime(session.game)
-    from django.core.cache import cache
     cache.delete(f"game_session_active_{session.id}")
 
 
 def cleanup_and_merge_sessions(game=None):
     """
-    1. Computes missing duration_seconds for past completed sessions.
-    2. Merges close/fragmented sessions for the same game (gap <= 10 minutes).
-    3. Purges standalone micro sessions (< 30 seconds).
-    4. Recalculates total hours_played for affected games.
+    1. Sanitizes corrupted past sessions (> 8 hours / 28800s).
+    2. Computes missing duration_seconds for past completed sessions.
+    3. Merges close/fragmented sessions for the same game (gap <= 3 minutes).
+    4. Purges standalone micro sessions (< 30 seconds).
+    5. Recalculates total hours_played for affected games.
     """
     games = [game] if game else list(Game.objects.filter(is_active=True))
     for g in games:
+        # Sanitize corrupted/stale sessions (> 8 hours) in DB
+        corrupted = GamePlaytimeSession.objects.filter(game=g, duration_seconds__gt=28800)
+        for c in corrupted:
+            c.duration_seconds = 1800  # Reset corrupted 18h sessions to 30m
+            if c.start_time:
+                c.end_time = c.start_time + timedelta(minutes=30)
+            c.save(update_fields=['duration_seconds', 'end_time'])
+
         sessions = list(GamePlaytimeSession.objects.filter(game=g).order_by('start_time'))
         if not sessions:
             continue
@@ -6115,6 +6149,8 @@ def cleanup_and_merge_sessions(game=None):
         for s in sessions:
             if not s.is_active and s.end_time and s.start_time:
                 calc_dur = max(1, int((s.end_time - s.start_time).total_seconds()))
+                if calc_dur > 28800:
+                    calc_dur = 1800
                 if s.duration_seconds <= 0 or abs(s.duration_seconds - calc_dur) > 5:
                     s.duration_seconds = calc_dur
                     s.save(update_fields=['duration_seconds'])

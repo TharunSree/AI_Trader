@@ -351,35 +351,28 @@ class VirtualPaperEngine:
             unrealized_pct = (current_price - entry_price) / entry_price
             position_value = held_qty * current_price
             
-            # --- Define TP/SL thresholds — ADAPTIVE based on position size ---
+            # --- Define TP/SL thresholds — ADAPTIVE with POSITIVE Risk-to-Reward ratio ---
             if is_crypto:
                 if position_value < 50.0:
-                    tp = 0.004   # 0.4% gain
-                    sl = -0.050  # 5.0% loss
+                    tp = 0.020   # +2.0% gain ($0.20 on $10 — clears fee spread)
+                    sl = -0.015  # -1.5% loss → 1.33:1 Risk/Reward
                 elif position_value < 200.0:
-                    tp = 0.006   # 0.6% gain
-                    sl = -0.035  # 3.5% loss
+                    tp = 0.018   # +1.8% gain
+                    sl = -0.015  # -1.5% loss → 1.2:1 Risk/Reward
                 else:
-                    tp = 0.012   # 1.2% gain
-                    sl = -0.020  # 2.0% loss
+                    tp = 0.018   # +1.8% gain
+                    sl = -0.012  # -1.2% loss → 1.5:1 Risk/Reward
             else:
-                tp = 0.008   # 0.8% gain
-                sl = -0.020  # 2.0% loss
+                tp = 0.018   # +1.8% gain (stocks)
+                sl = -0.015  # -1.5% loss (stocks) → 1.2:1 Risk/Reward
 
-            # --- SMART PROFIT GUARD: Block loss sells on small positions ---
-            if unrealized_pct < 0:
-                if position_value < 50.0:
-                    logger.info(
-                        f"[EVOLUTION PROFIT GUARD] Blocking ALL loss sells on micro position {symbol} "
-                        f"(${position_value:.2f}) loss {unrealized_pct:.2%}. Holding for recovery."
-                    )
-                    return
-                elif position_value < 200.0 and unrealized_pct > sl:
-                    logger.info(
-                        f"[EVOLUTION PROFIT GUARD] Blocking noise sell on {symbol} — small position "
-                        f"(${position_value:.2f}) loss {unrealized_pct:.2%} is within SL range. Holding."
-                    )
-                    return
+            # --- SMART PROFIT GUARD: Block noise sells within SL range ---
+            if unrealized_pct < 0 and unrealized_pct > sl:
+                logger.info(
+                    f"[EVOLUTION PROFIT GUARD] Blocking noise sell on {symbol} — position "
+                    f"(${position_value:.2f}) loss {unrealized_pct:.2%} is within SL range ({sl:.2%}). Holding."
+                )
+                return
 
             if unrealized_pct >= tp:
                 logger.info(f"[EVOLUTION TP] {symbol} gain {unrealized_pct:.2%} ≥ {tp:.2%} → virtual SELL")
@@ -388,10 +381,10 @@ class VirtualPaperEngine:
                 logger.info(f"[EVOLUTION SL] {symbol} loss {unrealized_pct:.2%} ≤ {sl:.2%} → virtual SELL")
                 action_val = -1.0
         
-        # Determine side
+        # Determine side — Require symmetric conviction threshold (0.15 / -0.15)
         if action_val > 0.15:
             side = 'buy'
-        elif action_val < -0.01:
+        elif action_val < -0.15:
             side = 'sell'
         else:
             return

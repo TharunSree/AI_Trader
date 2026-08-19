@@ -297,20 +297,20 @@ class AITradingEngine:
         
         if is_crypto:
             if position_value < 50.0:
-                # MICRO positions (<$50): wider TP to clear fees, tighter SL
-                take_profit_pct = 0.015   # 1.5% gain ($0.15 on $10 — 5x fee cost)
-                stop_loss_pct   = -0.020  # 2.0% loss → 1:1.3 R/R ratio
+                # MICRO positions (<$50): wider TP to clear fees spread
+                take_profit_pct = 0.020   # 2.0% gain ($0.20 on $10 — 6x fee cost)
+                stop_loss_pct   = -0.015  # 1.5% loss → 1.33:1 R/R ratio
             elif position_value < 200.0:
-                # SMALL positions (<$200): balanced TP/SL
-                take_profit_pct = 0.015   # 1.5% gain
-                stop_loss_pct   = -0.025  # 2.5% loss
+                # SMALL positions (<$200): positive R/R ratio
+                take_profit_pct = 0.018   # 1.8% gain
+                stop_loss_pct   = -0.015  # 1.5% loss → 1.2:1 R/R ratio
             else:
                 # STANDARD positions ($200+): normal thresholds
-                take_profit_pct = 0.012   # 1.2% gain
-                stop_loss_pct   = -0.020  # 2.0% loss
+                take_profit_pct = 0.018   # 1.8% gain
+                stop_loss_pct   = -0.012  # 1.2% loss → 1.5:1 R/R ratio
         else:
-            take_profit_pct = 0.008   # 0.8% gain (stocks)
-            stop_loss_pct   = -0.020  # 2.0% loss (stocks)
+            take_profit_pct = 0.018   # 1.8% gain (stocks)
+            stop_loss_pct   = -0.015  # 1.5% loss (stocks) → 1.2:1 R/R ratio
 
         # --- SMART PROFIT GUARD: Block noise sells within SL range ---
         # Only blocks sells that are small losses but not yet at stop-loss level.

@@ -69,6 +69,20 @@ def _delete_failed_variant(variant, reason_msg):
             message=alert_msg,
             related_model_reference=str(variant.id)
         )
+        
+        # Email notification for failed evolution variant
+        from django.core.mail import send_mail
+        from control_panel.models import SystemSettings
+        sys_settings = SystemSettings.load()
+        if sys_settings.notify_eod:
+            recipient = getattr(django_settings, 'DEFAULT_FROM_EMAIL', '') or 'admin@aitrader.com'
+            send_mail(
+                subject=f"[AI Evolution] Variant #{variant.id} ({variant.name}) Failed",
+                message=f"Reason: {reason_msg}\n\nNet PnL: {variant.virtual_pnl_pct:+.2f}%\nTotal Trades: {variant.virtual_trades_count}\nWin Rate: {variant.win_rate:.1f}%\n\nFull details available in System Alerts dashboard.",
+                from_email=None,
+                recipient_list=[recipient],
+                fail_silently=True
+            )
     except Exception as alert_err:
         print(f"  [EVOLUTION EVAL] Failed to write SystemAlert: {alert_err}")
 
